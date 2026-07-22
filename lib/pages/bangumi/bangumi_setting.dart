@@ -213,7 +213,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   GestureDetector(
                     onTap: () async {
                       final url =
-                          Uri.parse('https://next.bgm.tv/demo/access-token');
+                          Uri.parse('https://qlyyz.xyz/getaccesstoken.html');
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url,
                             mode: LaunchMode.externalApplication);
