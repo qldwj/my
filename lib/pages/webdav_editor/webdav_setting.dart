@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
@@ -7,6 +8,8 @@ import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+// 新增导入官方同步页面
+import 'package:kazumi/pages/settings/official_sync_editor_page.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
   const WebDavSettingsPage({super.key});
@@ -125,8 +128,13 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    // 跳转新建的官方同步登录注册配置页
-                    await context.pushNamed('/settings/official_sync/editor');
+                    // 替换为原生Navigator跳转，彻底告别pushNamed路由查找
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OfficialSyncEditorPage(),
+                      ),
+                    );
                     // 返回后刷新开关状态
                     officialSyncEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable) ?? false;
                     setState(() {});
