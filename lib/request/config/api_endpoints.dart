@@ -1,6 +1,6 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.1.1';
+  static const String version = '2.2.1.2';
 
   /// 规则API级别
   static const int apiLevel = 8;
@@ -12,7 +12,7 @@ class ApiEndpoints {
   static const String sourceUrl = "https://github.com/qldwj/Kazumikfc";
 
   /// 图标作者
-  static const String iconUrl = "https://www.pixiv.net/users/66219277";
+  static const String iconUrl = "https://www.pixiv.net/users/127095445";
 
   /// 规则仓库
   static const String pluginShop =
@@ -135,3 +135,4 @@ class ApiEndpoints {
     return url;
   }
 }
+
