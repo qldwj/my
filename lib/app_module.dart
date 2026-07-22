@@ -1,7 +1,6 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/core_module.dart';
 import 'package:kazumi/pages/index_module.dart';
-import 'package:kazumi/pages/settings/official_sync_editor_page.dart';
 
 final appModule = createModule(
   register: (c) {
@@ -9,10 +8,5 @@ final appModule = createModule(
       ..module(coreModule)
       ..module(indexModule);
   },
-  routes: [
-    ChildRoute(
-      '/settings/official_sync/editor',
-      child: (context, args) => const OfficialSyncEditorPage(),
-    ),
-  ],
 );
+
