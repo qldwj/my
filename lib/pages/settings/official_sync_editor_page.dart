@@ -1,0 +1,193 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/official_sync_service.dart';
+
+class OfficialSyncEditorPage extends StatefulWidget {
+  const OfficialSyncEditorPage({super.key});
+
+  @override
+  State<OfficialSyncEditorPage> createState() => _OfficialSyncEditorPageState();
+}
+
+class _OfficialSyncEditorPageState extends State<OfficialSyncEditorPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _serverCtrl = TextEditingController();
+  final TextEditingController _userCtrl = TextEditingController();
+  final TextEditingController _passCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    // 修复getSetting不支持defaultValue
+    final String serverUrl = GStorage.getSetting(SettingsKeys.officialSyncServerUrl) ?? "https://qlyyz.xyz";
+    _serverCtrl.text = serverUrl;
+    final String username = GStorage.getSetting(SettingsKeys.officialSyncUsername) ?? "";
+    _userCtrl.text = username;
+  }
+
+  Future<void> saveServerUrl() async {
+    final url = _serverCtrl.text.trim();
+    if (url.isEmpty) {
+      KazumiDialog.showToast(message: "服务器地址不能为空");
+      return;
+    }
+    await GStorage.putSetting(SettingsKeys.officialSyncServerUrl, url);
+    KazumiDialog.showToast(message: "服务器地址已保存");
+  }
+
+  Future<void> doLogin() async {
+    final user = _userCtrl.text.trim();
+    final pwd = _passCtrl.text.trim();
+    if (user.isEmpty || pwd.isEmpty) {
+      KazumiDialog.showToast(message: "用户名和密码不能为空");
+      return;
+    }
+    try {
+      await OfficialSyncService.instance.login(user, pwd);
+      KazumiDialog.showToast(message: "登录成功");
+      // 替换Modular.pop为原生返回
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      KazumiDialog.showToast(message: "登录失败：$e");
+      KazumiLogger().e("官方同步登录失败", error: e);
+    }
+  }
+
+  Future<void> doRegister() async {
+    final user = _userCtrl.text.trim();
+    final pwd = _passCtrl.text.trim();
+    if (user.isEmpty || pwd.isEmpty) {
+      KazumiDialog.showToast(message: "用户名和密码不能为空");
+      return;
+    }
+    try {
+      await OfficialSyncService.instance.register(user, pwd);
+      KazumiDialog.showToast(message: "注册并登录成功");
+      // 替换Modular.pop为原生返回
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      KazumiDialog.showToast(message: "注册失败：$e");
+      KazumiLogger().e("官方同步注册失败", error: e);
+    }
+  }
+
+  Future<void> doLogout() async {
+    await OfficialSyncService.instance.logout();
+    _userCtrl.clear();
+    _passCtrl.clear();
+    setState(() {});
+    KazumiDialog.showToast(message: "已退出登录");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: SysAppBar(
+        title: const Text('官方云同步配置'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '登录'),
+            Tab(text: '注册'),
+          ],
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // 服务器地址区域
+          const Text("服务器地址", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _serverCtrl,
+            decoration: const InputDecoration(
+              hintText: "https://qlyyz.xyz",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(onPressed: saveServerUrl, child: const Text("保存服务器地址")),
+          ),
+          const Divider(height: 30),
+
+          // 登录/注册面板
+          SizedBox(
+            height: 300,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                buildLoginPanel(),
+                buildRegisterPanel(),
+              ],
+            ),
+          ),
+
+          const Divider(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: doLogout,
+              child: const Text("退出登录"),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildLoginPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _userCtrl,
+          decoration: const InputDecoration(labelText: "用户名", border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _passCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: "密码", border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(onPressed: doLogin, child: const Text("立即登录")),
+      ],
+    );
+  }
+
+  Widget buildRegisterPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _userCtrl,
+          decoration: const InputDecoration(labelText: "设置用户名", border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _passCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: "设置密码", border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(onPressed: doRegister, child: const Text("注册账号")),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _serverCtrl.dispose();
+    _userCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
+  }
+}

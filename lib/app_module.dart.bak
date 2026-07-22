@@ -1,18 +1,20 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/core_module.dart';
 import 'package:kazumi/pages/index_module.dart';
+// 引入新建的官方同步配置页面
 import 'package:kazumi/pages/settings/official_sync_editor_page.dart';
 
 final appModule = createModule(
   register: (c) {
     c
       ..module(coreModule)
-      ..module(indexModule);
+      ..module(indexModule)
+      // 新增：官方云同步配置页面路由
+      ..routes([
+        ModularRoute(
+          name: '/settings/official_sync/editor',
+          child: (context, args) => const OfficialSyncEditorPage(),
+        ),
+      ]);
   },
-  routes: [
-    ChildRoute(
-      '/settings/official_sync/editor',
-      child: (context, args) => const OfficialSyncEditorPage(),
-    ),
-  ],
 );

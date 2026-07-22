@@ -11,8 +11,6 @@ import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/logging/logger.dart';
-// 后续新建 OfficialSyncService 时打开这个导入
-// import 'package:kazumi/services/sync/official_sync_service.dart';
 
 part 'collect_controller.g.dart';
 
@@ -70,15 +68,6 @@ abstract class _CollectController with Store {
       return;
     }
 
-    // 新增：同步到自建官方服务器
-    final bool officialSyncOk = await _syncOfficialCollectIfEnabled(
-      bangumiItem.id,
-      type,
-    );
-    if (!officialSyncOk) {
-      return;
-    }
-
     final int currentCollectType = getCollectType(bangumiItem);
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
@@ -126,18 +115,6 @@ abstract class _CollectController with Store {
       action: 3,
       type: 5,
     );
-
-    // 删除收藏时同步上报官方服务器
-    final bool officialEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable);
-    if (officialEnable) {
-      try {
-        // 后续对接 OfficialSyncService 在这里调用删除同步
-        // await OfficialSyncService().syncDeleteCollect(bangumiItem.id);
-      } catch (e) {
-        KazumiLogger().w('官方同步：删除收藏同步失败', error: e);
-      }
-    }
-
     loadCollectibles();
   }
 
@@ -240,27 +217,6 @@ abstract class _CollectController with Store {
     }
   }
 
-  // ===================== 新增：官方单次收藏同步 =====================
-  Future<bool> _syncOfficialCollectIfEnabled(int bangumiId, int localType) async {
-    final bool officialEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable);
-    if (!officialEnable) {
-      return true;
-    }
-
-    try {
-      // 后续写完 OfficialSyncService 在这里替换真实调用
-      // final officialSync = OfficialSyncService();
-      // if (!officialSync.initialized) await officialSync.init();
-      // return await officialSync.syncSingleCollect(bangumiId, localType);
-      KazumiLogger().d('官方同步：准备同步收藏 $bangumiId 类型 $localType');
-      return true;
-    } catch (e, stackTrace) {
-      KazumiDialog.showToast(message: '官方云同步失败，已取消本次收藏修改');
-      KazumiLogger().e('官方同步：单次收藏同步失败', error: e, stackTrace: stackTrace);
-      return false;
-    }
-  }
-
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
     await _collectCrudRepository.updateCollectible(bangumiItem);
     loadCollectibles();
@@ -336,30 +292,6 @@ abstract class _CollectController with Store {
       return false;
     }
     return true;
-  }
-
-  // ===================== 新增：官方批量收藏同步（给设置页调用） =====================
-  Future<bool> syncCollectiblesOfficial({bool showSuccessToast = true}) async {
-    final bool officialEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable);
-    if (!officialEnable) {
-      KazumiDialog.showToast(message: '未开启官方云同步');
-      return false;
-    }
-
-    try {
-      // 后续对接 OfficialSyncService
-      // await OfficialSyncService().ping();
-      // await OfficialSyncService().syncAllCollectibles();
-      if (showSuccessToast) {
-        KazumiDialog.showToast(message: '官方云同步完成');
-      }
-      loadCollectibles();
-      return true;
-    } catch (e) {
-      KazumiDialog.showToast(message: '官方云同步失败 $e');
-      KazumiLogger().e('官方同步：批量收藏同步失败', error: e);
-      return false;
-    }
   }
 
   // migrate collect from old version (favorites)

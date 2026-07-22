@@ -37,8 +37,7 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
     bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
 
     // 读取官方同步总开关，默认关闭
-    officialSyncEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable) ?? false;
-
+    officialSyncEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -128,7 +127,7 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                     // 跳转新建的官方同步登录注册配置页
                     await context.pushNamed('/settings/official_sync/editor');
                     // 返回后刷新开关状态
-                    officialSyncEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable) ?? false;
+                    officialSyncEnable = GStorage.getSetting(SettingsKeys.officialSyncEnable, defaultValue: false);
                     setState(() {});
                   },
                   title: Text('官方同步配置', style: TextStyle(fontFamily: fontFamily)),

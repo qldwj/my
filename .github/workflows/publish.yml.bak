@@ -1,0 +1,62 @@
+name: "publish"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如 2.2.2)'
+        required: true
+        default: '2.2.2'
+
+jobs:
+  publish:
+    name: "发布到官方仓库"
+    runs-on: "ubuntu-latest"
+    permissions: write-all
+    steps:
+      - name: Set version
+        run: echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        shell: bash
+
+      # 从当前仓库 Release 下载 APK
+      - name: Download APK from current repo release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ env.tag }} -p "*.apk"
+        shell: bash
+
+      # 发布到官方仓库
+      - name: Release to official repo
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          TAG="${{ env.tag }}"
+          
+          if gh release view $TAG --repo qldwj/Kazumikfc &>/dev/null; then
+            echo "Tag $TAG 已存在，删除重建..."
+            gh release delete $TAG --repo qldwj/Kazumikfc -y
+            git push --delete https://x-access-token:${GH_TOKEN}@github.com/qldwj/Kazumikfc.git $TAG 2>/dev/null || true
+            sleep 2
+          fi
+          
+          gh release create $TAG \
+            --repo qldwj/Kazumikfc \
+            --title "v$TAG" \
+            --notes "🎉 樱花动漫 v$TAG" \
+            YHDM_android_$TAG.apk
+        shell: bash
+
+      # TG 通知
+      - name: Send Telegram notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          message: |
+            🎉 <b>樱花动漫 v${{ env.tag }} 发布成功！</b>
+            
+            📥 下载：https://github.com/qldwj/Kazumikfc/releases/download/${{ env.tag }}/YHDM_android_${{ env.tag }}.apk
+            🔗 发布页：https://github.com/qldwj/Kazumikfc/releases/tag/${{ env.tag }}
+            官网（可能未同步）：https://qlyyz.xyz
+          format: html
