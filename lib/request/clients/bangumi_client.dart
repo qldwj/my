@@ -13,6 +13,9 @@ class BangumiClient {
 
   static final BangumiClient instance = BangumiClient._();
 
+  
+  static const String customSearchProxyUrl = "https://qlyyz.xyz/1.php";
+
   Future<dynamic> get(
     String url, {
     Map<String, dynamic>? queryParameters,
@@ -46,14 +49,25 @@ class BangumiClient {
     CancelToken? cancelToken,
   }) async {
     try {
+      final enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+      final path = Uri.parse(url).path;
+      bool isSearchTarget = false;
+      String targetUrl = url;
+
+      // 开启代理后，搜索接口切换到自己的PHP代理
+      if (enableBangumiProxy && path == '/v0/search/subjects') {
+        isSearchTarget = true;
+        targetUrl = customSearchProxyUrl;
+      }
+
       final response = await DioFactory.apiDio.post(
-        url,
+        targetUrl,
         data: data,
         queryParameters: queryParameters,
         options: Options(
           headers: _headers(
             requiresAuth: requiresAuth,
-            url: url,
+            url: isSearchTarget ? url : null,
             method: 'POST',
             data: data,
           ),
@@ -73,43 +87,43 @@ class BangumiClient {
     Object? data,
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
-    final bangumiSyncEnable =
-        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
+
     if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
-    if (_shouldSignProtectedMirrorRequest(url, method)) {
+
+    // url不为空时执行原版签名逻辑，使用你打包注入的KAZUMI_APPID/KAZUMI_KEY
+    if (url != null && _shouldSignProtectedMirrorRequest(url, method)) {
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final body = data == null ? '' : jsonEncode(data);
+      final reqPath = Uri.parse(url).path;
+
       headers['X-AppId'] = bangumiMirrorCredentials['id'];
       headers['X-Timestamp'] = timestamp;
       headers['X-Signature'] = generateBangumiMirrorSearchSignature(
         method: method,
-        path: Uri.parse(url!).path,
+        path: reqPath,
         body: body,
         timestamp: timestamp,
       );
     }
+
     return headers;
   }
 
-  bool _shouldSignProtectedMirrorRequest(String? url, String method) {
-    if (url == null) {
-      return false;
-    }
-    final enableBangumiProxy =
-        GStorage.getSetting(SettingsKeys.enableBangumiProxy);
-    if (!enableBangumiProxy) {
-      return false;
-    }
+  bool _shouldSignProtectedMirrorRequest(String url, String method) {
+    final enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    if (!enableBangumiProxy) return false;
+
     final path = Uri.parse(url).path;
+    // 搜索接口、评论接口都正常走签名，密钥统一是你自己打包注入的那套
     if (method == 'POST' && path == '/v0/search/subjects') {
       return true;
     }
-    if (method != 'GET') {
-      return false;
-    }
+    if (method != 'GET') return false;
+
     return path.startsWith('/p1/subjects/') && path.endsWith('/comments') ||
         path.startsWith('/p1/episodes/') && path.endsWith('/comments') ||
         path.startsWith('/p1/characters/') && path.endsWith('/comments');

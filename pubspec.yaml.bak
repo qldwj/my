@@ -1,4 +1,4 @@
-name: YHDM
+name: 樱花动漫
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -217,7 +217,7 @@ flutter_native_splash:
   image_dark_ios: assets/images/logo/logo_ios.png
 
 msix_config:
-  display_name: YHDM
+  display_name: 樱花动漫
   publisher: CN=SignPath Foundation, O=SignPath Foundation, L=Lewes, S=Delaware, C=US
   logo_path: assets/images/logo/logo_rounded.png
   sign_msix: false

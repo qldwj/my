@@ -2,7 +2,7 @@ import 'dart:convert';
 
 String jsonToKazumiBase64(String jsonStr) {
   final base64Str = base64Encode(utf8.encode(jsonStr));
-  return 'yhdmgz://$base64Str';
+  return 'kazumi://$base64Str';
 }
 
 String kazumiBase64ToJson(String kazumiBase64Str) {
