@@ -250,6 +250,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
+            ),
+          ],
         ),
       ),
     );

@@ -336,9 +336,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final shareUrl = 'https://qlyyz.xyz/share?keyword=${Uri.encodeComponent(name)}';
     final shareText = '我正在看「$name」\n$shareUrl';
 
-    SharePlus.instance.share(
-      ShareParams(text: shareText),
-    );
+    Share.share(shareText);
   }
 
   @override

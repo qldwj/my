@@ -270,40 +270,37 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             SettingsSection(
               tiles: [
                 // ⭐ 高亮：首次进入自动播放上次
-                Builder(builder: (ctx) {
-                  final highlightColor = Theme.of(ctx).colorScheme.primaryContainer;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    showLastWatchCard = value ?? !showLastWatchCard;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.showLastWatchCard, showLastWatchCard);
+                    setState(() {});
+                  },
+                  title: Row(
+                    children: [
+                      Icon(Icons.play_circle_fill_rounded,
+                          size: 18, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text('启动时显示上次观看',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  description: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: highlightColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(ctx).colorScheme.primary.withAlpha(80),
-                        width: 1.5,
-                      ),
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        showLastWatchCard = value ?? !showLastWatchCard;
-                        await GStorage.putSetting<bool>(
-                            SettingsKeys.showLastWatchCard, showLastWatchCard);
-                        setState(() {});
-                      },
-                      title: Row(
-                        children: [
-                          Icon(Icons.play_circle_fill_rounded,
-                              size: 18, color: Theme.of(ctx).colorScheme.primary),
-                          const SizedBox(width: 6),
-                          Text('启动时显示上次观看',
-                              style: TextStyle(fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      description: Text('打开首页后，自动在左下角弹出上次观看进度卡片',
-                          style: TextStyle(fontFamily: fontFamily)),
-                      initialValue: showLastWatchCard,
-                    ),
-                  );
-                }),
+                    child: Text('打开首页后自动弹出上次观看进度卡片',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        )),
+                  ),
+                  initialValue: showLastWatchCard,
+                ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     hAenable = value ?? !hAenable;
