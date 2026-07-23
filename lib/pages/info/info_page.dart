@@ -336,7 +336,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final shareUrl = 'https://qlyyz.xyz/share?keyword=${Uri.encodeComponent(name)}';
     final shareText = '我正在看「$name」\n$shareUrl';
 
-    Share.share(shareText);
+    try {
+      Share.share(shareText);
+    } catch (e) {
+      // 分享失败时复制到剪贴板作为兜底
+      Clipboard.setData(ClipboardData(text: shareUrl));
+      KazumiDialog.showToast(message: '已复制分享链接到剪贴板');
+    }
   }
 
   @override

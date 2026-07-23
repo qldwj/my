@@ -1,85 +1,90 @@
 import 'dart:io';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:http/http.dart' as http;
 
 /// 视频源测速结果
 class SourceSpeedResult {
-  final String sourceName;
-  final String sourceUrl;
+  final int roadIndex;
+  final String roadName;
+  final String testUrl;
   final int latencyMs;
   final bool isAvailable;
-  final bool needsVerification;
 
   const SourceSpeedResult({
-    required this.sourceName,
-    required this.sourceUrl,
+    required this.roadIndex,
+    required this.roadName,
+    required this.testUrl,
     required this.latencyMs,
     required this.isAvailable,
-    this.needsVerification = false,
   });
 }
 
 /// 视频源智能测速工具
 ///
-/// 在点击播放时调用，对所有可用源进行测速，
-/// 按速度排序（最快的排最前），
-/// 需要验证/不可用的排最后。
+/// 在获取到剧集线路后，对所有线路进行测速，
+/// 按速度排序（最快的排最前），不可用的排最后。
 class SpeedTester {
   static final SpeedTester _instance = SpeedTester._internal();
   factory SpeedTester() => _instance;
   SpeedTester._internal();
 
-  /// 测速缓存（内存），key = sourceUrl
-  final Map<String, _CachedResult> _cache = {};
-
-  /// 缓存有效期 30 分钟
-  static const int _cacheTtlMs = 30 * 60 * 1000;
-
-  /// 对多个源进行测速，返回排序后的结果
+  /// 对多个 Road 进行测速，返回排序后的结果
   ///
-  /// [sources] 格式: [{name: '源A', url: 'https://...'}, ...]
-  Future<List<SourceSpeedResult>> testSources(
-    List<Map<String, String>> sources,
-  ) async {
+  /// [roads] 从 plugin.queryChapterRoads() 获取的线路列表
+  /// 返回按速度排序后的 roads
+  static Future<List<Road>> testAndSortRoads(List<Road> roads) async {
+    if (roads.isEmpty) return roads;
+
     final results = <SourceSpeedResult>[];
+    final urls = <String>[];
 
-    // 并行测速所有源
-    final futures = sources.map((source) => _testSingleSource(source));
-    final tested = await Future.wait(futures);
-
-    for (final result in tested) {
-      results.add(result);
+    // 收集所有可测试的 URL
+    for (int i = 0; i < roads.length; i++) {
+      final road = roads[i];
+      // 取 road.data 中第一个有效 URL 作为测速目标
+      final testUrl = road.data.isNotEmpty ? road.data.first : '';
+      urls.add(testUrl);
     }
 
-    // 排序：可用最快的排最前，不可用/需验证排最后
-    results.sort((a, b) {
-      // 不可用排最后
-      if (a.isAvailable != b.isAvailable) {
-        return a.isAvailable ? -1 : 1;
-      }
-      // 需要验证排在可用之后、不可用之前
-      if (a.needsVerification != b.needsVerification) {
-        return a.needsVerification ? 1 : -1;
+    // 并行测速
+    final futures = <Future<SourceSpeedResult>>[];
+    for (int i = 0; i < roads.length; i++) {
+      futures.add(_testRoad(i, roads[i].name, urls[i]));
+    }
+    final tested = await Future.wait(futures);
+    results.addAll(tested);
+
+    // 按速度排序（可用+延迟低的在前）
+    final sortedIndices = List.generate(roads.length, (i) => i);
+    sortedIndices.sort((a, b) {
+      final ra = results[a];
+      final rb = results[b];
+      // 可用排前面
+      if (ra.isAvailable != rb.isAvailable) {
+        return ra.isAvailable ? -1 : 1;
       }
       // 按延迟从小到大
-      return a.latencyMs.compareTo(b.latencyMs);
+      return ra.latencyMs.compareTo(rb.latencyMs);
     });
 
-    return results;
+    // 返回排序后的 roads
+    return sortedIndices.map((i) => roads[i]).toList();
   }
 
-  Future<SourceSpeedResult> _testSingleSource(
-    Map<String, String> source,
+  static Future<SourceSpeedResult> _testRoad(
+    int index,
+    String name,
+    String url,
   ) async {
-    final url = source['url'] ?? '';
-    final name = source['name'] ?? '未知源';
-
-    // 检查缓存
-    final cached = _cache[url];
-    if (cached != null &&
-        DateTime.now().millisecondsSinceEpoch - cached.timestampMs <
-            _cacheTtlMs) {
-      return cached.result;
+    if (url.isEmpty) {
+      return SourceSpeedResult(
+        roadIndex: index,
+        roadName: name,
+        testUrl: url,
+        latencyMs: -1,
+        isAvailable: false,
+      );
     }
 
     try {
@@ -87,51 +92,29 @@ class SpeedTester {
       final response = await http
           .head(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
-
       stopwatch.stop();
 
-      final isAvailable = response.statusCode == 200;
-      final needsVerification = response.statusCode == 302 ||
-          response.statusCode == 403 ||
-          response.statusCode == 401;
-
-      final result = SourceSpeedResult(
-        sourceName: name,
-        sourceUrl: url,
+      return SourceSpeedResult(
+        roadIndex: index,
+        roadName: name,
+        testUrl: url,
         latencyMs: stopwatch.elapsedMilliseconds,
-        isAvailable: isAvailable,
-        needsVerification: needsVerification || !isAvailable,
+        isAvailable: response.statusCode == 200,
       );
-
-      // 写入缓存
-      _cache[url] = _CachedResult(
-        result: result,
-        timestampMs: DateTime.now().millisecondsSinceEpoch,
-      );
-
-      return result;
     } catch (e) {
       KazumiLogger().w('SpeedTester: 测速失败 $name', error: e);
       return SourceSpeedResult(
-        sourceName: name,
-        sourceUrl: url,
+        roadIndex: index,
+        roadName: name,
+        testUrl: url,
         latencyMs: -1,
         isAvailable: false,
-        needsVerification: false,
       );
     }
   }
 
-  /// 清空缓存
-  void clearCache() => _cache.clear();
-}
-
-class _CachedResult {
-  final SourceSpeedResult result;
-  final int timestampMs;
-
-  const _CachedResult({
-    required this.result,
-    required this.timestampMs,
-  });
+  /// 获取结果中可用线路的数量
+  static int countAvailable(List<SourceSpeedResult> results) {
+    return results.where((r) => r.isAvailable).length;
+  }
 }

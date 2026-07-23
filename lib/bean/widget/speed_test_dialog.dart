@@ -1,54 +1,48 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/services/video_source/speed_tester.dart';
 
-/// 测速对话框 — 点击播放时显示，对可用源进行测速和排序
+/// 测速对话框 — 获取到剧集线路后进行测速和排序
 class SpeedTestDialog {
-  /// 显示测速对话框，返回排序后的源列表
+  /// 显示测速对话框，对 roads 进行测速和排序
   ///
-  /// [sources] 格式: [{name: '源A', url: 'https://...', ...}]
-  /// 返回按速度排序后的 sources
-  static Future<List<Map<String, String>>?> show({
+  /// [roads] 从 plugin.queryChapterRoads() 获取的线路列表
+  /// 返回排序后的 roads，如果用户取消则返回原始 roads
+  static Future<List<Road>> show({
     required BuildContext context,
-    required List<Map<String, String>> sources,
+    required List<Road> roads,
   }) async {
-    if (sources.isEmpty) return sources;
+    if (roads.isEmpty) return roads;
+    if (roads.length == 1) return roads; // 只有一个线路不用测
 
-    final completer = Completer<List<Map<String, String>>?>();
-    
-    await KazumiDialog.show(
-      builder: (ctx) => _SpeedTestDialogContent(
-        sources: sources,
-        onComplete: (sorted) {
-          KazumiDialog.dismiss();
-          completer.complete(sorted);
-        },
+    final completer = Completer<List<Road>>();
+    final sortedRoads = await showDialog<List<Road>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _SpeedTestDialog(
+        roads: roads,
       ),
     );
 
-    return completer.future;
+    return sortedRoads ?? roads;
   }
 }
 
-class _SpeedTestDialogContent extends StatefulWidget {
-  final List<Map<String, String>> sources;
-  final void Function(List<Map<String, String>>?) onComplete;
+class _SpeedTestDialog extends StatefulWidget {
+  final List<Road> roads;
 
-  const _SpeedTestDialogContent({
-    required this.sources,
-    required this.onComplete,
-  });
+  const _SpeedTestDialog({required this.roads});
 
   @override
-  State<_SpeedTestDialogContent> createState() =>
-      _SpeedTestDialogContentState();
+  State<_SpeedTestDialog> createState() => _SpeedTestDialogState();
 }
 
-class _SpeedTestDialogContentState extends State<_SpeedTestDialogContent> {
-  final SpeedTester _tester = SpeedTester();
-  List<SourceSpeedResult>? _results;
+class _SpeedTestDialogState extends State<_SpeedTestDialog> {
+  List<Road>? _sortedRoads;
   bool _testing = true;
+  String _statusText = '正在测试各线路速度...';
 
   @override
   void initState() {
@@ -57,11 +51,12 @@ class _SpeedTestDialogContentState extends State<_SpeedTestDialogContent> {
   }
 
   Future<void> _runTests() async {
-    final results = await _tester.testSources(widget.sources);
+    final sorted = await SpeedTester.testAndSortRoads(widget.roads);
     if (mounted) {
       setState(() {
-        _results = results;
+        _sortedRoads = sorted;
         _testing = false;
+        _statusText = '检测完成，已按速度排序';
       });
     }
   }
@@ -79,7 +74,7 @@ class _SpeedTestDialogContentState extends State<_SpeedTestDialogContent> {
             size: 24,
           ),
           const SizedBox(width: 12),
-          Text(_testing ? '正在检测视频源速度...' : '检测完成'),
+          Text(_testing ? '正在测速' : '测速完成'),
         ],
       ),
       content: SizedBox(
@@ -89,8 +84,8 @@ class _SpeedTestDialogContentState extends State<_SpeedTestDialogContent> {
       actions: [
         if (!_testing)
           TextButton(
-            onPressed: () => widget.onComplete(_sortedSources()),
-            child: const Text('确认并使用最快源'),
+            onPressed: () => Navigator.pop(context, _sortedRoads),
+            child: const Text('使用此排序播放'),
           ),
       ],
     );
@@ -100,137 +95,125 @@ class _SpeedTestDialogContentState extends State<_SpeedTestDialogContent> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const CircularProgressIndicator(),
-        const SizedBox(height: 16),
-        Text('正在测试 ${widget.sources.length} 个视频源...',
+        const Padding(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(),
+        ),
+        Text('正在测试 ${widget.roads.length} 个线路...',
             style: theme.textTheme.bodyMedium),
         const SizedBox(height: 8),
-        Text('最快源将自动排在最前面',
-            style: theme.textTheme.bodySmall),
+        Text('最快线路将自动排在最前面',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            )),
       ],
     );
   }
 
   Widget _buildResults(ThemeData theme) {
-    if (_results == null || _results!.isEmpty) {
-      return const Text('未获取到可用源');
+    if (_sortedRoads == null || _sortedRoads!.isEmpty) {
+      return const Text('未获取到可用线路');
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ..._results!.map((result) => _buildResultItem(theme, result)),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 显示排序后的结果
+          ..._sortedRoads!.asMap().entries.map((entry) =>
+            _buildRoadItem(theme, entry.key, entry.value)),
+          const SizedBox(height: 12),
+          // 汇总信息
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withAlpha(60),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '最快线路「${_sortedRoads!.first.name}」已排在最前面',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildResultItem(ThemeData theme, SourceSpeedResult result) {
-    IconData icon;
-    Color color;
-    String label;
-    String msText;
-
-    if (!result.isAvailable) {
-      icon = Icons.close_rounded;
-      color = Colors.red;
-      label = '不可用';
-      msText = '--';
-    } else if (result.needsVerification) {
-      icon = Icons.warning_rounded;
-      color = Colors.orange;
-      label = '需验证';
-      msText = '${result.latencyMs}ms';
+  Widget _buildRoadItem(ThemeData theme, int index, Road road) {
+    // 根据排名显示不同颜色
+    Color dotColor;
+    String rankLabel;
+    if (index == 0) {
+      dotColor = Colors.green;
+      rankLabel = '🟢 最快';
+    } else if (index == 1) {
+      dotColor = Colors.lightGreen;
+      rankLabel = '🟢';
+    } else if (index == 2) {
+      dotColor = Colors.orange;
+      rankLabel = '🟡';
     } else {
-      icon = Icons.check_circle_rounded;
-      color = Colors.green;
-      label = '可用';
-      msText = '${result.latencyMs}ms';
+      dotColor = Colors.grey;
+      rankLabel = '🔴';
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withAlpha(15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withAlpha(40), width: 0.5),
+          color: dotColor.withAlpha(15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: dotColor.withAlpha(40), width: 0.5),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 20),
+            // 排名序号
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: dotColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: dotColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(width: 10),
+            // 线路名
             Expanded(
               child: Text(
-                result.sourceName,
+                road.name,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: index == 0 ? FontWeight.w600 : null,
                 ),
               ),
             ),
-            // 毫秒显示
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: color.withAlpha(25),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                msText,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withAlpha(20),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                ),
+            // 排名标签
+            Text(
+              rankLabel,
+              style: TextStyle(
+                color: dotColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  List<Map<String, String>> _sortedSources() {
-    if (_results == null) return widget.sources;
-
-    final sorted = List<Map<String, String>>.from(widget.sources);
-    sorted.sort((a, b) {
-      final ra = _results!.firstWhere(
-        (r) => r.sourceUrl == a['url'],
-        orElse: () => SourceSpeedResult(
-          sourceName: '', sourceUrl: '', latencyMs: 9999,
-          isAvailable: false,
-        ),
-      );
-      final rb = _results!.firstWhere(
-        (r) => r.sourceUrl == b['url'],
-        orElse: () => SourceSpeedResult(
-          sourceName: '', sourceUrl: '', latencyMs: 9999,
-          isAvailable: false,
-        ),
-      );
-      if (ra.isAvailable != rb.isAvailable) return ra.isAvailable ? -1 : 1;
-      if (ra.needsVerification != rb.needsVerification) {
-        return ra.needsVerification ? 1 : -1;
-      }
-      return ra.latencyMs.compareTo(rb.latencyMs);
-    });
-    return sorted;
   }
 }

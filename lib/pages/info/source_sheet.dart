@@ -19,6 +19,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
+import 'package:kazumi/bean/widget/speed_test_dialog.dart';
 import 'package:kazumi/utils/device.dart';
 
 class SourceSheet extends StatefulWidget {
@@ -594,6 +595,12 @@ class _SourceSheetState extends State<SourceSheet>
                                   }
                                   KazumiDialog.dismiss();
                                   if (!mounted) return;
+                                  // 测速：对获取到的线路进行测速排序
+                                  final sortedRoads = await SpeedTestDialog.show(
+                                    context: this.context,
+                                    roads: roads,
+                                  );
+                                  if (!mounted) return;
                                   this.context.pushNamed(
                                         '/video/',
                                         arguments: OnlineVideoPlaybackArgs(
@@ -602,7 +609,7 @@ class _SourceSheetState extends State<SourceSheet>
                                           plugin: plugin,
                                           title: searchItem.name,
                                           src: searchItem.src,
-                                          roads: roads,
+                                          roads: sortedRoads,
                                         ),
                                       );
                                 } catch (_) {
