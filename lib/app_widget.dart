@@ -50,34 +50,30 @@ class _AppWidgetState extends State<AppWidget>
     _initDeepLinks();
   }
 
+  /// 存储启动时收到的深度链接，等有 BuildContext 后再处理
+  String? _pendingDeepLink;
+
   /// 处理 yhdm:// 协议深度链接
+  /// 使用静态方法，避免 Modular.to 在无 context 时调用
   void _initDeepLinks() {
     final appLinks = AppLinks();
 
     // 应用启动时收到的链接
     appLinks.getInitialLink().then((uri) {
-      if (uri != null) _handleDeepLink(uri);
+      if (uri != null) _pendingDeepLink = _parseDeepLink(uri);
     });
 
     // 应用运行中收到的链接
     appLinks.uriLinkStream.listen((uri) {
-      _handleDeepLink(uri);
+      _pendingDeepLink = _parseDeepLink(uri);
     });
   }
 
-  /// 解析 yhdm:// 链接并导航
-  void _handleDeepLink(Uri uri) {
-    if (uri.scheme != 'yhdm') return;
-
-    final keyword = uri.path.startsWith('/')
-        ? uri.path.substring(1)
-        : uri.path;
-    // yhdm://keyword 或 yhdm://bangumi/{id}
-    // 跳转到搜索页搜索该关键词
-    if (keyword.isNotEmpty) {
-      // 使用 Modular 的路由系统导航到搜索页
-      Modular.to.pushNamed('/search/', arguments: keyword);
-    }
+  /// 解析 yhdm:// 链接，返回搜索关键词
+  String? _parseDeepLink(Uri uri) {
+    if (uri.scheme != 'yhdm') return null;
+    final keyword = uri.path.startsWith('/') ? uri.path.substring(1) : uri.path;
+    return keyword.isNotEmpty ? keyword : null;
   }
 
   Future<void> _configurePreferredDisplayMode() async {
@@ -367,6 +363,16 @@ class _AppWidgetState extends State<AppWidget>
 
   @override
   Widget build(BuildContext context) {
+    // 处理启动时收到的 yhdm:// 深度链接
+    if (_pendingDeepLink != null) {
+      final keyword = _pendingDeepLink!;
+      _pendingDeepLink = null;
+      // 使用 post-frame 确保导航在 build 之后执行
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.pushNamed('/search/', arguments: keyword);
+      });
+    }
+
     final ThemeProvider themeProvider = context.watch<ThemeProvider>();
     bool oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
 
