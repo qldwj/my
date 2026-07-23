@@ -367,10 +367,8 @@ class _AppWidgetState extends State<AppWidget>
     if (_pendingDeepLink != null) {
       final keyword = _pendingDeepLink!;
       _pendingDeepLink = null;
-      // 存储到静态变量，搜索页面会读取并自动搜索
-      SearchPage.pendingKeyword = keyword;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.pushNamed('/search/');
+        context.pushNamed('/search/${Uri.encodeComponent(keyword)}');
       });
     }
 

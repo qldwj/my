@@ -23,9 +23,6 @@ class SearchPage extends StatefulWidget {
   final SearchPageController controller;
   final String inputTag;
 
-  /// 由 yhdm:// 深度链接设置的待搜索关键词
-  static String? pendingKeyword;
-
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
@@ -53,16 +50,6 @@ class _SearchPageState extends State<SearchPage> {
         final tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
         _applyFilterState(SearchParser(tagString).toFilterState(),
             search: true);
-      });
-    }
-    // 处理 yhdm:// 深度链接带来的搜索关键词
-    if (SearchPage.pendingKeyword != null) {
-      final keyword = SearchPage.pendingKeyword!;
-      SearchPage.pendingKeyword = null;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _setSearchText(keyword);
-        searchPageController.searchBangumi(keyword, type: 'init');
       });
     }
   }
