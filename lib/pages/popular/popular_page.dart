@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
+import 'package:kazumi/bean/widget/last_watch_card.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -33,6 +36,10 @@ class _PopularPageState extends State<PopularPage> {
   // Key used to position the dropdown menu for the tag selector
   final GlobalKey selectorKey = GlobalKey();
 
+  // ===== 上次观看弹窗 =====
+  History? _lastHistory;
+  bool _showLastWatch = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +49,31 @@ class _PopularPageState extends State<PopularPage> {
     scrollController.addListener(scrollListener);
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
+    }
+    // 检查上次观看记录
+    _checkLastWatch();
+  }
+
+  /// 读取最新一条历史记录，用于显示"上次观看"弹窗
+  void _checkLastWatch() {
+    // 检查设置开关
+    if (!GStorage.getSetting(SettingsKeys.showLastWatchCard)) return;
+    try {
+      final historyRepo = HistoryRepository();
+      final histories = historyRepo.getAllHistories();
+      if (histories.isNotEmpty) {
+        final last = histories.first;
+        final progress = last.progresses[last.lastWatchEpisode];
+        // 有进度且未看完（进度>0）才显示
+        if (progress != null && progress.progress > Duration.zero) {
+          setState(() {
+            _lastHistory = last;
+            _showLastWatch = true;
+          });
+        }
+      }
+    } catch (_) {
+      // 忽略读取失败
     }
   }
 
@@ -73,60 +105,80 @@ class _PopularPageState extends State<PopularPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          buildSliverAppBar(),
-          SliverToBoxAdapter(
-            child: Observer(
-              builder: (_) => AnimatedOpacity(
-                opacity: popularController.isLoadingMore ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: popularController.isLoadingMore
-                    ? const LinearProgressIndicator(minHeight: 4)
-                    : const SizedBox(height: 4),
+    return Stack(
+      children: [
+        Scaffold(
+          body: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              buildSliverAppBar(),
+              SliverToBoxAdapter(
+                child: Observer(
+                  builder: (_) => AnimatedOpacity(
+                    opacity: popularController.isLoadingMore ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: popularController.isLoadingMore
+                        ? const LinearProgressIndicator(minHeight: 4)
+                        : const SizedBox(height: 4),
+                  ),
+                ),
               ),
+              SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                      StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                  sliver: Observer(builder: (_) {
+                    if (popularController.isTimeOut) {
+                      return SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 400,
+                          child: BangumiMirrorErrorWidget(
+                            onRetry: () {
+                              if (popularController.trendList.isEmpty) {
+                                popularController.queryBangumiByTrend();
+                              } else {
+                                popularController.queryBangumiByTag();
+                              }
+                            },
+                            onSettingsReturned: () {
+                              if (mounted) {
+                                setState(() {});
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                    return contentGrid(
+                      (popularController.currentTag == '')
+                          ? popularController.trendList
+                          : popularController.bangumiList,
+                    );
+                  })),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => scrollController.animateTo(0,
+                duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
+            child: const Icon(Icons.arrow_upward),
+          ),
+        ),
+        // ===== 上次观看弹窗 =====
+        if (_showLastWatch && _lastHistory != null)
+          Positioned(
+            left: 0,
+            bottom: 0,
+            child: LastWatchCard(
+              history: _lastHistory!,
+              onDismiss: () {
+                if (mounted) {
+                  setState(() {
+                    _showLastWatch = false;
+                  });
+                }
+              },
             ),
           ),
-          SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                  StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-              sliver: Observer(builder: (_) {
-                if (popularController.isTimeOut) {
-                  return SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 400,
-                      child: BangumiMirrorErrorWidget(
-                        onRetry: () {
-                          if (popularController.trendList.isEmpty) {
-                            popularController.queryBangumiByTrend();
-                          } else {
-                            popularController.queryBangumiByTag();
-                          }
-                        },
-                        onSettingsReturned: () {
-                          if (mounted) {
-                            setState(() {});
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                }
-                return contentGrid(
-                  (popularController.currentTag == '')
-                      ? popularController.trendList
-                      : popularController.bangumiList,
-                );
-              })),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => scrollController.animateTo(0,
-            duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
-        child: const Icon(Icons.arrow_upward),
-      ),
+      ],
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/widget/recommendation_section.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
@@ -562,6 +563,12 @@ class _InfoTabViewState extends State<InfoTabView>
                     top: false,
                     bottom: false,
                     child: widget.isLoading ? infoBodyBone : infoBody,
+                  ),
+                ),
+                // 关联推荐
+                SliverToBoxAdapter(
+                  child: RecommendationSection(
+                    currentBangumi: widget.bangumiItem,
                   ),
                 ),
               ],

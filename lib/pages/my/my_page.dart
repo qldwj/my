@@ -96,6 +96,38 @@ class MyPage extends StatelessWidget {
             ],
           ),
           SettingsSection(
+            title: Text('数据与统计', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  context.pushNamed('/playlist/');
+                },
+                leading: const Icon(Icons.playlist_play_rounded),
+                title: Text('播放列表', style: TextStyle(fontFamily: fontFamily)),
+                description:
+                    Text('管理你的自定义播放列表', style: TextStyle(fontFamily: fontFamily)),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  context.pushNamed('/stats/');
+                },
+                leading: const Icon(Icons.bar_chart_rounded),
+                title: Text('观看统计', style: TextStyle(fontFamily: fontFamily)),
+                description:
+                    Text('查看你的追番报告和统计数据', style: TextStyle(fontFamily: fontFamily)),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  context.pushNamed('/settings/webdav/');
+                },
+                leading: const Icon(Icons.cloud),
+                title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
+                description:
+                    Text('设置同步参数', style: TextStyle(fontFamily: fontFamily)),
+              ),
+            ],
+          ),
+          SettingsSection(
             title: Text('应用与外观', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile.navigation(
@@ -115,15 +147,6 @@ class MyPage extends StatelessWidget {
                 title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
                 description:
                     Text('设置应用界面样式', style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/webdav/');
-                },
-                leading: const Icon(Icons.cloud),
-                title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
-                description:
-                    Text('设置同步参数', style: TextStyle(fontFamily: fontFamily)),
               ),
             ],
           ),

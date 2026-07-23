@@ -513,6 +513,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
+  static const showLastWatchCard = SettingKey<bool>(
+    'showLastWatchCard',
+    true,
+    group: SettingGroup.player,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
@@ -716,5 +721,6 @@ class _SettingBoxKey {
       brightnessVolumeGesture = 'brightnessVolumeGesture',
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
-      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized';
+      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
+      showLastWatchCard = 'showLastWatchCard';
 }

@@ -4,7 +4,9 @@ import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -327,6 +329,18 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
+  /// 分享番剧 — 通过跳转页面 https://qlyyz.xyz/share
+  void _shareBangumi(BuildContext context) {
+    final bangumi = infoController.bangumiItem;
+    final name = bangumi.nameCn.isNotEmpty ? bangumi.nameCn : bangumi.name;
+    final shareUrl = 'https://qlyyz.xyz/share?keyword=${Uri.encodeComponent(name)}';
+    final shareText = '我正在看「$name」\n$shareUrl';
+
+    SharePlus.instance.share(
+      ShareParams(text: shareText),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool showWindowButton =
@@ -387,6 +401,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                             );
                           },
                           icon: const Icon(Icons.open_in_browser_rounded),
+                        ),
+                      ),
+                      // 分享按钮 — 通过 yhdm:// 协议
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          onPressed: () {
+                            _shareBangumi(context);
+                          },
+                          icon: const Icon(Icons.ios_share_rounded),
                         ),
                       ),
                       if (!showWindowButton && isDesktop())
