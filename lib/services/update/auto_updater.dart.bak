@@ -198,30 +198,18 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// ============================================================
-  /// 🔧 修复：自动检查更新（只在启用自动更新时）
-  /// 改动：加 3 秒延迟确保 UI 和网络就绪 + 健壮的 bool 判断
-  /// ============================================================
+  /// 自动检查更新（仅在启用自动更新时）
   Future<void> autoCheckForUpdates() async {
+    final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+    if (!autoUpdate) return;
+
     try {
-      // 等待足够时间确保 UI、网络、DownloadHttpClient 完全就绪
-      await Future.delayed(const Duration(seconds: 3));
-
-      final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
-      if (autoUpdate != true) {
-        KazumiLogger().i('Update: auto update not enabled, skipping');
-        return;
-      }
-
-      KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {
         _showUpdateDialog(updateInfo, isAutoCheck: true);
-      } else {
-        KazumiLogger().i('Update: already up to date');
       }
     } catch (e) {
-      // 自动检查失败时不显示错误，只打日志
+      // 自动检查失败时不显示错误
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
   }
@@ -631,22 +619,13 @@ class AutoUpdater {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            // 🆕 Android：用其他应用打开（MT管理器、NP管理器等）
-            if (Platform.isAndroid)
-              TextButton(
-                onPressed: () {
-                  KazumiDialog.dismiss();
-                  _openWithFileManager(filePath);
-                },
-                child: const Text('用其他应用打开'),
-              ),
             if (isDesktop())
               TextButton(
                 onPressed: () {
                   // 在文件管理器中显示文件
                   _revealInFileManager(filePath);
                 },
-                child: Text('打开文件夹'),
+                child: const Text('打开文件夹'),
               ),
             TextButton(
               onPressed: () {
@@ -660,36 +639,6 @@ class AutoUpdater {
         );
       },
     );
-  }
-
-  /// 🆕 Android：用第三方文件管理器（MT管理器/NP管理器等）打开 APK 文件
-  void _openWithFileManager(String filePath) async {
-    try {
-      if (!Platform.isAndroid) return;
-
-      final file = File(filePath);
-      if (!await file.exists()) {
-        KazumiDialog.showToast(message: '文件不存在');
-        return;
-      }
-
-      // 使用 OpenFilex 打开 APK 文件
-      // Android 系统会弹出"打开方式"选择器
-      // 用户可以选择 MT 管理器、NP 管理器等文件管理器
-      // 这些管理器打开后会直接定位到该 APK 文件所在目录
-      final result = await OpenFilex.open(filePath);
-      if (result.type != ResultType.done) {
-        // 如果直接打开文件失败，尝试打开其所在目录
-        final dirPath = file.parent.path;
-        final dirResult = await OpenFilex.open(dirPath);
-        if (dirResult.type != ResultType.done) {
-          KazumiDialog.showToast(
-              message: '无法打开文件，请手动前往目录: ${file.parent.path}');
-        }
-      }
-    } catch (e) {
-      KazumiLogger().e('Update: open with file manager failed', error: e);
-    }
   }
 
   /// 下载文件
