@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -44,6 +46,38 @@ class _AppWidgetState extends State<AppWidget>
       await _handleTray();
     }
     await _configurePreferredDisplayMode();
+    // 初始化深度链接 (yhdm://)
+    _initDeepLinks();
+  }
+
+  /// 处理 yhdm:// 协议深度链接
+  void _initDeepLinks() {
+    final appLinks = AppLinks();
+
+    // 应用启动时收到的链接
+    appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    });
+
+    // 应用运行中收到的链接
+    appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  /// 解析 yhdm:// 链接并导航
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme != 'yhdm') return;
+
+    final keyword = uri.path.startsWith('/')
+        ? uri.path.substring(1)
+        : uri.path;
+    // yhdm://keyword 或 yhdm://bangumi/{id}
+    // 跳转到搜索页搜索该关键词
+    if (keyword.isNotEmpty) {
+      // 使用 Modular 的路由系统导航到搜索页
+      Modular.to.pushNamed('/search/', arguments: keyword);
+    }
   }
 
   Future<void> _configurePreferredDisplayMode() async {

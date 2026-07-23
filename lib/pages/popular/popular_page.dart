@@ -39,6 +39,8 @@ class _PopularPageState extends State<PopularPage> {
   // ===== 上次观看弹窗 =====
   History? _lastHistory;
   bool _showLastWatch = false;
+  /// 静态标记：整个应用生命周期只显示一次
+  static bool _hasShownLastWatch = false;
 
   @override
   void initState() {
@@ -56,6 +58,8 @@ class _PopularPageState extends State<PopularPage> {
 
   /// 读取最新一条历史记录，用于显示"上次观看"弹窗
   void _checkLastWatch() {
+    // 已显示过就不再显示（整个生命周期只一次）
+    if (_hasShownLastWatch) return;
     // 检查设置开关
     if (!GStorage.getSetting(SettingsKeys.showLastWatchCard)) return;
     try {
@@ -69,6 +73,7 @@ class _PopularPageState extends State<PopularPage> {
           setState(() {
             _lastHistory = last;
             _showLastWatch = true;
+            _hasShownLastWatch = true; // 标记已显示
           });
         }
       }
