@@ -117,7 +117,7 @@ class _CollectPageState extends State<CollectPage>
             'time': c.time.toIso8601String(),
             'image': c.bangumiItem.images['large'] ?? '',
             'summary': c.bangumiItem.summary,
-            'rating': c.bangumiItem.rating,
+            'rating': c.bangumiItem.ratingScore,
           }).toList();
           final uploadRes = await AuthService.syncData({'collect': collectData});
           kazumiSynced = uploadRes['success'] == true;
@@ -140,7 +140,7 @@ class _CollectPageState extends State<CollectPage>
                     // 构建简版 BangumiItem 存入本地
                     final bangumiItem = BangumiItem(
                       id: remoteId,
-                      type: '',
+                      type: 0,
                       name: item['name']?.toString() ?? '未知',
                       nameCn: item['name_cn']?.toString() ?? '',
                       summary: '',
@@ -150,10 +150,10 @@ class _CollectPageState extends State<CollectPage>
                       images: {'large': item['image']?.toString() ?? ''},
                       tags: [],
                       alias: [],
-                      ratingScore: 0,
-                      votes: [],
-                      votesCount: 0,
-                      info: {},
+                      ratingScore: 0.0,
+                      votes: 0,
+                      votesCount: [],
+                      info: '',
                     );
                     await GStorage.putCollectible(
                       CollectedBangumi(bangumiItem, DateTime.now(), type is int ? type : 1),
