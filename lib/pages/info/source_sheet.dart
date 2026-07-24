@@ -115,17 +115,6 @@ class _SourceSheetState extends State<SourceSheet>
     super.dispose();
   }
 
-  @override
-  void dispose() {
-    pluginSearchService?.cancel();
-    pluginSearchService = null;
-    _captchaVerificationService?.dispose();
-    _captchaVerificationService = null;
-    _captchaVerifyTimer?.cancel();
-    _captchaVerifyTimer = null;
-    super.dispose();
-  }
-
   void showAntiCrawlerDialog(Plugin plugin) {
     switch (plugin.antiCrawlerConfig.captchaType) {
       case CaptchaType.customJavaScript:
