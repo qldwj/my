@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart' show WidgetsBinding;
 import 'package:flutter/services.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/encoding.dart';
 
 /// yhdmgz:// 深度链接处理服务
@@ -63,20 +67,40 @@ class DeepLinkService {
     });
   }
 
-  /// 处理 yhdmgz:// 链接
+  /// 处理 yhdmgz:// 链接（规则分享或 Bangumi 登录回调）
   Future<void> _handleLink(String url) async {
-    KazumiLogger().i('DeepLink: 收到规则链接: $url');
+    KazumiLogger().i('DeepLink: 收到链接: $url');
 
+    // 1️⃣ Bangumi OAuth 登录回调
+    if (url.startsWith('yhdmgz://bangumi-auth')) {
+      try {
+        final uri = Uri.parse(url);
+        final token = uri.queryParameters['token'];
+        if (token != null && token.isNotEmpty) {
+          await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
+          await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+          KazumiLogger().i('DeepLink: Bangumi OAuth 登录成功');
+        }
+      } catch (e) {
+        KazumiLogger().e('DeepLink: Bangumi OAuth 回调处理失败', error: e);
+      }
+      return;
+    }
+
+    // 2️⃣ 规则分享导入
     try {
       // 解析 Base64 → JSON
       final jsonStr = kazumiBase64ToJson(url);
       final data = jsonDecode(jsonStr);
+
+      int count = 0;
 
       // 判断格式：单个 Plugin JSON 还是 Animeko 批量格式
       if (data is Map && data.containsKey('name') && data.containsKey('searchURL')) {
         // 单个 Kazumi Plugin 格式
         final plugin = Plugin.fromJson(Map<String, dynamic>.from(data));
         await pluginsController.updatePlugin(plugin);
+        count = 1;
         KazumiLogger().i('DeepLink: 已导入规则: ${plugin.name}');
       } else if (data is Map || data is List) {
         // Animeko 批量格式
@@ -84,17 +108,37 @@ class DeepLinkService {
         final plugins = AnimekoRuleConverter.convertFromJson(jsonStr2);
         if (plugins.isEmpty) {
           KazumiLogger().w('DeepLink: 未找到可转换的规则');
+          _showToast('未找到可转换的规则');
           return;
         }
         for (final plugin in plugins) {
           await pluginsController.updatePlugin(plugin);
+          count++;
           KazumiLogger().i('DeepLink: 已导入规则: ${plugin.name}');
         }
       } else {
         KazumiLogger().w('DeepLink: 无法识别的规则格式');
+        _showToast('无法识别的规则格式');
+        return;
+      }
+
+      if (count > 0) {
+        _showToast('成功导入 $count 条规则 🎉');
       }
     } catch (e, st) {
       KazumiLogger().e('DeepLink: 处理链接失败', error: e, stackTrace: st);
+      _showToast('规则导入失败: ${e.toString()}');
+    }
+  }
+
+  /// 显示 Toast 提示（安全地在主线程执行）
+  void _showToast(String message) {
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        KazumiDialog.showToast(message: message);
+      });
+    } catch (_) {
+      // 静默失败
     }
   }
 

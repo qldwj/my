@@ -49,7 +49,7 @@ class _SourceSheetState extends State<SourceSheet>
   /// 排序后的插件列表：绿→蓝→黄→红，同色按名排序
   /// 已禁用的规则不显示，合集展开为子规则
   /// 只显示有搜索 URL 的规则（合集本身不搜索）
-  List<Plugin> get _sortedPlugins {
+  List<Plugin> get _filteredPlugins {
     final expanded = <Plugin>[];
     for (final p in pluginsController.pluginList) {
       if (!p.enabled) continue;
@@ -85,15 +85,28 @@ class _SourceSheetState extends State<SourceSheet>
   /// Timeout timer waiting for captcha verification result
   Timer? _captchaVerifyTimer;
 
+  /// 搜索源过滤
+  final TextEditingController _filterController = TextEditingController();
+  String _filterText = '';
+
+  /// 过滤后的插件列表
+  List<Plugin> get _filteredPlugins {
+    if (_filterText.isEmpty) return _filteredPlugins;
+    final query = _filterText.toLowerCase();
+    return _filteredPlugins.where((p) =>
+      p.name.toLowerCase().contains(query)
+    ).toList();
+  }
+
   @override
   void initState() {
     super.initState();
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    // TabController 长度与展开后的插件数一致
+    // TabController 长度与过滤后的插件数一致
     _sourceTabController = TabController(
-      length: _sortedPlugins.length,
+      length: _filteredPlugins.length,
       vsync: this,
     );
     pluginSearchService = PluginSearchService(
@@ -528,13 +541,52 @@ class _SourceSheetState extends State<SourceSheet>
             title: '选择播放源',
             description: '正在检索“$keyword”',
             onClose: () => Navigator.of(context).pop(),
+            footer: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: TextField(
+                controller: _filterController,
+                decoration: InputDecoration(
+                  hintText: '🔍 输入关键词过滤源...',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _filterText.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _filterController.clear();
+                            setState(() {
+                              _filterText = '';
+                              _sourceTabController = TabController(
+                                length: _filteredPlugins.length,
+                                vsync: this,
+                              );
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _filterText = value.trim().toLowerCase();
+                    _sourceTabController = TabController(
+                      length: _filteredPlugins.length,
+                      vsync: this,
+                    );
+                  });
+                },
+              ),
+            ),
           ),
           Observer(
             builder: (context) => MaterialBottomSheetTabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.center,
               controller: _sourceTabController,
-              tabs: _sortedPlugins
+              tabs: _filteredPlugins
                   .map(
                     (plugin) => Tab(
                       child: Row(
@@ -569,7 +621,7 @@ class _SourceSheetState extends State<SourceSheet>
               onPressed: () {
                 int currentIndex = _sourceTabController.index;
                 final currentPlugin =
-                    _sortedPlugins[currentIndex];
+                    _filteredPlugins[currentIndex];
                 final targetUrl = currentPlugin.usesApiSearch
                     ? currentPlugin.baseUrl
                     : currentPlugin.searchURL.replaceFirst(
@@ -590,9 +642,9 @@ class _SourceSheetState extends State<SourceSheet>
             child: Observer(
               builder: (context) => TabBarView(
                 controller: _sourceTabController,
-                children: List.generate(_sortedPlugins.length,
+                children: List.generate(_filteredPlugins.length,
                     (pluginIndex) {
-                  var plugin = _sortedPlugins[pluginIndex];
+                  var plugin = _filteredPlugins[pluginIndex];
                   var cardList = <Widget>[];
                   for (var searchResponse
                       in widget.infoController.pluginSearchResponseList) {
