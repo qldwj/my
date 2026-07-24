@@ -48,13 +48,12 @@ class _SourceSheetState extends State<SourceSheet>
 
   /// 排序后的插件列表：绿→蓝→黄→红，同色按名排序
   /// 已禁用的规则不显示，合集展开为子规则
-  /// 只显示有搜索 URL 的规则（合集本身不搜索）
+  /// 只显示有搜索 URL 的规则（合集本身不搜索），支持关键词过滤
   List<Plugin> get _filteredPlugins {
     final expanded = <Plugin>[];
     for (final p in pluginsController.pluginList) {
       if (!p.enabled) continue;
       if (p.isCollection && p.childPlugins.isNotEmpty) {
-        // 展开合集的所有子规则（合集禁用 = 全部禁用）
         for (final child in p.childPlugins) {
           if (child.enabled && child.searchURL.isNotEmpty) {
             expanded.add(child);
@@ -79,6 +78,12 @@ class _SourceSheetState extends State<SourceSheet>
         if (oa != ob) return oa.compareTo(ob);
         return a.name.compareTo(b.name);
       });
+    // 关键词过滤
+    if (_filterText.isNotEmpty) {
+      return sorted.where((p) =>
+        p.name.toLowerCase().contains(_filterText)
+      ).toList();
+    }
     return sorted;
   }
 
@@ -88,15 +93,6 @@ class _SourceSheetState extends State<SourceSheet>
   /// 搜索源过滤
   final TextEditingController _filterController = TextEditingController();
   String _filterText = '';
-
-  /// 过滤后的插件列表
-  List<Plugin> get _filteredPlugins {
-    if (_filterText.isEmpty) return _filteredPlugins;
-    final query = _filterText.toLowerCase();
-    return _filteredPlugins.where((p) =>
-      p.name.toLowerCase().contains(query)
-    ).toList();
-  }
 
   @override
   void initState() {

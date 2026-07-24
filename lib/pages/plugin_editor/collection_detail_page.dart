@@ -10,9 +10,8 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/request/clients/plugin_site_client.dart';
 import 'package:kazumi/services/logging/logger.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/encoding.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 /// 合集详情页面
 ///
@@ -59,11 +58,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       }
 
       // 去重
-      final existingNames = <String>{_plugin.childPlugins.map((p) => p.name)}; // 修复
-      // 修正去重逻辑
-      for (final old in _plugin.childPlugins) {
-        existingNames.add(old.name);
-      }
+      final existingNames = _plugin.childPlugins.map((p) => p.name).toSet();
       int added = 0, updated = 0;
       for (final p in plugins) {
         bool found = false;
@@ -88,7 +83,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       _plugin.collectionNextUpdate = _formatTime(now.add(Duration(minutes: intervalMinutes)));
 
       // 保存
-      final ctrl = Modular.get<PluginsController>();
+      final ctrl = inject<PluginsController>();
       await ctrl.savePlugins();
 
       if (mounted) {
@@ -137,7 +132,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         child.enabled = newState;
       }
     });
-    final ctrl = Modular.get<PluginsController>();
+    final ctrl = inject<PluginsController>();
     unawaited(ctrl.savePlugins());
   }
 
@@ -325,7 +320,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                           ),
                           onPressed: () {
                             setState(() => child.enabled = !child.enabled);
-                            final ctrl = Modular.get<PluginsController>();
+                            final ctrl = inject<PluginsController>();
                             unawaited(ctrl.savePlugins());
                           },
                           tooltip: child.enabled ? '禁用' : '启用',
