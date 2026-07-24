@@ -4,6 +4,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
+import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/services/auth_service.dart';
 
 class MyPage extends StatelessWidget {
   const MyPage({super.key});
@@ -83,6 +85,57 @@ class MyPage extends StatelessWidget {
                     style: TextStyle(fontFamily: fontFamily)),
               ),
             ]),
+
+          // ── 樱花动漫账号 ──
+          SettingsSection(tiles: [
+            SettingsTile(
+              onPressed: (_) => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const KazumiLoginPage(),
+                ),
+              ),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AuthService.isLoggedIn
+                      ? Colors.green.shade50
+                      : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  AuthService.isLoggedIn
+                      ? Icons.check_circle
+                      : Icons.person_add,
+                  color: AuthService.isLoggedIn
+                      ? Colors.green.shade600
+                      : Colors.blue.shade600,
+                ),
+              ),
+              title: Row(
+                children: [
+                  Text(AuthService.isLoggedIn ? '樱花动漫账号已登录' : '樱花动漫账号',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  if (!AuthService.isLoggedIn) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('验证码登录',
+                          style: TextStyle(fontSize: 12, color: Colors.blue.shade600)),
+                    ),
+                  ],
+                ],
+              ),
+              description: Text(
+                AuthService.isLoggedIn ? '点击管理账号' : '登录后可同步收藏与进度',
+                style: TextStyle(fontFamily: fontFamily),
+              ),
+            ),
+          ]),
 
           // ── 播放历史与视频源 ──
           SettingsSection(
