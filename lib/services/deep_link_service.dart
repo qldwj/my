@@ -80,9 +80,13 @@ class DeepLinkService {
           await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
           await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
           KazumiLogger().i('DeepLink: Bangumi OAuth 登录成功');
+          _showToast('Bangumi 登录成功 🎉');
+        } else {
+          _showToast('Bangumi 登录失败：未获取到 Token');
         }
       } catch (e) {
         KazumiLogger().e('DeepLink: Bangumi OAuth 回调处理失败', error: e);
+        _showToast('Bangumi 登录失败：${e.toString()}');
       }
       return;
     }

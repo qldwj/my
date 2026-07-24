@@ -543,6 +543,11 @@ class SettingsKeys {
     30,
     group: SettingGroup.update,
   );
+  static const kazumiToken = SettingKey<String>(
+    'kazumiToken',
+    '',
+    group: SettingGroup.sync,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
