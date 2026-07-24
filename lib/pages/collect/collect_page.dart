@@ -13,6 +13,7 @@ import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -105,9 +106,15 @@ class _CollectPageState extends State<CollectPage>
       if (plan.shouldSyncKazumi) {
         progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
         try {
-          final data = {
-            'collect': collectController.collectList.map((c) => c.toJson()).toList(),
-          };
+          final collectData = collectController.collectibles.map((c) => {
+            'id': c.bangumiItem.id,
+            'name': c.bangumiItem.name,
+            'name_cn': c.bangumiItem.nameCn,
+            'type': c.type,
+            'time': c.time.toIso8601String(),
+            'image': c.bangumiItem.images['large'] ?? '',
+          }).toList();
+          final data = {'collect': collectData};
           final res = await AuthService.syncData(data);
           kazumiSynced = res['success'] == true;
         } catch (e) {
