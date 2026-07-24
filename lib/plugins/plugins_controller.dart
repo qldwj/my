@@ -289,6 +289,8 @@ abstract class _PluginsController with Store {
     });
   }
 
+  Future<void> savePlugins() => _savePlugins();
+
   Future<void> _savePlugins() async {
     final jsonData = jsonEncode(_pluginListToJson());
     await _writePluginsJson(jsonData);

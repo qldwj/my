@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -44,6 +45,31 @@ class _AppWidgetState extends State<AppWidget>
       await _handleTray();
     }
     await _configurePreferredDisplayMode();
+    // 初始化深度链接 (yhdm://)
+    _initDeepLinks();
+  }
+
+  /// 存储启动时收到的深度链接，等有 BuildContext 后再处理
+  String? _pendingDeepLink;
+
+  /// 处理 yhdm:// 协议深度链接（无需第三方包）
+  void _initDeepLinks() {
+    try {
+      // Android 启动时会将自定义协议 URL 作为初始路由传递
+      final initialRoute =
+          WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+      final raw = initialRoute.startsWith('/')
+          ? initialRoute.substring(1)
+          : initialRoute;
+      if (raw.startsWith('yhdm://')) {
+        final uri = Uri.tryParse(raw);
+        if (uri != null) {
+          final keyword =
+              uri.path.startsWith('/') ? uri.path.substring(1) : uri.path;
+          if (keyword.isNotEmpty) _pendingDeepLink = keyword;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _configurePreferredDisplayMode() async {
@@ -320,19 +346,28 @@ class _AppWidgetState extends State<AppWidget>
     }
 
     if (!Platform.isLinux) {
-      await trayManager.setToolTip('Kazumi');
+      await trayManager.setToolTip('YHDM');
     }
 
     Menu trayMenu = Menu(items: [
       MenuItem(key: 'show_window', label: '显示窗口'),
       MenuItem.separator(),
-      MenuItem(key: 'exit', label: '退出 Kazumi')
+      MenuItem(key: 'exit', label: '退出 YHDM')
     ]);
     await trayManager.setContextMenu(trayMenu);
   }
 
   @override
   Widget build(BuildContext context) {
+    // 处理启动时收到的 yhdm:// 深度链接
+    if (_pendingDeepLink != null) {
+      final keyword = _pendingDeepLink!;
+      _pendingDeepLink = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.pushNamed('/search/${Uri.encodeComponent(keyword)}');
+      });
+    }
+
     final ThemeProvider themeProvider = context.watch<ThemeProvider>();
     bool oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
 
@@ -359,7 +394,7 @@ class _AppWidgetState extends State<AppWidget>
             : dynamicDarkTheme;
 
         return MaterialApp.router(
-          title: "Kazumi",
+          title: "YHDM",
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           supportedLocales: const [
             Locale.fromSubtags(

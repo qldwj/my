@@ -22,6 +22,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool enableGitProxy;
   late bool enableBangumiProxy;
   late bool bangumiSyncEnable;
+  late bool enableWidget;
+  late bool enableNotification;
 
   @override
   void initState() {

@@ -23,7 +23,7 @@ class PluginSearchService {
 
   Future<void> querySource(String keyword, String pluginName) async {
     for (final plugin in pluginsController.pluginList) {
-      if (plugin.name == pluginName) {
+      if (plugin.name == pluginName && plugin.enabled) {
         infoController.pluginSearchResponseList.removeWhere(
           (response) => response.pluginName == pluginName,
         );
@@ -39,7 +39,8 @@ class PluginSearchService {
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();
 
-    final plugins = List<Plugin>.of(pluginsController.pluginList);
+    final plugins = List<Plugin>.of(pluginsController.pluginList)
+      ..removeWhere((p) => !p.enabled);
     for (final plugin in plugins) {
       infoController.pluginSearchStatus[plugin.name] =
           PluginSearchStatus.pending;

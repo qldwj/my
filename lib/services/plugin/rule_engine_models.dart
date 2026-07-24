@@ -3,6 +3,7 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/plugins/animeko_rule_config.dart';
 
 typedef RuleCancelToken = CancelToken;
 
@@ -68,6 +69,7 @@ class RuleExecutionConfig {
     required this.searchApiConfig,
     required this.chapterApiConfig,
     required this.antiCrawlerConfig,
+    this.animekoConfig,
   });
 
   final String pluginName;
@@ -84,6 +86,9 @@ class RuleExecutionConfig {
   final ApiSearchConfig searchApiConfig;
   final ApiChapterConfig chapterApiConfig;
   final AntiCrawlerConfig antiCrawlerConfig;
+
+  /// Optional Animeko web-selector rule for CSS mode execution.
+  final AnimekoWebSelectorRule? animekoConfig;
 }
 
 class PreparedRuleRequest {

@@ -7,11 +7,13 @@ import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/onboarding/onboarding_page.dart';
+import 'package:kazumi/pages/playlist/playlist_module.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/route_error_page.dart';
 import 'package:kazumi/pages/search/search_module.dart';
 import 'package:kazumi/pages/settings/settings_module.dart';
+import 'package:kazumi/pages/stats/stats_module.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
@@ -113,6 +115,8 @@ final indexModule = createModule(
       )
       ..module(infoModule)
       ..module(settingsModule)
+      ..module(statsModule)
+      ..module(playlistModule)
       ..module(searchModule);
   },
 );

@@ -47,6 +47,41 @@ class _SourceSheetState extends State<SourceSheet>
   /// Captcha verification service (created on demand)
   CaptchaVerificationService? _captchaVerificationService;
 
+  /// 排序后的插件列表：绿→蓝→黄→红，同色按名排序
+  /// 已禁用的规则不显示，合集展开为子规则
+  List<Plugin> get _sortedPlugins {
+    final expanded = <Plugin>[];
+    for (final p in pluginsController.pluginList) {
+      if (!p.enabled) continue;
+      if (p.isCollection && p.childPlugins.isNotEmpty) {
+        // 展开合集的所有子规则（合集禁用 = 全部禁用）
+        for (final child in p.childPlugins) {
+          if (child.enabled && p.enabled) {
+            expanded.add(child);
+          }
+        }
+      } else {
+        expanded.add(p);
+      }
+    }
+    final sorted = List<Plugin>.from(expanded)
+      ..sort((a, b) {
+        final sa = widget.infoController.pluginSearchStatus[a.name];
+        final sb = widget.infoController.pluginSearchStatus[b.name];
+        const order = {
+          PluginSearchStatus.success: 0,
+          PluginSearchStatus.captcha: 1,
+          PluginSearchStatus.noResult: 2,
+          PluginSearchStatus.error: 3,
+        };
+        final oa = order[sa] ?? 4;
+        final ob = order[sb] ?? 4;
+        if (oa != ob) return oa.compareTo(ob);
+        return a.name.compareTo(b.name);
+      });
+    return sorted;
+  }
+
   /// Timeout timer waiting for captcha verification result
   Timer? _captchaVerifyTimer;
 
@@ -488,50 +523,47 @@ class _SourceSheetState extends State<SourceSheet>
             description: '正在检索“$keyword”',
             onClose: () => Navigator.of(context).pop(),
           ),
-          MaterialBottomSheetTabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.center,
-            controller: widget.tabController,
-            tabs: pluginsController.pluginList
-                .map(
-                  (plugin) => Observer(
-                    builder: (context) {
-                      return Tab(
-                        child: Row(
-                          children: [
-                            Text(
-                              plugin.name,
-                              overflow: TextOverflow.ellipsis,
+          Observer(
+            builder: (context) => MaterialBottomSheetTabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
+              controller: widget.tabController,
+              tabs: _sortedPlugins
+                  .map(
+                    (plugin) => Tab(
+                      child: Row(
+                        children: [
+                          Text(
+                            plugin.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(width: 5.0),
+                          Container(
+                            width: 8.0,
+                            height: 8.0,
+                            decoration: BoxDecoration(
+                              color: switch (widget.infoController
+                                  .pluginSearchStatus[plugin.name]) {
+                                PluginSearchStatus.success => Colors.green,
+                                PluginSearchStatus.noResult => Colors.orange,
+                                PluginSearchStatus.captcha => Colors.blue,
+                                PluginSearchStatus.error => Colors.red,
+                                _ => Colors.grey,
+                              },
+                              shape: BoxShape.circle,
                             ),
-                            const SizedBox(width: 5.0),
-                            Container(
-                              width: 8.0,
-                              height: 8.0,
-                              decoration: BoxDecoration(
-                                color: switch (widget.infoController
-                                    .pluginSearchStatus[plugin.name]) {
-                                  PluginSearchStatus.success => Colors.green,
-                                  PluginSearchStatus.noResult => Colors.orange,
-                                  PluginSearchStatus.captcha => Colors.blue,
-                                  PluginSearchStatus.error => Colors.red,
-                                  _ => Colors.grey,
-                                },
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                )
-                .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
             trailing: IconButton(
               tooltip: '在浏览器中打开',
               onPressed: () {
                 int currentIndex = widget.tabController.index;
                 final currentPlugin =
-                    pluginsController.pluginList[currentIndex];
+                    _sortedPlugins[currentIndex];
                 final targetUrl = currentPlugin.usesApiSearch
                     ? currentPlugin.baseUrl
                     : currentPlugin.searchURL.replaceFirst(
@@ -546,14 +578,15 @@ class _SourceSheetState extends State<SourceSheet>
               icon: const Icon(Icons.open_in_browser_rounded),
             ),
           ),
+          ),
           const SizedBox(height: 4),
           Expanded(
             child: Observer(
               builder: (context) => TabBarView(
                 controller: widget.tabController,
-                children: List.generate(pluginsController.pluginList.length,
+                children: List.generate(_sortedPlugins.length,
                     (pluginIndex) {
-                  var plugin = pluginsController.pluginList[pluginIndex];
+                  var plugin = _sortedPlugins[pluginIndex];
                   var cardList = <Widget>[];
                   for (var searchResponse
                       in widget.infoController.pluginSearchResponseList) {

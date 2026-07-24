@@ -2,8 +2,10 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/plugins/animeko_rule_config.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/plugin/api_rule_engine.dart';
+import 'package:kazumi/services/plugin/css_rule_strategy.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
@@ -46,6 +48,23 @@ class Plugin {
   ApiChapterConfig chapterApiConfig;
   AntiCrawlerConfig antiCrawlerConfig;
 
+  /// Optional animeko web-selector rule config. When non-null and
+  /// [searchMode]/[chapterMode] is `RuleMode.css`, the rule engine uses
+  /// [CssRuleStrategy] with this config instead of XPath/API strategies.
+  AnimekoWebSelectorRule? animekoConfig;
+
+  /// Whether this rule is enabled for search. Disabled rules are skipped
+  /// during queryAllSource and don't appear in source selection tabs.
+  bool enabled;
+
+  /// 合集相关 —— 当此插件是 Animeko 合集时使用
+  /// 合集 = 一个仓库文件包含多个动漫来源
+  bool isCollection;
+  String collectionUrl;
+  String collectionLastUpdate;
+  String collectionNextUpdate;
+  List<Plugin> childPlugins;
+
   Plugin({
     required this.api,
     required this.type,
@@ -71,9 +90,17 @@ class Plugin {
     ApiSearchConfig? searchApiConfig,
     ApiChapterConfig? chapterApiConfig,
     AntiCrawlerConfig? antiCrawlerConfig,
+    this.animekoConfig,
+    this.enabled = true,
+    this.isCollection = false,
+    this.collectionUrl = '',
+    this.collectionLastUpdate = '',
+    this.collectionNextUpdate = '',
+    List<Plugin>? childPlugins,
   })  : searchApiConfig = searchApiConfig ?? ApiSearchConfig(),
         chapterApiConfig = chapterApiConfig ?? ApiChapterConfig(),
-        antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty();
+        antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty(),
+        childPlugins = childPlugins ?? [];
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
     return Plugin(
@@ -113,6 +140,22 @@ class Plugin {
               Map<String, dynamic>.from(json['antiCrawlerConfig']),
             )
           : AntiCrawlerConfig.empty(),
+      animekoConfig: json[animekoConfigKey] is Map
+          ? AnimekoWebSelectorRule.fromJson(
+              Map<String, dynamic>.from(json[animekoConfigKey]),
+            )
+          : null,
+      enabled: json['enabled'] as bool? ?? true,
+      isCollection: json['isCollection'] as bool? ?? false,
+      collectionUrl: json['collectionUrl'] as String? ?? '',
+      collectionLastUpdate: json['collectionLastUpdate'] as String? ?? '',
+      collectionNextUpdate: json['collectionNextUpdate'] as String? ?? '',
+      childPlugins: json['childPlugins'] is List
+          ? (json['childPlugins'] as List)
+              .map((e) =>
+                  Plugin.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList()
+          : [],
     );
   }
 
@@ -142,6 +185,13 @@ class Plugin {
       searchApiConfig: ApiSearchConfig(),
       chapterApiConfig: ApiChapterConfig(),
       antiCrawlerConfig: AntiCrawlerConfig.empty(),
+      animekoConfig: null,
+      enabled: true,
+      isCollection: false,
+      collectionUrl: '',
+      collectionLastUpdate: '',
+      collectionNextUpdate: '',
+      childPlugins: [],
     );
   }
 
@@ -176,10 +226,25 @@ class Plugin {
           chapterApiConfig.request.url.isNotEmpty)
         'chapterApiConfig': chapterApiConfig.toJson(),
       'antiCrawlerConfig': antiCrawlerConfig.toJson(),
+      if (animekoConfig != null)
+        animekoConfigKey: animekoConfig!.toJson(),
+      'enabled': enabled,
+      if (isCollection) ...{
+        'isCollection': true,
+        'collectionUrl': collectionUrl,
+        'collectionLastUpdate': collectionLastUpdate,
+        'collectionNextUpdate': collectionNextUpdate,
+        if (childPlugins.isNotEmpty)
+          'childPlugins': childPlugins.map((p) => p.toJson()).toList(),
+      },
     };
   }
 
   bool get usesApiSearch => searchMode == RuleMode.api;
+
+  bool get usesCssSearch => searchMode == RuleMode.css;
+
+  bool get usesRssSearch => searchMode == RuleMode.rss;
 
   bool get requiresNewerClient => int.parse(api) > ApiEndpoints.apiLevel;
 
@@ -198,6 +263,7 @@ class Plugin {
         searchApiConfig: searchApiConfig,
         chapterApiConfig: chapterApiConfig,
         antiCrawlerConfig: antiCrawlerConfig,
+        animekoConfig: animekoConfig,
       );
 
   Future<RuleSearchTrace> traceSearch(
@@ -251,10 +317,32 @@ class Plugin {
   }
 
   /// Headers used when resolving or downloading the final media resource.
+  /// When in CSS/animeko mode, uses the animeko matchVideo headers.
+  /// RSS sources need no special headers.
   Map<String, String> buildHttpHeaders() {
+    if (usesRssSearch) {
+      return {};
+    }
+    if (usesCssSearch && animekoConfig != null) {
+      return const CssRuleStrategy().buildVideoHeaders(animekoConfig!);
+    }
     return {
       'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
+  }
+
+  /// Whether the video source for this plugin is the final media URL directly
+  /// (e.g. RSS magnet links), skipping WebView resolution.
+  bool get hasDirectMediaUrl => usesRssSearch;
+
+  /// Extracts the video URL from a playback page HTML using the Animeko
+  /// matchVideo regex rules. Only applicable in CSS mode.
+  /// Returns an empty string if no match or not in CSS mode.
+  String extractVideoUrlFromPage(String pageHtml) {
+    if (usesCssSearch && animekoConfig != null) {
+      return const CssRuleStrategy().extractVideoUrl(pageHtml, animekoConfig!);
+    }
+    return '';
   }
 }

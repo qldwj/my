@@ -17,6 +17,8 @@ import 'package:kazumi/services/download/background_download_service.dart';
 import 'package:kazumi/services/platform/windows_shortcut.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
+import 'package:kazumi/services/update/animeko_rule_updater.dart';
+import 'package:kazumi/services/deep_link_service.dart';
 import 'package:kazumi/navigation.dart';
 
 class InitPage extends StatefulWidget {
@@ -69,13 +71,22 @@ class _InitPageState extends State<InitPage> {
     await _showShortcutDialog();
     await _pluginInit();
 
+    // 启动 Animeko 规则自动更新（后台静默检查，默认 60 分钟一次）
+    final animekoUpdater = AnimekoRuleUpdater(pluginsController: pluginsController);
+    unawaited(animekoUpdater.init());
+
+    // 初始化深度链接服务（处理 yhdmgz:// 协议）
+    final deepLinkService = DeepLinkService(pluginsController: pluginsController);
+    unawaited(deepLinkService.init());
+
     if (!mounted) {
       return;
     }
     // First launch: no installed rules yet, hand over to the onboarding flow.
-    // OnboardingPage takes care of navigating to the default page and
-    // triggering the auto update check afterwards.
-    if (pluginsController.pluginList.isEmpty) {
+    // 但如果用户曾经有过规则（有历史记录），直接进主页面
+    if (pluginsController.pluginList.isEmpty &&
+        GStorage.getSetting(SettingsKeys.animekoRuleLastCheck) <= 0 &&
+        GStorage.getSetting(SettingsKeys.defaultStartupPage) == '/tab/popular/') {
       context.navigate('/onboarding');
       return;
     }

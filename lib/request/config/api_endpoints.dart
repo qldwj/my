@@ -1,37 +1,37 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.3';
+  static const String version = '2.2.5';
 
   /// 规则API级别
   static const int apiLevel = 8;
 
   /// 项目主页
-  static const String projectUrl = "https://kazumi.app/";
+  static const String projectUrl = "https://qlyyz.xyz/";
 
   /// Github 项目主页
-  static const String sourceUrl = "https://github.com/Predidit/Kazumi";
+  static const String sourceUrl = "https://github.com/qldwj/Kazumikfc";
 
   /// 图标作者
-  static const String iconUrl = "https://www.pixiv.net/users/66219277";
+  static const String iconUrl = "https://www.pixiv.net/users/127095445";
 
   /// 规则仓库
   static const String pluginShop =
-      'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
+      'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/';
 
   /// 规则仓库镜像
   static const String pluginShopMirror =
-      'https://raw.gitcode.com/gh_mirrors/ka/KazumiRules/raw/main/';
+      'https://www.qlyyz.xyz/v1/app/qldwj/Kazuminb6Rules/raw/main/';
 
   /// 在线升级
   static const String latestApp =
-      'https://api.github.com/repos/Predidit/Kazumi/releases/latest';
+      'https://api.github.com/repos/qldwj/Kazumikfc/releases/latest';
 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
-      '$bangumiMirrorDomain/kazumi/v1/app/latest';
+      'https://www.qlyyz.xyz/v1/app/latest/ind.php';
 
   /// 弹弹官网
   static const String dandanIndex = 'https://www.dandanplay.com/';
@@ -46,7 +46,7 @@ class ApiEndpoints {
   static const String bangumiAuthAPIMirrorDomain = 'https://api.bgmapi.com';
 
   /// Telegram 群组
-  static const String telegramGroup = 'https://t.me/kazumi_app';
+  static const String telegramGroup = 'https://t.me/yhdmdchapp';
 
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
