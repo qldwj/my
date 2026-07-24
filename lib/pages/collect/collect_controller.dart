@@ -4,6 +4,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
@@ -68,10 +69,13 @@ abstract class _CollectController with Store {
       return;
     }
 
+    // 2. Sync with Kazumi if enabled
+    await _syncKazumiCollectIfEnabled();
+
     final int currentCollectType = getCollectType(bangumiItem);
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
-    // 2. Update local database and change logs
+    // 3. Update local database and change logs
     await _collectCrudRepository.addCollectible(bangumiItem, type);
     await GStorage.appendCollectChange(
       bangumiId: bangumiItem.id,
@@ -215,6 +219,26 @@ abstract class _CollectController with Store {
       );
       return false;
     }
+  }
+
+  /// 如果已登录樱花账号，立即同步收藏到服务器
+  Future<void> _syncKazumiCollectIfEnabled() async {
+    final bool kazumiEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
+    if (!kazumiEnable) return;
+    if (!AuthService.isLoggedIn) return;
+    try {
+      final collectData = collectibles.map((c) => ({
+        'id': c.bangumiItem.id,
+        'name': c.bangumiItem.name,
+        'name_cn': c.bangumiItem.nameCn,
+        'type': c.type,
+        'time': c.time.toIso8601String(),
+        'image': c.bangumiItem.images['large'] ?? '',
+        'summary': c.bangumiItem.summary,
+        'rating': c.bangumiItem.ratingScore,
+      })).toList();
+      await AuthService.syncData({'collect': collectData});
+    } catch (_) {}
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
