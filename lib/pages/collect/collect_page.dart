@@ -108,8 +108,8 @@ class _CollectPageState extends State<CollectPage>
       if (plan.shouldSyncKazumi) {
         progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
         try {
-          // 1. 上传本地收藏
-          final collectData = collectController.collectibles.map((c) => {
+          // 1. 上传本地收藏到服务器
+          final collectData = collectController.collectibles.map((c) => ({
             'id': c.bangumiItem.id,
             'name': c.bangumiItem.name,
             'name_cn': c.bangumiItem.nameCn,
@@ -118,7 +118,7 @@ class _CollectPageState extends State<CollectPage>
             'image': c.bangumiItem.images['large'] ?? '',
             'summary': c.bangumiItem.summary,
             'rating': c.bangumiItem.ratingScore,
-          }).toList();
+          })).toList();
           final uploadRes = await AuthService.syncData({'collect': collectData});
           kazumiSynced = uploadRes['success'] == true;
 
@@ -137,7 +137,7 @@ class _CollectPageState extends State<CollectPage>
                   );
                   if (!exists) {
                     final type = item['type'] ?? 1;
-                    // 构建简版 BangumiItem 存入本地
+                    final image = item['image']?.toString() ?? '';
                     final bangumiItem = BangumiItem(
                       id: remoteId,
                       type: 0,
@@ -147,7 +147,7 @@ class _CollectPageState extends State<CollectPage>
                       airDate: '',
                       airWeekday: 0,
                       rank: 0,
-                      images: {'large': item['image']?.toString() ?? ''},
+                      images: {'large': image},
                       tags: [],
                       alias: [],
                       ratingScore: 0.0,
