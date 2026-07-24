@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -66,10 +67,11 @@ class _CollectPageState extends State<CollectPage>
     required bool webDavSynced,
     required bool bangumiSynced,
     required bool webDavUploaded,
+    bool kazumiSynced = false,
   }) {
     final List<String> states = [];
     if (plan.shouldSyncKazumi) {
-      states.add('樱花服务器 已同步');
+      states.add(kazumiSynced ? '樱花服务器 已同步' : '樱花服务器 未完成');
     }
     if (plan.shouldSyncWebDavCollectibles) {
       states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
@@ -106,6 +108,7 @@ class _CollectPageState extends State<CollectPage>
       if (plan.shouldSyncKazumi) {
         progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
         try {
+          // 1. 上传本地收藏
           final collectData = collectController.collectibles.map((c) => {
             'id': c.bangumiItem.id,
             'name': c.bangumiItem.name,
@@ -113,10 +116,57 @@ class _CollectPageState extends State<CollectPage>
             'type': c.type,
             'time': c.time.toIso8601String(),
             'image': c.bangumiItem.images['large'] ?? '',
+            'summary': c.bangumiItem.summary,
+            'rating': c.bangumiItem.rating,
           }).toList();
-          final data = {'collect': collectData};
-          final res = await AuthService.syncData(data);
-          kazumiSynced = res['success'] == true;
+          final uploadRes = await AuthService.syncData({'collect': collectData});
+          kazumiSynced = uploadRes['success'] == true;
+
+          // 2. 下载服务器数据并补全本地
+          if (kazumiSynced && uploadRes['sync_data'] is Map) {
+            final serverData = uploadRes['sync_data'] as Map<String, dynamic>;
+            if (serverData['collect'] is List) {
+              final remoteCollect = serverData['collect'] as List;
+              int added = 0;
+              for (final item in remoteCollect) {
+                if (item is Map) {
+                  final remoteId = item['id'];
+                  if (remoteId is! int) continue;
+                  final exists = collectController.collectibles.any(
+                    (c) => c.bangumiItem.id == remoteId,
+                  );
+                  if (!exists) {
+                    final type = item['type'] ?? 1;
+                    // 构建简版 BangumiItem 存入本地
+                    final bangumiItem = BangumiItem(
+                      id: remoteId,
+                      type: '',
+                      name: item['name']?.toString() ?? '未知',
+                      nameCn: item['name_cn']?.toString() ?? '',
+                      summary: '',
+                      airDate: '',
+                      airWeekday: 0,
+                      rank: 0,
+                      images: {'large': item['image']?.toString() ?? ''},
+                      tags: [],
+                      alias: [],
+                      ratingScore: 0,
+                      votes: [],
+                      votesCount: 0,
+                      info: {},
+                    );
+                    await GStorage.putCollectible(
+                      CollectedBangumi(bangumiItem, DateTime.now(), type is int ? type : 1),
+                    );
+                    added++;
+                  }
+                }
+              }
+              if (added > 0) {
+                collectController.loadCollectibles();
+              }
+            }
+          }
         } catch (e) {
           KazumiLogger().w('Kazumi sync failed', error: e);
         }
@@ -155,6 +205,7 @@ class _CollectPageState extends State<CollectPage>
         webDavSynced: webDavSynced,
         bangumiSynced: bangumiSynced,
         webDavUploaded: webDavUploaded,
+        kazumiSynced: kazumiSynced,
       ),
     );
   }
