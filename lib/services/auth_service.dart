@@ -110,6 +110,35 @@ class AuthService {
     }
   }
 
+  /// 同步数据到樱花服务器（收藏、历史等）
+  static Future<Map<String, dynamic>> syncData(Map<String, dynamic> data) async {
+    final token = getLocalToken();
+    if (token == null) return {'error': '未登录'};
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 15);
+      final body = {'data': data};
+      final bodyStr = jsonEncode(body);
+      final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      final request = await client.postUrl(Uri.parse('$baseUrl?action=sync'));
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('Authorization', 'Bearer $token');
+      request.headers.set('X-AppId', _appId);
+      request.headers.set('X-Timestamp', timestamp.toString());
+      request.headers.set('X-Signature', _sign(bodyStr, timestamp));
+      request.write(bodyStr);
+
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      client.close();
+      return jsonDecode(responseBody) as Map<String, dynamic>;
+    } catch (e) {
+      KazumiLogger().e('AuthService: 同步失败', error: e);
+      return {'error': '网络连接失败'};
+    }
+  }
+
   /// 绑定 Bangumi Token 到当前账号
   static Future<Map<String, dynamic>> bindBangumi(String bangumiToken) async {
     final token = getLocalToken();

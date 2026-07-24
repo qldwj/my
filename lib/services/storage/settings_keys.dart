@@ -548,6 +548,11 @@ class SettingsKeys {
     '',
     group: SettingGroup.sync,
   );
+  static const kazumiSyncEnable = SettingKey<bool>(
+    'kazumiSyncEnable',
+    false,
+    group: SettingGroup.sync,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,

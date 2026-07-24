@@ -12,6 +12,7 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/auth_service.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -66,6 +67,9 @@ class _CollectPageState extends State<CollectPage>
     required bool webDavUploaded,
   }) {
     final List<String> states = [];
+    if (plan.shouldSyncKazumi) {
+      states.add('樱花服务器 已同步');
+    }
     if (plan.shouldSyncWebDavCollectibles) {
       states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
     }
@@ -95,8 +99,22 @@ class _CollectPageState extends State<CollectPage>
     bool webDavSynced = false;
     bool bangumiSynced = false;
     bool webDavUploaded = false;
+    bool kazumiSynced = false;
 
     try {
+      if (plan.shouldSyncKazumi) {
+        progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
+        try {
+          final data = {
+            'collect': collectController.collectList.map((c) => c.toJson()).toList(),
+          };
+          final res = await AuthService.syncData(data);
+          kazumiSynced = res['success'] == true;
+        } catch (e) {
+          KazumiLogger().w('Kazumi sync failed', error: e);
+        }
+      }
+
       if (plan.shouldSyncWebDavCollectibles) {
         progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
         webDavSynced =
@@ -191,6 +209,7 @@ class _CollectPageState extends State<CollectPage>
             webDavEnabled: webDavenable,
             webDavCollectiblesEnabled: webDavCollectEnable,
             bangumiEnabled: bgmSyncEnable,
+            kazumiSyncEnabled: GStorage.getSetting(SettingsKeys.kazumiSyncEnable),
           );
           if (!syncPlan.canSync) {
             KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');

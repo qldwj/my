@@ -73,6 +73,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       );
       if (res['token'] != null) {
         AuthService.saveLocalToken(res['token']);
+        await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
         setState(() => _loggedIn = true);
         KazumiDialog.showToast(message: '登录成功 🎉');
         Navigator.of(context).pop(true);
@@ -87,6 +88,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
   void _logout() {
     AuthService.clearLocalToken();
+    GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
     setState(() => _loggedIn = false);
     KazumiDialog.showToast(message: '已退出登录');
   }
