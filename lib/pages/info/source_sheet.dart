@@ -24,11 +24,9 @@ import 'package:kazumi/utils/device.dart';
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
-    required this.tabController,
     required this.infoController,
   });
 
-  final TabController tabController;
   final InfoController infoController;
 
   @override
@@ -40,6 +38,7 @@ class _SourceSheetState extends State<SourceSheet>
   final CollectController collectController = inject<CollectController>();
   final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
+  late TabController _sourceTabController;
 
   /// Concurrent plugin search service.
   PluginSearchService? pluginSearchService;
@@ -88,15 +87,32 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   void initState() {
+    super.initState();
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
+    // TabController 长度与展开后的插件数一致
+    _sourceTabController = TabController(
+      length: _sortedPlugins.length,
+      vsync: this,
+    );
     pluginSearchService = PluginSearchService(
       infoController: widget.infoController,
       pluginsController: pluginsController,
     );
     pluginSearchService?.queryAllSource(keyword);
-    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _sourceTabController.dispose();
+    pluginSearchService?.cancel();
+    pluginSearchService = null;
+    _captchaVerificationService?.dispose();
+    _captchaVerificationService = null;
+    _captchaVerifyTimer?.cancel();
+    _captchaVerifyTimer = null;
+    super.dispose();
   }
 
   @override
@@ -528,7 +544,7 @@ class _SourceSheetState extends State<SourceSheet>
             builder: (context) => MaterialBottomSheetTabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.center,
-              controller: widget.tabController,
+              controller: _sourceTabController,
               tabs: _sortedPlugins
                   .map(
                     (plugin) => Tab(
@@ -562,7 +578,7 @@ class _SourceSheetState extends State<SourceSheet>
             trailing: IconButton(
               tooltip: '在浏览器中打开',
               onPressed: () {
-                int currentIndex = widget.tabController.index;
+                int currentIndex = _sourceTabController.index;
                 final currentPlugin =
                     _sortedPlugins[currentIndex];
                 final targetUrl = currentPlugin.usesApiSearch
@@ -584,7 +600,7 @@ class _SourceSheetState extends State<SourceSheet>
           Expanded(
             child: Observer(
               builder: (context) => TabBarView(
-                controller: widget.tabController,
+                controller: _sourceTabController,
                 children: List.generate(_sortedPlugins.length,
                     (pluginIndex) {
                   var plugin = _sortedPlugins[pluginIndex];

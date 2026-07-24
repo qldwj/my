@@ -557,7 +557,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       context: context,
                       builder: (context) {
                         return SourceSheet(
-                            tabController: sourceTabController,
                             infoController: infoController);
                       },
                     );
