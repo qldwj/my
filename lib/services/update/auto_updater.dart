@@ -154,9 +154,28 @@ class AutoUpdater {
   }
 
   /// 检查是否有新版本可用
-  Future<UpdateInfo?> checkForUpdates() async {
+  /// [channel] 更新通道：'stable' 正式版, 'beta' 测试版, 'both' 都更新
+  Future<UpdateInfo?> checkForUpdates({String? channel}) async {
     try {
-      final data = await _latestRelease();
+      final updateChannel = channel ??
+          GStorage.getSetting(SettingsKeys.updateChannel);
+
+      Map<String, dynamic> data;
+
+      if (updateChannel == 'beta') {
+        // 测试版：从版本列表获取最新的（含 prerelease）
+        data = await _latestBetaRelease();
+      } else if (updateChannel == 'both') {
+        // 都更新：先试正式版，没有更新再试测试版
+        try {
+          data = await _latestRelease();
+        } catch (_) {
+          data = await _latestBetaRelease();
+        }
+      } else {
+        // 默认：仅正式版
+        data = await _latestRelease();
+      }
 
       if (!data.containsKey('tag_name')) {
         throw Exception('无效的响应数据');
@@ -167,16 +186,15 @@ class AutoUpdater {
 
       if (needUpdate(currentVersion, remoteVersion)) {
         final availableTypes = await _detectAvailableInstallationTypes();
+        final isPrerelease = data['prerelease'] == true;
 
         return UpdateInfo(
           version: remoteVersion,
-          description: data['body'] ?? '发现新版本',
+          description: (isPrerelease ? '🧪 测试版 ' : '') + (data['body'] ?? '发现新版本'),
           downloadUrl: '',
-          // 将在用户选择安装类型后填充
           releaseNotes: data['html_url'] ?? '',
           publishedAt: data['published_at'] ?? '',
           installationType: availableTypes.first,
-          // 保持兼容性
           availableInstallationTypes: availableTypes,
           assets: data['assets'] ?? [],
         );
@@ -189,6 +207,7 @@ class AutoUpdater {
     }
   }
 
+  /// 获取最新正式版
   Future<Map<String, dynamic>> _latestRelease() async {
     final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
     final data = json.decode(raw);
@@ -196,6 +215,23 @@ class AutoUpdater {
       throw Exception('Invalid update response');
     }
     return Map<String, dynamic>.from(data);
+  }
+
+  /// 获取最新测试版（从版本列表中找第一个可用的）
+  Future<Map<String, dynamic>> _latestBetaRelease() async {
+    final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
+    final list = json.decode(raw);
+    if (list is! List || list.isEmpty) {
+      throw Exception('没有可用的版本');
+    }
+    // 取第一个有 assets 的 release（可能是 prerelease）
+    for (final item in list) {
+      if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
+        return Map<String, dynamic>.from(item);
+      }
+    }
+    // 回退到正式版
+    return _latestRelease();
   }
 
   /// ============================================================

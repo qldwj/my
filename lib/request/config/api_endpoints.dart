@@ -1,6 +1,6 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.2.5';
+  static const String version = '2.2.4';
 
   /// 规则API级别
   static const int apiLevel = 8;
@@ -22,9 +22,12 @@ class ApiEndpoints {
   static const String pluginShopMirror =
       'https://www.qlyyz.xyz/v1/app/qldwj/Kazuminb6Rules/raw/main/';
 
-  /// 在线升级
+  /// 在线升级（最新正式版）
   static const String latestApp =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases/latest';
+  /// 所有版本列表（含测试版）
+  static const String allAppReleases =
+      'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';

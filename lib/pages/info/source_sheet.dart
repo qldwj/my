@@ -49,6 +49,7 @@ class _SourceSheetState extends State<SourceSheet>
 
   /// 排序后的插件列表：绿→蓝→黄→红，同色按名排序
   /// 已禁用的规则不显示，合集展开为子规则
+  /// 只显示有搜索 URL 的规则（合集本身不搜索）
   List<Plugin> get _sortedPlugins {
     final expanded = <Plugin>[];
     for (final p in pluginsController.pluginList) {
@@ -56,11 +57,11 @@ class _SourceSheetState extends State<SourceSheet>
       if (p.isCollection && p.childPlugins.isNotEmpty) {
         // 展开合集的所有子规则（合集禁用 = 全部禁用）
         for (final child in p.childPlugins) {
-          if (child.enabled && p.enabled) {
+          if (child.enabled && child.searchURL.isNotEmpty) {
             expanded.add(child);
           }
         }
-      } else {
+      } else if (!p.isCollection) {
         expanded.add(p);
       }
     }

@@ -528,6 +528,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.theme,
   );
+  static const updateChannel = SettingKey<String>(
+    'updateChannel',
+    'stable',
+    group: SettingGroup.update,
+  );
   static const animekoRuleLastCheck = SettingKey<int>(
     'animekoRuleLastCheck',
     0,

@@ -22,6 +22,7 @@ class PluginSearchService {
   bool _isCancelled = false;
 
   Future<void> querySource(String keyword, String pluginName) async {
+    // 先在主列表中查找
     for (final plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName && plugin.enabled) {
         infoController.pluginSearchResponseList.removeWhere(
@@ -33,14 +34,48 @@ class PluginSearchService {
         return;
       }
     }
+    // 再在合集的子规则中查找
+    for (final p in pluginsController.pluginList) {
+      if (p.isCollection) {
+        for (final child in p.childPlugins) {
+          if (child.name == pluginName && child.enabled) {
+            infoController.pluginSearchResponseList.removeWhere(
+              (response) => response.pluginName == pluginName,
+            );
+            infoController.pluginSearchStatus[pluginName] =
+                PluginSearchStatus.pending;
+            await _queryPlugin(child, keyword);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  /// 获取所有需要搜索的插件（合集展开为子规则）
+  List<Plugin> _getSearchablePlugins() {
+    final result = <Plugin>[];
+    for (final p in pluginsController.pluginList) {
+      if (!p.enabled) continue;
+      if (p.isCollection) {
+        // 合集展开为子规则进行搜索
+        for (final child in p.childPlugins) {
+          if (child.enabled && child.searchURL.isNotEmpty) {
+            result.add(child);
+          }
+        }
+      } else {
+        result.add(p);
+      }
+    }
+    return result;
   }
 
   Future<void> queryAllSource(String keyword) async {
     infoController.pluginSearchResponseList.clear();
     infoController.pluginSearchStatus.clear();
 
-    final plugins = List<Plugin>.of(pluginsController.pluginList)
-      ..removeWhere((p) => !p.enabled);
+    final plugins = _getSearchablePlugins();
     for (final plugin in plugins) {
       infoController.pluginSearchStatus[plugin.name] =
           PluginSearchStatus.pending;
