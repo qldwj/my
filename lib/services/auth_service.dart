@@ -60,30 +60,42 @@ class AuthService {
     return _request('send_code', {'email': email});
   }
 
-  /// 注册（验证码即身份，无需密码）
+  /// 注册/登录（验证码即身份，无需密码）
+  /// 如果服务器有绑定的 Bangumi token，会一并返回并自动登录 Bangumi
   static Future<Map<String, dynamic>> register({
     required String email,
     required String code,
     required String captchaAnswer,
-  }) {
-    return _request('register', {
+  }) async {
+    final res = await _request('register', {
       'email': email,
       'code': code,
       'captcha_answer': captchaAnswer,
     });
+    if (res['bangumi_token'] is String && (res['bangumi_token'] as String).isNotEmpty) {
+      await GStorage.putSetting(SettingsKeys.bangumiAccessToken, res['bangumi_token'] as String);
+      await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+    }
+    return res;
   }
 
   /// 登录（验证码即身份，无需密码）
+  /// 如果服务器有绑定的 Bangumi token，会一并返回并自动登录 Bangumi
   static Future<Map<String, dynamic>> login({
     required String email,
     required String code,
     required String captchaAnswer,
-  }) {
-    return _request('login', {
+  }) async {
+    final res = await _request('login', {
       'email': email,
       'code': code,
       'captcha_answer': captchaAnswer,
     });
+    if (res['bangumi_token'] is String && (res['bangumi_token'] as String).isNotEmpty) {
+      await GStorage.putSetting(SettingsKeys.bangumiAccessToken, res['bangumi_token'] as String);
+      await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+    }
+    return res;
   }
 
   /// 获取用户信息
