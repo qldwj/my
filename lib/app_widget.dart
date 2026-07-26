@@ -154,7 +154,7 @@ class _AppWidgetState extends State<AppWidget>
   Color _storedThemeColor() {
     final defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     if (defaultThemeColor == 'default') {
-      return Colors.green;
+      return Colors.pink;
     }
     return Color(int.parse(defaultThemeColor, radix: 16));
   }
