@@ -33,6 +33,8 @@ class _AboutPageState extends State<AboutPage> {
   late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
   late bool checkPluginUpdateOnStartup;
+  // 🔥 新增：更新渠道变量
+  late String updateChannel;
   double _cacheSizeMB = -1;
   MyController get myController => widget.controller;
   final MenuController menuController = MenuController();
@@ -43,6 +45,15 @@ class _AboutPageState extends State<AboutPage> {
     autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     checkPluginUpdateOnStartup =
         GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
+    
+    // 🔥 新增：读取更新渠道，默认 'stable'，并兼容旧的 'preview'
+    String rawChannel = GStorage.getSetting(SettingsKeys.updateChannel) ?? 'stable';
+    if (rawChannel == 'preview') {
+      rawChannel = 'beta';
+      GStorage.putSetting(SettingsKeys.updateChannel, 'beta');
+    }
+    updateChannel = rawChannel;
+    
     _getCacheSize();
   }
 
@@ -133,6 +144,55 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 
+  // 🔥 新增：更新渠道选择对话框
+  void _showUpdateChannelDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('选择更新渠道'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('稳定版'),
+              leading: Radio<String>(
+                value: 'stable',
+                groupValue: updateChannel,
+                onChanged: (value) {
+                  setState(() {
+                    updateChannel = value!;
+                  });
+                  GStorage.putSetting(SettingsKeys.updateChannel, value);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('预览版'),
+              leading: Radio<String>(
+                value: 'beta',
+                groupValue: updateChannel,
+                onChanged: (value) {
+                  setState(() {
+                    updateChannel = value!;
+                  });
+                  GStorage.putSetting(SettingsKeys.updateChannel, value);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
@@ -143,7 +203,6 @@ class _AboutPageState extends State<AboutPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('关于')),
-        // backgroundColor: Colors.transparent,
         body: SettingsList(
           maxWidth: 1000,
           sections: [
@@ -355,6 +414,15 @@ class _AboutPageState extends State<AboutPage> {
                   title: Text('启动时检查应用更新',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
+                ),
+                // 🔥 新增：更新渠道行
+                SettingsTile.navigation(
+                  onPressed: (_) => _showUpdateChannelDialog(),
+                  title: Text('更新渠道', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text(
+                    updateChannel == 'beta' ? '预览版' : '稳定版',
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
