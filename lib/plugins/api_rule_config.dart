@@ -1,9 +1,14 @@
 class RuleMode {
   static const String xpath = 'xpath';
   static const String api = 'api';
+  static const String css = 'css';
+  static const String rss = 'rss';
 
   static String normalize(Object? value) {
-    return value == api ? api : xpath;
+    if (value == api) return api;
+    if (value == css) return css;
+    if (value == rss) return rss;
+    return xpath;
   }
 }
 

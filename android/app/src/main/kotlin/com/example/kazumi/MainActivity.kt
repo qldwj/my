@@ -74,7 +74,11 @@ class MainActivity: AudioServiceActivity() {
         super.configureFlutterEngine(flutterEngine)
         intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         intentChannel?.setMethodCallHandler { call, result ->
-            if (call.method == "openWithMime") {
+            if (call.method == "checkIntent") {
+                // 检查启动 Intent 是否包含 yhdmgz:// 链接
+                val intentData = intent?.dataString
+                result.success(intentData)
+            } else if (call.method == "openWithMime") {
                 val url = call.argument<String>("url")
                 val mimeType = call.argument<String>("mimeType")
                 if (url != null && mimeType != null) {
@@ -293,6 +297,15 @@ class MainActivity: AudioServiceActivity() {
             pendingIntent
         ).apply {
             setEnabled(enabled)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // 处理新的 yhdmgz:// 链接（应用已在运行中）
+        val intentData = intent.dataString
+        if (intentData != null) {
+            intentChannel?.invokeMethod("onIntent", mapOf("url" to intentData))
         }
     }
 

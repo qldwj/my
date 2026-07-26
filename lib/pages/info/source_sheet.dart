@@ -24,11 +24,9 @@ import 'package:kazumi/utils/device.dart';
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
-    required this.tabController,
     required this.infoController,
   });
 
-  final TabController tabController;
   final InfoController infoController;
 
   @override
@@ -40,6 +38,7 @@ class _SourceSheetState extends State<SourceSheet>
   final CollectController collectController = inject<CollectController>();
   final PluginsController pluginsController = inject<PluginsController>();
   late String keyword;
+  late TabController _sourceTabController;
 
   /// Concurrent plugin search service.
   PluginSearchService? pluginSearchService;
@@ -47,24 +46,75 @@ class _SourceSheetState extends State<SourceSheet>
   /// Captcha verification service (created on demand)
   CaptchaVerificationService? _captchaVerificationService;
 
+  /// 排序后的插件列表：绿→蓝→黄→红，同色按名排序
+  /// 已禁用的规则不显示，合集展开为子规则
+  /// 只显示有搜索 URL 的规则（合集本身不搜索），支持关键词过滤
+  List<Plugin> get _filteredPlugins {
+    final expanded = <Plugin>[];
+    for (final p in pluginsController.pluginList) {
+      if (!p.enabled) continue;
+      if (p.isCollection && p.childPlugins.isNotEmpty) {
+        for (final child in p.childPlugins) {
+          if (child.enabled && child.searchURL.isNotEmpty) {
+            expanded.add(child);
+          }
+        }
+      } else if (!p.isCollection) {
+        expanded.add(p);
+      }
+    }
+    final sorted = List<Plugin>.from(expanded)
+      ..sort((a, b) {
+        final sa = widget.infoController.pluginSearchStatus[a.name];
+        final sb = widget.infoController.pluginSearchStatus[b.name];
+        const order = {
+          PluginSearchStatus.success: 0,
+          PluginSearchStatus.captcha: 1,
+          PluginSearchStatus.noResult: 2,
+          PluginSearchStatus.error: 3,
+        };
+        final oa = order[sa] ?? 4;
+        final ob = order[sb] ?? 4;
+        if (oa != ob) return oa.compareTo(ob);
+        return a.name.compareTo(b.name);
+      });
+    // 关键词过滤
+    if (_filterText.isNotEmpty) {
+      return sorted.where((p) =>
+        p.name.toLowerCase().contains(_filterText)
+      ).toList();
+    }
+    return sorted;
+  }
+
   /// Timeout timer waiting for captcha verification result
   Timer? _captchaVerifyTimer;
 
+  /// 搜索源过滤
+  final TextEditingController _filterController = TextEditingController();
+  String _filterText = '';
+
   @override
   void initState() {
+    super.initState();
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
+    // TabController 长度与过滤后的插件数一致
+    _sourceTabController = TabController(
+      length: _filteredPlugins.length,
+      vsync: this,
+    );
     pluginSearchService = PluginSearchService(
       infoController: widget.infoController,
       pluginsController: pluginsController,
     );
     pluginSearchService?.queryAllSource(keyword);
-    super.initState();
   }
 
   @override
   void dispose() {
+    _sourceTabController.dispose();
     pluginSearchService?.cancel();
     pluginSearchService = null;
     _captchaVerificationService?.dispose();
@@ -487,51 +537,87 @@ class _SourceSheetState extends State<SourceSheet>
             title: '选择播放源',
             description: '正在检索“$keyword”',
             onClose: () => Navigator.of(context).pop(),
-          ),
-          MaterialBottomSheetTabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.center,
-            controller: widget.tabController,
-            tabs: pluginsController.pluginList
-                .map(
-                  (plugin) => Observer(
-                    builder: (context) {
-                      return Tab(
-                        child: Row(
-                          children: [
-                            Text(
-                              plugin.name,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(width: 5.0),
-                            Container(
-                              width: 8.0,
-                              height: 8.0,
-                              decoration: BoxDecoration(
-                                color: switch (widget.infoController
-                                    .pluginSearchStatus[plugin.name]) {
-                                  PluginSearchStatus.success => Colors.green,
-                                  PluginSearchStatus.noResult => Colors.orange,
-                                  PluginSearchStatus.captcha => Colors.blue,
-                                  PluginSearchStatus.error => Colors.red,
-                                  _ => Colors.grey,
-                                },
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+            footer: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: TextField(
+                controller: _filterController,
+                decoration: InputDecoration(
+                  hintText: '🔍 输入关键词过滤源...',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _filterText.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _filterController.clear();
+                            setState(() {
+                              _filterText = '';
+                              _sourceTabController = TabController(
+                                length: _filteredPlugins.length,
+                                vsync: this,
+                              );
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                )
-                .toList(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _filterText = value.trim().toLowerCase();
+                    _sourceTabController = TabController(
+                      length: _filteredPlugins.length,
+                      vsync: this,
+                    );
+                  });
+                },
+              ),
+            ),
+          ),
+          Observer(
+            builder: (context) => MaterialBottomSheetTabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
+              controller: _sourceTabController,
+              tabs: _filteredPlugins
+                  .map(
+                    (plugin) => Tab(
+                      child: Row(
+                        children: [
+                          Text(
+                            plugin.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(width: 5.0),
+                          Container(
+                            width: 8.0,
+                            height: 8.0,
+                            decoration: BoxDecoration(
+                              color: switch (widget.infoController
+                                  .pluginSearchStatus[plugin.name]) {
+                                PluginSearchStatus.success => Colors.green,
+                                PluginSearchStatus.noResult => Colors.orange,
+                                PluginSearchStatus.captcha => Colors.blue,
+                                PluginSearchStatus.error => Colors.red,
+                                _ => Colors.grey,
+                              },
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
             trailing: IconButton(
               tooltip: '在浏览器中打开',
               onPressed: () {
-                int currentIndex = widget.tabController.index;
+                int currentIndex = _sourceTabController.index;
                 final currentPlugin =
-                    pluginsController.pluginList[currentIndex];
+                    _filteredPlugins[currentIndex];
                 final targetUrl = currentPlugin.usesApiSearch
                     ? currentPlugin.baseUrl
                     : currentPlugin.searchURL.replaceFirst(
@@ -546,14 +632,15 @@ class _SourceSheetState extends State<SourceSheet>
               icon: const Icon(Icons.open_in_browser_rounded),
             ),
           ),
+          ),
           const SizedBox(height: 4),
           Expanded(
             child: Observer(
               builder: (context) => TabBarView(
-                controller: widget.tabController,
-                children: List.generate(pluginsController.pluginList.length,
+                controller: _sourceTabController,
+                children: List.generate(_filteredPlugins.length,
                     (pluginIndex) {
-                  var plugin = pluginsController.pluginList[pluginIndex];
+                  var plugin = _filteredPlugins[pluginIndex];
                   var cardList = <Widget>[];
                   for (var searchResponse
                       in widget.infoController.pluginSearchResponseList) {

@@ -147,6 +147,45 @@ class _AboutPageState extends State<AboutPage> {
         body: SettingsList(
           maxWidth: 1000,
           sections: [
+            // 特别感谢 Kazumi
+            SettingsSection(
+              tiles: [
+                SettingsTile(
+                  title: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse('https://kazumi.app/');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_rounded,
+                              color: Colors.pink, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            '特别感谢 Kazumi 2.2.3',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.open_in_new,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             SettingsSection(
               tiles: [
                 SettingsTile.navigation(

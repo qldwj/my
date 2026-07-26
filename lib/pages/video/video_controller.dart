@@ -594,6 +594,47 @@ abstract class _VideoPageController with Store implements Disposable {
     required AsyncSession session,
     required PlayerController playerController,
   }) async {
+    // For RSS/direct media sources, skip WebView resolution
+    if (currentPlugin.hasDirectMediaUrl) {
+      if (session.isStale) return;
+      _finishLoading();
+      KazumiLogger()
+          .i('VideoPageController: using direct media URL: $url');
+
+      final params = PlaybackInitParams(
+        videoUrl: url,
+        offset: offset,
+        isLocalPlayback: false,
+        bangumiId: bangumiItem.id,
+        pluginName: currentPlugin.name,
+        episode: resolvedEpisode.listIndex,
+        danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
+        pageUrl: resolvedEpisode.pageUrl,
+        sortNumber: resolvedEpisode.sortNumber,
+        httpHeaders: currentPlugin.buildHttpHeaders(),
+        adBlockerEnabled: false,
+        episodeTitle: resolvedEpisode.displayTitle,
+        referer: '',
+        currentRoad: resolvedEpisode.roadIndex,
+        coverUrl: bangumiItem.images['large'],
+        bangumiName: bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name,
+      );
+
+      final initialized = await playerController.init(params);
+      if (session.isActive && initialized) {
+        playingEpisode = VideoEpisodeSelection(
+          episode: resolvedEpisode.listIndex,
+          road: resolvedEpisode.roadIndex,
+        );
+        unawaited(_loadPlaybackDanmaku(playerController, params, session));
+      } else if (session.isActive) {
+        _playbackSessions.cancel();
+      }
+      return;
+    }
+
     _videoSourceService ??= WebViewVideoSourceService();
 
     await _logSubscription?.cancel();

@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/playlist/playlist_module.dart';
+import 'package:kazumi/services/playlist/playlist_service.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -327,6 +330,53 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
+  /// 添加到播放列表
+  void _addToPlaylist(BuildContext context) async {
+    final bangumi = infoController.bangumiItem;
+    final service = PlaylistService();
+    final playlists = await service.getPlaylists();
+    
+    if (playlists.isEmpty) {
+      final name = bangumi.nameCn.isNotEmpty ? bangumi.nameCn : bangumi.name;
+      await service.createPlaylist(name);
+      KazumiDialog.showToast(message: '已创建播放列表「$name」');
+      return;
+    }
+
+    // 弹出选择列表
+    final selected = await showAdaptiveBottomSheet<String>(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('选择播放列表', style: Theme.of(ctx).textTheme.titleMedium),
+          ),
+          ...playlists.map((p) => ListTile(
+            title: Text(p.name),
+            trailing: const Icon(Icons.add_rounded),
+            onTap: () => Navigator.pop(ctx, p.id),
+          )),
+        ],
+      ),
+    );
+
+    if (selected != null) {
+      final name = bangumi.nameCn.isNotEmpty ? bangumi.nameCn : bangumi.name;
+      await service.addToPlaylist(selected, PlaylistItem(
+        bangumiItem: bangumi,
+        adapterName: '',
+        episodeNumber: 0,
+        episodeTitle: name,
+        src: '',
+        road: 0,
+        addedTime: DateTime.now(),
+      ));
+      KazumiDialog.showToast(message: '已添加到播放列表');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool showWindowButton =
@@ -377,6 +427,14 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
+                      // 添加到播放列表
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          onPressed: () => _addToPlaylist(context),
+                          icon: const Icon(Icons.playlist_add_rounded),
+                          tooltip: '添加到播放列表',
+                        ),
+                      ),
                       EmbeddedNativeControlArea(
                         child: IconButton(
                           onPressed: () {
@@ -387,6 +445,21 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                             );
                           },
                           icon: const Icon(Icons.open_in_browser_rounded),
+                        ),
+                      ),
+                      // 分享番剧
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          onPressed: () {
+                            final item = infoController.bangumiItem;
+                            final name = Uri.encodeComponent(
+                                item.nameCn.isNotEmpty ? item.nameCn : item.name);
+                            final url = 'https://qlyyz.xyz/share?subject=${item.id}&name=$name';
+                            Clipboard.setData(ClipboardData(text: url));
+                            KazumiDialog.showToast(message: '分享链接已复制');
+                          },
+                          icon: const Icon(Icons.share_rounded),
+                          tooltip: '分享番剧',
                         ),
                       ),
                       if (!showWindowButton && isDesktop())
@@ -500,7 +573,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       context: context,
                       builder: (context) {
                         return SourceSheet(
-                            tabController: sourceTabController,
                             infoController: infoController);
                       },
                     );

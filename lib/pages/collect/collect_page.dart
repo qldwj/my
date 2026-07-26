@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -12,6 +13,8 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -64,8 +67,12 @@ class _CollectPageState extends State<CollectPage>
     required bool webDavSynced,
     required bool bangumiSynced,
     required bool webDavUploaded,
+    bool kazumiSynced = false,
   }) {
     final List<String> states = [];
+    if (plan.shouldSyncKazumi) {
+      states.add(kazumiSynced ? '樱花服务器 已同步' : '樱花服务器 未完成');
+    }
     if (plan.shouldSyncWebDavCollectibles) {
       states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
     }
@@ -95,20 +102,99 @@ class _CollectPageState extends State<CollectPage>
     bool webDavSynced = false;
     bool bangumiSynced = false;
     bool webDavUploaded = false;
+    bool kazumiSynced = false;
 
     try {
-      if (plan.shouldSyncWebDavCollectibles) {
-        progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
-        webDavSynced =
-            await collectController.syncCollectibles(showSuccessToast: false);
-      }
-
+      // 同步顺序：Bangumi(拉) → WebDAV(合并) → 樱花(上传) → WebDAV(回传)
+      // Bangumi 作为数据主源，先拉取合并到本地，再推送到其他后端
+      
+      // 1️⃣ 先拉取 Bangumi（如果有的话）
       if (plan.shouldSyncBangumi) {
         bangumiSynced = await _syncBangumiWithProgress(
           progressDialogKey: progressDialogKey,
         );
       }
 
+      // 2️⃣ 再同步 WebDAV（如果有的话），双向合并
+      if (plan.shouldSyncWebDavCollectibles) {
+        progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
+        webDavSynced =
+            await collectController.syncCollectibles(showSuccessToast: false);
+      }
+
+      // 3️⃣ 最后推送/拉取樱花服务器（已完成 Bangumi+WebDAV 合并的本地数据）
+      if (plan.shouldSyncKazumi) {
+        progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
+        try {
+          // 上传经过 Bangumi+WebDAV 合并后的完整本地收藏
+          final collectData = collectController.collectibles.map((c) => ({
+            'id': c.bangumiItem.id,
+            'name': c.bangumiItem.name,
+            'name_cn': c.bangumiItem.nameCn,
+            'type': c.type,
+            'time': c.time.toIso8601String(),
+            'image': c.bangumiItem.images['large'] ?? '',
+            'summary': c.bangumiItem.summary,
+            'rating': c.bangumiItem.ratingScore,
+          })).toList();
+          final uploadRes = await AuthService.syncData({'collect': collectData});
+          kazumiSynced = uploadRes['success'] == true;
+          if (!kazumiSynced) {
+            final err = uploadRes['error'] ?? uploadRes['message'] ?? '同步请求失败';
+            progressDialogKey.currentState?.update('❌ 樱花服务器: $err', null);
+          } else {
+            // 下载服务器数据，补全本地没有的项
+            if (uploadRes['sync_data'] is Map) {
+              final serverData = uploadRes['sync_data'] as Map<String, dynamic>;
+              if (serverData['collect'] is List) {
+                final remoteCollect = serverData['collect'] as List;
+                int added = 0;
+                for (final item in remoteCollect) {
+                  if (item is Map) {
+                    final remoteId = item['id'];
+                    if (remoteId is! int) continue;
+                    final exists = collectController.collectibles.any(
+                      (c) => c.bangumiItem.id == remoteId,
+                    );
+                    if (!exists) {
+                      final type = item['type'] ?? 1;
+                      final image = item['image']?.toString() ?? '';
+                      final bangumiItem = BangumiItem(
+                        id: remoteId,
+                        type: 0,
+                        name: item['name']?.toString() ?? '未知',
+                        nameCn: item['name_cn']?.toString() ?? '',
+                        summary: '',
+                        airDate: '',
+                        airWeekday: 0,
+                        rank: 0,
+                        images: {'large': image},
+                        tags: [],
+                        alias: [],
+                        ratingScore: 0.0,
+                        votes: 0,
+                        votesCount: [],
+                        info: '',
+                      );
+                      await GStorage.putCollectible(
+                        CollectedBangumi(bangumiItem, DateTime.now(), type is int ? type : 1),
+                      );
+                      added++;
+                    }
+                  }
+                }
+                if (added > 0) {
+                  collectController.loadCollectibles();
+                }
+              }
+            }
+          }
+        } catch (e) {
+          KazumiLogger().w('Kazumi sync failed', error: e);
+        }
+      }
+
+      // 4️⃣ 如果 Bangumi 和 WebDAV 都开了，把 Bangumi 合并后的结果回传 WebDAV
       if (plan.shouldUploadWebDavAfterBangumi(
         webDavSynced: webDavSynced,
         bangumiSynced: bangumiSynced,
@@ -130,6 +216,7 @@ class _CollectPageState extends State<CollectPage>
         webDavSynced: webDavSynced,
         bangumiSynced: bangumiSynced,
         webDavUploaded: webDavUploaded,
+        kazumiSynced: kazumiSynced,
       ),
     );
   }
@@ -191,6 +278,7 @@ class _CollectPageState extends State<CollectPage>
             webDavEnabled: webDavenable,
             webDavCollectiblesEnabled: webDavCollectEnable,
             bangumiEnabled: bgmSyncEnable,
+            kazumiSyncEnabled: GStorage.getSetting(SettingsKeys.kazumiSyncEnable),
           );
           if (!syncPlan.canSync) {
             KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');

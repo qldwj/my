@@ -18,6 +18,8 @@ import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/services/platform/webview_feature_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
+// ✅ 新增导入：自动更新
+import 'package:kazumi/services/update/auto_updater.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -103,4 +105,6 @@ void main() async {
       child: const AppWidget(),
     ),
   );
+
+ 
 }

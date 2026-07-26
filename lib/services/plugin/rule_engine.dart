@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
+import 'package:kazumi/plugins/animeko_rule_config.dart';
 import 'package:kazumi/request/clients/plugin_site_client.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/api_rule_strategy.dart';
+import 'package:kazumi/services/plugin/css_rule_strategy.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/services/plugin/rss_rule_strategy.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/services/plugin/xpath_rule_strategy.dart';
 
@@ -22,15 +26,21 @@ class RuleEngine {
     RuleRequestExecutor? requestExecutor,
     ApiRuleStrategy apiStrategy = const ApiRuleStrategy(),
     XPathRuleStrategy xpathStrategy = const XPathRuleStrategy(),
+    CssRuleStrategy cssStrategy = const CssRuleStrategy(),
+    RssRuleStrategy rssStrategy = const RssRuleStrategy(),
     bool logFailures = true,
   })  : _requestExecutor = requestExecutor ?? _DefaultRuleRequestExecutor(),
         _apiStrategy = apiStrategy,
         _xpathStrategy = xpathStrategy,
+        _cssStrategy = cssStrategy,
+        _rssStrategy = rssStrategy,
         _logFailures = logFailures;
 
   final RuleRequestExecutor _requestExecutor;
   final ApiRuleStrategy _apiStrategy;
   final XPathRuleStrategy _xpathStrategy;
+  final CssRuleStrategy _cssStrategy;
+  final RssRuleStrategy _rssStrategy;
   final bool _logFailures;
 
   Future<RuleSearchTrace> search(
@@ -40,12 +50,7 @@ class RuleEngine {
   }) async {
     late final PreparedRuleRequest request;
     try {
-      request = config.searchMode == RuleMode.api
-          ? _apiStrategy.prepareRequest(
-              config.searchApiConfig.request,
-              <String, Object?>{'keyword': keyword},
-            )
-          : _xpathStrategy.prepareSearchRequest(config, keyword);
+      request = _prepareSearchRequest(config, keyword);
     } catch (error, stackTrace) {
       _logFailure(config, 'search request preparation', error, stackTrace);
       throw SearchErrorException(config.pluginName, cause: error);
@@ -60,9 +65,7 @@ class RuleEngine {
       cancelToken: cancelToken,
     );
     try {
-      final parsed = config.searchMode == RuleMode.api
-          ? _apiStrategy.parseSearch(raw, config.searchApiConfig)
-          : _xpathStrategy.parseSearch(raw, config);
+      final parsed = _parseSearchResponse(raw, config);
       if (parsed.items.isEmpty) {
         throw NoResultException(config.pluginName);
       }
@@ -94,12 +97,7 @@ class RuleEngine {
   }) async {
     late final PreparedRuleRequest request;
     try {
-      request = config.chapterMode == RuleMode.api
-          ? _apiStrategy.prepareRequest(
-              config.chapterApiConfig.request,
-              <String, Object?>{'source': source},
-            )
-          : _xpathStrategy.prepareChapterRequest(config, source);
+      request = _prepareChapterRequest(config, source);
     } catch (error, stackTrace) {
       _logFailure(config, 'chapter request preparation', error, stackTrace);
       throw ChapterErrorException(config.pluginName, cause: error);
@@ -114,14 +112,7 @@ class RuleEngine {
       cancelToken: cancelToken,
     );
     try {
-      final parsed = config.chapterMode == RuleMode.api
-          ? _apiStrategy.parseChapters(
-              raw,
-              config.chapterApiConfig,
-              source: source,
-              baseUrl: config.baseUrl,
-            )
-          : _xpathStrategy.parseChapters(raw, config);
+      final parsed = _parseChapterResponse(raw, config, source: source);
       if (parsed.roads.isEmpty) {
         throw ChapterErrorException(config.pluginName);
       }
@@ -138,6 +129,119 @@ class RuleEngine {
       _logFailure(config, 'chapter response parsing', error, stackTrace);
       throw ChapterErrorException(config.pluginName, cause: error);
     }
+  }
+
+  // ------------------------------------------------------------------
+  // CSS / XPath / API dispatch
+  // ------------------------------------------------------------------
+
+  PreparedRuleRequest _prepareSearchRequest(
+    RuleExecutionConfig config,
+    String keyword,
+  ) {
+    if (config.searchMode == RuleMode.rss) {
+      return _rssStrategy.prepareSearchRequest(config.searchUrl, keyword);
+    }
+    if (config.searchMode == RuleMode.css) {
+      final animeko = config.animekoConfig;
+      if (animeko == null) {
+        throw const CssRuleFormatException(
+          'CSS 模式缺少 animekoConfig',
+        );
+      }
+      return _cssStrategy.prepareSearchRequest(animeko, keyword);
+    }
+    if (config.searchMode == RuleMode.api) {
+      return _apiStrategy.prepareRequest(
+        config.searchApiConfig.request,
+        <String, Object?>{'keyword': keyword},
+      );
+    }
+    return _xpathStrategy.prepareSearchRequest(config, keyword);
+  }
+
+  RuleSearchParseResult _parseSearchResponse(
+    String raw,
+    RuleExecutionConfig config,
+  ) {
+    if (config.searchMode == RuleMode.rss) {
+      return _rssStrategy.parseSearch(raw);
+    }
+    if (config.searchMode == RuleMode.css) {
+      final animeko = config.animekoConfig;
+      if (animeko == null) {
+        throw const CssRuleFormatException(
+          'CSS 模式缺少 animekoConfig',
+        );
+      }
+      return _cssStrategy.parseSearch(raw, animeko);
+    }
+    if (config.searchMode == RuleMode.api) {
+      return _apiStrategy.parseSearch(raw, config.searchApiConfig);
+    }
+    return _xpathStrategy.parseSearch(raw, config);
+  }
+
+  PreparedRuleRequest _prepareChapterRequest(
+    RuleExecutionConfig config,
+    String source,
+  ) {
+    // RSS: no chapters, just the magnet link itself as a single "episode"
+    if (config.chapterMode == RuleMode.rss) {
+      return PreparedRuleRequest(method: 'GET', url: source);
+    }
+    if (config.chapterMode == RuleMode.css) {
+      final animeko = config.animekoConfig;
+      if (animeko == null) {
+        throw const CssRuleFormatException(
+          'CSS 模式缺少 animekoConfig',
+        );
+      }
+      return _cssStrategy.prepareChapterRequest(animeko, source);
+    }
+    if (config.chapterMode == RuleMode.api) {
+      return _apiStrategy.prepareRequest(
+        config.chapterApiConfig.request,
+        <String, Object?>{'source': source},
+      );
+    }
+    return _xpathStrategy.prepareChapterRequest(config, source);
+  }
+
+  RuleChapterParseResult _parseChapterResponse(
+    String raw,
+    RuleExecutionConfig config, {
+    required String source,
+  }) {
+    // RSS: return the source (magnet link) as a single-episode road
+    if (config.chapterMode == RuleMode.rss) {
+      final roads = [
+        Road(
+          name: '下载',
+          data: [source],
+          identifier: ['资源'],
+        ),
+      ];
+      return RuleChapterParseResult(roads: roads);
+    }
+    if (config.chapterMode == RuleMode.css) {
+      final animeko = config.animekoConfig;
+      if (animeko == null) {
+        throw const CssRuleFormatException(
+          'CSS 模式缺少 animekoConfig',
+        );
+      }
+      return _cssStrategy.parseChapters(raw, animeko);
+    }
+    if (config.chapterMode == RuleMode.api) {
+      return _apiStrategy.parseChapters(
+        raw,
+        config.chapterApiConfig,
+        source: source,
+        baseUrl: config.baseUrl,
+      );
+    }
+    return _xpathStrategy.parseChapters(raw, config);
   }
 
   Future<String> _executeRequest(

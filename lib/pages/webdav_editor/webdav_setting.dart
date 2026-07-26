@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/my/sync_log_page.dart';
+import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -22,6 +25,9 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool enableGitProxy;
   late bool enableBangumiProxy;
   late bool bangumiSyncEnable;
+  late bool kazumiSyncEnable;
+  late bool enableWidget;
+  late bool enableNotification;
 
   @override
   void initState() {
@@ -32,6 +38,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
     bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    kazumiSyncEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
   }
 
   void onBackPressed(BuildContext context) {
@@ -163,6 +170,76 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     setState(() {});
                   },
                   title: Text('Bangumi 配置',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('樱花动漫', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    if (!AuthService.isLoggedIn) {
+                      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                      return;
+                    }
+                    kazumiSyncEnable = value ?? !kazumiSyncEnable;
+                    await GStorage.putSetting(
+                        SettingsKeys.kazumiSyncEnable, kazumiSyncEnable);
+                    setState(() {});
+                  },
+                  title: Text('樱花动漫同步',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('登录后自动开启，同步收藏到樱花服务器',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: kazumiSyncEnable,
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const KazumiLoginPage(),
+                      ),
+                    );
+                    if (context.mounted) {
+                      setState(() {
+                        kazumiSyncEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
+                      });
+                    }
+                  },
+                  title: Text('樱花动漫账号',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(AuthService.isLoggedIn ? '已登录' : '未登录',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile(
+                  trailing: const Icon(Icons.sync_rounded),
+                  onPressed: (_) async {
+                    if (!AuthService.isLoggedIn) {
+                      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                      return;
+                    }
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const KazumiLoginPage(),
+                      ),
+                    );
+                  },
+                  title: Text('立即同步收藏',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('进入账号页点击「开始同步」',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile(
+                  trailing: const Icon(Icons.bug_report_outlined),
+                  onPressed: (_) async {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SyncLogPage()),
+                    );
+                  },
+                  title: Text('同步诊断',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看详细同步日志和错误信息',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

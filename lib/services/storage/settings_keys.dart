@@ -513,6 +513,46 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
+  static const showLastWatchCard = SettingKey<bool>(
+    'showLastWatchCard',
+    true,
+    group: SettingGroup.player,
+  );
+  static const enableDesktopWidget = SettingKey<bool>(
+    'enableDesktopWidget',
+    true,
+    group: SettingGroup.theme,
+  );
+  static const enableUpdateNotification = SettingKey<bool>(
+    'enableUpdateNotification',
+    true,
+    group: SettingGroup.theme,
+  );
+  static const updateChannel = SettingKey<String>(
+    'updateChannel',
+    'stable',
+    group: SettingGroup.update,
+  );
+  static const animekoRuleLastCheck = SettingKey<int>(
+    'animekoRuleLastCheck',
+    0,
+    group: SettingGroup.update,
+  );
+  static const animekoUpdateInterval = SettingKey<int>(
+    'animekoUpdateInterval',
+    30,
+    group: SettingGroup.update,
+  );
+  static const kazumiToken = SettingKey<String>(
+    'kazumiToken',
+    '',
+    group: SettingGroup.sync,
+  );
+  static const kazumiSyncEnable = SettingKey<bool>(
+    'kazumiSyncEnable',
+    false,
+    group: SettingGroup.sync,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
@@ -716,5 +756,8 @@ class _SettingBoxKey {
       brightnessVolumeGesture = 'brightnessVolumeGesture',
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
-      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized';
+      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
+      showLastWatchCard = 'showLastWatchCard',
+      enableDesktopWidget = 'enableDesktopWidget',
+      enableUpdateNotification = 'enableUpdateNotification';
 }

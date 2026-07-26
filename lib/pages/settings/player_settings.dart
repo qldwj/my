@@ -39,6 +39,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool autoPlayNext;
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
+  late bool showLastWatchCard;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
@@ -80,6 +81,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
     brightnessVolumeGesture =
         GStorage.getSetting<bool>(SettingsKeys.brightnessVolumeGesture);
+
+    showLastWatchCard =
+        GStorage.getSetting<bool>(SettingsKeys.showLastWatchCard);
 
     playerButtonSkipTime =
         GStorage.getSetting<int>(SettingsKeys.buttonSkipTime);
@@ -265,6 +269,38 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
           sections: [
             SettingsSection(
               tiles: [
+                // ⭐ 高亮：首次进入自动播放上次
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    showLastWatchCard = value ?? !showLastWatchCard;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.showLastWatchCard, showLastWatchCard);
+                    setState(() {});
+                  },
+                  title: Row(
+                    children: [
+                      Icon(Icons.play_circle_fill_rounded,
+                          size: 18, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text('启动时显示上次观看',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  description: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text('打开首页后自动弹出上次观看进度卡片',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        )),
+                  ),
+                  initialValue: showLastWatchCard,
+                ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     hAenable = value ?? !hAenable;

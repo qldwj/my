@@ -71,6 +71,15 @@
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
+          - name: Cache Flutter dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.pub-cache
+                .dart_tool
+              key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+              restore-keys: |
+                ${{ runner.os }}-pub-
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -91,6 +100,15 @@
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
+          - name: Cache Flutter dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.pub-cache
+                .dart_tool
+              key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+              restore-keys: |
+                ${{ runner.os }}-pub-
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -124,6 +142,25 @@
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
+          - name: Cache Flutter dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.pub-cache
+                .dart_tool
+              key: ${{ runner.os }}-pub-android-${{ hashFiles('pubspec.lock') }}
+              restore-keys: |
+                ${{ runner.os }}-pub-android-
+                ${{ runner.os }}-pub-
+          - name: Cache Android Gradle
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.gradle/caches
+                build
+              key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+              restore-keys: |
+                ${{ runner.os }}-gradle-
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
@@ -323,6 +360,15 @@
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
+          - name: Cache Flutter dependencies
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.pub-cache
+                .dart_tool
+              key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+              restore-keys: |
+                ${{ runner.os }}-pub-
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash

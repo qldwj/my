@@ -154,9 +154,28 @@ class AutoUpdater {
   }
 
   /// 检查是否有新版本可用
-  Future<UpdateInfo?> checkForUpdates() async {
+  /// [channel] 更新通道：'stable' 正式版, 'beta' 测试版, 'both' 都更新
+  Future<UpdateInfo?> checkForUpdates({String? channel}) async {
     try {
-      final data = await _latestRelease();
+      final updateChannel = channel ??
+          GStorage.getSetting(SettingsKeys.updateChannel);
+
+      Map<String, dynamic> data;
+
+      if (updateChannel == 'beta') {
+        // 测试版：从版本列表获取最新的（含 prerelease）
+        data = await _latestBetaRelease();
+      } else if (updateChannel == 'both') {
+        // 都更新：先试正式版，没有更新再试测试版
+        try {
+          data = await _latestRelease();
+        } catch (_) {
+          data = await _latestBetaRelease();
+        }
+      } else {
+        // 默认：仅正式版
+        data = await _latestRelease();
+      }
 
       if (!data.containsKey('tag_name')) {
         throw Exception('无效的响应数据');
@@ -167,16 +186,15 @@ class AutoUpdater {
 
       if (needUpdate(currentVersion, remoteVersion)) {
         final availableTypes = await _detectAvailableInstallationTypes();
+        final isPrerelease = data['prerelease'] == true;
 
         return UpdateInfo(
           version: remoteVersion,
-          description: data['body'] ?? '发现新版本',
+          description: (isPrerelease ? '🧪 测试版 ' : '') + (data['body'] ?? '发现新版本'),
           downloadUrl: '',
-          // 将在用户选择安装类型后填充
           releaseNotes: data['html_url'] ?? '',
           publishedAt: data['published_at'] ?? '',
           installationType: availableTypes.first,
-          // 保持兼容性
           availableInstallationTypes: availableTypes,
           assets: data['assets'] ?? [],
         );
@@ -189,6 +207,7 @@ class AutoUpdater {
     }
   }
 
+  /// 获取最新正式版
   Future<Map<String, dynamic>> _latestRelease() async {
     final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
     final data = json.decode(raw);
@@ -198,18 +217,47 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// 自动检查更新（仅在启用自动更新时）
-  Future<void> autoCheckForUpdates() async {
-    final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
-    if (!autoUpdate) return;
+  /// 获取最新测试版（从版本列表中找第一个可用的）
+  Future<Map<String, dynamic>> _latestBetaRelease() async {
+    final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
+    final list = json.decode(raw);
+    if (list is! List || list.isEmpty) {
+      throw Exception('没有可用的版本');
+    }
+    // 取第一个有 assets 的 release（可能是 prerelease）
+    for (final item in list) {
+      if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
+        return Map<String, dynamic>.from(item);
+      }
+    }
+    // 回退到正式版
+    return _latestRelease();
+  }
 
+  /// ============================================================
+  /// 🔧 修复：自动检查更新（只在启用自动更新时）
+  /// 改动：加 3 秒延迟确保 UI 和网络就绪 + 健壮的 bool 判断
+  /// ============================================================
+  Future<void> autoCheckForUpdates() async {
     try {
+      // 等待足够时间确保 UI、网络、DownloadHttpClient 完全就绪
+      await Future.delayed(const Duration(seconds: 3));
+
+      final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+      if (autoUpdate != true) {
+        KazumiLogger().i('Update: auto update not enabled, skipping');
+        return;
+      }
+
+      KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {
         _showUpdateDialog(updateInfo, isAutoCheck: true);
+      } else {
+        KazumiLogger().i('Update: already up to date');
       }
     } catch (e) {
-      // 自动检查失败时不显示错误
+      // 自动检查失败时不显示错误，只打日志
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
   }
@@ -619,13 +667,22 @@ class AutoUpdater {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
+            // 🆕 Android：用其他应用打开（MT管理器、NP管理器等）
+            if (Platform.isAndroid)
+              TextButton(
+                onPressed: () {
+                  KazumiDialog.dismiss();
+                  _openWithFileManager(filePath);
+                },
+                child: const Text('用其他应用打开'),
+              ),
             if (isDesktop())
               TextButton(
                 onPressed: () {
                   // 在文件管理器中显示文件
                   _revealInFileManager(filePath);
                 },
-                child: const Text('打开文件夹'),
+                child: Text('打开文件夹'),
               ),
             TextButton(
               onPressed: () {
@@ -639,6 +696,36 @@ class AutoUpdater {
         );
       },
     );
+  }
+
+  /// 🆕 Android：用第三方文件管理器（MT管理器/NP管理器等）打开 APK 文件
+  void _openWithFileManager(String filePath) async {
+    try {
+      if (!Platform.isAndroid) return;
+
+      final file = File(filePath);
+      if (!await file.exists()) {
+        KazumiDialog.showToast(message: '文件不存在');
+        return;
+      }
+
+      // 使用 OpenFilex 打开 APK 文件
+      // Android 系统会弹出"打开方式"选择器
+      // 用户可以选择 MT 管理器、NP 管理器等文件管理器
+      // 这些管理器打开后会直接定位到该 APK 文件所在目录
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done) {
+        // 如果直接打开文件失败，尝试打开其所在目录
+        final dirPath = file.parent.path;
+        final dirResult = await OpenFilex.open(dirPath);
+        if (dirResult.type != ResultType.done) {
+          KazumiDialog.showToast(
+              message: '无法打开文件，请手动前往目录: ${file.parent.path}');
+        }
+      }
+    } catch (e) {
+      KazumiLogger().e('Update: open with file manager failed', error: e);
+    }
   }
 
   /// 下载文件
