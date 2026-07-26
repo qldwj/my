@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/pages/my/chat_room_page.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/pages/my/qrcode_login_page.dart';
 
 /// 樱花动漫账号登录页（验证码登录，无需密码）
 class KazumiLoginPage extends StatefulWidget {
@@ -403,17 +403,17 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             ),
             const SizedBox(height: 16),
 
-            // 扫码登录
+            // 闲聊室
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FilledButton.tonalIcon(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
+                    MaterialPageRoute(builder: (_) => const ChatRoomPage()),
                   );
                 },
-                icon: const Icon(Icons.qr_code),
-                label: const Text('扫码登录'),
+                icon: const Icon(Icons.chat),
+                label: const Text('闲聊室（1金币/条）'),
               ),
             ),
             const SizedBox(height: 12),

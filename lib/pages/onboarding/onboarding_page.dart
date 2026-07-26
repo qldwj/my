@@ -46,9 +46,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
+  bool _disclaimerScrolled = false;
+
   List<Widget> _buildStepBodies() {
     return [
-      const DisclaimerStep(),
+      DisclaimerStep(
+        onScrolledToBottom: () {
+          if (mounted) setState(() => _disclaimerScrolled = true);
+        },
+      ),
       if (Platform.isAndroid)
         UpdateSourceStep(
           useGithubUpdate: useGithubUpdate,
@@ -66,9 +72,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   String get primaryLabel {
     if (currentIndex == 0 && !agreed) {
-      return '同意并继续';
+      return _disclaimerScrolled ? '同意并继续' : '请滑到底部';
     }
     return currentIndex == stepCount - 1 ? '完成' : '下一步';
+  }
+
+  bool get _primaryEnabled {
+    if (currentIndex == 0 && !agreed) return _disclaimerScrolled;
+    return !installingBundled;
   }
 
   void _goToPage(int index) {
@@ -176,7 +187,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
             FilledButton(
-              onPressed: installingBundled ? null : _handlePrimary,
+              onPressed: _primaryEnabled ? _handlePrimary : null,
               child: installingBundled
                   ? const SizedBox(
                       width: 18,

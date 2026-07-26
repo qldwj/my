@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:kazumi/request/core/network_exception.dart';
@@ -13,6 +17,7 @@ import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
 class BangumiSearchPage {
@@ -27,6 +32,42 @@ class BangumiSearchPage {
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
+
+  /// 通过代理请求 Bangumi API（仅在开启 Bangumi 镜像时使用，仅用于评论）
+  static const String _proxyBase = 'https://qlyyz.xyz/proxy.php';
+  static bool get _proxyEnabled =>
+      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+
+  static Future<dynamic> _proxyGet(String originalUrl) async {
+    if (!_proxyEnabled) {
+      return _client.get(originalUrl);
+    }
+    final encoded = base64Encode(utf8.encode(originalUrl));
+    final proxyUrl = '$_proxyBase?url=$encoded';
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final appId = bangumiMirrorCredentials['id'] ?? '';
+    final appKey = bangumiMirrorCredentials['value'] ?? '';
+    final bodyStr = '';
+    final data = utf8.encode('$appId$timestamp$bodyStr$appKey');
+    final digest = sha256.convert(data);
+    final signature = base64Encode(digest.bytes);
+
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 15);
+      final request = await client.getUrl(Uri.parse(proxyUrl));
+      request.headers.set('X-AppId', appId);
+      request.headers.set('X-Timestamp', timestamp.toString());
+      request.headers.set('X-Signature', signature);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      return jsonDecode(body);
+    } catch (e) {
+      KazumiLogger().e('Proxy request failed, fallback to direct', error: e);
+      return _client.get(originalUrl);
+    }
+  }
 
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
@@ -423,34 +464,31 @@ class BangumiApi {
 
   static Future<CommentResponse> getBangumiCommentsByID(int id,
       {int offset = 0}) async {
-    final jsonData = await _client.get(
-      ApiEndpoints.formatUrl(
-          ApiEndpoints.bangumiAPINextDomain +
-              ApiEndpoints.bangumiCommentsByIDNext,
-          [id, 20, offset]),
-    );
+    final url = ApiEndpoints.formatUrl(
+        ApiEndpoints.bangumiAPINextDomain +
+            ApiEndpoints.bangumiCommentsByIDNext,
+        [id, 20, offset]);
+    final jsonData = await _proxyGet(url);
     return CommentResponse.fromJson(jsonData);
   }
 
   static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(
       int id) async {
-    final jsonData = await _client.get(
-      ApiEndpoints.formatUrl(
-          ApiEndpoints.bangumiAPINextDomain +
-              ApiEndpoints.bangumiEpisodeCommentsByIDNext,
-          [id]),
-    );
+    final url = ApiEndpoints.formatUrl(
+        ApiEndpoints.bangumiAPINextDomain +
+            ApiEndpoints.bangumiEpisodeCommentsByIDNext,
+        [id]);
+    final jsonData = await _proxyGet(url);
     return EpisodeCommentResponse.fromJson(jsonData);
   }
 
   static Future<CharacterCommentResponse> getCharacterCommentsByCharacterID(
       int id) async {
-    final jsonData = await _client.get(
-      ApiEndpoints.formatUrl(
-          ApiEndpoints.bangumiAPINextDomain +
-              ApiEndpoints.bangumiCharacterCommentsByIDNext,
-          [id]),
-    );
+    final url = ApiEndpoints.formatUrl(
+        ApiEndpoints.bangumiAPINextDomain +
+            ApiEndpoints.bangumiCharacterCommentsByIDNext,
+        [id]);
+    final jsonData = await _proxyGet(url);
     return CharacterCommentResponse.fromJson(jsonData);
   }
 

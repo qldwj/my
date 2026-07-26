@@ -9,6 +9,7 @@ import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/request/apis/trace_api.dart';
+import 'package:kazumi/utils/nsfw_filter.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
 part 'search_controller.g.dart';
@@ -87,6 +88,17 @@ abstract class _SearchPageController with Store {
     }
     isLoading = true;
     isTimeOut = false;
+    // 未成年人保护：如果搜索关键词包含 NSFW 词，直接返回空结果
+    if (NsfwFilter.isEnabled && type != 'add') {
+      final queryLower = input.toLowerCase();
+      final nsfwSearchWords = ['肉', '卖肉', '里番', '肉番', 'r18', '18禁', '成人', 'harem', 'ecchi', 'hentai', 'エロ', '性', '裸', 'sex', '成人'];
+      if (nsfwSearchWords.any((w) => queryLower.contains(w))) {
+        hasMoreSearchResults = false;
+        isLoading = false;
+        isTimeOut = true;
+        return;
+      }
+    }
     SearchParser parser = SearchParser(input);
     final filterState = parser.toFilterState();
     String? idString = filterState.id.isEmpty ? null : filterState.id;
@@ -94,7 +106,7 @@ abstract class _SearchPageController with Store {
       final id = int.tryParse(idString);
       if (id != null) {
         final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
-        if (item != null) {
+        if (item != null && !NsfwFilter.isNsfw(item)) {
           bangumiList.add(item);
         }
         hasMoreSearchResults = false;
@@ -124,8 +136,8 @@ abstract class _SearchPageController with Store {
       _searchOffset += page.rawCount;
       hasMoreSearchResults = page.rawCount == _searchPageSize;
       final existingIds = bangumiList.map((item) => item.id).toSet();
-      final newItems =
-          page.items.where((item) => existingIds.add(item.id)).toList();
+      final newItems = NsfwFilter.filter(
+          page.items.where((item) => existingIds.add(item.id)).toList());
       if (newItems.isNotEmpty) {
         bangumiList.addAll(newItems);
         addedVisibleItems = true;

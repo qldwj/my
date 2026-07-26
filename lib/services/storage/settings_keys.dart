@@ -553,6 +553,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.sync,
   );
+  static const minorMode = SettingKey<bool>(
+    'minorMode',
+    true,
+    group: SettingGroup.misc,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,

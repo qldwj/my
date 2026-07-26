@@ -441,6 +441,14 @@ class _CollectPageState extends State<CollectPage>
   }
 }
 
+class _SyncStepStatus {
+  const _SyncStepStatus(this.label, this.icon, this.color, this.progress);
+  final String label;
+  final IconData icon;
+  final Color color;
+  final double? progress;
+}
+
 class _FullSyncProgressDialog extends StatefulWidget {
   const _FullSyncProgressDialog({super.key});
 
@@ -450,41 +458,101 @@ class _FullSyncProgressDialog extends StatefulWidget {
 }
 
 class _FullSyncProgressDialogState extends State<_FullSyncProgressDialog> {
-  String _progressText = '准备开始同步收藏...';
-  double? _progressValue;
+  final List<_SyncStepStatus> _steps = [
+    const _SyncStepStatus('等待同步', Icons.circle_outlined, Color(0xFFBDBDBD), null),
+    const _SyncStepStatus('等待同步', Icons.circle_outlined, Color(0xFFBDBDBD), null),
+    const _SyncStepStatus('等待同步', Icons.circle_outlined, Color(0xFFBDBDBD), null),
+  ];
+
+  static const _stepLabels = ['Bangumi', 'WebDAV', '樱花服务器'];
+  static const _stepColors = [0xFF6C5CE7, 0xFF3498DB, 0xFFE67E22];
 
   void update(String text, double? value) {
     if (!mounted) return;
     setState(() {
-      _progressText = text;
-      _progressValue = value;
+      // 根据 text 判断当前在同步哪个
+      int stepIndex = -1;
+      if (text.contains('Bangumi') || text.contains('bangumi')) stepIndex = 0;
+      else if (text.contains('WebDav') || text.contains('WEBDAV')) stepIndex = 1;
+      else if (text.contains('樱花') || text.contains('Kazumi')) stepIndex = 2;
+      else if (text.contains('回传')) stepIndex = 1;
+
+      // 标记之前的步骤为完成
+      for (int i = 0; i < stepIndex; i++) {
+        _steps[i] = _SyncStepStatus(
+          '已完成', Icons.check_circle, Colors.green, 1.0,
+        );
+      }
+
+      // 标记当前步骤
+      if (stepIndex >= 0 && stepIndex < 3) {
+        final isError = text.contains('❌');
+        _steps[stepIndex] = _SyncStepStatus(
+          isError ? text.replaceAll('❌ ', '') : text,
+          isError ? Icons.error : Icons.sync,
+          isError ? Colors.red : Color(_stepColors[stepIndex]),
+          value,
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return PopScope(
       canPop: false,
       child: Dialog(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: SizedBox(
-            width: 340,
+            width: 360,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '收藏全量同步中',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.sync, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('全量同步', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(_progressText),
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: _progressValue),
+                const SizedBox(height: 16),
+                ...List.generate(3, (i) {
+                  final step = _steps[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(step.icon, size: 20, color: step.color),
+                        const SizedBox(width: 10),
+                        Text(_stepLabels[i], style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            step.label,
+                            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (step.progress != null)
+                          SizedBox(
+                            width: 40,
+                            child: LinearProgressIndicator(
+                              value: step.progress,
+                              backgroundColor: colorScheme.surfaceContainerHighest,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),

@@ -1,10 +1,13 @@
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/pages/my/task_center_page.dart';
+import 'package:kazumi/pages/my/chat_room_page.dart';
 import 'package:kazumi/services/auth_service.dart';
 
 class MyPage extends StatelessWidget {
@@ -283,6 +286,40 @@ class MyPage extends StatelessWidget {
           SettingsSection(
             title: Text('其他', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
+              SettingsTile.navigation(
+                onPressed: (_) async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+                  );
+                },
+                leading: const Icon(Icons.person),
+                title: Text('樱花动漫账号', style: TextStyle(fontFamily: fontFamily)),
+                description: Text(AuthService.isLoggedIn ? '已登录' : '未登录', style: TextStyle(fontFamily: fontFamily)),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TaskCenterPage()),
+                  );
+                },
+                leading: const Icon(Icons.emoji_events),
+                title: Text('任务中心', style: TextStyle(fontFamily: fontFamily)),
+                description: Text('赚金币、看进度', style: TextStyle(fontFamily: fontFamily)),
+              ),
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  if (!AuthService.isLoggedIn) {
+                    KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ChatRoomPage()),
+                  );
+                },
+                leading: const Icon(Icons.chat),
+                title: Text('闲聊室', style: TextStyle(fontFamily: fontFamily)),
+                description: Text(AuthService.isLoggedIn ? '已登录' : '登录后可用', style: TextStyle(fontFamily: fontFamily)),
+              ),
               SettingsTile.navigation(
                 onPressed: (_) {
                   context.pushNamed('/settings/about/');

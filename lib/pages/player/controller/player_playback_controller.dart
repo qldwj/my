@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -9,8 +10,10 @@ import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'dart:async';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -107,6 +110,40 @@ abstract class _PlayerPlaybackController with Store {
   Duration duration = Duration.zero;
   @observable
   double playerSpeed = 1.0;
+
+  // 看番赚金币
+  int _lastCoinMinute = 0;
+  int _totalCoinSession = 0;
+
+  /// 看番赚金币：每看 5 分钟加 10 金币
+  Future<void> _earnCoins(int currentMinutes) async {
+    if (currentMinutes <= 0) return;
+    if (currentMinutes == _lastCoinMinute) return;
+    // 每 5 分钟触发一次
+    if (currentMinutes % 5 != 0) return;
+    // 每 5 分钟只加一次
+    if (currentMinutes - _lastCoinMinute < 5 && _lastCoinMinute > 0) return;
+    
+    _lastCoinMinute = currentMinutes;
+    _totalCoinSession += 10;
+    
+    if (!AuthService.isLoggedIn) return;
+    try {
+      final token = AuthService.getLocalToken();
+      if (token == null) return;
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 5);
+      final request = await client.postUrl(
+        Uri.parse('https://qlyyz.xyz/chat.php?action=add'),
+      );
+      request.headers.set('Authorization', 'Bearer $token');
+      request.headers.set('Content-Type', 'application/json');
+      request.add(utf8.encode('{"amount":10}'));
+      final response = await request.close();
+      await response.transform(utf8.decoder).join();
+      client.close();
+    } catch (_) {}
+  }
 
   bool isCurrentPlayer(Player player) {
     return identical(mediaPlayer, player);
@@ -530,6 +567,10 @@ abstract class _PlayerPlaybackController with Store {
     }
     if (currentPosition != state.position) {
       currentPosition = state.position;
+      // 看番赚金币：每 5 分钟加 10
+      if (state.position.inMinutes > 0) {
+        _earnCoins(state.position.inMinutes);
+      }
     }
     if (buffer != state.buffer) {
       buffer = state.buffer;

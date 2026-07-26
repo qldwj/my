@@ -3,6 +3,7 @@ import 'package:card_settings_ui/section/settings_section.dart';
 import 'package:card_settings_ui/tile/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class InterfaceSettingsPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class InterfaceSettingsPage extends StatefulWidget {
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late bool showRating;
   late bool showAnimeCounter;
+  late bool minorMode;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -30,6 +32,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     super.initState();
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     showAnimeCounter = GStorage.getSetting(SettingsKeys.showAnimeCounter);
+    minorMode = GStorage.getSetting(SettingsKeys.minorMode);
     defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
   }
 
@@ -123,6 +126,51 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               initialValue: showAnimeCounter,
             ),
           ]),
+          SettingsSection(
+            title: Text('内容过滤', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile.switchTile(
+                onToggle: (value) async {
+                  final newValue = value ?? !minorMode;
+                  if (!newValue && minorMode) {
+                    // 关闭未成年人保护 → 弹出年龄确认
+                    final confirmed = await KazumiDialog.show<bool>(
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('⚠️ 年龄确认'),
+                        content: const Text(
+                          '关闭未成年人保护模式后，您将能看到包含 18+ 内容的番剧。\n\n'
+                          '请确认您已年满 18 周岁。\n\n'
+                          '本软件仅提供番剧索引和播放功能，所有内容均来自第三方数据源，'
+                          '与本软件无关。请用户自行判断并承担相应责任。',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => KazumiDialog.dismiss(popWith: false),
+                            child: Text('取消',
+                                style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                          ),
+                          FilledButton(
+                            onPressed: () => KazumiDialog.dismiss(popWith: true),
+                            child: const Text('我已年满 18 周岁'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) return;
+                  }
+                  minorMode = newValue;
+                  await GStorage.putSetting(SettingsKeys.minorMode, minorMode);
+                  setState(() {});
+                },
+                title: Text('未成年人保护模式',
+                    style: TextStyle(fontFamily: fontFamily)),
+                description: Text(
+                  minorMode ? '已开启，18+ 内容已隐藏' : '已关闭，将显示 18+ 内容',
+                  style: TextStyle(fontFamily: fontFamily)),
+                initialValue: minorMode,
+              ),
+            ],
+          ),
         ],
       ),
     );

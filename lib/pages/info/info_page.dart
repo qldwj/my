@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:ui';
-import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/playlist/playlist_module.dart';
@@ -447,21 +446,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           icon: const Icon(Icons.open_in_browser_rounded),
                         ),
                       ),
-                      // 分享番剧
-                      EmbeddedNativeControlArea(
-                        child: IconButton(
-                          onPressed: () {
-                            final item = infoController.bangumiItem;
-                            final name = Uri.encodeComponent(
-                                item.nameCn.isNotEmpty ? item.nameCn : item.name);
-                            final url = 'https://qlyyz.xyz/share?subject=${item.id}&name=$name';
-                            Clipboard.setData(ClipboardData(text: url));
-                            KazumiDialog.showToast(message: '分享链接已复制');
-                          },
-                          icon: const Icon(Icons.share_rounded),
-                          tooltip: '分享番剧',
-                        ),
-                      ),
+
                       if (!showWindowButton && isDesktop())
                         CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),

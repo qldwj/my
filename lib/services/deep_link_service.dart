@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -69,56 +67,9 @@ class DeepLinkService {
     });
   }
 
-  /// 处理 yhdmgz:// 链接（规则分享、番剧分享或 Bangumi 登录回调）
+  /// 处理 yhdmgz:// 链接（规则分享或 Bangumi 登录回调）
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
-
-    // 0️⃣ 番剧分享：yhdmgz://subject/<id>
-    final subjectMatch = RegExp(r'^yhdmgz://subject/(\d+)').firstMatch(url);
-    if (subjectMatch != null) {
-      final subjectId = int.tryParse(subjectMatch.group(1) ?? '');
-      if (subjectId != null) {
-        // 通过 Modular 导航到番剧详情页
-        try {
-          // 使用 Modular 的导航
-          final nav = _channel.binaryMessenger;
-          // 简单的导航方式：使用 Navigator
-          if (nav != null) {
-            // 通过路由跳转到番剧详情
-            // 这里需要一个 context，从 pluginsController 获取
-          }
-        } catch (_) {}
-      }
-      return;
-    }
-
-    // 🔄 扫码登录：yhdmgz://qrcode-login/<token>
-    if (url.startsWith('yhdmgz://qrcode-login/')) {
-      final token = url.replaceFirst('yhdmgz://qrcode-login/', '');
-      if (token.isNotEmpty) {
-        try {
-          final client = HttpClient();
-          final body = jsonEncode({'token': token, 'confirm': true});
-          final request = await client.postUrl(
-            Uri.parse('${AuthService.baseUrl}?action=qrcode_login'),
-          );
-          request.headers.set('Content-Type', 'application/json');
-          request.write(body);
-          final response = await request.close();
-          final respBody = await response.transform(utf8.decoder).join();
-          client.close();
-          final data = jsonDecode(respBody) as Map<String, dynamic>;
-          if (data['status'] == 'confirmed') {
-            final userToken = data['token'] as String?;
-            if (userToken != null && userToken.isNotEmpty) {
-              AuthService.saveLocalToken(userToken);
-              await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
-            }
-          }
-        } catch (_) {}
-      }
-      return;
-    }
 
     // 1️⃣ Bangumi OAuth 登录回调
     if (url.startsWith('yhdmgz://bangumi-auth')) {

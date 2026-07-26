@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/nsfw_filter.dart';
 import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';
@@ -63,7 +64,8 @@ abstract class _PopularController with Store {
       _trendOffset += _trendPageSize;
     }
     final existingIds = trendList.map((item) => item.id).toSet();
-    trendList.addAll(result.where((item) => existingIds.add(item.id)));
+    final filtered = NsfwFilter.filter(result);
+    trendList.addAll(filtered.where((item) => existingIds.add(item.id)));
     isLoadingMore = false;
     isTimeOut = trendList.isEmpty;
   }
@@ -84,7 +86,7 @@ abstract class _PopularController with Store {
             rank: Random().nextInt(8000) + 1,
             tag: tag,
           );
-    bangumiList.addAll(result);
+    bangumiList.addAll(NsfwFilter.filter(result));
     isLoadingMore = false;
     isTimeOut = bangumiList.isEmpty;
   }

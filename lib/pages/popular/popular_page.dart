@@ -10,6 +10,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/nsfw_filter.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -187,7 +188,8 @@ class _PopularPageState extends State<PopularPage> {
     );
   }
 
-  Widget contentGrid(List<BangumiItem> bangumiList) {
+  Widget contentGrid(List<BangumiItem> items) {
+    final bangumiList = NsfwFilter.filter(items);
     int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
