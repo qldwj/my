@@ -28,7 +28,8 @@ class ApiEndpoints {
   /// 所有版本列表（含测试版）
   static const String allAppReleases =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
-
+/// 所有版本列表镜像（含测试版）
+  static const String allAppReleasesMirror = 'https://www.qlyyz.xyz/v1/app/releases/index'; 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 

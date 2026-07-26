@@ -218,19 +218,50 @@ class AutoUpdater {
   }
 
   /// 获取最新测试版（从版本列表中找第一个可用的）
+  /// 优先从镜像获取，失败则回退到 GitHub API
   Future<Map<String, dynamic>> _latestBetaRelease() async {
+    // 优先从镜像获取
+    try {
+      final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleasesMirror);
+      final list = json.decode(raw);
+      if (list is List && list.isNotEmpty) {
+        // 优先找 prerelease: true 的项
+        for (final item in list) {
+          if (item is Map && item['prerelease'] == true) {
+            return Map<String, dynamic>.from(item);
+          }
+        }
+        // 如果没有 prerelease，取第一个有 assets 的
+        for (final item in list) {
+          if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
+            return Map<String, dynamic>.from(item);
+          }
+        }
+      }
+    } catch (e) {
+      // 镜像失败，记录日志并继续使用 GitHub
+      KazumiLogger().w('Update: mirror for beta releases failed, fallback to GitHub', error: e);
+    }
+
+    // 回退到官方 GitHub API
     final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
     final list = json.decode(raw);
     if (list is! List || list.isEmpty) {
       throw Exception('没有可用的版本');
     }
-    // 取第一个有 assets 的 release（可能是 prerelease）
+    // 优先找 prerelease: true 的项
+    for (final item in list) {
+      if (item is Map && item['prerelease'] == true) {
+        return Map<String, dynamic>.from(item);
+      }
+    }
+    // 如果没有 prerelease，取第一个有 assets 的
     for (final item in list) {
       if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
         return Map<String, dynamic>.from(item);
       }
     }
-    // 回退到正式版
+    // 最后回退到正式版
     return _latestRelease();
   }
 
