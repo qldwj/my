@@ -43,7 +43,6 @@ class AuthService {
         request.headers.set('X-Timestamp', timestamp.toString());
         request.headers.set('X-Signature', _sign(bodyStr, timestamp));
       }
-      // 使用字节写入，避免中文等字符导致 Invalid argument 错误
       request.add(utf8.encode(bodyStr));
 
       final response = await request.close();
@@ -105,18 +104,26 @@ class AuthService {
     return res;
   }
 
-  /// 同步数据（收藏等）
+  /// 同步数据（收藏等）——用于上传增量数据
   static Future<Map<String, dynamic>> syncData(Map<String, dynamic> data) async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
     return _request('sync', {'data': data}, authToken: token, skipSignature: true);
   }
 
-  /// 【新增】只读获取云端收藏（假设 sync 接口在 data 为空时只返回数据，不修改）
+  /// 🆕 只读获取云端收藏（调用后端专用的 `get_collect` 接口，不会修改服务器数据）
+  static Future<Map<String, dynamic>> getRemoteCollect() async {
+    final token = getLocalToken();
+    if (token == null) return {'error': '未登录'};
+    // 注意：这里 body 传空 Map，因为 `get_collect` 不需要额外参数
+    return _request('get_collect', {}, authToken: token, skipSignature: true);
+  }
+
+  /// ⚠️ 已弃用：此方法会因传入空列表而清空服务器数据，请改用 `getRemoteCollect()`
+  @Deprecated('使用 getRemoteCollect() 替代，此方法会清空服务器数据')
   static Future<Map<String, dynamic>> fetchRemoteCollect() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    // 上传空列表，期待服务器返回当前云端数据而不修改
     return _request('sync', {'data': {'collect': []}}, authToken: token, skipSignature: true);
   }
 

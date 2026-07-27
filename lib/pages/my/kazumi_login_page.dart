@@ -116,26 +116,30 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     setState(() => _syncing = false);
   }
 
-  /// 核心同步逻辑（重写：先拉取云端，再上传本地差异）
+  /// 核心同步逻辑（先拉取云端，再上传本地差异）
   Future<void> _doSync() async {
     try {
       KazumiDialog.showLoading(msg: '正在获取云端收藏...');
 
-      // ---------- 第一步：拉取云端数据 ----------
-      final remoteRes = await AuthService.fetchRemoteCollect();
+      // ---------- 第一步：拉取云端数据（使用只读接口） ----------
+      final remoteRes = await AuthService.getRemoteCollect(); // ✅ 改用只读接口
       if (remoteRes['error'] != null) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(message: '❌ 获取云端数据失败: ${remoteRes['error']}');
         return;
       }
 
-      // 解析云端收藏列表
+      // 解析云端收藏列表（新接口直接返回 collect 数组）
       List<dynamic> remoteList = [];
-      if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
-        remoteList = remoteRes['sync_data']['collect'] as List;
+      if (remoteRes['collect'] is List) {
+        remoteList = remoteRes['collect'] as List;
       } else {
-        // 若服务器返回格式不符，视为空
-        remoteList = [];
+        // 兼容旧格式（以防后端返回 sync_data 结构）
+        if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
+          remoteList = remoteRes['sync_data']['collect'] as List;
+        } else {
+          remoteList = [];
+        }
       }
 
       // ---------- 第二步：下载本地缺失的条目 ----------
@@ -178,7 +182,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       }
 
       // ---------- 第三步：计算本地多余条目（本地有，云端没有） ----------
-      // 重新读取本地（因为可能新增了下载的条目）
       final localCollectAfter = GStorage.collectibles.values.toList();
       final remoteIds = remoteList.map((e) => (e as Map)['id'] as int).toSet();
 
