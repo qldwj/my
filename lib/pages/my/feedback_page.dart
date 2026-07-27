@@ -20,9 +20,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
   bool _isLoading = false;
 
   // ⚠️ 替换成你的服务器地址
-  static const String _baseUrl = 'http://qlyyz.xyz/fc';
-  static const String _submitUrl = '$_baseUrl/submit';
-  static const String _listUrl = '$_baseUrl/admin?action=getFeedbacks';
+  static const String _baseUrl = 'http://你的服务器IP或域名';
+  static const String _submitUrl = '$_baseUrl/submit.php';
+  static const String _listUrl = '$_baseUrl/admin.php?action=getFeedbacks';
 
   @override
   void initState() {
@@ -132,7 +132,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         final multipartFile = await http.MultipartFile.fromPath(
           'media[]',
           file.path,
-          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+          contentType: mimeType != null ? http.MediaType.parse(mimeType) : null,  // 修复：加上 http.
         );
         request.files.add(multipartFile);
       }
@@ -443,7 +443,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 使用video_player插件更好，这里简单显示一个播放按钮
           Container(
             color: Colors.black12,
             child: const Icon(Icons.play_circle_fill, size: 40, color: Colors.white70),
@@ -454,14 +453,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 }
 
-// 全屏视频播放器（为了简洁，仅显示视频标签，实际可用video_player）
+// 全屏视频播放器（占位，可使用 media_kit 或 video_player 实现）
 class VideoPlayerFullscreen extends StatelessWidget {
   final String url;
   const VideoPlayerFullscreen(this.url, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 你可以使用 video_player 插件实现真正的播放，这里仅展示链接
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
