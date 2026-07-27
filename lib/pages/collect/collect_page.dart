@@ -105,7 +105,7 @@ class _CollectPageState extends State<CollectPage>
     bool kazumiSynced = false;
 
     try {
-      // 同步顺序：Bangumi(拉) → WebDAV(合并) → 樱花(上传) → WebDAV(回传)
+      // 同步顺序：Bangumi(拉) → WebDAV(合并) → 樱花(先拉后传差异) → WebDAV(回传)
       // Bangumi 作为数据主源，先拉取合并到本地，再推送到其他后端
       
       // 1️⃣ 先拉取 Bangumi（如果有的话）
@@ -122,75 +122,93 @@ class _CollectPageState extends State<CollectPage>
             await collectController.syncCollectibles(showSuccessToast: false);
       }
 
-      // 3️⃣ 最后推送/拉取樱花服务器（已完成 Bangumi+WebDAV 合并的本地数据）
+      // 3️⃣ 樱花同步：先拉取云端数据，合并到本地，再上传本地差异（增量）
       if (plan.shouldSyncKazumi) {
-        progressDialogKey.currentState?.update('正在同步到樱花服务器...', null);
+        progressDialogKey.currentState?.update('正在拉取樱花服务器收藏...', null);
         try {
-          // 上传经过 Bangumi+WebDAV 合并后的完整本地收藏
-          final collectData = collectController.collectibles.map((c) => ({
-            'id': c.bangumiItem.id,
-            'name': c.bangumiItem.name,
-            'name_cn': c.bangumiItem.nameCn,
-            'type': c.type,
-            'time': c.time.toIso8601String(),
-            'image': c.bangumiItem.images['large'] ?? '',
-            'summary': c.bangumiItem.summary,
-            'rating': c.bangumiItem.ratingScore,
-          })).toList();
-          final uploadRes = await AuthService.syncData({'collect': collectData});
-          kazumiSynced = uploadRes['success'] == true;
-          if (!kazumiSynced) {
-            final err = uploadRes['error'] ?? uploadRes['message'] ?? '同步请求失败';
-            progressDialogKey.currentState?.update('❌ 樱花服务器: $err', null);
+          // 拉取云端数据（只读）
+          final remoteRes = await AuthService.fetchRemoteCollect();
+          if (remoteRes['error'] != null) {
+            progressDialogKey.currentState?.update('❌ 拉取云端失败: ${remoteRes['error']}', null);
           } else {
-            // 下载服务器数据，补全本地没有的项
-            if (uploadRes['sync_data'] is Map) {
-              final serverData = uploadRes['sync_data'] as Map<String, dynamic>;
-              if (serverData['collect'] is List) {
-                final remoteCollect = serverData['collect'] as List;
-                int added = 0;
-                for (final item in remoteCollect) {
-                  if (item is Map) {
-                    final remoteId = item['id'];
-                    if (remoteId is! int) continue;
-                    final exists = collectController.collectibles.any(
-                      (c) => c.bangumiItem.id == remoteId,
-                    );
-                    if (!exists) {
-                      final type = item['type'] ?? 1;
-                      final image = item['image']?.toString() ?? '';
-                      final bangumiItem = BangumiItem(
-                        id: remoteId,
-                        type: 0,
-                        name: item['name']?.toString() ?? '未知',
-                        nameCn: item['name_cn']?.toString() ?? '',
-                        summary: '',
-                        airDate: '',
-                        airWeekday: 0,
-                        rank: 0,
-                        images: {'large': image},
-                        tags: [],
-                        alias: [],
-                        ratingScore: 0.0,
-                        votes: 0,
-                        votesCount: [],
-                        info: '',
-                      );
-                      await GStorage.putCollectible(
-                        CollectedBangumi(bangumiItem, DateTime.now(), type is int ? type : 1),
-                      );
-                      added++;
-                    }
-                  }
-                }
-                if (added > 0) {
-                  collectController.loadCollectibles();
-                }
+            // 解析云端列表
+            List remoteList = [];
+            if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
+              remoteList = remoteRes['sync_data']['collect'] as List;
+            }
+            // 下载本地缺失的条目
+            int downloadCount = 0;
+            final localIds = collectController.collectibles.map((c) => c.bangumiItem.id).toSet();
+            for (final item in remoteList) {
+              if (item is! Map) continue;
+              final remoteId = item['id'];
+              if (remoteId is! int) continue;
+              if (!localIds.contains(remoteId)) {
+                // 添加条目
+                final bangumiItem = BangumiItem(
+                  id: remoteId,
+                  type: 0,
+                  name: item['name']?.toString() ?? '未知',
+                  nameCn: item['name_cn']?.toString() ?? '',
+                  summary: item['summary']?.toString() ?? '',
+                  airDate: item['air_date']?.toString() ?? '',
+                  airWeekday: 0,
+                  rank: 0,
+                  images: {'large': item['image']?.toString() ?? ''},
+                  tags: [],
+                  alias: [],
+                  ratingScore: (item['rating'] as num?)?.toDouble() ?? 0.0,
+                  votes: 0,
+                  votesCount: [],
+                  info: '',
+                );
+                await GStorage.putCollectible(
+                  CollectedBangumi(bangumiItem, DateTime.now(), item['type'] is int ? item['type'] : 1),
+                );
+                downloadCount++;
               }
             }
+            if (downloadCount > 0) {
+              collectController.loadCollectibles(); // 刷新列表
+            }
+            // 计算本地多余条目（本地有，云端没有）
+            final remoteIds = remoteList.map((e) => (e as Map)['id'] as int).toSet();
+            final localCollectAfter = collectController.collectibles; // 此时已经更新
+            final diffList = localCollectAfter
+                .where((c) => !remoteIds.contains(c.bangumiItem.id))
+                .map((c) => {
+                      'id': c.bangumiItem.id,
+                      'name': c.bangumiItem.name,
+                      'name_cn': c.bangumiItem.nameCn,
+                      'type': c.type,
+                      'time': c.time.toIso8601String(),
+                      'image': c.bangumiItem.images['large'] ?? '',
+                      'summary': c.bangumiItem.summary,
+                      'rating': c.bangumiItem.ratingScore,
+                    })
+                .toList();
+
+            int uploadCount = 0;
+            if (diffList.isNotEmpty) {
+              progressDialogKey.currentState?.update('正在上传新增条目到樱花服务器...', null);
+              final uploadRes = await AuthService.syncData({'collect': diffList});
+              if (uploadRes['error'] != null) {
+                progressDialogKey.currentState?.update('❌ 上传失败: ${uploadRes['error']}', null);
+              } else {
+                uploadCount = diffList.length;
+                kazumiSynced = true;
+              }
+            } else {
+              kazumiSynced = true; // 没有差异也算成功
+            }
+            progressDialogKey.currentState?.update(
+              '樱花同步完成 ✅ 下载 $downloadCount 项，上传 $uploadCount 项',
+              null,
+            );
           }
         } catch (e) {
           KazumiLogger().w('Kazumi sync failed', error: e);
+          progressDialogKey.currentState?.update('❌ 樱花同步异常: $e', null);
         }
       }
 

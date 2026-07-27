@@ -34,7 +34,7 @@ class _TaskCenterPageState extends State<TaskCenterPage> {
     if (token == null) return;
     try {
       final c = HttpClient();
-      final r = await c.getUrl(Uri.parse('https://qlyyz.xyz/api/chat?action=coins'));
+      final r = await c.getUrl(Uri.parse('https://qlyyz.xyz/chat.php?action=coins'));
       r.headers.set('Authorization', 'Bearer $token');
       final res = await r.close();
       final body = await res.transform(utf8.decoder).join();

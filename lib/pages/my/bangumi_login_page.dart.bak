@@ -19,7 +19,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   final TextEditingController _tokenController = TextEditingController();
 
   /// 你自己的 OAuth 后端地址（单文件版）
-  static const String _loginUrl = 'https://qlyyz.xyz/api/bangumi_oauth?action=login';
+  static const String _loginUrl = 'https://qlyyz.xyz/bangumi_oauth.php?action=login';
 
   bool get _isLoggedIn =>
       GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;

@@ -10,6 +10,7 @@ enum SettingGroup {
   collect,
   sync,
   update,
+  notice,      // 新增公告分组
   misc,
 }
 
@@ -37,8 +38,6 @@ class SettingKey<T> {
   }
 }
 
-// Add new settings here. SettingsKeys is the public typed registry used by
-// callers; new keys can use literal string names directly.
 class SettingsKeys {
   static const hAenable = SettingKey<bool>(
     _SettingBoxKey.hAenable,
@@ -446,8 +445,6 @@ class SettingsKeys {
     '',
     group: SettingGroup.download,
   );
-  // macOS only: security-scoped bookmark that keeps downloadDirectory
-  // writable across app restarts under the sandbox.
   static const downloadDirectoryBookmark = SettingKey<String>(
     'downloadDirectoryBookmark',
     '',
@@ -559,6 +556,13 @@ class SettingsKeys {
     group: SettingGroup.misc,
   );
 
+  // 🆕 公告版本号（用于“不再提示”功能）
+  static const announcementVersion = SettingKey<int>(
+    'announcementVersion',
+    0,
+    group: SettingGroup.notice,
+  );
+
   static final List<SettingKey<Object?>> all = [
     hAenable,
     hardwareDecoder,
@@ -654,6 +658,7 @@ class SettingsKeys {
     playerControllerLayerDisappearTime,
     defaultVolume,
     playerMuted,
+    announcementVersion, // 新增
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {
@@ -667,9 +672,6 @@ class SettingsKeys {
 }
 
 // Historical Hive key names used by settings created before the typed registry.
-// Keep these strings stable so existing users keep their saved settings.
-// New settings do not need to be added here unless they intentionally reuse an
-// existing persisted key.
 class _SettingBoxKey {
   static const String hAenable = 'hAenable',
       hardwareDecoder = 'hardwareDecoder',
@@ -715,8 +717,6 @@ class _SettingBoxKey {
       enableBangumiProxy = 'enableBangumiProxy',
       enableSystemProxy = 'enableSystemProxy',
       defaultStartupPage = 'defaultStartupPage',
-
-      /// Deprecated
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
       webDavEnableHistory = 'webDavEnableHistory',

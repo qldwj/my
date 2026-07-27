@@ -3,6 +3,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/auto_updater.dart';
+// 引入公告服务
+import 'package:kazumi/services/announcement/announcement_service.dart';
 
 part 'my_controller.g.dart';
 
@@ -69,7 +71,10 @@ abstract class _MyController with Store {
       if (type == 'manual') {
         await autoUpdater.manualCheckForUpdates();
       } else {
+        // 自动检查更新
         await autoUpdater.autoCheckForUpdates();
+        // 🆕 自动检查公告（仅在自动检查时触发）
+        await AnnouncementService.checkAnnouncement();
       }
 
       return true;

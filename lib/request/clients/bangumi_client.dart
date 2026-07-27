@@ -14,7 +14,7 @@ class BangumiClient {
   static final BangumiClient instance = BangumiClient._();
 
   
-  static const String customSearchProxyUrl = "https://qlyyz.xyz/subjects.php";
+  static const String customSearchProxyUrl = "https://qlyyz.xyz/api/subjects";
 
   Future<dynamic> get(
     String url, {

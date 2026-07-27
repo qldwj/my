@@ -116,77 +116,105 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     setState(() => _syncing = false);
   }
 
+  /// 核心同步逻辑（重写：先拉取云端，再上传本地差异）
   Future<void> _doSync() async {
     try {
-      KazumiDialog.showLoading(msg: '正在同步到樱花服务器...');
+      KazumiDialog.showLoading(msg: '正在获取云端收藏...');
 
-      // 1. 读取本地收藏
-      final localCollect = GStorage.collectibles.values.toList();
-      final collectData = localCollect.map((c) => ({
-        'id': c.bangumiItem.id,
-        'name': c.bangumiItem.name,
-        'name_cn': c.bangumiItem.nameCn,
-        'type': c.type,
-        'time': c.time.toIso8601String(),
-        'image': c.bangumiItem.images['large'] ?? '',
-        'summary': c.bangumiItem.summary,
-        'rating': c.bangumiItem.ratingScore,
-      })).toList();
-
-      // 2. 上传到服务器
-      final res = await AuthService.syncData({'collect': collectData});
-      if (res['error'] != null) {
+      // ---------- 第一步：拉取云端数据 ----------
+      final remoteRes = await AuthService.fetchRemoteCollect();
+      if (remoteRes['error'] != null) {
         KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '❌ 同步失败: ${res['error']}');
+        KazumiDialog.showToast(message: '❌ 获取云端数据失败: ${remoteRes['error']}');
         return;
       }
 
-      // 3. 下载服务器数据并合并
-      int uploadCount = 0, downloadCount = 0;
-      if (res['sync_data'] is Map) {
-        final serverData = res['sync_data'] as Map;
-        if (serverData['collect'] is List) {
-          final remoteList = serverData['collect'] as List;
-          for (final item in remoteList) {
-            if (item is Map) {
-              final remoteId = item['id'];
-              if (remoteId is! int) continue;
-              final exists = localCollect.any((c) => c.bangumiItem.id == remoteId);
-              if (!exists) {
-                // 下载：远程有本地没有
-                final bangumiItem = BangumiItem(
-                  id: remoteId,
-                  type: 0,
-                  name: item['name']?.toString() ?? '未知',
-                  nameCn: item['name_cn']?.toString() ?? '',
-                  summary: '',
-                  airDate: '',
-                  airWeekday: 0,
-                  rank: 0,
-                  images: {'large': item['image']?.toString() ?? ''},
-                  tags: [],
-                  alias: [],
-                  ratingScore: 0.0,
-                  votes: 0,
-                  votesCount: [],
-                  info: '',
-                );
-                await GStorage.putCollectible(
-                  CollectedBangumi(bangumiItem, DateTime.now(), 
-                    item['type'] is int ? item['type'] as int : 1),
-                );
-                downloadCount++;
-              }
-            }
-          }
+      // 解析云端收藏列表
+      List<dynamic> remoteList = [];
+      if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
+        remoteList = remoteRes['sync_data']['collect'] as List;
+      } else {
+        // 若服务器返回格式不符，视为空
+        remoteList = [];
+      }
+
+      // ---------- 第二步：下载本地缺失的条目 ----------
+      int downloadCount = 0;
+      final localCollectBefore = GStorage.collectibles.values.toList();
+      final localIds = localCollectBefore.map((c) => c.bangumiItem.id).toSet();
+
+      for (final item in remoteList) {
+        if (item is! Map) continue;
+        final remoteId = item['id'];
+        if (remoteId is! int) continue;
+        if (!localIds.contains(remoteId)) {
+          // 构建 BangumiItem（根据服务器返回字段映射）
+          final bangumiItem = BangumiItem(
+            id: remoteId,
+            type: 0,
+            name: item['name']?.toString() ?? '未知',
+            nameCn: item['name_cn']?.toString() ?? '',
+            summary: item['summary']?.toString() ?? '',
+            airDate: item['air_date']?.toString() ?? '',
+            airWeekday: 0,
+            rank: 0,
+            images: {'large': item['image']?.toString() ?? ''},
+            tags: [],
+            alias: [],
+            ratingScore: (item['rating'] as num?)?.toDouble() ?? 0.0,
+            votes: 0,
+            votesCount: [],
+            info: '',
+          );
+          await GStorage.putCollectible(
+            CollectedBangumi(
+              bangumiItem,
+              DateTime.now(),
+              item['type'] is int ? item['type'] as int : 1,
+            ),
+          );
+          downloadCount++;
         }
       }
-      uploadCount = collectData.length;
 
+      // ---------- 第三步：计算本地多余条目（本地有，云端没有） ----------
+      // 重新读取本地（因为可能新增了下载的条目）
+      final localCollectAfter = GStorage.collectibles.values.toList();
+      final remoteIds = remoteList.map((e) => (e as Map)['id'] as int).toSet();
+
+      final diffList = localCollectAfter
+          .where((c) => !remoteIds.contains(c.bangumiItem.id))
+          .map((c) => {
+                'id': c.bangumiItem.id,
+                'name': c.bangumiItem.name,
+                'name_cn': c.bangumiItem.nameCn,
+                'type': c.type,
+                'time': c.time.toIso8601String(),
+                'image': c.bangumiItem.images['large'] ?? '',
+                'summary': c.bangumiItem.summary,
+                'rating': c.bangumiItem.ratingScore,
+              })
+          .toList();
+
+      int uploadCount = 0;
+      if (diffList.isNotEmpty) {
+        // ---------- 第四步：上传差异部分 ----------
+        KazumiDialog.showLoading(msg: '正在上传新增条目...');
+        final uploadRes = await AuthService.syncData({'collect': diffList});
+        if (uploadRes['error'] != null) {
+          KazumiDialog.dismiss();
+          KazumiDialog.showToast(message: '❌ 上传差异失败: ${uploadRes['error']}');
+          return;
+        }
+        uploadCount = diffList.length;
+      }
+
+      // ---------- 完成 ----------
       KazumiDialog.dismiss();
       KazumiDialog.showToast(
-        message: '同步完成 ✅ 上传 $uploadCount 项，下载 $downloadCount 项',
+        message: '同步完成 ✅ 下载 $downloadCount 项，上传 $uploadCount 项',
       );
+
     } catch (e, st) {
       KazumiLogger().e('同步失败', error: e, stackTrace: st);
       KazumiDialog.dismiss();

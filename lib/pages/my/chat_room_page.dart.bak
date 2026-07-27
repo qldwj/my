@@ -28,7 +28,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   List<Map<String, dynamic>> _messages = [];
   int _coins = 0;
   Timer? _pollTimer;
-  static const _chatApi = 'https://qlyyz.xyz/api/chat';
+  static const _chatApi = 'https://qlyyz.xyz/chat.php';
 
   @override
   void initState() {

@@ -8,7 +8,7 @@ import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
 
 /// 自定义登录/注册服务
 class AuthService {
-  static const String baseUrl = 'https://qlyyz.xyz/login.php';
+  static const String baseUrl = 'https://qlyyz.xyz/api/login';
 
   static String get _appId => bangumiMirrorCredentials['id'] ?? '';
   static String get _appKey => bangumiMirrorCredentials['value'] ?? '';
@@ -110,6 +110,14 @@ class AuthService {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
     return _request('sync', {'data': data}, authToken: token, skipSignature: true);
+  }
+
+  /// 【新增】只读获取云端收藏（假设 sync 接口在 data 为空时只返回数据，不修改）
+  static Future<Map<String, dynamic>> fetchRemoteCollect() async {
+    final token = getLocalToken();
+    if (token == null) return {'error': '未登录'};
+    // 上传空列表，期待服务器返回当前云端数据而不修改
+    return _request('sync', {'data': {'collect': []}}, authToken: token, skipSignature: true);
   }
 
   /// 绑定 Bangumi

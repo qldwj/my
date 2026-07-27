@@ -20,7 +20,7 @@ class ApiEndpoints {
 
   /// 规则仓库镜像
   static const String pluginShopMirror =
-      'https://www.qlyyz.xyz/v1/app/qldwj/Kazuminb6Rules/raw/main/';
+      'https://qlyyz.xyz/api/rules/';
 
   /// 在线升级（最新正式版）
   static const String latestApp =
@@ -29,13 +29,13 @@ class ApiEndpoints {
   static const String allAppReleases =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
 /// 所有版本列表镜像（含测试版）
-  static const String allAppReleasesMirror = 'https://www.qlyyz.xyz/v1/app/releases/index'; 
+  static const String allAppReleasesMirror = 'https://qlyyz.xyz/api/releases/index'; 
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
-      'https://www.qlyyz.xyz/v1/app/latest/ind.php';
+      'https://qlyyz.xyz/api/latest/latest.php';
 
   /// 弹弹官网
   static const String dandanIndex = 'https://www.dandanplay.com/';
