@@ -126,14 +126,16 @@ class _CollectPageState extends State<CollectPage>
       if (plan.shouldSyncKazumi) {
         progressDialogKey.currentState?.update('正在拉取樱花服务器收藏...', null);
         try {
-          // 拉取云端数据（只读）
-          final remoteRes = await AuthService.fetchRemoteCollect();
+          // ✅ 使用只读接口 getRemoteCollect()
+          final remoteRes = await AuthService.getRemoteCollect(); 
           if (remoteRes['error'] != null) {
             progressDialogKey.currentState?.update('❌ 拉取云端失败: ${remoteRes['error']}', null);
           } else {
-            // 解析云端列表
+            // 解析云端列表（新接口返回直接是 collect 数组，兼容旧格式）
             List remoteList = [];
-            if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
+            if (remoteRes['collect'] is List) {
+              remoteList = remoteRes['collect'] as List;
+            } else if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
               remoteList = remoteRes['sync_data']['collect'] as List;
             }
             // 下载本地缺失的条目
