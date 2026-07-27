@@ -20,7 +20,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   bool _isLoading = false;
 
   // ⚠️ 替换成你的服务器地址
-  static const String _baseUrl = 'http://你的服务器IP或域名';
+  static const String _baseUrl = 'https://qlyyz.xyz/fc';
   static const String _submitUrl = '$_baseUrl/submit.php';
   static const String _listUrl = '$_baseUrl/admin.php?action=getFeedbacks';
 
