@@ -8,6 +8,7 @@ import 'package:kazumi/pages/my/bangumi_login_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/my/task_center_page.dart';
 import 'package:kazumi/pages/my/chat_room_page.dart';
+import 'package:kazumi/pages/my/feedback_page.dart'; // 新增
 import 'package:kazumi/services/auth_service.dart';
 
 class MyPage extends StatelessWidget {
@@ -319,6 +320,17 @@ class MyPage extends StatelessWidget {
                 leading: const Icon(Icons.chat),
                 title: Text('闲聊室', style: TextStyle(fontFamily: fontFamily)),
                 description: Text(AuthService.isLoggedIn ? '已登录' : '登录后可用', style: TextStyle(fontFamily: fontFamily)),
+              ),
+              // ⭐ 新增：意见反馈入口
+              SettingsTile.navigation(
+                onPressed: (_) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const FeedbackPage()),
+                  );
+                },
+                leading: const Icon(Icons.feedback_rounded),
+                title: Text('意见反馈', style: TextStyle(fontFamily: fontFamily)),
+                description: Text('查看所有反馈及处理情况', style: TextStyle(fontFamily: fontFamily)),
               ),
               SettingsTile.navigation(
                 onPressed: (_) {
