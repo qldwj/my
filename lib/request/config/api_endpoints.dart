@@ -31,7 +31,7 @@ class ApiEndpoints {
 /// 所有版本列表镜像（含测试版）
   static const String allAppReleasesMirror = 'https://qlyyz.xyz/api/releases/index'; 
   /// Bangumi 镜像测试后端
-  static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
+  static const String bangumiMirrorDomain = 'https://api.qlyyz.top';
 
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
@@ -44,7 +44,7 @@ class ApiEndpoints {
   static const String bangumiIndex = 'https://bangumi.tv/';
 
   /// bangumi API
-  static const String bangumiAPIDomain = 'https://api.qlyyz.top';
+  static const String bangumiAPIDomain = 'https://api.bgm.tv';
 
   /// Bangumi 鉴权 API
   static const String bangumiAuthAPIMirrorDomain = 'https://api.bgmapi.com';
