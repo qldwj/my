@@ -25,16 +25,13 @@ class ApiEndpoints {
   /// 在线升级（最新正式版）
   static const String latestApp =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases/latest';
-      
   /// 所有版本列表（含测试版）
   static const String allAppReleases =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
-      
-  /// 所有版本列表镜像（含测试版）
+/// 所有版本列表镜像（含测试版）
   static const String allAppReleasesMirror = 'https://qlyyz.xyz/api/releases/index'; 
-  
-  /// Bangumi 镜像测试后端（你的代理）
-  static const String bangumiMirrorDomain = 'https://api.qlyyz.top';
+  /// Bangumi 镜像测试后端
+  static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
@@ -47,7 +44,7 @@ class ApiEndpoints {
   static const String bangumiIndex = 'https://bangumi.tv/';
 
   /// bangumi API
-  static const String bangumiAPIDomain = 'https://api.bgm.tv';
+  static const String bangumiAPIDomain = 'https://api.qlyyz.top';
 
   /// Bangumi 鉴权 API
   static const String bangumiAuthAPIMirrorDomain = 'https://api.bgmapi.com';
@@ -55,73 +52,67 @@ class ApiEndpoints {
   /// Telegram 群组
   static const String telegramGroup = 'https://t.me/yhdmdchapp';
 
-  // ==================== ✅ 有官方 API 的路径 ====================
-
-  /// 番剧信息（官方）
+  /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
 
-  /// 条目搜索（官方）
+  /// 条目搜索
   static const String bangumiRankSearch =
       '/v0/search/subjects?limit={0}&offset={1}';
 
-  /// 从条目ID获取角色信息（官方）
+  /// 从条目ID获取角色信息
   static const String bangumiCharacterByID = '/v0/subjects/{0}/characters';
 
-  /// 从条目ID获取剧集ID（官方）
+  /// 从条目ID获取剧集ID
   static const String bangumiEpisodeByID = '/v0/episodes';
 
-  /// 返回当前 Access Token 对应的用户信息（官方）
+  /// 返回当前 Access Token 对应的用户信息
   static const String bangumiUsernameByToken = '/v0/me';
 
-  /// 新增或修改用户单个条目收藏（官方）
+  /// 新增或修改用户单个条目收藏
   static const String bangumiSetCollection = '/v0/users/-/collections/{0}';
 
-  /// 获取用户收藏（官方）
+  /// 获取用户收藏。用户名，分页参数1，分页参数2
   static const String bangumiGetCollection =
       '/v0/users/{0}/collections?subject_type=2&limit={1}&offset={2}&type={3}';
 
   /// Bangumi Next API Domain
   static const String bangumiAPINextDomain = 'https://next.bgm.tv';
 
-  // ⭐ 每日放送（官方）
-  static const String bangumiCalendar = '/calendar';
+  /// 每日放送
+  static const String bangumiCalendar = '/p1/calendar';
 
-  // ⭐ 番剧信息（官方）
-  static const String bangumiInfoByIDNext = '/v0/subjects/{0}';
-
-  // ⭐ 角色信息（官方）
-  static const String bangumiCharacterInfoByCharacterIDNext =
-      '/v0/characters/{0}';
-
-  // ⭐ 工作人员（官方）
-  static const String bangumiStaffByIDNext = '/v0/subjects/{0}/persons';
-
-  // ==================== ⚠️ 无官方 API 的路径（走镜像） ====================
-
-  /// 番剧趋势（无官方对应 → 走镜像）
+  /// 番剧趋势
   static const String bangumiTrendsNext = '/p1/trending/subjects';
 
-  /// 番剧评论（无官方对应 → 走镜像）
-  static const String bangumiCommentsByIDNext =
-      '/p1/subjects/{0}/comments?limit={1}&offset={2}';
-
-  /// 番剧剧集评论（无官方对应 → 走镜像）
-  static const String bangumiEpisodeCommentsByIDNext =
-      '/p1/episodes/{0}/comments';
-
-  /// 番剧角色评论（无官方对应 → 走镜像）
-  static const String bangumiCharacterCommentsByIDNext =
-      '/p1/characters/{0}/comments';
-
-  // ==================== Kazumi 镜像接口（走你的代理） ====================
-
-  /// Kazumi Bangumi 镜像缓存榜单（走你的代理）
+  /// Kazumi Bangumi 镜像缓存榜单
   static const String bangumiMirrorPopularSubjects =
       '/kazumi/v1/popular/subjects';
 
-  /// Kazumi Bangumi 镜像季节时间表（走你的代理）
+  /// Kazumi Bangumi 镜像季节时间表
   static const String bangumiMirrorSeasonCalendar =
       '/kazumi/v1/calendar/season';
+
+  /// 番剧信息
+  static const String bangumiInfoByIDNext = '/p1/subjects/{0}';
+
+  /// 番剧评论
+  static const String bangumiCommentsByIDNext =
+      '/p1/subjects/{0}/comments?limit={1}&offset={2}';
+
+  /// 番剧剧集评论
+  static const String bangumiEpisodeCommentsByIDNext =
+      '/p1/episodes/{0}/comments';
+
+  /// 番剧角色信息
+  static const String bangumiCharacterInfoByCharacterIDNext =
+      '/p1/characters/{0}';
+
+  /// 番剧角色评论
+  static const String bangumiCharacterCommentsByIDNext =
+      '/p1/characters/{0}/comments';
+
+  /// 番剧工作人员信息
+  static const String bangumiStaffByIDNext = '/p1/subjects/{0}/staffs/persons';
 
   /// DanDanPlay API Domain
   static const String dandanAPIDomain = 'https://api.dandanplay.net';
