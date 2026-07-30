@@ -107,7 +107,7 @@ abstract class _PopularController with Store {
   // ===== 获取热门推荐 =====
   @action
   Future<void> queryTopItems() async {
-    if (isLoadingTop) return;  // 修复：移除 .value
+    if (isLoadingTop) return;
     isLoadingTop = true;
     _topCurrentPage = 1;
     _hasMoreTop = true;
@@ -118,19 +118,35 @@ abstract class _PopularController with Store {
         queryParameters: {'page': _topCurrentPage},
       );
 
-      if (response.data != null && response.data['collect'] != null) {
-        final List<dynamic> data = response.data['collect'];
-        final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
-        // 修复：使用 clear + addAll 替代 assignAll
-        topList.clear();
-        topList.addAll(items);
+      print('热门推荐返回: ${response.data}');
 
-        if (items.length < 20) {
+      if (response.data != null && 
+          response.data['collect'] != null && 
+          response.data['collect'] is List) {
+        
+        final List<dynamic> data = response.data['collect'];
+        if (data.isNotEmpty) {
+          final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
+          topList.clear();
+          topList.addAll(items);
+          print('成功加载 ${items.length} 条热门推荐');
+        } else {
+          topList.clear();
+          print('热门推荐数据为空');
+        }
+
+        if (data.length < 20) {
           _hasMoreTop = false;
         }
+      } else {
+        topList.clear();
+        _hasMoreTop = false;
+        print('热门推荐数据格式错误');
       }
     } catch (e) {
       print('获取热门推荐失败: $e');
+      topList.clear();
+      _hasMoreTop = false;
     } finally {
       isLoadingTop = false;
     }
@@ -139,7 +155,7 @@ abstract class _PopularController with Store {
   // ===== 加载更多热门推荐 =====
   @action
   Future<void> loadMoreTopItems() async {
-    if (isTopLoadingMore || !_hasMoreTop) return;  // 修复：移除 .value
+    if (isTopLoadingMore || !_hasMoreTop) return;
     isTopLoadingMore = true;
     _topCurrentPage++;
 
@@ -149,20 +165,28 @@ abstract class _PopularController with Store {
         queryParameters: {'page': _topCurrentPage},
       );
 
-      if (response.data != null && response.data['collect'] != null) {
+      if (response.data != null && 
+          response.data['collect'] != null && 
+          response.data['collect'] is List) {
+        
         final List<dynamic> data = response.data['collect'];
-        if (data.isEmpty) {
-          _hasMoreTop = false;
-        } else {
+        if (data.isNotEmpty) {
           final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
           topList.addAll(items);
+          print('成功加载更多 ${items.length} 条热门推荐');
+          
           if (items.length < 20) {
             _hasMoreTop = false;
           }
+        } else {
+          _hasMoreTop = false;
         }
+      } else {
+        _hasMoreTop = false;
       }
     } catch (e) {
       print('加载更多热门推荐失败: $e');
+      _hasMoreTop = false;
     } finally {
       isTopLoadingMore = false;
     }
