@@ -1,4 +1,4 @@
-name: "build"
+name: "Build"
 
 on:
   workflow_dispatch:
@@ -19,6 +19,7 @@ jobs:
     name: "构建并签名"
     runs-on: "ubuntu-latest" 
     permissions: write-all
+    
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -53,22 +54,22 @@ jobs:
       - name: Remove build id
         run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}/hosted/pub.dev/jni-*/src/CMakeLists.txt
 
-      - name: Build Flutter for Android
+      - name: Build Flutter for Android (arm64-v8a)
         run: >
-          flutter build apk --split-per-abi
+          flutter build apk --target-platform android-arm64 --split-per-abi
           --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
           --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
           --dart-define=KAZUMI_APPID=$KAZUMI_APPID
           --dart-define=KAZUMI_KEY=$KAZUMI_KEY
         shell: bash
 
-      # 签名
+      # 签名 arm64-v8a
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
         shell: bash
 
-      - name: Sign APK
+      - name: Sign APK (arm64-v8a)
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
           $APKSIGNER sign \
@@ -76,14 +77,98 @@ jobs:
             --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
             --ks-key-alias ${{ secrets.KEY_ALIAS }} \
             --key-pass pass:${{ secrets.KEY_PASSWORD }} \
-            --out YHDM_android_${{ env.tag }}.apk \
+            --out YHDM_android_${{ env.tag }}_arm64-v8a.apk \
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
         shell: bash
 
-      - name: Verify signature
+      - name: Verify signature (arm64-v8a)
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
-          $APKSIGNER verify YHDM_android_${{ env.tag }}.apk
+          $APKSIGNER verify YHDM_android_${{ env.tag }}_arm64-v8a.apk
+        shell: bash
+
+      # 构建 armeabi-v7a
+      - name: Build Flutter for Android (armeabi-v7a)
+        run: >
+          flutter build apk --target-platform android-arm --split-per-abi
+          --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+          --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+          --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+          --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+        shell: bash
+
+      - name: Sign APK (armeabi-v7a)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER sign \
+            --ks yhdm.jks \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out YHDM_android_${{ env.tag }}_armeabi-v7a.apk \
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+        shell: bash
+
+      - name: Verify signature (armeabi-v7a)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER verify YHDM_android_${{ env.tag }}_armeabi-v7a.apk
+        shell: bash
+
+      # 构建 x86_64
+      - name: Build Flutter for Android (x86_64)
+        run: >
+          flutter build apk --target-platform android-x64 --split-per-abi
+          --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+          --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+          --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+          --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+        shell: bash
+
+      - name: Sign APK (x86_64)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER sign \
+            --ks yhdm.jks \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out YHDM_android_${{ env.tag }}_x86_64.apk \
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+        shell: bash
+
+      - name: Verify signature (x86_64)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER verify YHDM_android_${{ env.tag }}_x86_64.apk
+        shell: bash
+
+      # 构建通用 APK（包含所有架构）
+      - name: Build Flutter for Android (universal)
+        run: >
+          flutter build apk
+          --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+          --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+          --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+          --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+        shell: bash
+
+      - name: Sign APK (universal)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER sign \
+            --ks yhdm.jks \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out YHDM_android_${{ env.tag }}_universal.apk \
+            build/app/outputs/flutter-apk/app-release.apk
+        shell: bash
+
+      - name: Verify signature (universal)
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER verify YHDM_android_${{ env.tag }}_universal.apk
         shell: bash
 
       # 发布到当前仓库的 Release
@@ -100,8 +185,32 @@ jobs:
             sleep 2
           fi
           
+          # 创建 Release 并上传所有 APK
           gh release create $TAG \
             --title "v$TAG" \
-            --notes "樱花动漫 v$TAG（已签名，可下载修改后发布）" \
-            YHDM_android_$TAG.apk
+            --notes "## 樱花动漫 v$TAG
+          
+          ### 新增功能
+          - 🔥 热门推荐：首页新增横向滚动热门推荐区域
+          - 🎯 自动轮播：每3秒自动滚动展示热门内容
+          - 📱 多架构支持：arm64-v8a, armeabi-v7a, x86_64
+          
+          ### 下载说明
+          - **universal**: 通用版，支持所有设备（推荐）
+          - **arm64-v8a**: 适用于大部分现代 Android 手机
+          - **armeabi-v7a**: 适用于老旧 32 位设备
+          - **x86_64**: 适用于模拟器和部分平板" \
+            YHDM_android_${{ env.tag }}_arm64-v8a.apk \
+            YHDM_android_${{ env.tag }}_armeabi-v7a.apk \
+            YHDM_android_${{ env.tag }}_x86_64.apk \
+            YHDM_android_${{ env.tag }}_universal.apk
         shell: bash
+
+      # 上传构建产物（可选）
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-artifacts
+          path: |
+            YHDM_android_*.apk
+          retention-days: 30

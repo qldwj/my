@@ -4,6 +4,8 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/nsfw_filter.dart';
 import 'package:mobx/mobx.dart';
+import 'package:dio/dio.dart';
+import 'package:kazumi/models/top_item.dart';
 
 part 'popular_controller.g.dart';
 
@@ -30,6 +32,19 @@ abstract class _PopularController with Store {
 
   @observable
   bool isTimeOut = false;
+
+  // ===== 热门推荐相关 =====
+  @observable
+  ObservableList<TopItem> topList = ObservableList.of([]);
+
+  @observable
+  bool isLoadingTop = false;
+
+  @observable
+  bool isTopLoadingMore = false;
+
+  int _topCurrentPage = 1;
+  bool _hasMoreTop = true;
 
   bool get _bangumiMirrorEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
@@ -89,5 +104,68 @@ abstract class _PopularController with Store {
     bangumiList.addAll(NsfwFilter.filter(result));
     isLoadingMore = false;
     isTimeOut = bangumiList.isEmpty;
+  }
+
+  // ===== 获取热门推荐 =====
+  @action
+  Future<void> queryTopItems() async {
+    if (isLoadingTop.value) return;
+    isLoadingTop = true;
+    _topCurrentPage = 1;
+    _hasMoreTop = true;
+
+    try {
+      final response = await Dio().get(
+        'https://qlyyz.xyz/api/top',
+        queryParameters: {'page': _topCurrentPage},
+      );
+
+      if (response.data != null && response.data['collect'] != null) {
+        final List<dynamic> data = response.data['collect'];
+        final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
+        topList.assignAll(items);
+
+        // 如果返回的数据少于20，说明没有更多了
+        if (items.length < 20) {
+          _hasMoreTop = false;
+        }
+      }
+    } catch (e) {
+      print('获取热门推荐失败: $e');
+    } finally {
+      isLoadingTop = false;
+    }
+  }
+
+  // ===== 加载更多热门推荐 =====
+  @action
+  Future<void> loadMoreTopItems() async {
+    if (isTopLoadingMore.value || !_hasMoreTop) return;
+    isTopLoadingMore = true;
+    _topCurrentPage++;
+
+    try {
+      final response = await Dio().get(
+        'https://qlyyz.xyz/api/top',
+        queryParameters: {'page': _topCurrentPage},
+      );
+
+      if (response.data != null && response.data['collect'] != null) {
+        final List<dynamic> data = response.data['collect'];
+        if (data.isEmpty) {
+          _hasMoreTop = false;
+        } else {
+          final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
+          topList.addAll(items);
+          if (items.length < 20) {
+            _hasMoreTop = false;
+          }
+        }
+      }
+    } catch (e) {
+      print('加载更多热门推荐失败: $e');
+    } finally {
+      isTopLoadingMore = false;
+    }
   }
 }
