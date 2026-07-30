@@ -2,10 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_modular/flutter_modular.dart';  // ✅ 新增
+import 'package:flutter_modular/flutter_modular.dart';  // ✅ 添加这行
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/navigation.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -14,12 +13,6 @@ import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/encoding.dart';
 
-/// yhdmgz:// 深度链接处理服务
-///
-/// 支持以下链接格式：
-/// 1. yhdmgz://subject/552533 - 跳转到动漫详情页
-/// 2. yhdmgz://bangumi-auth?token=xxx - Bangumi OAuth 登录回调
-/// 3. yhdmgz://<base64> - 规则分享导入
 class DeepLinkService {
   static const _channel = MethodChannel('com.predidit.kazumi/intent');
 
@@ -29,7 +22,6 @@ class DeepLinkService {
 
   StreamSubscription<dynamic>? _intentSubscription;
 
-  /// 初始化：检查启动时是否有等待处理的链接
   Future<void> init() async {
     try {
       final intentData = await _channel.invokeMethod<String>('checkIntent');
@@ -40,7 +32,6 @@ class DeepLinkService {
       KazumiLogger().w('DeepLink: check intent failed', error: e);
     }
 
-    // 检查剪贴板中是否有 yhdmgz:// 链接
     try {
       await Future.delayed(const Duration(milliseconds: 500));
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -56,7 +47,6 @@ class DeepLinkService {
       KazumiLogger().w('DeepLink: check clipboard failed', error: e);
     }
 
-    // 监听应用运行时的新 Intent（onNewIntent）
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onIntent') {
         final url = call.arguments['url'] as String?;
@@ -67,17 +57,16 @@ class DeepLinkService {
     });
   }
 
-  /// 处理 yhdmgz:// 链接
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
 
     // ============================================================
-    // 1️⃣ 处理 yhdmgz://subject/552533 格式（跳转到动漫详情页）
+    // 处理 yhdmgz://subject/552533 格式（跳转到动漫详情页）
     // ============================================================
     if (url.startsWith('yhdmgz://subject/')) {
       try {
         final uri = Uri.parse(url);
-        final pathSegments = uri.pathSegments; // ['subject', '552533']
+        final pathSegments = uri.pathSegments;
 
         if (pathSegments.length >= 2 && pathSegments[0] == 'subject') {
           final subjectId = int.tryParse(pathSegments[1]);
@@ -99,7 +88,7 @@ class DeepLinkService {
     }
 
     // ============================================================
-    // 2️⃣ Bangumi OAuth 登录回调
+    // Bangumi OAuth 登录回调
     // ============================================================
     if (url.startsWith('yhdmgz://bangumi-auth')) {
       try {
@@ -121,7 +110,7 @@ class DeepLinkService {
     }
 
     // ============================================================
-    // 3️⃣ 规则分享导入
+    // 规则分享导入
     // ============================================================
     try {
       final jsonStr = kazumiBase64ToJson(url);
@@ -163,15 +152,12 @@ class DeepLinkService {
   }
 
   // ============================================================
-  // ✅ 跳转到动漫详情页
+  // 跳转到动漫详情页
   // ============================================================
   void _navigateToDetail(int subjectId) {
     try {
-      // 使用工厂方法构建只有 ID 的 BangumiItem
-      final bangumiItem = BangumiItem.withId(subjectId);
-
-      // ✅ 使用 Modular 的导航方式
-      Modular.to.pushNamed('/info/', arguments: bangumiItem);
+      // ✅ 使用 Modular.to.pushNamed 跳转
+      Modular.to.pushNamed('/info/', arguments: subjectId);
       KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
     } catch (e) {
       KazumiLogger().e('DeepLink: 跳转详情页失败', error: e);
@@ -179,18 +165,14 @@ class DeepLinkService {
     }
   }
 
-  /// 显示 Toast 提示（安全地在主线程执行）
   void _showToast(String message) {
     try {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         KazumiDialog.showToast(message: message);
       });
-    } catch (_) {
-      // 静默失败
-    }
+    } catch (_) {}
   }
 
-  /// 释放资源
   void dispose() {
     _intentSubscription?.cancel();
     _channel.setMethodCallHandler(null);
