@@ -70,12 +70,14 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool _showBangumiInfoSkeleton = false;
   int _fabTabIndex = 0;
 
-  BangumiItem get inputBangumiIten => widget.inputBangumiItem;
+  BangumiItem get inputBangumiItem => widget.inputBangumiItem;
 
   bool get _isShowingBangumiInfoSkeleton =>
       infoController.isLoading || _showBangumiInfoSkeleton;
 
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
+    // ✅ 如果只有 ID（数据不完整），需要刷新
+    if (bangumiItem.isPartialData) return true;
     final votesCount = bangumiItem.votesCount;
     final missingVoteDistribution =
         votesCount.isEmpty || bangumiItem.votes <= 0 || votesCount.length < 10;
@@ -203,21 +205,22 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    infoController.bangumiItem = inputBangumiIten;
+    infoController.bangumiItem = inputBangumiItem;
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
-    // Search results can miss rating distribution or summaries, so fill those
-    // fields without replacing image URLs that are already rendered.
+    
+    // ✅ 如果数据不完整（只有 ID），强制刷新
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
       queryBangumiInfoByID(
         infoController.bangumiItem.id,
-        type: 'attach',
+        type: 'init',  // ✅ 改为 'init' 确保获取完整数据
         enforceMinimumLoadingDuration: true,
       );
     }
+    
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
@@ -342,7 +345,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       return;
     }
 
-    // 弹出选择列表
     final selected = await showAdaptiveBottomSheet<String>(
       context: context,
       builder: (ctx) => Column(
@@ -426,7 +428,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      // 添加到播放列表
                       EmbeddedNativeControlArea(
                         child: IconButton(
                           onPressed: () => _addToPlaylist(context),
@@ -446,7 +447,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           icon: const Icon(Icons.open_in_browser_rounded),
                         ),
                       ),
-
                       if (!showWindowButton && isDesktop())
                         CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),
@@ -474,7 +474,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                             _isShowingBangumiInfoSkeleton;
                         return Stack(
                           children: [
-                            // No background image when loading to make loading looks better
                             if (!showBangumiInfoSkeleton)
                               Positioned.fill(
                                 bottom: kTextTabBarHeight,

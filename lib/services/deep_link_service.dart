@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -13,10 +15,10 @@ import 'package:kazumi/utils/encoding.dart';
 
 /// yhdmgz:// 深度链接处理服务
 ///
-/// 当用户在浏览器中点击 yhdmgz://base64 链接时：
-/// 1. Android 系统通过 Intent 将链接传给 App
-/// 2. 该服务解析链接中的 Base64 编码的规则 JSON
-/// 3. 自动导入/更新规则
+/// 支持以下链接格式：
+/// 1. yhdmgz://subject/552533 - 跳转到动漫详情页
+/// 2. yhdmgz://bangumi-auth?token=xxx - Bangumi OAuth 登录回调
+/// 3. yhdmgz://<base64> - 规则分享导入
 class DeepLinkService {
   static const _channel = MethodChannel('com.predidit.kazumi/intent');
 
@@ -29,7 +31,6 @@ class DeepLinkService {
   /// 初始化：检查启动时是否有等待处理的链接
   Future<void> init() async {
     try {
-      // 检查启动 Intent 中是否包含链接
       final intentData = await _channel.invokeMethod<String>('checkIntent');
       if (intentData != null && intentData.isNotEmpty) {
         await _handleLink(intentData);
@@ -40,15 +41,13 @@ class DeepLinkService {
 
     // 检查剪贴板中是否有 yhdmgz:// 链接
     try {
-      // 延迟一下确保剪贴板服务就绪
       await Future.delayed(const Duration(milliseconds: 500));
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipboardData != null && clipboardData.text != null) {
         final text = clipboardData.text!.trim();
         if (text.startsWith('yhdmgz://')) {
-          KazumiLogger().i('DeepLink: 从剪贴板检测到规则链接');
+          KazumiLogger().i('DeepLink: 从剪贴板检测到链接');
           await _handleLink(text);
-          // 清空剪贴板，避免重复导入
           await Clipboard.setData(const ClipboardData(text: ''));
         }
       }
@@ -67,11 +66,40 @@ class DeepLinkService {
     });
   }
 
-  /// 处理 yhdmgz:// 链接（规则分享或 Bangumi 登录回调）
+  /// 处理 yhdmgz:// 链接
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
 
-    // 1️⃣ Bangumi OAuth 登录回调
+    // ============================================================
+    // 1️⃣ 处理 yhdmgz://subject/552533 格式（跳转到动漫详情页）
+    // ============================================================
+    if (url.startsWith('yhdmgz://subject/')) {
+      try {
+        final uri = Uri.parse(url);
+        final pathSegments = uri.pathSegments; // ['subject', '552533']
+
+        if (pathSegments.length >= 2 && pathSegments[0] == 'subject') {
+          final subjectId = int.tryParse(pathSegments[1]);
+          if (subjectId != null) {
+            KazumiLogger().i('DeepLink: 跳转到动漫详情，ID: $subjectId');
+            _navigateToDetail(subjectId);
+            return;
+          } else {
+            KazumiLogger().w('DeepLink: 无效的 subject ID: ${pathSegments[1]}');
+            _showToast('无效的动漫ID');
+            return;
+          }
+        }
+      } catch (e) {
+        KazumiLogger().e('DeepLink: 解析 subject 链接失败', error: e);
+        _showToast('打开动漫详情失败');
+        return;
+      }
+    }
+
+    // ============================================================
+    // 2️⃣ Bangumi OAuth 登录回调
+    // ============================================================
     if (url.startsWith('yhdmgz://bangumi-auth')) {
       try {
         final uri = Uri.parse(url);
@@ -91,23 +119,21 @@ class DeepLinkService {
       return;
     }
 
-    // 2️⃣ 规则分享导入
+    // ============================================================
+    // 3️⃣ 规则分享导入
+    // ============================================================
     try {
-      // 解析 Base64 → JSON
       final jsonStr = kazumiBase64ToJson(url);
       final data = jsonDecode(jsonStr);
 
       int count = 0;
 
-      // 判断格式：单个 Plugin JSON 还是 Animeko 批量格式
       if (data is Map && data.containsKey('name') && data.containsKey('searchURL')) {
-        // 单个 Kazumi Plugin 格式
         final plugin = Plugin.fromJson(Map<String, dynamic>.from(data));
         await pluginsController.updatePlugin(plugin);
         count = 1;
         KazumiLogger().i('DeepLink: 已导入规则: ${plugin.name}');
       } else if (data is Map || data is List) {
-        // Animeko 批量格式
         final jsonStr2 = jsonEncode(data);
         final plugins = AnimekoRuleConverter.convertFromJson(jsonStr2);
         if (plugins.isEmpty) {
@@ -132,6 +158,37 @@ class DeepLinkService {
     } catch (e, st) {
       KazumiLogger().e('DeepLink: 处理链接失败', error: e, stackTrace: st);
       _showToast('规则导入失败: ${e.toString()}');
+    }
+  }
+
+  // ============================================================
+  // ✅ 跳转到动漫详情页
+  // ============================================================
+  void _navigateToDetail(int subjectId) {
+    try {
+      // 使用工厂方法构建只有 ID 的 BangumiItem
+      final bangumiItem = BangumiItem.withId(subjectId);
+
+      final context = rootNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // 跳转到详情页
+        context.pushNamed('/info/', arguments: bangumiItem);
+        KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
+      } else {
+        // 如果当前没有上下文，使用延迟重试
+        Future.delayed(const Duration(milliseconds: 300), () {
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx != null && ctx.mounted) {
+            ctx.pushNamed('/info/', arguments: bangumiItem);
+          } else {
+            KazumiLogger().w('DeepLink: 无法获取导航上下文');
+            _showToast('无法打开详情页');
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('DeepLink: 跳转详情页失败', error: e);
+      _showToast('打开详情页失败');
     }
   }
 

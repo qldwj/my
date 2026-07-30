@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
@@ -18,7 +17,6 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/models/top_item.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -34,41 +32,36 @@ class PopularPage extends StatefulWidget {
 
 class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
-  late final ScrollController topScrollController;
-  Timer? _autoScrollTimer;
-  bool _isAutoScrolling = false; // 标记是否正在自动滚动
-  
   PopularController get popularController => widget.controller;
 
+  // Key used to position the dropdown menu for the tag selector
   final GlobalKey selectorKey = GlobalKey();
 
+  // ===== 上次观看弹窗 =====
   History? _lastHistory;
   bool _showLastWatch = false;
+  /// 静态标记：整个应用生命周期只显示一次
   static bool _hasShownLastWatch = false;
 
   @override
   void initState() {
     super.initState();
-    
     scrollController = ScrollController(
       initialScrollOffset: popularController.scrollOffset,
     );
     scrollController.addListener(scrollListener);
-    
-    topScrollController = ScrollController();
-    topScrollController.addListener(_topScrollListener);
-    
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
     }
-    
-    popularController.queryTopItems();
-    _startAutoScroll();
+    // 检查上次观看记录
     _checkLastWatch();
   }
 
+  /// 读取最新一条历史记录，用于显示"上次观看"弹窗
   void _checkLastWatch() {
+    // 已显示过就不再显示（整个生命周期只一次）
     if (_hasShownLastWatch) return;
+    // 检查设置开关
     if (!GStorage.getSetting(SettingsKeys.showLastWatchCard)) return;
     try {
       final historyRepo = HistoryRepository();
@@ -76,80 +69,34 @@ class _PopularPageState extends State<PopularPage> {
       if (histories.isNotEmpty) {
         final last = histories.first;
         final progress = last.progresses[last.lastWatchEpisode];
+        // 有进度且未看完（进度>0）才显示
         if (progress != null && progress.progress > Duration.zero) {
           setState(() {
             _lastHistory = last;
             _showLastWatch = true;
-            _hasShownLastWatch = true;
+            _hasShownLastWatch = true; // 标记已显示
           });
         }
       }
-    } catch (_) {}
-  }
-
-  void _topScrollListener() {
-    // 自动滚动时不触发加载，且检查是否有更多数据
-    if (_isAutoScrolling || popularController.isTopLoadingMore || !popularController.hasMoreTop) return;
-    
-    if (topScrollController.position.pixels >= 
-        topScrollController.position.maxScrollExtent - 100) {
-      popularController.loadMoreTopItems();
+    } catch (_) {
+      // 忽略读取失败
     }
-  }
-
-  void _startAutoScroll() {
-    _autoScrollTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (!mounted || !topScrollController.hasClients) return;
-      if (popularController.topList.isEmpty) return;
-      
-      final maxScroll = topScrollController.position.maxScrollExtent;
-      final currentScroll = topScrollController.position.pixels;
-      
-      // 标记开始自动滚动
-      _isAutoScrolling = true;
-      
-      if (currentScroll >= maxScroll - 50) {
-        topScrollController.animateTo(
-          0,
-          duration: Duration(seconds: 1),
-          curve: Curves.easeInOut,
-        ).then((_) {
-          // 滚动完成后取消标记
-          if (mounted) {
-            _isAutoScrolling = false;
-          }
-        });
-      } else {
-        final nextScroll = currentScroll + 160;
-        topScrollController.animateTo(
-          nextScroll.clamp(0.0, maxScroll),
-          duration: Duration(seconds: 1),
-          curve: Curves.easeInOut,
-        ).then((_) {
-          // 滚动完成后取消标记
-          if (mounted) {
-            _isAutoScrolling = false;
-          }
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
-    _autoScrollTimer?.cancel();
     scrollController.removeListener(scrollListener);
     scrollController.dispose();
-    topScrollController.dispose();
     super.dispose();
   }
 
   void scrollListener() {
     popularController.scrollOffset = scrollController.offset;
     if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent - 200 &&
+            scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
-      KazumiLogger().i('PopularPageController: Fetching next recommendation batch');
+      KazumiLogger()
+          .i('PopularPageController: Fetching next recommendation batch');
       if (popularController.currentTag != '') {
         popularController.queryBangumiByTag();
       } else {
@@ -171,15 +118,6 @@ class _PopularPageState extends State<PopularPage> {
             controller: scrollController,
             slivers: [
               buildSliverAppBar(),
-              
-              // ===== 热门推荐区域 =====
-              SliverToBoxAdapter(
-                child: Observer(
-                  builder: (_) => _buildTopSection(),
-                ),
-              ),
-              
-              // 加载指示器
               SliverToBoxAdapter(
                 child: Observer(
                   builder: (_) => AnimatedOpacity(
@@ -191,40 +129,37 @@ class _PopularPageState extends State<PopularPage> {
                   ),
                 ),
               ),
-              
-              // 原有的番组网格
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                    StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                sliver: Observer(builder: (_) {
-                  if (popularController.isTimeOut) {
-                    return SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 400,
-                        child: BangumiMirrorErrorWidget(
-                          onRetry: () {
-                            if (popularController.trendList.isEmpty) {
-                              popularController.queryBangumiByTrend();
-                            } else {
-                              popularController.queryBangumiByTag();
-                            }
-                          },
-                          onSettingsReturned: () {
-                            if (mounted) {
-                              setState(() {});
-                            }
-                          },
+                  padding: const EdgeInsets.fromLTRB(
+                      StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                  sliver: Observer(builder: (_) {
+                    if (popularController.isTimeOut) {
+                      return SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 400,
+                          child: BangumiMirrorErrorWidget(
+                            onRetry: () {
+                              if (popularController.trendList.isEmpty) {
+                                popularController.queryBangumiByTrend();
+                              } else {
+                                popularController.queryBangumiByTag();
+                              }
+                            },
+                            onSettingsReturned: () {
+                              if (mounted) {
+                                setState(() {});
+                              }
+                            },
+                          ),
                         ),
-                      ),
+                      );
+                    }
+                    return contentGrid(
+                      (popularController.currentTag == '')
+                          ? popularController.trendList
+                          : popularController.bangumiList,
                     );
-                  }
-                  return contentGrid(
-                    (popularController.currentTag == '')
-                        ? popularController.trendList
-                        : popularController.bangumiList,
-                  );
-                }),
-              ),
+                  })),
             ],
           ),
           floatingActionButton: FloatingActionButton(
@@ -233,6 +168,7 @@ class _PopularPageState extends State<PopularPage> {
             child: const Icon(Icons.arrow_upward),
           ),
         ),
+        // ===== 上次观看弹窗 =====
         if (_showLastWatch && _lastHistory != null)
           Positioned(
             left: 0,
@@ -252,218 +188,6 @@ class _PopularPageState extends State<PopularPage> {
     );
   }
 
-  // ===== 构建热门推荐区域 =====
-  Widget _buildTopSection() {
-    if (popularController.isLoadingTop) {
-      return Container(
-        height: 200,
-        padding: EdgeInsets.all(16),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 12),
-              Text('加载热门推荐...'),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (popularController.topList.isEmpty) {
-      return SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
-              SizedBox(width: 8),
-              Text(
-                '热门推荐',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Spacer(),
-              Text(
-                '点击卡片查看详情',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 210,
-          child: ListView.builder(
-            controller: topScrollController,
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            itemCount: popularController.topList.length + 
-                (popularController.isTopLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == popularController.topList.length) {
-                return Container(
-                  width: 60,
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(),
-                );
-              }
-              
-              final item = popularController.topList[index];
-              return _buildTopCard(item);
-            },
-          ),
-        ),
-        SizedBox(height: 8),
-      ],
-    );
-  }
-
-  // ===== 热门推荐卡片 =====
-  Widget _buildTopCard(TopItem item) {
-    return GestureDetector(
-      onTap: () {
-        // 转换为 BangumiItem 并跳转到详情页（使用和 BangumiCardV 相同的路由）
-        final bangumiItem = item.toBangumiItem();
-        context.pushNamed('/info/', arguments: bangumiItem);
-      },
-      child: Container(
-        width: 140,
-        margin: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 封面图
-              Image.network(
-                item.image,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    color: Colors.grey[300],
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: Icon(Icons.error, color: Colors.grey[600]),
-                  );
-                },
-              ),
-              // 渐变底部
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
-                  ),
-                ),
-              ),
-              // 底部信息
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        item.nameCn.isNotEmpty ? item.nameCn : item.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (item.rating > 0)
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                              size: 12,
-                            ),
-                            SizedBox(width: 2),
-                            Text(
-                              item.rating.toString(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              // 评分角标
-              if (item.rating > 0)
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      item.rating.toString(),
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget contentGrid(List<BangumiItem> items) {
     final bangumiList = NsfwFilter.filter(items);
     int crossCount = 3;
@@ -477,8 +201,11 @@ class _PopularPageState extends State<PopularPage> {
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          // 行间距
           mainAxisSpacing: StyleString.cardSpace - 2,
+          // 列间距
           crossAxisSpacing: StyleString.cardSpace,
+          // 列数
           crossAxisCount: crossCount,
           mainAxisExtent:
               MediaQuery.of(context).size.width / crossCount / 0.65 +
@@ -517,6 +244,7 @@ class _PopularPageState extends State<PopularPage> {
                   ((constraints.maxHeight - kToolbarHeight) /
                           (maxExtent - kToolbarHeight))
                       .clamp(0.0, 1.0));
+              // 字重收缩后为 w500，展开时为 w700
               final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
               final fontSize = lerpDouble(28, 20, t)!;
               return Align(
@@ -592,6 +320,9 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   Future<void> showTagMenu() async {
+    // Calculate the position of the button manually to position the dropdown menu.
+    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
+    // and to support different font sizes in the button and menu items.
     final RenderBox renderBox =
         selectorKey.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);

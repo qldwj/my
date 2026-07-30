@@ -58,13 +58,37 @@ class BangumiItem {
     this.interest,
   });
 
+  // ✅ 新增：只传 ID 的工厂方法（用于深度链接跳转）
+  factory BangumiItem.withId(int id) {
+    return BangumiItem(
+      id: id,
+      type: 2,
+      name: '',
+      nameCn: '',
+      summary: '',
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: {},
+      tags: [],
+      alias: [],
+      ratingScore: 0.0,
+      votes: 0,
+      votesCount: [],
+      info: '',
+      interest: null,
+    );
+  }
+
+  // ✅ 新增：判断是否只有 ID（数据不完整）
+  bool get isPartialData => name.isEmpty && nameCn.isEmpty && images.isEmpty;
+
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     List<String> parseBangumiAliases(Map<String, dynamic> jsonData) {
       if (jsonData.containsKey('infobox') && jsonData['infobox'] is List) {
         final List<dynamic> infobox = jsonData['infobox'];
         for (var item in infobox) {
           if (item is Map && item['key'] == '别名') {
-            // api.bgm.tv /v0 uses `value`; next.bgm.tv /p1 uses `values`
             final dynamic raw = item['values'] ?? item['value'];
             if (raw == null) {
               return [];
@@ -93,11 +117,9 @@ class BangumiItem {
         return [];
       }
       final json = jsonData['rating']['count'];
-      // For api.bgm.tv
       if (json is Map<String, dynamic>) {
         return List<int>.generate(10, (i) => json['${i + 1}'] as int);
       }
-      // For next.bgm.tv
       if (json is List<dynamic>) {
         return json.map((e) => e as int).toList();
       }
@@ -110,10 +132,8 @@ class BangumiItem {
         final s = v.toString().trim();
         return s.isEmpty ? null : s;
       }
-      // For api.bgm.tv date
       final fromTop = nonEmpty(jsonData['date']);
       if (fromTop != null) return fromTop;
-      // For next.bgm.tv date
       final airtime = jsonData['airtime'];
       if (airtime is Map) {
         final fromAir = nonEmpty(airtime['date']);
@@ -149,7 +169,7 @@ class BangumiItem {
       images: Map<String, String>.from(
         json['images'] ??
             {
-              "large": json['image'],
+              "large": json['image'] ?? '',
               "common": "",
               "medium": "",
               "small": "",
