@@ -36,6 +36,7 @@ class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
   late final ScrollController topScrollController;
   Timer? _autoScrollTimer;
+  bool _isAutoScrolling = false; // 标记是否正在自动滚动
   
   PopularController get popularController => widget.controller;
 
@@ -87,6 +88,9 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   void _topScrollListener() {
+    // 自动滚动时不触发加载，且检查是否有更多数据
+    if (_isAutoScrolling || popularController.isTopLoadingMore || !popularController.hasMoreTop) return;
+    
     if (topScrollController.position.pixels >= 
         topScrollController.position.maxScrollExtent - 100) {
       popularController.loadMoreTopItems();
@@ -101,19 +105,32 @@ class _PopularPageState extends State<PopularPage> {
       final maxScroll = topScrollController.position.maxScrollExtent;
       final currentScroll = topScrollController.position.pixels;
       
+      // 标记开始自动滚动
+      _isAutoScrolling = true;
+      
       if (currentScroll >= maxScroll - 50) {
         topScrollController.animateTo(
           0,
           duration: Duration(seconds: 1),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          // 滚动完成后取消标记
+          if (mounted) {
+            _isAutoScrolling = false;
+          }
+        });
       } else {
         final nextScroll = currentScroll + 160;
         topScrollController.animateTo(
           nextScroll.clamp(0.0, maxScroll),
           duration: Duration(seconds: 1),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          // 滚动完成后取消标记
+          if (mounted) {
+            _isAutoScrolling = false;
+          }
+        });
       }
     });
   }

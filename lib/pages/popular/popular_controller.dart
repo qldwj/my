@@ -46,6 +46,9 @@ abstract class _PopularController with Store {
   int _topCurrentPage = 1;
   bool _hasMoreTop = true;
 
+  // 暴露 _hasMoreTop 为只读 getter
+  bool get hasMoreTop => _hasMoreTop;
+
   bool get _bangumiMirrorEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
