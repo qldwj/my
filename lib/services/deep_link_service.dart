@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';  // ✅ 添加
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
@@ -11,7 +12,6 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/encoding.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 
 class DeepLinkService {
   static const _channel = MethodChannel('com.predidit.kazumi/intent');
@@ -145,7 +145,7 @@ class DeepLinkService {
   void _navigateToDetail(int subjectId) {
     try {
       final bangumiItem = BangumiItem.withId(subjectId);
-      // ✅ 修改：去掉斜杠 /，从 /info/ 改为 /info
+      // ✅ 使用 Modular.to.pushNamed（与您的路由匹配）
       Modular.to.pushNamed('/info', arguments: bangumiItem);
       KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
     } catch (e) {
