@@ -161,7 +161,7 @@ abstract class _PopularController with Store {
 
     try {
       final response = await Dio().get(
-        'https://qlyyz.xyz/api/top',
+        'https://qlyyz.xyz/api/top.php',
         queryParameters: {'page': _topCurrentPage},
       );
 
