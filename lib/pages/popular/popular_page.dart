@@ -237,7 +237,6 @@ class _PopularPageState extends State<PopularPage> {
 
   // ===== 构建热门推荐区域 =====
   Widget _buildTopSection() {
-    // 修复：移除 .value
     if (popularController.isLoadingTop) {
       return Container(
         height: 200,
@@ -291,7 +290,6 @@ class _PopularPageState extends State<PopularPage> {
             controller: topScrollController,
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 12),
-            // 修复：移除 .value
             itemCount: popularController.topList.length + 
                 (popularController.isTopLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
@@ -317,10 +315,9 @@ class _PopularPageState extends State<PopularPage> {
   Widget _buildTopCard(TopItem item) {
     return GestureDetector(
       onTap: () {
-        // 跳转到详情页
-        // 使用 BangumiItem 的 ID 跳转
-        context.pushNamed('/bangumi/detail/${item.id}');
-        print('点击了: ${item.nameCn}');
+        // 转换为 BangumiItem 并跳转到详情页（使用和 BangumiCardV 相同的路由）
+        final bangumiItem = item.toBangumiItem();
+        context.pushNamed('/info/', arguments: bangumiItem);
       },
       child: Container(
         width: 140,

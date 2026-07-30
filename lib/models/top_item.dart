@@ -1,3 +1,5 @@
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+
 class TopItem {
   final int id;
   final String name;
@@ -30,5 +32,33 @@ class TopItem {
       summary: json['summary'] ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
     );
+  }
+
+  // 转换为 BangumiItem，用于跳转到详情页
+  BangumiItem toBangumiItem() {
+    return BangumiItem.fromJson({
+      'id': id,
+      'type': type,
+      'name': name,
+      'name_cn': nameCn,
+      'summary': summary,
+      'date': time,
+      'images': {
+        'large': image,
+        'medium': image,
+        'small': image,
+        'grid': image,
+        'common': image,
+      },
+      'tags': [],
+      'rating': {
+        'rank': 0,
+        'score': rating,
+        'total': 0,
+        'count': <int>[],
+      },
+      'info': '',
+      'eps': 0,
+    });
   }
 }
