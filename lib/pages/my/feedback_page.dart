@@ -132,7 +132,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         final multipartFile = await http.MultipartFile.fromPath(
           'media[]',
           file.path,
-          contentType: mimeType != null ? http.MediaType.parse(mimeType) : null,  // 修复：加上 http.
+          contentType: mimeType != null ? http.MediaType.parse(mimeType) : null,
         );
         request.files.add(multipartFile);
       }
@@ -285,9 +285,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ⭐ 返回按钮返回到「其他设置」SettingsPage
       appBar: AppBar(
         title: const Text('意见反馈'),
         backgroundColor: Theme.of(context).colorScheme.surface,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

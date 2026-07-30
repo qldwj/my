@@ -244,6 +244,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: SysAppBar(
+        // ⭐ 返回按钮返回到「其他设置」SettingsPage
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),

@@ -47,6 +47,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
     await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
     if (mounted) {
       KazumiDialog.showToast(message: 'Bangumi 登录成功 🎉');
+      // ⭐ 返回到主页面 MyPage
       Navigator.of(context).pop(true);
     }
   }
@@ -77,6 +78,8 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
       if (mounted) {
         setState(() {});
         KazumiDialog.showToast(message: '已退出 Bangumi');
+        // ⭐ 退出登录后返回到主页面 MyPage
+        Navigator.of(context).pop();
       }
     }
   }
@@ -92,7 +95,14 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bangumi 登录')),
+      appBar: AppBar(
+        title: const Text('Bangumi 登录'),
+        // ⭐ 返回按钮返回到主页面 MyPage
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

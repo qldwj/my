@@ -49,7 +49,11 @@ class _TaskCenterPageState extends State<TaskCenterPage> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: SysAppBar(
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+        // ⭐ 返回按钮返回到「其他设置」SettingsPage
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('任务中心'),
       ),
       body: ListView(

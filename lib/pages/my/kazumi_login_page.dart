@@ -82,6 +82,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
         setState(() => _loggedIn = true);
         KazumiDialog.showToast(message: '登录成功 🎉');
+        // ⭐ 返回到主页面 MyPage
         Navigator.of(context).pop(true);
       } else {
         KazumiDialog.showToast(message: res['error'] ?? '登录失败');
@@ -97,6 +98,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
     setState(() => _loggedIn = false);
     KazumiDialog.showToast(message: '已退出登录');
+    // ⭐ 退出登录后返回到主页面 MyPage
+    Navigator.of(context).pop();
   }
 
   /// 双向同步收藏
@@ -229,7 +232,14 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('樱花动漫账号')),
+      appBar: AppBar(
+        title: const Text('樱花动漫账号'),
+        // ⭐ 返回按钮返回到主页面 MyPage
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -497,6 +507,7 @@ class _BangumiBindPageState extends State<_BangumiBindPage> {
         await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
         await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
         KazumiDialog.showToast(message: 'Bangumi 绑定成功 🎉');
+        // ⭐ 返回到主页面 MyPage
         Navigator.of(context).pop();
       } else {
         KazumiDialog.showToast(message: res['error'] ?? '绑定失败');
@@ -513,7 +524,14 @@ class _BangumiBindPageState extends State<_BangumiBindPage> {
     final hasBangumi = GStorage.getSetting(SettingsKeys.bangumiAccessToken)
         .trim().isNotEmpty;
     return Scaffold(
-      appBar: AppBar(title: const Text('绑定 Bangumi')),
+      appBar: AppBar(
+        title: const Text('绑定 Bangumi'),
+        // ⭐ 返回按钮返回到主页面 MyPage
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -558,6 +576,8 @@ class _BangumiBindPageState extends State<_BangumiBindPage> {
                 GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
                 setState(() {});
                 KazumiDialog.showToast(message: '已解除 Bangumi 绑定');
+                // ⭐ 解除绑定后返回到主页面 MyPage
+                Navigator.of(context).pop();
               },
               child: const Text('解除绑定', style: TextStyle(color: Colors.red)),
             ),
