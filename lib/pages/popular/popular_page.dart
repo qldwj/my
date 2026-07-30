@@ -18,7 +18,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/models/top_item.dart'; // 导入新模型
+import 'package:kazumi/models/top_item.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -34,7 +34,7 @@ class PopularPage extends StatefulWidget {
 
 class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
-  late final ScrollController topScrollController; // 热门推荐的滚动控制器
+  late final ScrollController topScrollController;
   Timer? _autoScrollTimer;
   
   PopularController get popularController => widget.controller;
@@ -49,28 +49,20 @@ class _PopularPageState extends State<PopularPage> {
   void initState() {
     super.initState();
     
-    // 主滚动控制器
     scrollController = ScrollController(
       initialScrollOffset: popularController.scrollOffset,
     );
     scrollController.addListener(scrollListener);
     
-    // 热门推荐滚动控制器
     topScrollController = ScrollController();
     topScrollController.addListener(_topScrollListener);
     
-    // 加载数据
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
     }
     
-    // 加载热门推荐
     popularController.queryTopItems();
-    
-    // 启动自动滚动
     _startAutoScroll();
-    
-    // 检查上次观看记录
     _checkLastWatch();
   }
 
@@ -94,7 +86,6 @@ class _PopularPageState extends State<PopularPage> {
     } catch (_) {}
   }
 
-  // 热门推荐滚动监听
   void _topScrollListener() {
     if (topScrollController.position.pixels >= 
         topScrollController.position.maxScrollExtent - 100) {
@@ -102,7 +93,6 @@ class _PopularPageState extends State<PopularPage> {
     }
   }
 
-  // 自动滚动逻辑
   void _startAutoScroll() {
     _autoScrollTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (!mounted || !topScrollController.hasClients) return;
@@ -112,15 +102,13 @@ class _PopularPageState extends State<PopularPage> {
       final currentScroll = topScrollController.position.pixels;
       
       if (currentScroll >= maxScroll - 50) {
-        // 到达末尾，回到开头
         topScrollController.animateTo(
           0,
           duration: Duration(seconds: 1),
           curve: Curves.easeInOut,
         );
       } else {
-        // 继续向右滚动
-        final nextScroll = currentScroll + 160; // 滚动一个卡片的宽度
+        final nextScroll = currentScroll + 160;
         topScrollController.animateTo(
           nextScroll.clamp(0.0, maxScroll),
           duration: Duration(seconds: 1),
@@ -167,7 +155,7 @@ class _PopularPageState extends State<PopularPage> {
             slivers: [
               buildSliverAppBar(),
               
-              // ===== 新增：热门推荐区域 =====
+              // ===== 热门推荐区域 =====
               SliverToBoxAdapter(
                 child: Observer(
                   builder: (_) => _buildTopSection(),
@@ -249,7 +237,8 @@ class _PopularPageState extends State<PopularPage> {
 
   // ===== 构建热门推荐区域 =====
   Widget _buildTopSection() {
-    if (popularController.isLoadingTop.value) {
+    // 修复：移除 .value
+    if (popularController.isLoadingTop) {
       return Container(
         height: 200,
         padding: EdgeInsets.all(16),
@@ -302,10 +291,10 @@ class _PopularPageState extends State<PopularPage> {
             controller: topScrollController,
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 12),
+            // 修复：移除 .value
             itemCount: popularController.topList.length + 
-                (popularController.isTopLoadingMore.value ? 1 : 0),
+                (popularController.isTopLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
-              // 加载更多指示器
               if (index == popularController.topList.length) {
                 return Container(
                   width: 60,
@@ -328,10 +317,10 @@ class _PopularPageState extends State<PopularPage> {
   Widget _buildTopCard(TopItem item) {
     return GestureDetector(
       onTap: () {
-        // 跳转到详情页（根据你的路由调整）
-        // 例如：context.pushNamed('/bangumi/detail/${item.id}');
+        // 跳转到详情页
+        // 使用 BangumiItem 的 ID 跳转
+        context.pushNamed('/bangumi/detail/${item.id}');
         print('点击了: ${item.nameCn}');
-        // 这里可以添加跳转逻辑
       },
       child: Container(
         width: 140,

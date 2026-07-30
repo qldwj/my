@@ -57,8 +57,6 @@ abstract class _PopularController with Store {
     bangumiList.clear();
   }
 
-  // Async actions commit each segment between awaits as one transaction,
-  // batching the completion writes into a single notification.
   @action
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
@@ -109,7 +107,7 @@ abstract class _PopularController with Store {
   // ===== 获取热门推荐 =====
   @action
   Future<void> queryTopItems() async {
-    if (isLoadingTop.value) return;
+    if (isLoadingTop) return;  // 修复：移除 .value
     isLoadingTop = true;
     _topCurrentPage = 1;
     _hasMoreTop = true;
@@ -123,9 +121,10 @@ abstract class _PopularController with Store {
       if (response.data != null && response.data['collect'] != null) {
         final List<dynamic> data = response.data['collect'];
         final List<TopItem> items = data.map((e) => TopItem.fromJson(e)).toList();
-        topList.assignAll(items);
+        // 修复：使用 clear + addAll 替代 assignAll
+        topList.clear();
+        topList.addAll(items);
 
-        // 如果返回的数据少于20，说明没有更多了
         if (items.length < 20) {
           _hasMoreTop = false;
         }
@@ -140,7 +139,7 @@ abstract class _PopularController with Store {
   // ===== 加载更多热门推荐 =====
   @action
   Future<void> loadMoreTopItems() async {
-    if (isTopLoadingMore.value || !_hasMoreTop) return;
+    if (isTopLoadingMore || !_hasMoreTop) return;  // 修复：移除 .value
     isTopLoadingMore = true;
     _topCurrentPage++;
 
