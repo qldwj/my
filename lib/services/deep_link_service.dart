@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_modular/flutter_modular.dart';  // ✅ 添加这行
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -13,6 +13,7 @@ import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/encoding.dart';
 
+/// yhdmgz:// 深度链接处理服务
 class DeepLinkService {
   static const _channel = MethodChannel('com.predidit.kazumi/intent');
 
@@ -22,6 +23,7 @@ class DeepLinkService {
 
   StreamSubscription<dynamic>? _intentSubscription;
 
+  /// 初始化
   Future<void> init() async {
     try {
       final intentData = await _channel.invokeMethod<String>('checkIntent');
@@ -57,11 +59,12 @@ class DeepLinkService {
     });
   }
 
+  /// 处理链接
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
 
     // ============================================================
-    // 处理 yhdmgz://subject/552533 格式（跳转到动漫详情页）
+    // 1️⃣ 处理 yhdmgz://subject/552533 跳转到动漫详情页
     // ============================================================
     if (url.startsWith('yhdmgz://subject/')) {
       try {
@@ -88,7 +91,7 @@ class DeepLinkService {
     }
 
     // ============================================================
-    // Bangumi OAuth 登录回调
+    // 2️⃣ Bangumi OAuth 登录回调
     // ============================================================
     if (url.startsWith('yhdmgz://bangumi-auth')) {
       try {
@@ -110,7 +113,7 @@ class DeepLinkService {
     }
 
     // ============================================================
-    // 规则分享导入
+    // 3️⃣ 规则分享导入
     // ============================================================
     try {
       final jsonStr = kazumiBase64ToJson(url);
@@ -156,9 +159,30 @@ class DeepLinkService {
   // ============================================================
   void _navigateToDetail(int subjectId) {
     try {
-      // ✅ 使用 Modular.to.pushNamed 跳转
-      Modular.to.pushNamed('/info/', arguments: subjectId);
-      KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
+      final context = rootNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // ✅ 使用 Navigator 跳转
+        Navigator.of(context).pushNamed(
+          '/info/',
+          arguments: subjectId,
+        );
+        KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
+      } else {
+        // 延迟重试
+        Future.delayed(const Duration(milliseconds: 300), () {
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx != null && ctx.mounted) {
+            Navigator.of(ctx).pushNamed(
+              '/info/',
+              arguments: subjectId,
+            );
+            KazumiLogger().i('DeepLink: 延迟跳转到详情页，ID: $subjectId');
+          } else {
+            KazumiLogger().w('DeepLink: 无法获取导航上下文');
+            _showToast('无法打开详情页');
+          }
+        });
+      }
     } catch (e) {
       KazumiLogger().e('DeepLink: 跳转详情页失败', error: e);
       _showToast('打开详情页失败');
