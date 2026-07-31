@@ -145,7 +145,6 @@ class DeepLinkService {
   void _navigateToDetail(int subjectId) {
     try {
       final bangumiItem = BangumiItem.withId(subjectId);
-      // ✅ 使用 Modular.to.pushNamed（与您的路由匹配）
       Modular.to.pushNamed('/info', arguments: bangumiItem);
       KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
     } catch (e) {
