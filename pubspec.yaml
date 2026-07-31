@@ -1,242 +1,245 @@
-name: kazumi
-description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
-
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 2.2.3+20203
-
-environment:
-  sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.44.7
-
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_localizations:
-    sdk: flutter
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
-  flutter_modular: ^7.1.0
-  mobx: ^2.6.0
-  flutter_mobx: ^2.3.0
-  dio: ^5.0.0
-  cookie_jar: ^4.0.9
-  crypto: ^3.0.6
-  connectivity_plus: ^6.0.5
-
-  path_provider: ^2.1.5
-  hive_ce: ^2.16.0
-  hive_ce_flutter: ^2.3.3
-  cached_network_image: ^3.4.1
-  flutter_cache_manager: ^3.4.1
-  image: ^4.8.0
-  # cached_network_image_ce: ^4.6.4
-  card_settings_ui: ^2.0.1
-  file_picker: ^10.3.7
-
-  # fvp: ^0.28.0
-  # video_player: ^2.9.1
-
-  flutter_volume_controller: ^2.0.1
-  audio_video_progress_bar: ^2.0.2
-  audio_service: ^0.18.15
-  audio_service_mpris:
-    git:
-      url: https://github.com/Predidit/audio-service-mpris.git
-      ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
-  audio_service_win:
-    git:
-      url: https://github.com/Predidit/audio_service_win.git
-      ref: 8ad650c6eb487208b9861d44755c8e58db061c88
-  audio_session: ^0.2.2
-  dynamic_color: ^1.8.1
-  flutter_displaymode: ^0.6.0
-
-  url_launcher: ^6.3.0
-  window_manager: ^0.5.1
-  xpath_selector: ^3.0.2
-  xpath_selector_html_parser: ^3.0.1
-  json_path: ^0.9.0
-
-  canvas_danmaku: ^0.3.1
-  webdav_client: ^1.2.2
-  tray_manager: ^0.5.0
-  dlna_dart: ^0.0.8
-  logger: ^2.6.2
-  flutter_rating_bar: ^4.0.1
-  scrollview_observer: ^1.22.0
-  saver_gallery: ^4.1.0
-  screen_brightness_android: ^2.1.3
-  screen_brightness_ios: ^2.1.2
-  screen_brightness_ohos: ^2.1.2
-  screen_brightness_platform_interface: ^2.1.0
-  synchronized: any
-  flutter_svg: ^2.2.3
-  antlr4: ^4.13.2
-  fl_chart: ^1.1.1
-  flutter_foreground_task: ^9.0.0
-  skeletonizer: ^2.1.2
-  flutter_inappwebview_platform_interface: ^1.3.0+1
-  flutter_inappwebview_ios: ^1.1.2
-  flutter_inappwebview_macos: ^1.1.2
-  flutter_inappwebview_android: ^1.1.3
-  upgrader: ^12.3.0
-  open_filex: ^4.7.0
-  html: any
-  material_color_utilities: any
-  path: any
-  photo_view: ^0.15.0
-  win32: ^5.15.0
-  ffi: ^2.1.0
-  image_picker: ^1.2.1
-  webview_windows:
-    git:
-      url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: 8e3578e6032c93f1723f58db930d480b7828d796
-  desktop_webview_window:
-    git:
-      url: https://github.com/Predidit/linux_webview_window.git
-      ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
-  media_kit:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./media_kit
-  media_kit_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/universal/media_kit_libs_video
-  macos_secure_bookmarks: ^0.2.1
-
-  # ⭐ 新增：用于提交反馈的 HTTP 请求
-  http: ^1.1.0
-
-dependency_overrides:
-  media_kit_libs_linux:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/linux/media_kit_libs_linux
-  media_kit_libs_ios_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/ios/media_kit_libs_ios_video
-  media_kit_libs_android_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/android/media_kit_libs_android_video
-  media_kit_libs_windows_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/windows/media_kit_libs_windows_video
-  media_kit_libs_macos_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/macos/media_kit_libs_macos_video
-  media_kit_libs_ohos:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
-      path: ./libs/ohos/media_kit_libs_ohos
-
-dev_dependencies:
-  path_provider_platform_interface: ^2.1.2
-  plugin_platform_interface: ^2.1.8
-  flutter_test:
-    sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^6.0.0
-  build_runner: ^2.15.0
-  mobx_codegen: ^2.7.5
-  hive_ce_generator: ^1.10.0
-  flutter_launcher_icons: ^0.14.3
-  flutter_native_splash: ^2.4.3
-  msix: ^3.16.12
-
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-flutter_launcher_icons:
-  android: true
-  ios: true
-  remove_alpha_ios: true
-  image_path: assets/images/logo/logo_android.png
-  image_path_android: assets/images/logo/logo_android.png
-  image_path_ios: assets/images/logo/logo_ios.png
-  adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: assets/images/logo/logo_android.png
-  adaptive_icon_monochrome: assets/images/logo/logo_android.png
-  macos:
-    generate: true
-    image_path: assets/images/logo/logo_rounded.png
-  windows:
-    generate: true
-    image_path: assets/images/logo/logo_rounded.png
-    icon_size: 256 # min:48, max:256, default: 48
-
-flutter_native_splash:
-  android: false
-  ios: true
-  web: false
-  color_ios: "#ffffff"
-  color_dark_ios: "#212121"
-  image_ios: assets/images/logo/logo_ios.png
-  image_dark_ios: assets/images/logo/logo_ios.png
-
-msix_config:
-  display_name: Kazumi
-  publisher: CN=SignPath Foundation, O=SignPath Foundation, L=Lewes, S=Delaware, C=US
-  logo_path: assets/images/logo/logo_rounded.png
-  sign_msix: false
-  install_certificate: false
-  build_windows: false
-
-# The following section is specific to Flutter packages.
-flutter:
-  uses-material-design: true
-  assets:
-    - assets/images/
-    - assets/plugins/
-    - assets/shaders/
-    - assets/images/logo/
-    - assets/statements/
-  fonts:
-    - family: MI_Sans_Regular
-      fonts:
-        - asset: assets/fonts/MiSans-Regular.ttf
+@@
+1| name: kazumi
+2| description: "A new Flutter project."
+3| # The following line prevents the package from being accidentally published to
+4| # pub.dev using `flutter pub publish`. This is preferred for private packages.
+5| publish_to: "none" # Remove this line if you wish to publish to pub.dev
+6| 
+7| # The following defines the version and build number for your application.
+8| # A version number is three numbers separated by dots, like 1.2.43
+9| # followed by an optional build number separated by a +.
+10| # Both the version and the builder number may be overridden in flutter
+11| # build by specifying --build-name and --build-number, respectively.
+12| # In Android, build-name is used as versionName while build-number used as versionCode.
+13| # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+14| # In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+15| # Read more about iOS versioning at
+16| # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+17| # In Windows, build-name is used as the major, minor, and patch parts
+18| # of the product and file versions while build-number is used as the build suffix.
+19| version: 2.2.3+20203
+20| 
+21| environment:
+22|   sdk: ">=3.3.4 <4.0.0"
+23|   flutter: 3.44.7
+24| 
+25| # Dependencies specify other packages that your package needs in order to work.
+26| # To automatically upgrade your package dependencies to the latest versions
+27| # consider running `flutter pub upgrade --major-versions`. Alternatively,
+28| # dependencies can be manually updated by changing the version numbers below to
+29| # the latest version available on pub.dev. To see which dependencies have newer
+30| # versions available, run `flutter pub outdated`.
+31| dependencies:
+32|   flutter:
+33|     sdk: flutter
+34|   flutter_localizations:
+35|     sdk: flutter
+36| 
+37|   # The following adds the Cupertino Icons font to your application.
+38|   # Use with the CupertinoIcons class for iOS style icons.
+39|   cupertino_icons: ^1.0.6
+40|   flutter_modular: ^7.1.0
+41|   mobx: ^2.6.0
+42|   flutter_mobx: ^2.3.0
+43|   dio: ^5.0.0
+44|   cookie_jar: ^4.0.9
+45|   crypto: ^3.0.6
+46|   connectivity_plus: ^6.0.5
+47| 
+48|   path_provider: ^2.1.5
+49|   hive_ce: ^2.16.0
+50|   hive_ce_flutter: ^2.3.3
+51|   cached_network_image: ^3.4.1
+52|   flutter_cache_manager: ^3.4.1
+53|   image: ^4.8.0
+54|   # cached_network_image_ce: ^4.6.4
+55|   card_settings_ui: ^2.0.1
+56|   file_picker: ^10.3.7
+57| 
+58|   # fvp: ^0.28.0
+59|   # video_player: ^2.9.1
+60| 
+61|   flutter_volume_controller: ^2.0.1
+62|   audio_video_progress_bar: ^2.0.2
+63|   audio_service: ^0.18.15
+64|   audio_service_mpris:
+65|     git:
+66|       url: https://github.com/Predidit/audio-service-mpris.git
+67|       ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+68|   audio_service_win:
+69|     git:
+70|       url: https://github.com/Predidit/audio_service_win.git
+71|       ref: 8ad650c6eb487208b9861d44755c8e58db061c88
+72|   audio_session: ^0.2.2
+73|   dynamic_color: ^1.8.1
+74|   flutter_displaymode: ^0.6.0
+75| 
+76|   url_launcher: ^6.3.0
+77|   window_manager: ^0.5.1
+78|   xpath_selector: ^3.0.2
+79|   xpath_selector_html_parser: ^3.0.1
+80|   json_path: ^0.9.0
+81| 
+82|   canvas_danmaku: ^0.3.1
+83|   webdav_client: ^1.2.2
+84|   tray_manager: ^0.5.0
+85|   dlna_dart: ^0.0.8
+86|   logger: ^2.6.2
+87|   flutter_rating_bar: ^4.0.1
+88|   scrollview_observer: ^1.22.0
+89|   saver_gallery: ^4.1.0
+90|   screen_brightness_android: ^2.1.3
+91|   screen_brightness_ios: ^2.1.2
+92|   screen_brightness_ohos: ^2.1.2
+93|   screen_brightness_platform_interface: ^2.1.0
+94|   synchronized: any
+95|   flutter_svg: ^2.2.3
+96|   antlr4: ^4.13.2
+97|   fl_chart: ^1.1.1
+98|   flutter_foreground_task: ^9.0.0
+99|   skeletonizer: ^2.1.2
+100|   flutter_inappwebview_platform_interface: ^1.3.0+1
+101|   flutter_inappwebview_ios: ^1.1.2
+102|   flutter_inappwebview_macos: ^1.1.2
+103|   flutter_inappwebview_android: ^1.1.3
+104|   upgrader: ^12.3.0
+105|   open_filex: ^4.7.0
+106|   html: any
+107|   material_color_utilities: any
+108|   path: any
+109|   photo_view: ^0.15.0
+110|   win32: ^5.15.0
+111|   ffi: ^2.1.0
+112|   image_picker: ^1.2.1
+113|   webview_windows:
+114|     git:
+115|       url: https://github.com/Predidit/flutter-webview-windows.git
+116|       ref: 8e3578e6032c93f1723f58db930d480b7828d796
+117|   desktop_webview_window:
+118|     git:
+119|       url: https://github.com/Predidit/linux_webview_window.git
+120|       ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
+121|   media_kit:
+122|     git:
+123|       url: https://github.com/Predidit/media-kit.git
+124|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+125|       path: ./media_kit
+126|   media_kit_video:
+127|     git:
+128|       url: https://github.com/Predidit/media-kit.git
+129|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+130|       path: ./media_kit_video
+131|   media_kit_libs_video:
+132|     git:
+133|       url: https://github.com/Predidit/media-kit.git
+134|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+135|       path: ./libs/universal/media_kit_libs_video
+136|   macos_secure_bookmarks: ^0.2.1
+137| 
+138|   # ⭐ 新增：用于提交反馈的 HTTP 请求
+139|   http: ^1.1.0
+140|   provider: ^6.0.5
+141|   intl: ^0.18.1
+142| 
+143| dependency_overrides:
+144|   media_kit_libs_linux:
+145|     git:
+146|       url: https://github.com/Predidit/media-kit.git
+147|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+148|       path: ./libs/linux/media_kit_libs_linux
+149|   media_kit_libs_ios_video:
+150|     git:
+151|       url: https://github.com/Predidit/media-kit.git
+152|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+153|       path: ./libs/ios/media_kit_libs_ios_video
+154|   media_kit_libs_android_video:
+155|     git:
+156|       url: https://github.com/Predidit/media-kit.git
+157|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+158|       path: ./libs/android/media_kit_libs_android_video
+159|   media_kit_libs_windows_video:
+160|     git:
+161|       url: https://github.com/Predidit/media-kit.git
+162|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+163|       path: ./libs/windows/media_kit_libs_windows_video
+164|   media_kit_libs_macos_video:
+165|     git:
+166|       url: https://github.com/Predidit/media-kit.git
+167|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+168|       path: ./libs/macos/media_kit_libs_macos_video
+169|   media_kit_libs_ohos:
+170|     git:
+171|       url: https://github.com/Predidit/media-kit.git
+172|       ref: b11ec8050d1f07ca117022f2da3260281676346f
+173|       path: ./libs/ohos/media_kit_libs_ohos
+174| 
+175| dev_dependencies:
+176|   path_provider_platform_interface: ^2.1.2
+177|   plugin_platform_interface: ^2.1.8
+178|   flutter_test:
+179|     sdk: flutter
+180| 
+181|   # The "flutter_lints" package below contains a set of recommended lints to
+182|   # encourage good coding practices. The lint set provided by the package is
+183|   # activated in the `analysis_options.yaml` file located at the root of your
+184|   # package. See that file for information about deactivating specific lint
+185|   # rules and activating additional ones.
+186|   flutter_lints: ^6.0.0
+187|   build_runner: ^2.15.0
+188|   mobx_codegen: ^2.7.5
+189|   hive_ce_generator: ^1.10.0
+190|   flutter_launcher_icons: ^0.14.3
+191|   flutter_native_splash: ^2.4.3
+192|   msix: ^3.16.12
+193| 
+194| # For information on the generic Dart part of this file, see the
+195| # following page: https://dart.dev/tools/pub/pubspec
+196| 
+197| flutter_launcher_icons:
+198|   android: true
+199|   ios: true
+200|   remove_alpha_ios: true
+201|   image_path: assets/images/logo/logo_android.png
+202|   image_path_android: assets/images/logo/logo_android.png
+203|   image_path_ios: assets/images/logo/logo_ios.png
+204|   adaptive_icon_background: "#ffffff"
+205|   adaptive_icon_foreground: assets/images/logo/logo_android.png
+206|   adaptive_icon_monochrome: assets/images/logo/logo_android.png
+207|   macos:
+208|     generate: true
+209|     image_path: assets/images/logo/logo_rounded.png
+210|   windows:
+211|     generate: true
+212|     image_path: assets/images/logo/logo_rounded.png
+213|     icon_size: 256 # min:48, max:256, default: 48
+214| 
+215| flutter_native_splash:
+216|   android: false
+217|   ios: true
+218|   web: false
+219|   color_ios: "#ffffff"
+220|   color_dark_ios: "#212121"
+221|   image_ios: assets/images/logo/logo_ios.png
+222|   image_dark_ios: assets/images/logo/logo_ios.png
+223| 
+224| msix_config:
+225|   display_name: Kazumi
+226|   publisher: CN=SignPath Foundation, O=SignPath Foundation, L=Lewes, S=Delaware, C=US
+227|   logo_path: assets/images/logo/logo_rounded.png
+228|   sign_msix: false
+229|   install_certificate: false
+230|   build_windows: false
+231| 
+232| # The following section is specific to Flutter packages.
+233| flutter:
+234|   uses-material-design: true
+235|   assets:
+236|     - assets/images/
+237|     - assets/plugins/
+238|     - assets/shaders/
+239|     - assets/images/logo/
+240|     - assets/statements/
+241|   fonts:
+242|     - family: MI_Sans_Regular
+243|       fonts:
+244|         - asset: assets/fonts/MiSans-Regular.ttf
