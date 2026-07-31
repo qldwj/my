@@ -1,4 +1,3 @@
-// info_module.dart
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -16,7 +15,6 @@ final infoModule = createModule(
         final args = state.arguments;
         BangumiItem bangumiItem;
         
-        // ✅ 支持 int 和 BangumiItem 两种类型
         if (args is int) {
           bangumiItem = BangumiItem.withId(args);
         } else if (args is BangumiItem) {
