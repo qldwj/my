@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_modular/flutter_modular.dart';  // ✅ 添加
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/navigation.dart';  // ✅ 使用这个
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -144,9 +144,30 @@ class DeepLinkService {
 
   void _navigateToDetail(int subjectId) {
     try {
-      final bangumiItem = BangumiItem.withId(subjectId);
-      Modular.to.pushNamed('/info', arguments: bangumiItem);
-      KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
+      final context = rootNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // ✅ 使用 Navigator
+        Navigator.of(context).pushNamed(
+          '/info',
+          arguments: subjectId,
+        );
+        KazumiLogger().i('DeepLink: 已跳转到详情页，ID: $subjectId');
+      } else {
+        // 延迟重试
+        Future.delayed(const Duration(milliseconds: 300), () {
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx != null && ctx.mounted) {
+            Navigator.of(ctx).pushNamed(
+              '/info',
+              arguments: subjectId,
+            );
+            KazumiLogger().i('DeepLink: 延迟跳转到详情页，ID: $subjectId');
+          } else {
+            KazumiLogger().w('DeepLink: 无法获取导航上下文');
+            _showToast('无法打开详情页');
+          }
+        });
+      }
     } catch (e) {
       KazumiLogger().e('DeepLink: 跳转详情页失败', error: e);
       _showToast('打开详情页失败');
