@@ -138,6 +138,9 @@ dependencies:
   # ⭐ 新增：用于提交反馈的 HTTP 请求
   http: ^1.1.0
 
+  # ⭐ 新增：二维码扫描
+  mobile_scanner: ^4.0.0
+
 dependency_overrides:
   media_kit_libs_linux:
     git:
