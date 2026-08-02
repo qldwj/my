@@ -106,13 +106,21 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const YhdmgzQrScanPage()),
     ).then((result) {
+      // 扫码登录成功后刷新状态
       if (result == true) {
-        setState(() {
-          _loggedIn = AuthService.isLoggedIn;
+        // 延迟一下，确保 token 已经保存
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            final isLoggedIn = AuthService.isLoggedIn;
+            setState(() {
+              _loggedIn = isLoggedIn;
+            });
+            if (_loggedIn) {
+              KazumiDialog.showToast(message: '扫码登录成功 🎉');
+              Navigator.of(context).pop(true);
+            }
+          }
         });
-        if (_loggedIn) {
-          Navigator.of(context).pop(true);
-        }
       }
     });
   }
@@ -123,8 +131,17 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
     ).then((result) {
       if (result == true) {
-        setState(() {
-          _loggedIn = AuthService.isLoggedIn;
+        // 延迟一下，确保 token 已经保存
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            final isLoggedIn = AuthService.isLoggedIn;
+            setState(() {
+              _loggedIn = isLoggedIn;
+            });
+            if (_loggedIn) {
+              KazumiDialog.showToast(message: '对方已扫码登录成功 🎉');
+            }
+          }
         });
       }
     });

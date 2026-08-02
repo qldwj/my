@@ -23,16 +23,13 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
   }
 
   String? _extractToken(String url) {
-    // 格式1: yhdmgz://login?token=xxx
     if (url.startsWith('yhdmgz://login?')) {
       final uri = Uri.tryParse(url);
       return uri?.queryParameters['token'];
     }
-    // 格式2: yhdmgz://qrcode-login/xxx
     if (url.startsWith('yhdmgz://qrcode-login/')) {
       return url.replaceFirst('yhdmgz://qrcode-login/', '');
     }
-    // 格式3: 直接就是 token (32位十六进制)
     if (url.length == 32 && RegExp(r'^[a-f0-9]{32}$').hasMatch(url)) {
       return url;
     }
@@ -52,21 +49,47 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       return;
     }
 
-    // 直接调用登录，不弹确认框（确认由生成页处理）
+    // ⭐ 显示等待确认弹窗
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('等待确认'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('已在另一台设备上发送确认请求'),
+            Text(
+              '请在对方设备上确认登录',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // ⭐ 调用确认登录（这会触发被扫码设备上的确认弹窗）
     final ok = await QrLoginService.confirmLogin(context, token);
+
+    // 关闭等待弹窗
+    if (mounted) {
+      Navigator.of(context).pop(); // 关闭等待弹窗
+    }
+
     if (ok && mounted) {
       setState(() => _loginSuccess = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("登录确认成功 🎉")),
       );
-      // 延迟返回，让用户看到成功提示
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         Navigator.of(context).pop(true);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("登录确认失败，请重试")),
+        const SnackBar(content: Text("登录确认失败或已被拒绝")),
       );
       _isProcessing = false;
     }
@@ -98,7 +121,6 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       ),
       body: Column(
         children: [
-          // 摄像头扫码区域
           Expanded(
             flex: 3,
             child: Stack(
@@ -107,7 +129,6 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
                   controller: scannerController,
                   onDetect: _onDetect,
                 ),
-                // 扫描框
                 Center(
                   child: Container(
                     width: 220,
@@ -168,7 +189,6 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
               ],
             ),
           ),
-          // 手动输入区域
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
