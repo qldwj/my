@@ -10,6 +10,7 @@ import 'package:kazumi/pages/my/task_center_page.dart';
 import 'package:kazumi/pages/my/chat_room_page.dart';
 import 'package:kazumi/pages/my/feedback_page.dart'; // 新增
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/pages/my/qrcode_login_page.dart';
 
 class MyPage extends StatelessWidget {
   const MyPage({super.key});
@@ -22,7 +23,24 @@ class MyPage extends StatelessWidget {
     final isLoggedIn = token.isNotEmpty;
 
     return Scaffold(
-      appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
+      appBar: SysAppBar(
+        title: const Text('我的'),
+        needTopOffset: false,
+        actions: [
+          if (isLoggedIn)
+            IconButton(
+              tooltip: '显示登录二维码',
+              icon: const Icon(Icons.qr_code_2_rounded),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const QrcodeLoginPage(),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
       body: SettingsList(
         maxWidth: 1000,
         sections: [

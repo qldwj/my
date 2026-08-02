@@ -9,7 +9,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
-/// 扫码登录页 - 显示二维码，供另一台设备扫描登录
+/// 扫码登录页 - 生成 yhdmgz://login 协议二维码，供另一台设备扫描登录
 class QrcodeLoginPage extends StatefulWidget {
   const QrcodeLoginPage({super.key});
 
@@ -54,8 +54,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true) {
         setState(() {
-          // 樱花动漫专用扫码协议：yhdmgz://login?token=xxx
-          _qrcodeUrl = data['qrcode_url'] ?? 'yhdmgz://login?token=${data['token']}';
+          _qrcodeUrl = data['qrcode_url'];
           _token = data['token'];
           _ip = data['ip'];
           _location = data['location'];

@@ -45,7 +45,7 @@ class DeepLinkService {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipboardData != null && clipboardData.text != null) {
         final text = clipboardData.text!.trim();
-        if (text.startsWith('yhdmgz://')) {
+        if (text.startsWith('yhdmgz://') && !text.startsWith('yhdmgz://login')) {
           KazumiLogger().i('DeepLink: 从剪贴板检测到规则链接');
           await _handleLink(text);
           // 清空剪贴板，避免重复导入
