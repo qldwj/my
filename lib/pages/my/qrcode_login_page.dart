@@ -54,7 +54,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true) {
         setState(() {
-          _qrcodeUrl = data['qrcode_url'];
+          // 樱花动漫专用扫码协议：yhdmgz://login?token=xxx
+          _qrcodeUrl = data['qrcode_url'] ?? 'yhdmgz://login?token=${data['token']}';
           _token = data['token'];
           _ip = data['ip'];
           _location = data['location'];
