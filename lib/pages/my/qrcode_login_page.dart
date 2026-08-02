@@ -20,13 +20,13 @@ class QrcodeLoginPage extends StatefulWidget {
 class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   String? _qrcodeUrl;
   String? _token;
-  String? _myIp; // 本机 IP
-  String? _myLocation; // 本机位置
-  String? _scannerIp; // 扫码者 IP
-  String? _scannerLocation; // 扫码者位置
+  String? _myIp;
+  String? _myLocation;
+  String? _scannerIp;
+  String? _scannerLocation;
   bool _expired = false;
   bool _confirmed = false;
-  bool _scanned = false; // 是否已被扫描
+  bool _scanned = false;
   Timer? _pollTimer;
   bool _loading = true;
   bool _confirmDialogShown = false;
@@ -62,7 +62,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         final ip = data['ip'] as String?;
         final location = data['location'] as String?;
 
-        // 统一二维码 URL 格式为 yhdmgz://login?token=xxx
         String finalUrl = rawUrl ?? '';
         if (token != null && token.isNotEmpty) {
           if (rawUrl?.startsWith('yhdmgz://qrcode-login/') == true) {
@@ -106,15 +105,21 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
         final data = jsonDecode(body) as Map<String, dynamic>;
         
-        // ⭐ 扫码者信息更新
-        if (data['scanner_ip'] != null || data['scanner_location'] != null) {
+        // ⭐ 打印日志便于调试
+        KazumiLogger().d('轮询结果: $data');
+
+        // ⭐ 更新扫码者信息
+        if (data['scanner_ip'] != null) {
           setState(() {
             _scannerIp = data['scanner_ip'] as String? ?? _scannerIp;
             _scannerLocation = data['scanner_location'] as String? ?? _scannerLocation;
           });
         }
 
-        if (data['status'] == 'confirmed') {
+        // ⭐ 先检查 status
+        final status = data['status'] as String?;
+
+        if (status == 'confirmed') {
           _pollTimer?.cancel();
           final userToken = data['user_token'] as String?;
           if (userToken != null && userToken.isNotEmpty) {
@@ -129,7 +134,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               Navigator.of(context).pop(true);
             }
           }
-        } else if (data['status'] == 'scanned') {
+        } else if (status == 'scanned') {
           // ⭐ 更新扫码者信息
           if (mounted) {
             setState(() {
@@ -137,14 +142,22 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               _scannerLocation = data['scanner_location'] as String? ?? _scannerLocation;
               _scanned = true;
             });
-            // 展示确认对话框
+            // ⭐ 展示确认对话框
             _showConfirmDialog();
           }
-        } else if (data['status'] == 'expired') {
+        } else if (status == 'expired') {
           _pollTimer?.cancel();
           if (mounted) setState(() => _expired = true);
+        } else if (status == 'pending' || status == null) {
+          // ⭐ pending 状态：等待扫码，什么都不做
+          // 如果之前显示过 scanned 状态但又被重置了，重置标志
+          if (_scanned && mounted) {
+            setState(() => _scanned = false);
+          }
         }
-      } catch (_) {}
+      } catch (e) {
+        KazumiLogger().e('轮询错误', error: e);
+      }
     });
   }
 
@@ -161,7 +174,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('⚠️ 另一台设备请求登录您的账号，请确认：'),
+            const Text('⚠️ 另一台设备请求登录您的账号：'),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -176,7 +189,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     children: [
                       const Icon(Icons.devices, size: 18, color: Colors.blue),
                       const SizedBox(width: 8),
-                      const Text('设备信息：', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('请求登录的设备：', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -211,6 +224,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               _confirmDialogShown = false;
               _scanned = false;
               Navigator.of(ctx).pop(false);
+              // ⭐ 拒绝后重新设置状态，让二维码继续可用
+              if (mounted) {
+                setState(() => _scanned = false);
+              }
             },
             child: const Text('拒绝', style: TextStyle(color: Colors.red)),
           ),
@@ -228,6 +245,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
   Future<void> _confirmLogin() async {
     try {
+      KazumiDialog.showLoading(msg: '确认登录中...');
+      
       final client = HttpClient();
       final body = jsonEncode({'token': _token, 'confirm': true});
       final request = await client.postUrl(
@@ -238,6 +257,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       final response = await request.close();
       final respBody = await response.transform(utf8.decoder).join();
       client.close();
+
+      KazumiDialog.dismiss();
 
       final data = jsonDecode(respBody) as Map<String, dynamic>;
       if (data['status'] == 'confirmed') {
@@ -256,9 +277,23 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         }
       } else {
         KazumiDialog.showToast(message: data['error'] ?? '确认失败，请重试');
+        // ⭐ 失败后重置状态，允许重新尝试
+        if (mounted) {
+          setState(() {
+            _scanned = false;
+            _confirmDialogShown = false;
+          });
+        }
       }
     } catch (e) {
+      KazumiDialog.dismiss();
       KazumiDialog.showToast(message: '确认失败: $e');
+      if (mounted) {
+        setState(() {
+          _scanned = false;
+          _confirmDialogShown = false;
+        });
+      }
     }
   }
 
@@ -325,7 +360,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 二维码状态指示
                           if (_scanned) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -350,7 +384,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                             ),
                             const SizedBox(height: 16),
                           ],
-                          // 二维码图片
                           Container(
                             width: 220,
                             height: 220,
@@ -439,7 +472,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Text(
                             '二维码有效期 5 分钟',
                             style: TextStyle(
