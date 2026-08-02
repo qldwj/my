@@ -54,23 +54,19 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true) {
-        // 从后端获取数据
         final rawUrl = data['qrcode_url'] as String?;
         final token = data['token'] as String?;
         final ip = data['ip'] as String?;
         final location = data['location'] as String?;
 
-        // 🔧 关键修改：统一二维码 URL 格式为 yhdmgz://login?token=xxx
+        // 统一二维码 URL 格式为 yhdmgz://login?token=xxx
         String finalUrl = rawUrl ?? '';
         if (token != null && token.isNotEmpty) {
-          // 如果后端返回的是 yhdmgz://qrcode-login/xxx，转换为标准格式
           if (rawUrl?.startsWith('yhdmgz://qrcode-login/') == true) {
             finalUrl = 'yhdmgz://login?token=$token';
           } else if (rawUrl?.startsWith('yhdmgz://login?token=') == true) {
-            // 已经是正确格式，保持不变
             finalUrl = rawUrl!;
           } else {
-            // 其他情况，手动拼接
             finalUrl = 'yhdmgz://login?token=$token';
           }
         }
@@ -82,7 +78,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           _location = location ?? '未知';
           _loading = false;
         });
-        // 开始轮询
         _startPolling();
       } else {
         setState(() => _loading = false);
@@ -109,7 +104,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         final data = jsonDecode(body) as Map<String, dynamic>;
         if (data['status'] == 'confirmed') {
           _pollTimer?.cancel();
-          // 登录成功，保存 token
           final userToken = data['user_token'] as String?;
           if (userToken != null && userToken.isNotEmpty) {
             AuthService.saveLocalToken(userToken);
@@ -118,6 +112,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           if (mounted) {
             setState(() => _confirmed = true);
             KazumiDialog.showToast(message: '扫码登录成功 🎉');
+            await Future.delayed(const Duration(milliseconds: 800));
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
           }
         } else if (data['status'] == 'scanned') {
           if (mounted) {
@@ -125,7 +123,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               _ip = data['ip'] ?? _ip;
               _location = data['location'] ?? _location;
             });
-            // 展示确认对话框
             _showConfirmDialog();
           }
         } else if (data['status'] == 'expired') {
@@ -137,7 +134,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   }
 
   void _showConfirmDialog() {
-    // 只弹一次
     if (_confirmDialogShown) return;
     _confirmDialogShown = true;
 
@@ -173,23 +169,20 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           TextButton(
             onPressed: () {
               _confirmDialogShown = false;
-              Navigator.of(ctx).pop();
+              Navigator.of(ctx).pop(false);
             },
             child: const Text('拒绝'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.of(ctx).pop();
+              Navigator.of(ctx).pop(true);
               await _confirmLogin();
             },
             child: const Text('确认登录'),
           ),
         ],
       ),
-    ).then((_) {
-      // 对话框关闭时重置标志
-      _confirmDialogShown = false;
-    });
+    );
   }
 
   Future<void> _confirmLogin() async {
@@ -215,6 +208,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         if (mounted) {
           setState(() => _confirmed = true);
           KazumiDialog.showToast(message: '扫码登录成功 🎉');
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
         }
       } else {
         KazumiDialog.showToast(message: data['error'] ?? '确认失败，请重试');
@@ -246,7 +243,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                       const Text('另一台设备已登录您的账号'),
                       const SizedBox(height: 24),
                       FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(context).pop(true),
                         child: const Text('完成'),
                       ),
                     ],
@@ -284,7 +281,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 二维码图片
                           Container(
                             width: 220,
                             height: 220,
@@ -327,7 +323,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                                 : const SizedBox(),
                           ),
                           const SizedBox(height: 16),
-                          // 二维码 URL 文本（方便复制）
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -375,7 +370,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // 提示过期时间
                           Text(
                             '二维码有效期 5 分钟',
                             style: TextStyle(

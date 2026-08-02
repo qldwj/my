@@ -103,21 +103,31 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
   /// 跳转到扫码页面（未登录时使用）
   void _gotoScan() {
-    Navigator.of(context).push(
+    Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const YhdmgzQrScanPage()),
     ).then((result) {
-      // 扫码登录成功后刷新状态
       if (result == true) {
-        setState(() => _loggedIn = AuthService.isLoggedIn);
+        setState(() {
+          _loggedIn = AuthService.isLoggedIn;
+        });
+        if (_loggedIn) {
+          Navigator.of(context).pop(true);
+        }
       }
     });
   }
 
   /// 跳转到生成二维码页面（已登录时使用）
   void _gotoGenerateQr() {
-    Navigator.of(context).push(
+    Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
-    );
+    ).then((result) {
+      if (result == true) {
+        setState(() {
+          _loggedIn = AuthService.isLoggedIn;
+        });
+      }
+    });
   }
 
   /// 双向同步收藏
@@ -245,6 +255,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         title: const Text('樱花动漫账号'),
         actions: [
           IconButton(
+            key: ValueKey(_loggedIn ? 'qr_generate' : 'qr_scan'),
             onPressed: _loggedIn ? _gotoGenerateQr : _gotoScan,
             icon: Icon(
               _loggedIn ? Icons.qr_code : Icons.qr_code_scanner,
