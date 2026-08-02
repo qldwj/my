@@ -8,6 +8,8 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/pages/my/qrcode_login_page.dart'; // 生成二维码页面
+import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart'; // 扫码页面
 
 /// 樱花动漫账号登录页（验证码登录，无需密码）
 class KazumiLoginPage extends StatefulWidget {
@@ -97,6 +99,20 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
     setState(() => _loggedIn = false);
     KazumiDialog.showToast(message: '已退出登录');
+  }
+
+  /// 跳转到扫码页面（未登录时使用）
+  void _gotoScan() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const YhdmgzQrScanPage()),
+    );
+  }
+
+  /// 跳转到生成二维码页面（已登录时使用）
+  void _gotoGenerateQr() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
+    );
   }
 
   /// 双向同步收藏
@@ -229,7 +245,20 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('樱花动漫账号')),
+      appBar: AppBar(
+        title: const Text('樱花动漫账号'),
+        // 右上角添加二维码图标
+        actions: [
+          IconButton(
+            onPressed: _loggedIn ? _gotoGenerateQr : _gotoScan,
+            icon: Icon(
+              _loggedIn ? Icons.qr_code : Icons.qr_code_scanner,
+              color: Colors.white,
+            ),
+            tooltip: _loggedIn ? '生成登录二维码' : '扫描二维码登录',
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
