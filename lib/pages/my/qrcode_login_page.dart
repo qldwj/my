@@ -26,6 +26,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   bool _confirmed = false;
   Timer? _pollTimer;
   bool _loading = true;
+  bool _confirmDialogShown = false;
 
   @override
   void initState() {
@@ -53,11 +54,32 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true) {
+        // 从后端获取数据
+        final rawUrl = data['qrcode_url'] as String?;
+        final token = data['token'] as String?;
+        final ip = data['ip'] as String?;
+        final location = data['location'] as String?;
+
+        // 🔧 关键修改：统一二维码 URL 格式为 yhdmgz://login?token=xxx
+        String finalUrl = rawUrl ?? '';
+        if (token != null && token.isNotEmpty) {
+          // 如果后端返回的是 yhdmgz://qrcode-login/xxx，转换为标准格式
+          if (rawUrl?.startsWith('yhdmgz://qrcode-login/') == true) {
+            finalUrl = 'yhdmgz://login?token=$token';
+          } else if (rawUrl?.startsWith('yhdmgz://login?token=') == true) {
+            // 已经是正确格式，保持不变
+            finalUrl = rawUrl!;
+          } else {
+            // 其他情况，手动拼接
+            finalUrl = 'yhdmgz://login?token=$token';
+          }
+        }
+
         setState(() {
-          _qrcodeUrl = data['qrcode_url'];
-          _token = data['token'];
-          _ip = data['ip'];
-          _location = data['location'];
+          _qrcodeUrl = finalUrl;
+          _token = token;
+          _ip = ip ?? '未知';
+          _location = location ?? '未知';
           _loading = false;
         });
         // 开始轮询
@@ -100,8 +122,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         } else if (data['status'] == 'scanned') {
           if (mounted) {
             setState(() {
-              _ip = data['ip'];
-              _location = data['location'];
+              _ip = data['ip'] ?? _ip;
+              _location = data['location'] ?? _location;
             });
             // 展示确认对话框
             _showConfirmDialog();
@@ -118,7 +140,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
     // 只弹一次
     if (_confirmDialogShown) return;
     _confirmDialogShown = true;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -149,7 +171,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () {
+              _confirmDialogShown = false;
+              Navigator.of(ctx).pop();
+            },
             child: const Text('拒绝'),
           ),
           FilledButton(
@@ -161,10 +186,11 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // 对话框关闭时重置标志
+      _confirmDialogShown = false;
+    });
   }
-
-  bool _confirmDialogShown = false;
 
   Future<void> _confirmLogin() async {
     try {
@@ -190,6 +216,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           setState(() => _confirmed = true);
           KazumiDialog.showToast(message: '扫码登录成功 🎉');
         }
+      } else {
+        KazumiDialog.showToast(message: data['error'] ?? '确认失败，请重试');
       }
     } catch (e) {
       KazumiDialog.showToast(message: '确认失败: $e');
@@ -210,7 +238,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     children: [
                       Icon(Icons.check_circle, size: 80, color: Colors.green),
                       const SizedBox(height: 16),
-                      const Text('登录成功', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text(
+                        '登录成功',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 8),
                       const Text('另一台设备已登录您的账号'),
                       const SizedBox(height: 24),
@@ -226,7 +257,15 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                         children: [
                           Icon(Icons.timer_off, size: 80, color: colorScheme.error),
                           const SizedBox(height: 16),
-                          const Text('二维码已过期'),
+                          const Text(
+                            '二维码已过期',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '请重新生成二维码',
+                            style: TextStyle(color: colorScheme.onSurfaceVariant),
+                          ),
                           const SizedBox(height: 24),
                           FilledButton(
                             onPressed: () {
@@ -234,6 +273,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                                 _expired = false;
                                 _loading = true;
                                 _confirmDialogShown = false;
+                                _confirmed = false;
                               });
                               _createQrcode();
                             },
@@ -244,32 +284,105 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // 二维码图片
                           Container(
                             width: 220,
                             height: 220,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: colorScheme.outlineVariant),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant,
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             padding: const EdgeInsets.all(16),
                             child: _qrcodeUrl != null
                                 ? Image.network(
                                     'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_qrcodeUrl!)}',
                                     errorBuilder: (_, __, ___) => Icon(
-                                      Icons.qr_code, size: 180, color: colorScheme.primary,
+                                      Icons.qr_code,
+                                      size: 180,
+                                      color: colorScheme.primary,
                                     ),
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: progress.expectedTotalBytes != null
+                                              ? progress.cumulativeBytesLoaded /
+                                                  progress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      );
+                                    },
                                   )
                                 : const SizedBox(),
                           ),
-                          const SizedBox(height: 24),
-                          Text(_qrcodeUrl ?? '',
-                              style: TextStyle(fontSize: 12, color: colorScheme.outline)),
                           const SizedBox(height: 16),
-                          const Text('请使用另一台设备的 App 扫码功能、微信或QQ扫描', style: TextStyle(fontSize: 13)),
+                          // 二维码 URL 文本（方便复制）
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _qrcodeUrl ?? '',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.outline,
+                                fontFamily: 'monospace',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            '请使用另一台设备的 App 扫码功能、微信或QQ扫描',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 8),
-                          Text('IP: $_ip · $_location',
-                              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'IP: $_ip · $_location',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // 提示过期时间
+                          Text(
+                            '二维码有效期 5 分钟',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.outline,
+                            ),
+                          ),
                         ],
                       ),
       ),

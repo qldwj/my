@@ -8,8 +8,8 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/pages/my/qrcode_login_page.dart'; // 生成二维码页面
-import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart'; // 扫码页面
+import 'package:kazumi/pages/my/qrcode_login_page.dart';
+import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart';
 
 /// 樱花动漫账号登录页（验证码登录，无需密码）
 class KazumiLoginPage extends StatefulWidget {
@@ -105,7 +105,12 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   void _gotoScan() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const YhdmgzQrScanPage()),
-    );
+    ).then((result) {
+      // 扫码登录成功后刷新状态
+      if (result == true) {
+        setState(() => _loggedIn = AuthService.isLoggedIn);
+      }
+    });
   }
 
   /// 跳转到生成二维码页面（已登录时使用）
@@ -119,7 +124,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Future<void> _syncCollect() async {
     setState(() => _syncing = true);
     try {
-      // 30 秒超时保护
       await Future.any([
         _doSync(),
         Future.delayed(const Duration(seconds: 30), () => throw '同步超时，请检查网络'),
@@ -132,25 +136,22 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     setState(() => _syncing = false);
   }
 
-  /// 核心同步逻辑（先拉取云端，再上传本地差异）
+  /// 核心同步逻辑
   Future<void> _doSync() async {
     try {
       KazumiDialog.showLoading(msg: '正在获取云端收藏...');
 
-      // ---------- 第一步：拉取云端数据（使用只读接口） ----------
-      final remoteRes = await AuthService.getRemoteCollect(); // ✅ 改用只读接口
+      final remoteRes = await AuthService.getRemoteCollect();
       if (remoteRes['error'] != null) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(message: '❌ 获取云端数据失败: ${remoteRes['error']}');
         return;
       }
 
-      // 解析云端收藏列表（新接口直接返回 collect 数组）
       List<dynamic> remoteList = [];
       if (remoteRes['collect'] is List) {
         remoteList = remoteRes['collect'] as List;
       } else {
-        // 兼容旧格式（以防后端返回 sync_data 结构）
         if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
           remoteList = remoteRes['sync_data']['collect'] as List;
         } else {
@@ -158,7 +159,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         }
       }
 
-      // ---------- 第二步：下载本地缺失的条目 ----------
       int downloadCount = 0;
       final localCollectBefore = GStorage.collectibles.values.toList();
       final localIds = localCollectBefore.map((c) => c.bangumiItem.id).toSet();
@@ -168,7 +168,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         final remoteId = item['id'];
         if (remoteId is! int) continue;
         if (!localIds.contains(remoteId)) {
-          // 构建 BangumiItem（根据服务器返回字段映射）
           final bangumiItem = BangumiItem(
             id: remoteId,
             type: 0,
@@ -197,7 +196,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         }
       }
 
-      // ---------- 第三步：计算本地多余条目（本地有，云端没有） ----------
       final localCollectAfter = GStorage.collectibles.values.toList();
       final remoteIds = remoteList.map((e) => (e as Map)['id'] as int).toSet();
 
@@ -217,7 +215,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
       int uploadCount = 0;
       if (diffList.isNotEmpty) {
-        // ---------- 第四步：上传差异部分 ----------
         KazumiDialog.showLoading(msg: '正在上传新增条目...');
         final uploadRes = await AuthService.syncData({'collect': diffList});
         if (uploadRes['error'] != null) {
@@ -228,7 +225,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         uploadCount = diffList.length;
       }
 
-      // ---------- 完成 ----------
       KazumiDialog.dismiss();
       KazumiDialog.showToast(
         message: '同步完成 ✅ 下载 $downloadCount 项，上传 $uploadCount 项',
@@ -247,7 +243,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('樱花动漫账号'),
-        // 右上角添加二维码图标
         actions: [
           IconButton(
             onPressed: _loggedIn ? _gotoGenerateQr : _gotoScan,
