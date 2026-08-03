@@ -1,78 +1,134 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:kazumi/services/auth_service.dart';
 
-/// 樱花动漫扫码登录
-/// 只处理 yhdmgz://login，不影响规则导入
+/// 樱花动漫扫码登录 PHP 后端版
+/// qlyyz.xyz/api/qr/
 class QrLoginService {
+
+  static const String base =
+      "https://qlyyz.xyz/api/qr/";
+
   static const String scheme = "yhdmgz";
+
 
   static bool canHandle(String value) {
     try {
       final uri = Uri.parse(value);
-      return uri.scheme == scheme && uri.host == "login";
+      return uri.scheme == scheme &&
+          uri.host == "login";
     } catch (_) {
       return false;
     }
   }
 
-  static String? getToken(String value) {
+
+  static String? getCode(String value) {
     try {
       final uri = Uri.parse(value);
-      if (uri.scheme != scheme || uri.host != "login") return null;
-      return uri.queryParameters["token"] ?? uri.queryParameters["code"];
+
+      if (!canHandle(value)) return null;
+
+      return uri.queryParameters["code"];
     } catch (_) {
       return null;
     }
   }
 
-  /// 扫码端确认登录
-  static Future<bool> confirmLogin(
-      BuildContext context, String token) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("扫码登录"),
-        content: const Text("是否允许此设备登录樱花动漫账号？"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("取消"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("确认登录"),
-          ),
-        ],
-      ),
+
+  /// 已登录设备生成二维码数据
+  static Future<Map<String,dynamic>> createQr() async {
+
+    final client = HttpClient();
+
+    final request = await client.postUrl(
+      Uri.parse("${base}create.php")
     );
 
-    if (ok != true) return false;
+    final response = await request.close();
 
-    // 关键修复：
-    // 原代码只关闭弹窗，没有通知服务器，
-    // 导致被登录设备一直轮询转圈。
-    try {
-      final client = HttpClient();
-      final request = await client.postUrl(
-        Uri.parse('${AuthService.baseUrl}?action=qrcode_confirm'),
-      );
-      request.headers.contentType = ContentType.json;
-      request.write(jsonEncode({
-        "token": token,
-        "confirm": true,
-      }));
+    final body =
+        await response.transform(utf8.decoder).join();
 
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
+    client.close();
 
-      final data = jsonDecode(body);
-      return data["success"] == true || data["status"] == "confirmed";
-    } catch (_) {
-      return false;
-    }
+    return jsonDecode(body);
   }
+
+
+  /// 扫码设备直接确认登录
+  static Future<bool> confirmLogin(
+      String code,
+      String userToken
+  ) async {
+
+    final client = HttpClient();
+
+    final request = await client.postUrl(
+      Uri.parse("${base}confirm.php")
+    );
+
+    request.headers.contentType =
+        ContentType.json;
+
+
+    request.write(jsonEncode({
+
+      "code": code,
+
+      "token": userToken
+
+    }));
+
+
+    final response = await request.close();
+
+    final body =
+        await response.transform(utf8.decoder).join();
+
+    client.close();
+
+
+    final data=jsonDecode(body);
+
+
+    return data["success"]==true;
+  }
+
+
+
+  /// 被登录设备轮询状态
+  static Future<Map<String,dynamic>> check(
+      String code
+  ) async {
+
+
+    final client=HttpClient();
+
+
+    final request =
+        await client.getUrl(
+          Uri.parse(
+            "${base}check.php?code=$code"
+          )
+        );
+
+
+    final response =
+        await request.close();
+
+
+    final body =
+        await response.transform(
+            utf8.decoder
+        ).join();
+
+
+    client.close();
+
+
+    return jsonDecode(body);
+
+  }
+
 }

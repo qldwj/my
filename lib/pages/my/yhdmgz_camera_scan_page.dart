@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/services/qr_login_service.dart';
@@ -12,18 +11,34 @@ class YhdmgzCameraScanPage extends StatefulWidget {
 
 class _YhdmgzCameraScanPageState extends State<YhdmgzCameraScanPage> {
   bool done = false;
+  bool loading = false;
 
   Future<void> _scan(String value) async {
-    if (done) return;
+    if (done || loading) return;
     if (!QrLoginService.canHandle(value)) return;
-    done = true;
 
     final token = QrLoginService.getToken(value);
     if (token == null) return;
 
-    final ok = await QrLoginService.confirmLogin(context, token);
-    if (mounted && ok) {
+    done = true;
+    loading = true;
+    setState(() {});
+
+    // 扫码后直接登录，不弹确认框
+    final ok = await QrLoginService.directLogin(token);
+
+    if (!mounted) return;
+
+    if (ok) {
       Navigator.pop(context, true);
+    } else {
+      setState(() {
+        done = false;
+        loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('登录失败，请重新扫描')),
+      );
     }
   }
 
@@ -41,23 +56,8 @@ class _YhdmgzCameraScanPageState extends State<YhdmgzCameraScanPage> {
               }
             },
           ),
-          Center(
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                border: Border.all(width: 3),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.all(40),
-              child: Text('请扫描另一台设备显示的登录二维码'),
-            ),
-          )
+          if (loading)
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
