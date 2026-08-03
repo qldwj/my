@@ -115,7 +115,6 @@ class AuthService {
   static Future<Map<String, dynamic>> getRemoteCollect() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    // 注意：这里 body 传空 Map，因为 `get_collect` 不需要额外参数
     return _request('get_collect', {}, authToken: token, skipSignature: true);
   }
 
@@ -149,6 +148,35 @@ class AuthService {
     } catch (e) {
       KazumiLogger().e('AuthService: 获取用户失败', error: e);
       return {'error': '网络连接失败'};
+    }
+  }
+
+  /// ⭐ 二维码登录（扫描后直接登录）
+  static Future<Map<String, dynamic>> qrcodeLogin(String token) async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 15);
+      final request = await client.postUrl(
+        Uri.parse('$baseUrl?action=qrcode_login'),
+      );
+      request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      
+      final body = jsonEncode({'token': token, 'confirm': true});
+      request.write(body);
+      
+      final response = await request.close();
+      final responseBody = await response.transform(utf8.decoder).join();
+      client.close();
+      
+      if (response.statusCode != 200) {
+        return {'error': 'HTTP ${response.statusCode}'};
+      }
+      
+      final data = jsonDecode(responseBody) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      KazumiLogger().e('AuthService: 二维码登录失败', error: e);
+      return {'error': '网络连接失败: $e'};
     }
   }
 

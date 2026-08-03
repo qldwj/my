@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:kazumi/services/qr_login_service.dart';
+import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 class YhdmgzQrScanPage extends StatefulWidget {
   const YhdmgzQrScanPage({super.key});
@@ -43,53 +46,51 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
     final token = _extractToken(code);
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("无效的登录二维码，请检查格式")),
+        const SnackBar(content: Text("无效的登录二维码")),
       );
       _isProcessing = false;
       return;
     }
 
-    // ⭐ 显示等待确认弹窗
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('等待确认'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('已在另一台设备上发送确认请求'),
-            Text(
-              '请在对方设备上确认登录',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
+    // 显示加载中
+    KazumiDialog.showLoading(msg: '登录中...');
 
-    // ⭐ 调用确认登录（这会触发被扫码设备上的确认弹窗）
-    final ok = await QrLoginService.confirmLogin(context, token);
+    try {
+      // 调用二维码登录接口
+      final result = await AuthService.qrcodeLogin(token);
+      
+      KazumiDialog.dismiss();
 
-    // 关闭等待弹窗
-    if (mounted) {
-      Navigator.of(context).pop(); // 关闭等待弹窗
-    }
-
-    if (ok && mounted) {
-      setState(() => _loginSuccess = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("登录确认成功 🎉")),
-      );
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        Navigator.of(context).pop(true);
+      if (result['status'] == 'confirmed') {
+        final userToken = result['token'] as String?;
+        if (userToken != null && userToken.isNotEmpty) {
+          AuthService.saveLocalToken(userToken);
+          await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
+          
+          setState(() => _loginSuccess = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("登录成功 🎉")),
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("登录失败：未获取到用户凭证")),
+          );
+          _isProcessing = false;
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'] ?? '登录失败，请重试')),
+        );
+        _isProcessing = false;
       }
-    } else {
+    } catch (e) {
+      KazumiDialog.dismiss();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("登录确认失败或已被拒绝")),
+        SnackBar(content: Text("登录失败: $e")),
       );
       _isProcessing = false;
     }
@@ -107,7 +108,7 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text("扫描登录二维码"),
+        title: const Text("扫码登录"),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
@@ -179,7 +180,7 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
                           CircularProgressIndicator(color: Colors.white),
                           SizedBox(height: 16),
                           Text(
-                            "正在处理...",
+                            "正在登录...",
                             style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                         ],
