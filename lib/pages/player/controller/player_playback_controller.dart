@@ -68,6 +68,12 @@ abstract class _PlayerPlaybackController with Store {
   final PlayerScreenshotService screenshotService =
       const PlayerScreenshotService();
 
+  /// 播放源加载失败通知（video_page 据此自动切换线路）
+  final StreamController<void> _sourceFailedController =
+      StreamController<void>.broadcast();
+
+  Stream<void> get onSourceFailed => _sourceFailedController.stream;
+
   _OwnedPlayer? _ownedPlayer;
   Player? get mediaPlayer => _ownedPlayer?.player;
   VideoController? videoController;
@@ -417,8 +423,15 @@ abstract class _PlayerPlaybackController with Store {
             return;
           }
           if (event.toString().contains('Failed to open') && playerBuffering) {
-            KazumiDialog.showToast(
-                message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
+            // ⭐ 源失效自动换源：开启时通知 video_page 切换线路重播
+            if (GStorage.getSetting(SettingsKeys.autoSwitchSource)) {
+              _sourceFailedController.add(null);
+              KazumiDialog.showToast(
+                  message: '当前线路加载失败，正在自动切换...');
+            } else {
+              KazumiDialog.showToast(
+                  message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
+            }
           } else {
             KazumiDialog.showToast(
                 message: '播放器内部错误 ${event.toString()} ${videoUrl()}',

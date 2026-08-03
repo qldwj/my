@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/danmaku_client.dart';
+import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/string_similarity.dart';
 
 class DanmakuApi {
@@ -131,5 +136,114 @@ class DanmakuApi {
       danmakus.add(danmaku);
     }
     return danmakus;
+  }
+
+  // ============ B站弹幕源（真正的 BiliBili 直连） ============
+
+  /// 按番名搜索 B站视频
+  /// 返回 [{bvid, aid, title, duration}]
+  static Future<List<Map<String, dynamic>>> searchBiliVideos(
+      String keyword) async {
+    try {
+      final jsonData = await _client.get(
+        'https://api.bilibili.com/x/web-interface/search/type',
+        queryParameters: {
+          'search_type': 'video',
+          'keyword': keyword,
+        },
+      );
+      final result = (jsonData as Map<String, dynamic>)['data']?['result'];
+      if (result is! List) return [];
+      final list = <Map<String, dynamic>>[];
+      for (final e in result) {
+        if (e is! Map) continue;
+        final bvid = e['bvid']?.toString() ?? '';
+        final aid = (e['aid'] as num?)?.toInt() ?? 0;
+        if (bvid.isEmpty && aid == 0) continue;
+        final title = (e['title']?.toString() ?? '')
+            .replaceAll(RegExp(r'<[^>]+>'), '');
+        list.add({
+          'bvid': bvid,
+          'aid': aid,
+          'title': title,
+          'duration': e['duration']?.toString() ?? '',
+        });
+      }
+      return list;
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: 搜索失败', error: e);
+      return [];
+    }
+  }
+
+  /// 获取 B站视频第 [episode] 集的 cid（分P）
+  static Future<int> getBiliCid({
+    String bvid = '',
+    int aid = 0,
+    required int episode,
+  }) async {
+    try {
+      final jsonData = await _client.get(
+        'https://api.bilibili.com/x/player/pagelist',
+        queryParameters: {
+          if (bvid.isNotEmpty) 'bvid': bvid else 'aid': aid,
+        },
+      );
+      final pages = (jsonData as Map<String, dynamic>)['data'];
+      if (pages is! List || pages.isEmpty || episode < 1 || episode > pages.length) {
+        return 0;
+      }
+      return (pages[episode - 1]['cid'] as num?)?.toInt() ?? 0;
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: 获取 cid 失败', error: e);
+      return 0;
+    }
+  }
+
+  /// 拉取 B站弹幕 XML（oid = cid），解析为弹幕列表
+  static Future<List<DanmakuEntry>> getBiliDanmaku(int cid) async {
+    if (cid <= 0) return [];
+    try {
+      final response = await DioFactory.apiDio.get(
+        'https://api.bilibili.com/x/v1/dm/list.so',
+        queryParameters: {'oid': cid},
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: {
+            'user-agent': getRandomUA(),
+            'referer': 'https://www.bilibili.com',
+          },
+        ),
+      );
+      final xml = response.data?.toString() ?? '';
+      return _parseBiliXml(xml);
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: 拉取弹幕失败', error: e);
+      return [];
+    }
+  }
+
+  /// 解析 B站弹幕 XML：<d p="time,mode,size,color,ts,pool,uid,rowid">内容</d>
+  static List<DanmakuEntry> _parseBiliXml(String xml) {
+    final entries = <DanmakuEntry>[];
+    final regex = RegExp(r'<d p="([^"]+)">([^<]*)</d>');
+    for (final m in regex.allMatches(xml)) {
+      final attrs = m.group(1)?.split(',') ?? const [];
+      if (attrs.isEmpty) continue;
+      final time = double.tryParse(attrs[0]) ?? 0;
+      final type = attrs.length > 1 ? int.tryParse(attrs[1]) ?? 1 : 1;
+      final colorValue =
+          attrs.length > 3 ? int.tryParse(attrs[3]) ?? 0xFFFFFF : 0xFFFFFF;
+      final message = m.group(2) ?? '';
+      if (message.isEmpty) continue;
+      entries.add(DanmakuEntry(
+        message: message,
+        time: time,
+        type: type,
+        color: Color(0xFF000000 | colorValue),
+        source: 'BiliBili',
+      ));
+    }
+    return entries;
   }
 }

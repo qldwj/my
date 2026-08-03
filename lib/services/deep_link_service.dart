@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -28,6 +31,8 @@ class DeepLinkService {
 
   /// 初始化：检查启动时是否有等待处理的链接
   Future<void> init() async {
+    // ⭐ 等待路由初始化完成，避免冷启动时 pushNamed 找不到路由（"没路由"）
+    await Future.delayed(const Duration(milliseconds: 1200));
     try {
       // 检查启动 Intent 中是否包含链接
       final intentData = await _channel.invokeMethod<String>('checkIntent');
@@ -41,14 +46,28 @@ class DeepLinkService {
     // 检查剪贴板中是否有 yhdmgz:// 链接
     try {
       // 延迟一下确保剪贴板服务就绪
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 800));
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipboardData != null && clipboardData.text != null) {
         final text = clipboardData.text!.trim();
         if (text.startsWith('yhdmgz://') && !text.startsWith('yhdmgz://login')) {
-          KazumiLogger().i('DeepLink: 从剪贴板检测到规则链接');
+          KazumiLogger().i('DeepLink: 从剪贴板检测到 yhdmgz 链接');
           await _handleLink(text);
           // 清空剪贴板，避免重复导入
+          await Clipboard.setData(const ClipboardData(text: ''));
+        } else if (text.contains('qlyyz.xyz/share')) {
+          // 分享链接 https://qlyyz.xyz/share?id=123 → 转 yhdmgz://share/anime?id=123
+          final uri = Uri.tryParse(text);
+          final id = uri?.queryParameters['id'];
+          if (id != null && id.isNotEmpty) {
+            KazumiLogger().i('DeepLink: 从剪贴板检测到分享番剧链接');
+            await _handleLink('yhdmgz://share/anime?id=$id');
+            await Clipboard.setData(const ClipboardData(text: ''));
+          }
+        } else if (RegExp(r'^\d{3,10}$').hasMatch(text.trim())) {
+          // 纯数字 ID（分享只复制 ID 时）：直接当作番剧 ID 打开
+          KazumiLogger().i('DeepLink: 从剪贴板检测到番剧ID: $text');
+          await _handleLink('yhdmgz://share/anime?id=${text.trim()}');
           await Clipboard.setData(const ClipboardData(text: ''));
         }
       }
@@ -91,7 +110,24 @@ class DeepLinkService {
       return;
     }
 
-    // 2️⃣ 规则分享导入
+    // 2️⃣ 分享番剧深链：yhdmgz://share/anime?id=xxx（直接使用，无需落地页）
+    if (url.startsWith('yhdmgz://share/anime')) {
+      try {
+        final uri = Uri.parse(url);
+        final id = int.tryParse(uri.queryParameters['id'] ?? '');
+        if (id != null) {
+          await _openAnimeDetail(id);
+        } else {
+          _showToast('未找到该番剧');
+        }
+      } catch (e) {
+        KazumiLogger().e('DeepLink: 分享番剧解析失败', error: e);
+        _showToast('分享链接解析失败');
+      }
+      return;
+    }
+
+    // 3️⃣ 规则分享导入
     try {
       // 解析 Base64 → JSON
       final jsonStr = kazumiBase64ToJson(url);
@@ -132,6 +168,37 @@ class DeepLinkService {
     } catch (e, st) {
       KazumiLogger().e('DeepLink: 处理链接失败', error: e, stackTrace: st);
       _showToast('规则导入失败: ${e.toString()}');
+    }
+  }
+
+  /// 打开番剧详情页（拉取信息 → 等一帧 → push /info/）
+  Future<void> _openAnimeDetail(int id) async {
+    try {
+      final item = await BangumiApi.getBangumiInfoByID(id);
+      if (item == null) {
+        _showToast('未找到该番剧');
+        return;
+      }
+      if (rootNavigatorKey.currentContext == null) {
+        _showToast('无法打开番剧详情');
+        return;
+      }
+      // ⭐ 与聊天室跳转一致：Navigator.of(root).pushNamed 走全局路由解析，
+      //    不会因为 modular 作用域/时机问题报"没路由"
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          Navigator.of(rootNavigatorKey.currentContext!).pushNamed(
+            '/info/',
+            arguments: item,
+          );
+        } catch (e) {
+          KazumiLogger().e('DeepLink: 打开详情失败', error: e);
+          _showToast('打开详情失败，请重试');
+        }
+      });
+    } catch (e) {
+      KazumiLogger().e('DeepLink: 打开番剧失败', error: e);
+      _showToast('打开番剧失败');
     }
   }
 

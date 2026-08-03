@@ -11,6 +11,7 @@ import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/player/skip_segments_service.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -419,6 +420,73 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   @override
+  /// 片头/片尾时长设置对话框（按番剧记忆，默认 1 分钟，0 = 不跳过）
+  Future<void> _showSkipDurationDialog({required bool isOp}) async {
+    final id = videoPageController.bangumiItem.id;
+    final current =
+        isOp ? SkipSegmentsService.opSeconds(id) : SkipSegmentsService.edSeconds(id);
+    var value = current.toDouble().clamp(0.0, 300.0);
+    final name = videoPageController.bangumiItem.nameCn.isNotEmpty
+        ? videoPageController.bangumiItem.nameCn
+        : videoPageController.bangumiItem.name;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(isOp ? '片头跳过时长' : '片尾跳过时长'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${value.round()} 秒（0 = 不跳过）',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              Slider(
+                value: value,
+                max: 300,
+                divisions: 60,
+                label: '${value.round()}s',
+                onChanged: (v) => setDialogState(() => value = v),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '仅对《$name》生效，换季（新季度）需重新设置。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final sec = value.round();
+                if (isOp) {
+                  SkipSegmentsService.setOpSeconds(id, sec);
+                } else {
+                  SkipSegmentsService.setEdSeconds(id, sec);
+                }
+                Navigator.pop(ctx);
+                KazumiDialog.showToast(
+                    message: sec == 0
+                        ? (isOp ? '已关闭片头跳过' : '已关闭片尾跳过')
+                        : '已设置${isOp ? '片头' : '片尾'} $sec 秒');
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
@@ -1122,6 +1190,45 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text("外部播放"),
+                      ),
+                    ),
+                  ),
+                  // ⭐ 跳过片头/片尾设置（按番剧记忆）
+                  SubmenuButton(
+                    menuChildren: [
+                      MenuItemButton(
+                        onPressed: () => _showSkipDurationDialog(isOp: true),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 160),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "片头时长：${SkipSegmentsService.opSeconds(videoPageController.bangumiItem.id)} 秒",
+                            ),
+                          ),
+                        ),
+                      ),
+                      MenuItemButton(
+                        onPressed: () => _showSkipDurationDialog(isOp: false),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 160),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "片尾时长：${SkipSegmentsService.edSeconds(videoPageController.bangumiItem.id)} 秒",
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      height: 48,
+                      constraints: BoxConstraints(minWidth: 112),
+                      child: const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text("跳过设置"),
                       ),
                     ),
                   ),

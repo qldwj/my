@@ -1,33 +1,155 @@
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/bean/card/bangumi_history_card.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/settings_section_card.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
-import 'package:kazumi/pages/my/task_center_page.dart';
-import 'package:kazumi/pages/my/chat_room_page.dart';
-import 'package:kazumi/pages/my/feedback_page.dart'; // 新增
-import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
+import 'package:kazumi/repositories/history_repository.dart';
+import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
-class MyPage extends StatelessWidget {
+/// 我的页
+///
+/// 结构（从上到下）：
+/// 1. 账号：两个登录（Bangumi 一键登录 + 樱花动漫账号）
+/// 2. 历史记录 + 离线下载（仅这两个选项）
+/// 3. 设置（入口，进入总设置页）
+/// 4. 简易历史记录（最多 5 条，点击直接继续观看）
+class MyPage extends StatefulWidget {
   const MyPage({super.key});
+
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends State<MyPage> {
+  List<History> _recentHistories = [];
+  int weeklyGoal = 0;
+  int thisWeekEpisodes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentHistories();
+    _loadGoal();
+  }
+
+  void _loadGoal() {
+    weeklyGoal = GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
+    thisWeekEpisodes = _countThisWeekEpisodes();
+  }
+
+  /// 统计本周（周一起）已看的集数
+  int _countThisWeekEpisodes() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    var count = 0;
+    try {
+      for (final h in HistoryRepository().getAllHistories()) {
+        for (final p in h.progresses.values) {
+          final t = p.effectiveUpdatedAtMs(h.lastWatchTime);
+          if (t >= weekStart.millisecondsSinceEpoch) count++;
+        }
+      }
+    } catch (_) {}
+    return count;
+  }
+
+  void _loadRecentHistories() {
+    try {
+      final all = HistoryRepository().getAllHistories();
+      all.sort((a, b) => b.lastWatchTime.compareTo(a.lastWatchTime));
+      _recentHistories = all.take(5).toList();
+    } catch (e) {
+      _recentHistories = [];
+    }
+  }
+
+  /// 缓存清理弹窗：显示图片缓存占用 + 一键清理
+  Future<void> _showCacheCleanup(BuildContext context) async {
+    final cacheSize = await _getCacheSize();
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('缓存清理'),
+        content: Text(
+          '图片缓存占用：${_formatSize(cacheSize)}\n\n'
+          '清理后，下次浏览图片会重新下载，'
+          '不影响已下载的视频、收藏和历史记录。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: cacheSize == 0
+                ? null
+                : () async {
+                    Navigator.pop(ctx);
+                    await DefaultCacheManager().emptyCache();
+                    if (mounted) {
+                      KazumiDialog.showToast(message: '缓存已清理 ✅');
+                    }
+                  },
+            child: const Text('立即清理'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<int> _getCacheSize() async {
+    try {
+      // flutter_cache_manager 默认缓存目录：<临时目录>/libCachedImageData
+      final base = await getTemporaryDirectory();
+      final dir = Directory('${base.path}/libCachedImageData');
+      if (!await dir.exists()) return 0;
+      var total = 0;
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          total += await entity.length();
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '0 B';
+    const kb = 1024;
+    const mb = kb * 1024;
+    const gb = mb * 1024;
+    if (bytes >= gb) return '${(bytes / gb).toStringAsFixed(2)} GB';
+    if (bytes >= mb) return '${(bytes / mb).toStringAsFixed(1)} MB';
+    if (bytes >= kb) return '${(bytes / kb).toStringAsFixed(1)} KB';
+    return '$bytes B';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     final colorScheme = Theme.of(context).colorScheme;
-    final token =
-        GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
-    final isLoggedIn = token.isNotEmpty;
+    final bangumiLoggedIn =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
     return Scaffold(
       appBar: SysAppBar(
         title: const Text('我的'),
         needTopOffset: false,
         actions: [
-          if (isLoggedIn)
+          if (bangumiLoggedIn)
             IconButton(
               tooltip: '显示登录二维码',
               icon: const Icon(Icons.qr_code_2_rounded),
@@ -41,325 +163,251 @@ class MyPage extends StatelessWidget {
             ),
         ],
       ),
-      body: SettingsList(
-        maxWidth: 1000,
-        sections: [
-          // ── Bangumi 登录状态条 ──
-          if (!isLoggedIn)
-            SettingsSection(tiles: [
-              SettingsTile(
-                onPressed: (_) => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const BangumiLoginPage(),
-                  ),
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.person_add, color: Colors.blue.shade600),
-                ),
-                title: Row(
-                  children: [
-                    Text('当前未登录',
-                        style: TextStyle(
-                            color: colorScheme.onSurface, fontFamily: fontFamily)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text('登录一下吧',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.blue.shade600)),
-                    ),
-                  ],
-                ),
-                description: Text('登录 Bangumi 后可同步收藏与进度',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ])
-          else
-            SettingsSection(tiles: [
-              SettingsTile(
-                onPressed: (_) => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const BangumiLoginPage(),
-                  ),
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.check_circle, color: Colors.green.shade600),
-                ),
-                title: Text('Bangumi 已登录',
-                    style: TextStyle(fontFamily: fontFamily, color: Colors.green.shade700)),
-                description: Text('点击管理 Bangumi 账号',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ]),
-
-          // ── 樱花动漫账号 ──
-          SettingsSection(tiles: [
-            SettingsTile(
-              onPressed: (_) => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const KazumiLoginPage(),
-                ),
-              ),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AuthService.isLoggedIn
-                      ? Colors.green.shade50
-                      : Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  AuthService.isLoggedIn
-                      ? Icons.check_circle
-                      : Icons.person_add,
-                  color: AuthService.isLoggedIn
-                      ? Colors.green.shade600
-                      : Colors.blue.shade600,
-                ),
-              ),
-              title: Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // ── 账号（最上方两个登录）──
+              SettingsSectionCard(
+                title: '账号',
                 children: [
-                  Text(AuthService.isLoggedIn ? '樱花动漫账号已登录' : '樱花动漫账号',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  if (!AuthService.isLoggedIn) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  SettingsEntryTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(10),
+                        color: bangumiLoggedIn
+                            ? Colors.green.shade50
+                            : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text('验证码登录',
-                          style: TextStyle(fontSize: 12, color: Colors.blue.shade600)),
+                      child: Icon(
+                        bangumiLoggedIn ? Icons.check_circle : Icons.person_add,
+                        color: bangumiLoggedIn
+                            ? Colors.green.shade600
+                            : Colors.blue.shade600,
+                      ),
                     ),
-                  ],
+                    title: bangumiLoggedIn ? 'Bangumi 已登录' : 'Bangumi 一键登录',
+                    description:
+                        bangumiLoggedIn ? '点击管理 Bangumi 账号' : '登录后可同步收藏与进度',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BangumiLoginPage()),
+                    ),
+                  ),
+                  SettingsEntryTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AuthService.isLoggedIn
+                            ? Colors.green.shade50
+                            : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        AuthService.isLoggedIn
+                            ? Icons.check_circle
+                            : Icons.person_add,
+                        color: AuthService.isLoggedIn
+                            ? Colors.green.shade600
+                            : Colors.blue.shade600,
+                      ),
+                    ),
+                    title: AuthService.isLoggedIn ? '樱花动漫账号已登录' : '樱花动漫账号',
+                    description: AuthService.isLoggedIn
+                        ? '点击管理账号'
+                        : '登录后可同步收藏与进度',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+                    ),
+                  ),
                 ],
               ),
-              description: Text(
-                AuthService.isLoggedIn ? '点击管理账号' : '登录后可同步收藏与进度',
-                style: TextStyle(fontFamily: fontFamily),
-              ),
-            ),
-          ]),
 
-          // ── 播放历史与视频源 ──
-          SettingsSection(
-            title:
-                Text('播放历史与视频源', style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/history/');
-                },
-                leading: const Icon(Icons.history_rounded),
-                title: Text('历史记录', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('查看播放历史记录',
-                    style: TextStyle(fontFamily: fontFamily)),
+              // ── 本周目标 ──
+              SettingsSectionCard(
+                title: '本周目标',
+                leading: Icon(
+                  Icons.flag_rounded,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+                children: [
+                  if (weeklyGoal <= 0)
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Text(
+                            '本周还没设定目标，本周已看 $thisWeekEpisodes 集',
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonal(
+                            onPressed: () {
+                              setState(() => weeklyGoal = 5);
+                              GStorage.putSetting(
+                                  SettingsKeys.weeklyWatchGoal, 5);
+                            },
+                            child: const Text('设定目标（5 集 / 周）'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '本周已看 $thisWeekEpisodes / $weeklyGoal 集',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                onPressed: weeklyGoal > 1
+                                    ? () {
+                                        setState(() => weeklyGoal--);
+                                        GStorage.putSetting(
+                                            SettingsKeys.weeklyWatchGoal,
+                                            weeklyGoal);
+                                      }
+                                    : null,
+                                icon: const Icon(Icons.remove_circle_outline),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () {
+                                  setState(() => weeklyGoal++);
+                                  GStorage.putSetting(SettingsKeys.weeklyWatchGoal,
+                                      weeklyGoal);
+                                },
+                                icon: const Icon(Icons.add_circle_outline),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (thisWeekEpisodes / weeklyGoal).clamp(0.0, 1.0),
+                              minHeight: 8,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            thisWeekEpisodes >= weeklyGoal
+                                ? '🎉 本周目标已完成！'
+                                : '还差 ${weeklyGoal - thisWeekEpisodes} 集达成目标',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: thisWeekEpisodes >= weeklyGoal
+                                  ? Colors.green
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/download/');
-                },
-                leading: const Icon(Icons.download_rounded),
-                title: Text('下载管理', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('查看和管理离线下载',
-                    style: TextStyle(fontFamily: fontFamily)),
+
+              // ── 历史记录 + 离线下载（仅这两个选项）──
+              SettingsSectionCard(
+                children: [
+                  SettingsEntryTile(
+                    icon: Icons.history_rounded,
+                    title: '历史记录',
+                    description: '查看播放历史记录',
+                    onTap: () => context.pushNamed('/settings/history/'),
+                  ),
+                  SettingsEntryTile(
+                    icon: Icons.download_rounded,
+                    title: '离线下载',
+                    description: '查看和管理离线下载',
+                    onTap: () => context.pushNamed('/settings/download/'),
+                  ),
+                  SettingsEntryTile(
+                    icon: Icons.cleaning_services_rounded,
+                    title: '缓存清理',
+                    description: '查看图片缓存占用，一键清理释放空间',
+                    onTap: () => _showCacheCleanup(context),
+                  ),
+                ],
               ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/download-settings');
-                },
-                leading: const Icon(Icons.settings_rounded),
-                title: Text('下载设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('配置下载并发数等参数',
-                    style: TextStyle(fontFamily: fontFamily)),
+
+              // ── 设置（入口）──
+              SettingsSectionCard(
+                children: [
+                  SettingsEntryTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.settings_rounded,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    title: '设置',
+                    description: '播放 / 下载 / 规则 / 同步等全部设置',
+                    onTap: () => context.pushNamed('/settings'),
+                  ),
+                ],
               ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/plugin/');
-                },
-                leading: const Icon(Icons.extension),
-                title: Text('规则管理', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('管理番剧资源规则',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ],
-          ),
-          // ── 播放器设置 ──
-          SettingsSection(
-            title: Text('播放器设置', style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/player');
-                },
-                leading: const Icon(Icons.display_settings_rounded),
-                title: Text('播放设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置播放器相关参数',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/danmaku/');
-                },
-                leading: const Icon(Icons.subtitles_rounded),
-                title: Text('弹幕设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置弹幕相关参数',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/keyboard');
-                },
-                leading: const Icon(Icons.keyboard_rounded),
-                title: Text('操作设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置播放器按键映射',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/proxy');
-                },
-                leading: const Icon(Icons.vpn_key_rounded),
-                title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('配置HTTP代理',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ],
-          ),
-          // ── 数据与统计 ──
-          SettingsSection(
-            title: Text('数据与统计', style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/playlist/');
-                },
-                leading: const Icon(Icons.playlist_play_rounded),
-                title: Text('播放列表', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('管理你的自定义播放列表',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/stats/');
-                },
-                leading: const Icon(Icons.bar_chart_rounded),
-                title: Text('观看统计', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('查看你的追番报告和统计数据',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/webdav/');
-                },
-                leading: const Icon(Icons.cloud),
-                title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置同步参数',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ],
-          ),
-          // ── 应用与外观 ──
-          SettingsSection(
-            title: Text('应用与外观', style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/theme');
-                },
-                leading: const Icon(Icons.palette_rounded),
-                title: Text('外观设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置应用主题和刷新率',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/interface');
-                },
-                leading: const Icon(Icons.pages_rounded),
-                title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('设置应用界面样式',
-                    style: TextStyle(fontFamily: fontFamily)),
-              ),
-            ],
-          ),
-          // ── 其他 ──
-          SettingsSection(
-            title: Text('其他', style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.navigation(
-                onPressed: (_) async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
-                  );
-                },
-                leading: const Icon(Icons.person),
-                title: Text('樱花动漫账号', style: TextStyle(fontFamily: fontFamily)),
-                description: Text(AuthService.isLoggedIn ? '已登录' : '未登录', style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TaskCenterPage()),
-                  );
-                },
-                leading: const Icon(Icons.emoji_events),
-                title: Text('任务中心', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('赚金币、看进度', style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  if (!AuthService.isLoggedIn) {
-                    KazumiDialog.showToast(message: '请先登录樱花动漫账号');
-                    return;
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ChatRoomPage()),
-                  );
-                },
-                leading: const Icon(Icons.chat),
-                title: Text('闲聊室', style: TextStyle(fontFamily: fontFamily)),
-                description: Text(AuthService.isLoggedIn ? '已登录' : '登录后可用', style: TextStyle(fontFamily: fontFamily)),
-              ),
-              // ⭐ 新增：意见反馈入口
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const FeedbackPage()),
-                  );
-                },
-                leading: const Icon(Icons.feedback_rounded),
-                title: Text('意见反馈', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('查看所有反馈及处理情况', style: TextStyle(fontFamily: fontFamily)),
-              ),
-              SettingsTile.navigation(
-                onPressed: (_) {
-                  context.pushNamed('/settings/about/');
-                },
-                leading: const Icon(Icons.info_outline_rounded),
-                title: Text('关于', style: TextStyle(fontFamily: fontFamily)),
+
+              // ── 简易历史记录（最多 5 条，点击直接继续观看）──
+              SettingsSectionCard(
+                title: '历史记录',
+                leading: Icon(
+                  Icons.history_rounded,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+                children: [
+                  if (_recentHistories.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('暂无历史记录'),
+                    )
+                  else
+                    for (final h in _recentHistories)
+                      BangumiHistoryCardV(historyItem: h),
+                  const Divider(height: 1),
+                  ListTile(
+                    onTap: () => context.pushNamed('/settings/history/'),
+                    title: Text(
+                      '更多历史记录请在历史记录页查看',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.outline,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.outline,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

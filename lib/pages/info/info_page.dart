@@ -6,6 +6,7 @@ import 'package:kazumi/modules/playlist/playlist_module.dart';
 import 'package:kazumi/services/playlist/playlist_service.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
@@ -45,7 +46,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     '概览',
     '吐槽',
     '角色',
-    '评论',
+    '相关',
     '制作人员',
   ];
   static const int _commentsTabIndex = 1;
@@ -376,6 +377,174 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
+  /// 分享番剧：弹出分享面板（复制文案 / 复制深链 / 打开 Bangumi 页）
+  void _showShareSheet(BuildContext context) {
+    final item = infoController.bangumiItem;
+    final name = item.nameCn.isNotEmpty ? item.nameCn : item.name;
+    final shareText = _buildShareText(item, name);
+    // 分享只复制 ID（纯数字），打开 App 后通过剪贴板检测自动打开详情
+    final deepLink = '${item.id}';
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      '分享番剧',
+                      style: Theme.of(ctx).textTheme.titleLarge,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 番剧卡片预览
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        item.images['large'] ?? '',
+                        width: 56,
+                        height: 78,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 56,
+                          height: 78,
+                          color: colorScheme.surfaceContainerHighest,
+                          child: const Icon(Icons.movie),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (item.ratingScore > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '评分 ${item.ratingScore.toStringAsFixed(1)}',
+                              style: TextStyle(color: colorScheme.primary),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Text(
+                            item.summary.isEmpty
+                                ? '暂无简介'
+                                : item.summary.replaceAll('\n', ' '),
+                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 分享文案预览
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    shareText,
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                    maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: shareText));
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(message: '已复制分享文案');
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        label: const Text('复制文案'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: deepLink));
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(message: '已复制番剧ID，打开 App 自动打开');
+                        },
+                        icon: const Icon(Icons.link_rounded, size: 18),
+                        label: const Text('复制ID'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          launchUrl(
+                            Uri.parse('https://bangumi.tv/subject/${item.id}'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                        label: const Text('Bangumi'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 生成分享文案
+  String _buildShareText(BangumiItem item, String name) {
+    final sb = StringBuffer();
+    sb.writeln('【$name】');
+    if (item.ratingScore > 0) {
+      sb.writeln('评分：${item.ratingScore.toStringAsFixed(1)}');
+    }
+    if (item.summary.isNotEmpty) {
+      final summary = item.summary.replaceAll('\n', ' ').trim();
+      sb.writeln(
+        summary.length > 80 ? '${summary.substring(0, 80)}...' : summary,
+      );
+    }
+    sb.writeln('https://bangumi.tv/subject/${item.id}');
+    return sb.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool showWindowButton =
@@ -432,6 +601,14 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           onPressed: () => _addToPlaylist(context),
                           icon: const Icon(Icons.playlist_add_rounded),
                           tooltip: '添加到播放列表',
+                        ),
+                      ),
+                      // 分享番剧
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          onPressed: () => _showShareSheet(context),
+                          icon: const Icon(Icons.share_rounded),
+                          tooltip: '分享',
                         ),
                       ),
                       EmbeddedNativeControlArea(

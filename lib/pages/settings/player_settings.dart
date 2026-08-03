@@ -8,6 +8,7 @@ import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/player/skip_segments_service.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -37,6 +38,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDisableAnimations;
   late bool forceAdBlocker;
   late bool autoPlayNext;
+  late bool autoSwitchSource;
+  late int skipOpDefault;
+  late int skipEdDefault;
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
   late bool showLastWatchCard;
@@ -72,6 +76,12 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     showPlayerError = GStorage.getSetting<bool>(SettingsKeys.showPlayerError);
     playerDebugMode = GStorage.getSetting<bool>(SettingsKeys.playerDebugMode);
     autoPlayNext = GStorage.getSetting<bool>(SettingsKeys.autoPlayNext);
+    autoSwitchSource =
+        GStorage.getSetting<bool>(SettingsKeys.autoSwitchSource);
+    skipOpDefault =
+        GStorage.getSetting<int>(SettingsKeys.skipOpDefaultSeconds);
+    skipEdDefault =
+        GStorage.getSetting<int>(SettingsKeys.skipEdDefaultSeconds);
     backgroundPlayback =
         GStorage.getSetting<bool>(SettingsKeys.backgroundPlayback);
     playerDisableAnimations =
@@ -255,6 +265,69 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   }
 
   @override
+  /// 全局默认片头/片尾时长设置对话框（0 = 不跳过）
+  Future<void> _showDefaultSkipDialog({required bool isOp}) async {
+    var value = (isOp ? skipOpDefault : skipEdDefault)
+        .toDouble()
+        .clamp(0.0, 300.0);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(isOp ? '片头跳过默认时长' : '片尾跳过默认时长'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${value.round()} 秒（0 = 不跳过）',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              Slider(
+                value: value,
+                max: 300,
+                divisions: 60,
+                label: '${value.round()}s',
+                onChanged: (v) => setDialogState(() => value = v),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '这是全局默认值；每部番可在播放页 ⋮ 菜单里单独覆盖。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final sec = value.round();
+                if (isOp) {
+                  skipOpDefault = sec;
+                  GStorage.putSetting(SettingsKeys.skipOpDefaultSeconds, sec);
+                } else {
+                  skipEdDefault = sec;
+                  GStorage.putSetting(SettingsKeys.skipEdDefaultSeconds, sec);
+                }
+                Navigator.pop(ctx);
+                setState(() {});
+                KazumiDialog.showToast(
+                    message: '默认${isOp ? '片头' : '片尾'}设为 $sec 秒');
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
@@ -405,6 +478,34 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('当前视频播放完毕后自动播放下一集',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoPlayNext,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    autoSwitchSource = value ?? !autoSwitchSource;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.autoSwitchSource, autoSwitchSource);
+                    setState(() {});
+                  },
+                  title: Text('源失效自动换源', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('当前线路加载失败时自动尝试其他线路',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: autoSwitchSource,
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) => _showDefaultSkipDialog(isOp: true),
+                  title: Text('片头跳过默认时长', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('未单独设置的番剧默认跳过片头 $skipOpDefault 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('$skipOpDefault 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) => _showDefaultSkipDialog(isOp: false),
+                  title: Text('片尾跳过默认时长', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('未单独设置的番剧默认跳过片尾 $skipEdDefault 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('$skipEdDefault 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 if (Platform.isAndroid)
                   SettingsTile.switchTile(

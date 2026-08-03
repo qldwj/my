@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -21,8 +19,6 @@ class QrcodeLoginPage extends StatefulWidget {
 class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   String? _qrcodeUrl;
   String? _token;
-  String? _myIp;
-  String? _myLocation;
   String? _scannerIp;
   String? _scannerLocation;
   bool _expired = false;
@@ -46,7 +42,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
   Future<void> _createQrcode() async {
     try {
-      final data = await QrLoginService.createQr();
+      // 上送机主 token，后端据此区分"机主确认"与"扫码者请求"
+      final data = await QrLoginService.createQr(
+        userToken: AuthService.getLocalToken() ?? '',
+      );
       if (data['url'] != null) {
         setState(() {
           _qrcodeUrl = data['url'];
@@ -56,6 +55,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         _startPolling();
       } else {
         setState(() => _loading = false);
+        KazumiDialog.showToast(message: data['error'] ?? '创建二维码失败');
       }
     } catch (e) {
       setState(() => _loading = false);
@@ -84,6 +84,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         final status = data['status'] as String?;
 
         if (status == 'success') {
+          if (_confirmed) return; // 已在确认对话框里处理过，避免重复弹出/跳转
           _pollTimer?.cancel();
           final userToken = data['token'] as String?;
           if (userToken != null && userToken.isNotEmpty) {
@@ -112,12 +113,15 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         } else if (status == 'expired') {
           _pollTimer?.cancel();
           if (mounted) setState(() => _expired = true);
-        } else if (status == 'pending' || status == null) {
+        } else if (status == 'pending') {
           // ⭐ pending 状态：等待扫码，什么都不做
           // 如果之前显示过 scanned 状态但又被重置了，重置标志
           if (_scanned && mounted) {
             setState(() => _scanned = false);
           }
+        } else if (status == null && data['error'] != null) {
+          // ⭐ 轮询网络异常：保留当前状态，下次继续轮询
+          KazumiLogger().w('轮询失败: ${data['error']}');
         }
       } catch (e) {
         KazumiLogger().e('轮询错误', error: e);
@@ -169,7 +173,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                     children: [
                       const Icon(Icons.location_on, size: 16, color: Colors.grey),
                       const SizedBox(width: 8),
-                      Text('位置: ${_scannerLocation ?? '获取中...'}'),
+                      Text('位置: ${(_scannerLocation == null || _scannerLocation!.isEmpty) ? '未知' : _scannerLocation}'),
                     ],
                   ),
                 ],
@@ -208,29 +212,33 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   }
 
   Future<void> _confirmLogin() async {
+    if (_token == null || _confirmed) return;
     try {
       KazumiDialog.showLoading(msg: '确认登录中...');
-      
-      final client = HttpClient();
-      final body = jsonEncode({'token': _token, 'confirm': true});
-      final request = await client.postUrl(
-        Uri.parse('${AuthService.baseUrl}?action=qrcode_login'),
+
+      // 与扫码端统一走 /api/qr/confirm.php（内部已带超时），
+      // 避免之前直连 /api/login?action=qrcode_login 无超时导致卡死。
+      final result = await QrLoginService.confirmLogin(
+        _token!,
+        AuthService.getLocalToken() ?? '',
       );
-      request.headers.set('Content-Type', 'application/json');
-      request.write(body);
-      final response = await request.close();
-      final respBody = await response.transform(utf8.decoder).join();
-      client.close();
 
       KazumiDialog.dismiss();
 
-      final data = jsonDecode(respBody) as Map<String, dynamic>;
-      if (data['status'] == 'confirmed') {
-        final userToken = data['token'] as String?;
-        if (userToken != null && userToken.isNotEmpty) {
+      final confirmed = result['success'] == true ||
+          result['status'] == 'confirmed' ||
+          result['status'] == 'success';
+
+      if (confirmed) {
+        final rawToken = result['token'];
+        final userToken = rawToken is String && rawToken.isNotEmpty
+            ? rawToken
+            : null;
+        if (userToken != null) {
           AuthService.saveLocalToken(userToken);
           await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
         }
+        _pollTimer?.cancel();
         if (mounted) {
           setState(() => _confirmed = true);
           KazumiDialog.showToast(message: '扫码登录成功 🎉');
@@ -240,7 +248,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           }
         }
       } else {
-        KazumiDialog.showToast(message: data['error'] ?? '确认失败，请重试');
+        final err = result['error'] ?? result['msg'] ?? '确认失败，请重试';
+        KazumiDialog.showToast(message: err.toString());
         // ⭐ 失败后重置状态，允许重新尝试
         if (mounted) {
           setState(() {
@@ -419,24 +428,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '本机: $_myIp · $_myLocation',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
                           Text(
                             '二维码有效期 5 分钟',
                             style: TextStyle(

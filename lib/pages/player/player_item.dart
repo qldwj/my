@@ -30,6 +30,9 @@ import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
+import 'package:kazumi/services/player/skip_segments_service.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -1039,6 +1042,9 @@ class _PlayerItemState extends State<PlayerItem>
           } catch (_) {}
           widget.changeEpisode(playingSelection.episode + 1,
               currentRoad: playingSelection.road);
+        } else if (playingSelection.episode >= playingRoadData.data.length) {
+          // ⭐ 最后一集看完 → 自动把收藏状态从"在看"切到"看过"
+          _autoMarkWatched();
         }
       }
       playerController.setSyncPlayCurrentPosition();
@@ -1541,6 +1547,21 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   @override
+  /// 最后一集看完：自动把收藏从"在看"切到"看过"（含 Bangumi/樱花同步）
+  void _autoMarkWatched() {
+    try {
+      final collectController = inject<CollectController>();
+      final item = videoPageController.bangumiItem;
+      final currentType = collectController.getCollectType(item);
+      if (currentType == CollectType.watching.value) {
+        collectController.addCollect(item, type: CollectType.watched.value);
+        KazumiDialog.showToast(message: '本季已看完，自动标记为"看过"');
+      }
+    } catch (e) {
+      KazumiLogger().e('自动标记看过失败', error: e);
+    }
+  }
+
   Widget build(BuildContext context) {
     return Observer(
       builder: (context) {
@@ -1694,6 +1715,11 @@ class _PlayerItemState extends State<PlayerItem>
                       child: PlayerScreenshotFeedbackOverlay(
                         animation: _screenshotFeedbackAnimation,
                       ),
+                    ),
+                    // ⭐ 跳过片头/片尾快捷按钮（按番剧记忆时长）
+                    SkipChipsOverlay(
+                      playerController: playerController,
+                      videoPageController: videoPageController,
                     ),
                     (needFullPanel(context))
                         ? PlayerItemPanel(
@@ -1859,6 +1885,123 @@ class _PlayerItemState extends State<PlayerItem>
           ),
         );
       },
+    );
+  }
+}
+
+/// 跳过片头/片尾快捷按钮（按番剧记忆时长，独立刷新不影响播放器性能）
+class SkipChipsOverlay extends StatefulWidget {
+  const SkipChipsOverlay({
+    super.key,
+    required this.playerController,
+    required this.videoPageController,
+  });
+
+  final PlayerController playerController;
+  final VideoPageController videoPageController;
+
+  @override
+  State<SkipChipsOverlay> createState() => _SkipChipsOverlayState();
+}
+
+class _SkipChipsOverlayState extends State<SkipChipsOverlay> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 每 500ms 刷新一次按钮显隐（只重建本组件，不影响播放器/弹幕）
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pos = widget.playerController.playback.currentPosition;
+    final dur = widget.playerController.playback.duration;
+    if (dur <= Duration.zero) return const SizedBox.shrink();
+
+    final id = widget.videoPageController.bangumiItem.id;
+    final op = SkipSegmentsService.opSeconds(id);
+    final ed = SkipSegmentsService.edSeconds(id);
+
+    final chips = <Widget>[];
+
+    // 片头：播放中且位于片头区间内
+    if (op > 0 &&
+        pos > const Duration(seconds: 3) &&
+        pos < Duration(seconds: op) &&
+        dur > Duration(seconds: op + 20)) {
+      chips.add(_SkipChip(
+        label: '跳过片头 $op 秒',
+        onTap: () => widget.playerController.seek(Duration(seconds: op)),
+      ));
+    }
+
+    // 片尾：剩余时长进入片尾区间
+    final remaining = dur - pos;
+    if (ed > 0 &&
+        remaining > const Duration(seconds: 2) &&
+        remaining <= Duration(seconds: ed) &&
+        dur > Duration(seconds: ed + 20)) {
+      chips.add(_SkipChip(
+        label: '跳过片尾 $ed 秒',
+        onTap: () => widget.playerController
+            .seek(dur - const Duration(seconds: 2)),
+      ));
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Positioned(
+      left: 16,
+      bottom: 96,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final c in chips) ...[c, const SizedBox(width: 8)],
+        ],
+      ),
+    );
+  }
+}
+
+class _SkipChip extends StatelessWidget {
+  const _SkipChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black54,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.skip_next_rounded, size: 18, color: Colors.white),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

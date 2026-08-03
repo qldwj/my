@@ -72,8 +72,17 @@ class CommentsCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(commentItem!.user.avatar.large),
+                // 用 Image.network 支持动态 GIF（NetworkImage 只会显示第一帧）
+                ClipOval(
+                  child: Image.network(
+                    commentItem!.user.avatar.large,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const CircleAvatar(
+                      child: Icon(Icons.person),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Column(

@@ -44,6 +44,31 @@ class SettingsKeys {
     true,
     group: SettingGroup.player,
   );
+  static const autoSwitchSource = SettingKey<bool>(
+    _SettingBoxKey.autoSwitchSource,
+    true,
+    group: SettingGroup.player,
+  );
+  static const skipOpDurations = SettingKey<String>(
+    _SettingBoxKey.skipOpDurations,
+    '{}',
+    group: SettingGroup.player,
+  );
+  static const skipEdDurations = SettingKey<String>(
+    _SettingBoxKey.skipEdDurations,
+    '{}',
+    group: SettingGroup.player,
+  );
+  static const skipOpDefaultSeconds = SettingKey<int>(
+    _SettingBoxKey.skipOpDefaultSeconds,
+    60,
+    group: SettingGroup.player,
+  );
+  static const skipEdDefaultSeconds = SettingKey<int>(
+    _SettingBoxKey.skipEdDefaultSeconds,
+    60,
+    group: SettingGroup.player,
+  );
   static const hardwareDecoder = SettingKey<String>(
     _SettingBoxKey.hardwareDecoder,
     'auto-safe',
@@ -547,7 +572,17 @@ class SettingsKeys {
   );
   static const kazumiSyncEnable = SettingKey<bool>(
     'kazumiSyncEnable',
-    false,
+    true,
+    group: SettingGroup.sync,
+  );
+  static const weeklyWatchGoal = SettingKey<int>(
+    _SettingBoxKey.weeklyWatchGoal,
+    0,
+    group: SettingGroup.misc,
+  );
+  static const kazumiAutoSync = SettingKey<bool>(
+    _SettingBoxKey.kazumiAutoSync,
+    true,
     group: SettingGroup.sync,
   );
   static const minorMode = SettingKey<bool>(
@@ -565,6 +600,12 @@ class SettingsKeys {
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
+    autoSwitchSource,
+    weeklyWatchGoal,
+    skipOpDurations,
+    skipEdDurations,
+    skipOpDefaultSeconds,
+    skipEdDefaultSeconds,
     hardwareDecoder,
     searchEnhanceEnable,
     autoUpdate,
@@ -648,6 +689,7 @@ class SettingsKeys {
     downloadDirectoryBookmark,
     shortcutDialogShown,
     bangumiSyncEnable,
+    kazumiAutoSync,
     bangumiAccessToken,
     bangumiSyncPriority,
     bangumiImmediateSyncToastEnable,
@@ -674,6 +716,12 @@ class SettingsKeys {
 // Historical Hive key names used by settings created before the typed registry.
 class _SettingBoxKey {
   static const String hAenable = 'hAenable',
+      autoSwitchSource = 'autoSwitchSource',
+      weeklyWatchGoal = 'weeklyWatchGoal',
+      skipOpDurations = 'skipOpDurations',
+      skipEdDurations = 'skipEdDurations',
+      skipOpDefaultSeconds = 'skipOpDefaultSeconds',
+      skipEdDefaultSeconds = 'skipEdDefaultSeconds',
       hardwareDecoder = 'hardwareDecoder',
       searchEnhanceEnable = 'searchEnhanceEnable',
       autoUpdate = 'autoUpdate',
@@ -755,6 +803,7 @@ class _SettingBoxKey {
       downloadDirectory = 'downloadDirectory',
       shortcutDialogShown = 'shortcutDialogShown',
       bangumiSyncEnable = 'bangumiSyncEnable',
+      kazumiAutoSync = 'kazumiAutoSync',
       bangumiAccessToken = 'bangumiAccessToken',
       bangumiSyncPriority = 'bangumiSyncPriority',
       bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',

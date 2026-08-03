@@ -22,6 +22,7 @@ import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
@@ -77,6 +78,8 @@ class _VideoPageState extends State<VideoPage>
   late final bool disableAnimations;
 
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
+  /// 源失效自动换源信号订阅
+  StreamSubscription<void>? _sourceFailedSubscription;
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
   static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
@@ -89,6 +92,11 @@ class _VideoPageState extends State<VideoPage>
     // Window fullscreen can be changed outside this page through system chrome.
     videoPageController.isDesktopFullscreen();
     tabController = TabController(length: 2, vsync: this);
+    // ⭐ 源失效自动换源：监听播放器线路加载失败信号
+    _sourceFailedSubscription =
+        playerController.playback.onSourceFailed.listen((_) {
+      _autoSwitchSource();
+    });
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: _sideTabAnimationDuration,
@@ -221,6 +229,8 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    _sourceFailedSubscription?.cancel();
+    _sourceFailedSubscription = null;
     try {
       windowManager.removeListener(this);
     } catch (_) {}
@@ -296,6 +306,38 @@ class _VideoPageState extends State<VideoPage>
         currentRoad: currentRoad,
         offset: offset,
         playerController: playerController);
+  }
+
+  /// 该番上次看到的集数（来自历史记录）
+  int _lastWatchedEpisode() {
+    try {
+      final id = videoPageController.bangumiItem.id;
+      for (final h in HistoryRepository().getAllHistories()) {
+        if (h.bangumiItem.id == id) return h.lastWatchEpisode;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  /// 源失效自动换源：切换到下一条线路重播当前集
+  void _autoSwitchSource() {
+    if (!mounted) return;
+    final roadList = videoPageController.roadList;
+    if (roadList.isEmpty) return;
+    final currentEp = videoPageController.selectedEpisode.episode;
+    final next = visibleRoad + 1;
+    if (next < roadList.length) {
+      setState(() {
+        visibleRoad = next;
+      });
+      KazumiDialog.showToast(
+          message: '线路「${roadList[next].name}」自动切换中...');
+      changeEpisode(currentEp, currentRoad: next);
+    } else {
+      KazumiDialog.showToast(
+          message: '所有线路均无法播放，请手动更换',
+          showActionButton: true);
+    }
   }
 
   void menuJumpToCurrentEpisode() {
@@ -1179,6 +1221,56 @@ class _VideoPageState extends State<VideoPage>
                         controller: observerController,
                         child: Column(
                           children: [
+                            // ⭐ 下一集检测：上次看到第X集，第X+1集可看
+                            Builder(builder: (context) {
+                              final lastEp = _lastWatchedEpisode();
+                              final totalEp =
+                                  visibleRoad >= 0 &&
+                                          visibleRoad <
+                                              videoPageController.roadList.length
+                                      ? videoPageController
+                                          .roadList[visibleRoad].data.length
+                                      : 0;
+                              if (lastEp <= 0 || lastEp >= totalEp) {
+                                return const SizedBox.shrink();
+                              }
+                              return Material(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                child: InkWell(
+                                  onTap: () => changeEpisode(
+                                    lastEp + 1,
+                                    currentRoad: visibleRoad,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.play_circle_fill,
+                                          size: 20,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '上次看到第 $lastEp 集 · 第 ${lastEp + 1} 集可看，点击继续',
+                                            style: const TextStyle(
+                                                fontSize: 13),
+                                          ),
+                                        ),
+                                        const Icon(Icons.chevron_right,
+                                            size: 18),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
                             menuBar,
                             menuBody,
                           ],

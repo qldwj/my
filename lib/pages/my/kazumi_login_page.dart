@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/my/chat_room_page.dart';
 import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart';
 
@@ -26,6 +25,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   bool _sending = false;
   bool _logging = false;
   bool _syncing = false;
+  bool kazumiAutoSync = true;
   String? _captchaChallenge;
   bool _loggedIn = false;
 
@@ -41,6 +41,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   void initState() {
     super.initState();
     _loggedIn = AuthService.isLoggedIn;
+    kazumiAutoSync =
+        GStorage.getSetting<bool>(SettingsKeys.kazumiAutoSync);
   }
 
   Future<void> _sendCode() async {
@@ -101,12 +103,20 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     KazumiDialog.showToast(message: '已退出登录');
   }
 
+  /// Token 脱敏：只保留头尾共 10 个字符，中间用星号代替
+  String _maskToken(String token) {
+    if (token.length <= 10) return token;
+    return '${token.substring(0, 5)}'
+        '${'*' * (token.length - 10)}'
+        '${token.substring(token.length - 5)}';
+  }
+
   /// 跳转到扫码页面（未登录时使用）
   void _gotoScan() {
     Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const YhdmgzQrScanPage()),
     ).then((result) {
-      // 扫码登录成功后刷新状态
+      // 扫码登录成功后刷新状态（不再 pop 本页，避免直接跳回首页）
       if (result == true) {
         // 延迟一下，确保 token 已经保存
         Future.delayed(const Duration(milliseconds: 300), () {
@@ -117,7 +127,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             });
             if (_loggedIn) {
               KazumiDialog.showToast(message: '扫码登录成功 🎉');
-              Navigator.of(context).pop(true);
             }
           }
         });
@@ -167,98 +176,10 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Future<void> _doSync() async {
     try {
       KazumiDialog.showLoading(msg: '正在获取云端收藏...');
-
-      final remoteRes = await AuthService.getRemoteCollect();
-      if (remoteRes['error'] != null) {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '❌ 获取云端数据失败: ${remoteRes['error']}');
-        return;
-      }
-
-      List<dynamic> remoteList = [];
-      if (remoteRes['collect'] is List) {
-        remoteList = remoteRes['collect'] as List;
-      } else {
-        if (remoteRes['sync_data'] is Map && remoteRes['sync_data']['collect'] is List) {
-          remoteList = remoteRes['sync_data']['collect'] as List;
-        } else {
-          remoteList = [];
-        }
-      }
-
-      int downloadCount = 0;
-      final localCollectBefore = GStorage.collectibles.values.toList();
-      final localIds = localCollectBefore.map((c) => c.bangumiItem.id).toSet();
-
-      for (final item in remoteList) {
-        if (item is! Map) continue;
-        final remoteId = item['id'];
-        if (remoteId is! int) continue;
-        if (!localIds.contains(remoteId)) {
-          final bangumiItem = BangumiItem(
-            id: remoteId,
-            type: 0,
-            name: item['name']?.toString() ?? '未知',
-            nameCn: item['name_cn']?.toString() ?? '',
-            summary: item['summary']?.toString() ?? '',
-            airDate: item['air_date']?.toString() ?? '',
-            airWeekday: 0,
-            rank: 0,
-            images: {'large': item['image']?.toString() ?? ''},
-            tags: [],
-            alias: [],
-            ratingScore: (item['rating'] as num?)?.toDouble() ?? 0.0,
-            votes: 0,
-            votesCount: [],
-            info: '',
-          );
-          await GStorage.putCollectible(
-            CollectedBangumi(
-              bangumiItem,
-              DateTime.now(),
-              item['type'] is int ? item['type'] as int : 1,
-            ),
-          );
-          downloadCount++;
-        }
-      }
-
-      final localCollectAfter = GStorage.collectibles.values.toList();
-      final remoteIds = remoteList.map((e) => (e as Map)['id'] as int).toSet();
-
-      final diffList = localCollectAfter
-          .where((c) => !remoteIds.contains(c.bangumiItem.id))
-          .map((c) => {
-                'id': c.bangumiItem.id,
-                'name': c.bangumiItem.name,
-                'name_cn': c.bangumiItem.nameCn,
-                'type': c.type,
-                'time': c.time.toIso8601String(),
-                'image': c.bangumiItem.images['large'] ?? '',
-                'summary': c.bangumiItem.summary,
-                'rating': c.bangumiItem.ratingScore,
-              })
-          .toList();
-
-      int uploadCount = 0;
-      if (diffList.isNotEmpty) {
-        KazumiDialog.showLoading(msg: '正在上传新增条目...');
-        final uploadRes = await AuthService.syncData({'collect': diffList});
-        if (uploadRes['error'] != null) {
-          KazumiDialog.dismiss();
-          KazumiDialog.showToast(message: '❌ 上传差异失败: ${uploadRes['error']}');
-          return;
-        }
-        uploadCount = diffList.length;
-      }
-
+      final msg = await KazumiSyncService.syncCollect();
       KazumiDialog.dismiss();
-      KazumiDialog.showToast(
-        message: '同步完成 ✅ 下载 $downloadCount 项，上传 $uploadCount 项',
-      );
-
-    } catch (e, st) {
-      KazumiLogger().e('同步失败', error: e, stackTrace: st);
+      KazumiDialog.showToast(message: msg);
+    } catch (e) {
       KazumiDialog.dismiss();
       KazumiDialog.showToast(message: '❌ 同步失败: $e');
     }
@@ -276,7 +197,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             onPressed: _loggedIn ? _gotoGenerateQr : _gotoScan,
             icon: Icon(
               _loggedIn ? Icons.qr_code : Icons.qr_code_scanner,
-              color: Colors.white,
+              // 白色在粉色主题下不明显，改用主题暗色前景色
+              color: colorScheme.onSurface,
             ),
             tooltip: _loggedIn ? '生成登录二维码' : '扫描二维码登录',
           ),
@@ -294,7 +216,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           if (_loggedIn)
-            Text(AuthService.getLocalToken() ?? '',
+            Text(_maskToken(AuthService.getLocalToken() ?? ''),
                 style: TextStyle(fontSize: 11, color: colorScheme.outline)),
           const SizedBox(height: 32),
 
@@ -432,6 +354,26 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 自动同步开关（默认开启，30 分钟一次）
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SwitchListTile(
+                value: kazumiAutoSync,
+                onChanged: (value) async {
+                  setState(() => kazumiAutoSync = value);
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.kazumiAutoSync, value);
+                },
+                title: const Text('自动同步'),
+                subtitle: const Text('登录后每 30 分钟自动同步收藏'),
               ),
             ),
             const SizedBox(height: 16),

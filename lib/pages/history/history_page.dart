@@ -4,6 +4,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -23,6 +24,14 @@ class _HistoryPageState extends State<HistoryPage> {
   HistoryController get historyController => widget.controller;
 
   bool showDelete = false;
+  /// 只看未看完的番（最后一集没看到结尾的）
+  bool showUnfinishedOnly = false;
+
+  /// 是否"未看完"：最后一集进度 > 0（看到结尾会被归零，视为已看完）
+  bool _isUnfinished(History h) {
+    final prog = h.progresses[h.lastWatchEpisode];
+    return prog == null || prog.progress > Duration.zero;
+  }
 
   @override
   void initState() {
@@ -84,6 +93,22 @@ class _HistoryPageState extends State<HistoryPage> {
                 IconButton(
                   onPressed: () {
                     setState(() {
+                      showUnfinishedOnly = !showUnfinishedOnly;
+                    });
+                  },
+                  icon: Icon(
+                    showUnfinishedOnly
+                        ? Icons.filter_alt
+                        : Icons.filter_alt_outlined,
+                    color: showUnfinishedOnly
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                  tooltip: showUnfinishedOnly ? '显示全部' : '只看未看完',
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
                       showDelete = !showDelete;
                     });
                   },
@@ -130,6 +155,17 @@ class _HistoryPageState extends State<HistoryPage> {
       crossCount = 3;
     }
 
+    // 「只看未看完」过滤
+    final List<History> histories = showUnfinishedOnly
+        ? historyController.histories.where(_isUnfinished).toList()
+        : historyController.histories.toList();
+
+    if (histories.isEmpty) {
+      return const Center(
+        child: Text('没有未看完的记录 (´;ω;`)'),
+      );
+    }
+
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final double maxContentWidth = 1000;
     final double horizontalPadding =
@@ -150,15 +186,14 @@ class _HistoryPageState extends State<HistoryPage> {
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
                 return BangumiHistoryCardV(
-                  historyItem: historyController.histories[index],
+                  historyItem: histories[index],
                   showDelete: showDelete,
                   onDeleted: () {
-                    historyController
-                        .deleteHistory(historyController.histories[index]);
+                    historyController.deleteHistory(histories[index]);
                   },
                 );
               },
-              childCount: historyController.histories.length,
+              childCount: histories.length,
             ),
           ),
         ),

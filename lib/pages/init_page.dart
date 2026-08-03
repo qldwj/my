@@ -19,6 +19,7 @@ import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 import 'package:kazumi/services/update/animeko_rule_updater.dart';
 import 'package:kazumi/services/deep_link_service.dart';
+import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/navigation.dart';
 
 class InitPage extends StatefulWidget {
@@ -78,6 +79,9 @@ class _InitPageState extends State<InitPage> {
     // 初始化深度链接服务（处理 yhdmgz:// 协议）
     final deepLinkService = DeepLinkService(pluginsController: pluginsController);
     unawaited(deepLinkService.init());
+
+    // 启动樱花自动同步（登录后每 30 分钟同步收藏，默认开启）
+    KazumiSyncService.startAutoSync();
 
     if (!mounted) {
       return;

@@ -69,13 +69,10 @@ abstract class _CollectController with Store {
       return;
     }
 
-    // 2. Sync with Kazumi if enabled
-    await _syncKazumiCollectIfEnabled();
-
     final int currentCollectType = getCollectType(bangumiItem);
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
-    // 3. Update local database and change logs
+    // 2. ⭐ 先更新本地数据库，再同步樱花（保证上传的是最新状态）
     await _collectCrudRepository.addCollectible(bangumiItem, type);
     await GStorage.appendCollectChange(
       bangumiId: bangumiItem.id,
@@ -83,6 +80,9 @@ abstract class _CollectController with Store {
       type: type,
     );
     loadCollectibles();
+
+    // 3. Sync with Kazumi if enabled（本地已更新，上传最新 type）
+    await _syncKazumiCollectIfEnabled();
   }
 
   @action
@@ -243,9 +243,13 @@ abstract class _CollectController with Store {
       final res = await AuthService.syncData({'collect': collectData});
       if (res['error'] == null) {
         KazumiDialog.showToast(message: '已同步到樱花服务器');
+      } else {
+        KazumiLogger().w('Kazumi sync failed: ${res['error']}');
+        KazumiDialog.showToast(message: '樱花同步失败: ${res['error']}');
       }
     } catch (e) {
       KazumiLogger().w('Kazumi sync failed', error: e);
+      KazumiDialog.showToast(message: '樱花同步失败: $e');
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
 import 'package:kazumi/bean/widget/recommendation_section.dart';
 import 'package:kazumi/bean/widget/related_anime_section.dart';
+import 'package:kazumi/bean/widget/related_search_section.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
@@ -584,23 +585,11 @@ class _InfoTabViewState extends State<InfoTabView>
         ),
         commentsListBody,
         charactersListBody,
+        // 关联搜索：根据当前番剧名称智能提取关键词自动搜索
         Builder(
           builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('评论'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                // TODO: 评论区
-                SliverFillRemaining(
-                  child: Center(child: Text('施工中')),
-                ),
-              ],
+            return RelatedSearchSection(
+              currentBangumi: widget.bangumiItem,
             );
           },
         ),

@@ -142,8 +142,9 @@ abstract class _PlayerDanmakuController with Store {
   Future<DanmakuLoadResult> fetchDanmaku(
     int bangumiId,
     String pluginName,
-    int episode,
-  ) async {
+    int episode, {
+    String bangumiName = '',
+  }) async {
     if (isLocalPlayback()) {
       return await _fetchCachedDanmaku(
         bangumiId,
@@ -151,10 +152,75 @@ abstract class _PlayerDanmakuController with Store {
         episode,
       );
     }
-    return await _fetchDanDanmakuByBgmBangumiID(
-      bangumiId,
-      episode,
-    );
+    // ⭐ 两个弹幕源【同时并发】拉取，合并显示（弹弹play + B站）
+    final futures = <Future<DanmakuLoadResult>>[
+      _fetchDanDanmakuByBgmBangumiID(
+        bangumiId,
+        episode,
+      ),
+    ];
+    if (bangumiName.isNotEmpty &&
+        GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource)) {
+      futures.add(_fetchBiliDanmaku(bangumiName, episode));
+    }
+
+    final results = await Future.wait(futures);
+
+    final merged = <DanmakuEntry>[];
+    var mergedBangumiId = bangumiId;
+    for (final r in results) {
+      if (r.hasDanmakus) {
+        merged.addAll(r.danmakus);
+      }
+      if (r.bangumiID != bangumiId && r.bangumiID != 0) {
+        mergedBangumiId = r.bangumiID;
+      }
+    }
+    if (merged.isNotEmpty) {
+      KazumiLogger().i(
+          'PlayerController: 双源合并 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
+      return DanmakuLoadResult.success(
+        danmakus: merged,
+        bangumiID: mergedBangumiId,
+      );
+    }
+    // 两个源都没有弹幕：返回失败（由上层提示）
+    return results.isNotEmpty
+        ? results.first
+        : DanmakuLoadResult.failed(bangumiID: bangumiId);
+  }
+
+  /// 通过 B站搜索拉取弹幕（真正的 B站直连源）
+  Future<DanmakuLoadResult> _fetchBiliDanmaku(
+      String bangumiName, int episode) async {
+    try {
+      final videos = await DanmakuApi.searchBiliVideos(bangumiName);
+      if (videos.isEmpty) {
+        return DanmakuLoadResult.failed(bangumiID: bangumiID);
+      }
+      final first = videos.first;
+      final cid = await DanmakuApi.getBiliCid(
+        bvid: first['bvid']?.toString() ?? '',
+        aid: (first['aid'] as num?)?.toInt() ?? 0,
+        episode: episode,
+      );
+      if (cid == 0) {
+        return DanmakuLoadResult.failed(bangumiID: bangumiID);
+      }
+      final danmakus = await DanmakuApi.getBiliDanmaku(cid);
+      if (danmakus.isEmpty) {
+        return DanmakuLoadResult.failed(bangumiID: bangumiID);
+      }
+      KazumiLogger().i(
+          'PlayerController: 从 B站拉取到 ${danmakus.length} 条弹幕 ($bangumiName EP$episode)');
+      return DanmakuLoadResult.success(
+        danmakus: danmakus,
+        bangumiID: bangumiID,
+      );
+    } catch (e) {
+      KazumiLogger().w('PlayerController: B站弹幕拉取异常', error: e);
+      return DanmakuLoadResult.failed(bangumiID: bangumiID);
+    }
   }
 
   @action
