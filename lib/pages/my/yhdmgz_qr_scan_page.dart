@@ -60,74 +60,13 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       
       KazumiDialog.dismiss();
 
-      // ⭐ 修复：检查 result 的类型并正确处理
-      // 情况1：result 是 bool 类型（登录成功返回 true，失败返回 false）
-      if (result == true) {
-        // 登录成功，但可能没有返回 token
-        // 检查是否已经登录
-        if (AuthService.isLoggedIn) {
-          setState(() => _loginSuccess = true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("登录成功 🎉")),
-          );
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (mounted) {
-            Navigator.of(context).pop(true);
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("登录成功，但未获取到凭证，请重试")),
-          );
-          _isProcessing = false;
-          setState(() {});
-        }
-        return;
-      }
-      
-      // 情况2：result 是 Map 类型（包含 token 信息）
-      if (result is Map<String, dynamic>) {
-        // 获取 token（优先使用 token，其次 user_token）
-        String? userToken = result['token'] as String?;
-        if (userToken == null || userToken.isEmpty) {
-          userToken = result['user_token'] as String?;
-        }
-        
-        if (userToken != null && userToken.isNotEmpty) {
-          AuthService.saveLocalToken(userToken);
-          await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
-          
-          setState(() => _loginSuccess = true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("登录成功 🎉")),
-          );
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (mounted) {
-            Navigator.of(context).pop(true);
-          }
-          return;
-        } else {
-          // Map 中有错误信息
-          String errorMsg = result['error'] as String? ?? '登录失败，请重试';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg)),
-          );
-          _isProcessing = false;
-          setState(() {});
-          return;
-        }
-      }
-      
-      // 情况3：result 是其他类型或 null
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("登录失败，请重试")),
-      );
-      _isProcessing = false;
-      setState(() {});
+      // 处理登录结果
+      _handleLoginResult(result);
       
     } catch (e) {
       KazumiDialog.dismiss();
       
-      // ⭐ 如果发生异常，检查是否实际上已经登录了
+      // 如果发生异常，检查是否实际上已经登录了
       if (AuthService.isLoggedIn) {
         setState(() => _loginSuccess = true);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,6 +84,71 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
         setState(() {});
       }
     }
+  }
+
+  // 提取处理登录结果的逻辑到单独的方法
+  Future<void> _handleLoginResult(dynamic result) async {
+    // 情况1：result 是 bool 类型
+    if (result == true) {
+      // 登录成功，检查是否已经登录
+      if (AuthService.isLoggedIn) {
+        setState(() => _loginSuccess = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("登录成功 🎉")),
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("登录成功，但未获取到凭证，请重试")),
+        );
+        _isProcessing = false;
+        setState(() {});
+      }
+      return;
+    }
+
+    // 情况2：result 是 Map 类型
+    if (result is Map<String, dynamic>) {
+      // 获取 token（优先使用 token，其次 user_token）
+      String? userToken = result['token'] as String?;
+      if (userToken == null || userToken.isEmpty) {
+        userToken = result['user_token'] as String?;
+      }
+      
+      if (userToken != null && userToken.isNotEmpty) {
+        AuthService.saveLocalToken(userToken);
+        await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
+        
+        setState(() => _loginSuccess = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("登录成功 🎉")),
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+        return;
+      } else {
+        // Map 中有错误信息
+        String errorMsg = result['error'] as String? ?? '登录失败，请重试';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg)),
+        );
+        _isProcessing = false;
+        setState(() {});
+        return;
+      }
+    }
+
+    // 情况3：result 是其他类型或 null
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("登录失败，请重试")),
+    );
+    _isProcessing = false;
+    setState(() {});
   }
 
   void _onDetect(BarcodeCapture capture) {
