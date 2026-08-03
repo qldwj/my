@@ -61,8 +61,22 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       
       KazumiDialog.dismiss();
 
-      if (result['status'] == 'confirmed') {
-        final userToken = result['token'] as String?;
+      // ⭐ 多种方式判断登录成功
+      // 方式1: status == 'confirmed'
+      // 方式2: 有 token 字段
+      // 方式3: 有 user_token 字段
+      final isSuccess = 
+          result['status'] == 'confirmed' ||
+          (result['token'] != null && result['token'].toString().isNotEmpty) ||
+          (result['user_token'] != null && result['user_token'].toString().isNotEmpty);
+
+      if (isSuccess) {
+        // 获取 token（优先使用 token，其次 user_token）
+        String? userToken = result['token'] as String?;
+        if (userToken == null || userToken.isEmpty) {
+          userToken = result['user_token'] as String?;
+        }
+        
         if (userToken != null && userToken.isNotEmpty) {
           AuthService.saveLocalToken(userToken);
           await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
@@ -76,10 +90,23 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
             Navigator.of(context).pop(true);
           }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("登录失败：未获取到用户凭证")),
-          );
-          _isProcessing = false;
+          // 登录成功但没有返回 token（可能 token 已经在其他地方保存了）
+          // 检查是否已经登录
+          if (AuthService.isLoggedIn) {
+            setState(() => _loginSuccess = true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("登录成功 🎉")),
+            );
+            await Future.delayed(const Duration(milliseconds: 500));
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("登录成功，但未获取到凭证，请重试")),
+            );
+            _isProcessing = false;
+          }
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,10 +116,23 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       }
     } catch (e) {
       KazumiDialog.dismiss();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("登录失败: $e")),
-      );
-      _isProcessing = false;
+      
+      // ⭐ 如果发生异常，检查是否实际上已经登录了
+      if (AuthService.isLoggedIn) {
+        setState(() => _loginSuccess = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("登录成功 🎉")),
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("登录失败: $e")),
+        );
+        _isProcessing = false;
+      }
     }
   }
 
