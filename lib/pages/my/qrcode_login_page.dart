@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/qr_login_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -45,49 +46,20 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
   Future<void> _createQrcode() async {
     try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 15);
-      final request = await client.postUrl(
-        Uri.parse('${AuthService.baseUrl}?action=qrcode'),
-      );
-      request.headers.set('Content-Type', 'application/json');
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-
-      final data = jsonDecode(body) as Map<String, dynamic>;
-      if (data['success'] == true) {
-        final rawUrl = data['qrcode_url'] as String?;
-        final token = data['token'] as String?;
-        final ip = data['ip'] as String?;
-        final location = data['location'] as String?;
-
-        String finalUrl = rawUrl ?? '';
-        if (token != null && token.isNotEmpty) {
-          if (rawUrl?.startsWith('yhdmgz://qrcode-login/') == true) {
-            finalUrl = 'yhdmgz://login?token=$token';
-          } else if (rawUrl?.startsWith('yhdmgz://login?token=') == true) {
-            finalUrl = rawUrl!;
-          } else {
-            finalUrl = 'yhdmgz://login?token=$token';
-          }
-        }
-
+      final data = await QrLoginService.createQr();
+      if (data['url'] != null) {
         setState(() {
-          _qrcodeUrl = finalUrl;
-          _token = token;
-          _myIp = ip ?? '未知';
-          _myLocation = location ?? '未知';
+          _qrcodeUrl = data['url'];
+          _token = data['code'];
           _loading = false;
         });
         _startPolling();
       } else {
         setState(() => _loading = false);
-        KazumiDialog.showToast(message: '创建二维码失败: ${data['error']}');
       }
     } catch (e) {
       setState(() => _loading = false);
-      KazumiDialog.showToast(message: '网络错误: $e');
+      KazumiDialog.showToast(message: '创建二维码失败: $e');
     }
   }
 
@@ -95,15 +67,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
       if (_token == null) return;
       try {
-        final client = HttpClient();
-        final request = await client.getUrl(
-          Uri.parse('${AuthService.baseUrl}?action=qrcode_check&token=$_token'),
-        );
-        final response = await request.close();
-        final body = await response.transform(utf8.decoder).join();
-        client.close();
-
-        final data = jsonDecode(body) as Map<String, dynamic>;
+        final data = await QrLoginService.check(_token!);
         
         // ⭐ 打印日志便于调试
         KazumiLogger().d('轮询结果: $data');
@@ -119,9 +83,9 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         // ⭐ 先检查 status
         final status = data['status'] as String?;
 
-        if (status == 'confirmed') {
+        if (status == 'success') {
           _pollTimer?.cancel();
-          final userToken = data['user_token'] as String?;
+          final userToken = data['token'] as String?;
           if (userToken != null && userToken.isNotEmpty) {
             AuthService.saveLocalToken(userToken);
             await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);

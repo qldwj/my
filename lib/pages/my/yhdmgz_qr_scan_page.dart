@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/qr_login_service.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -25,17 +26,13 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
     super.dispose();
   }
 
-  String? _extractToken(String url) {
-    if (url.startsWith('yhdmgz://login?')) {
-      final uri = Uri.tryParse(url);
-      return uri?.queryParameters['token'];
-    }
-    if (url.startsWith('yhdmgz://qrcode-login/')) {
-      return url.replaceFirst('yhdmgz://qrcode-login/', '');
-    }
-    if (url.length == 32 && RegExp(r'^[a-f0-9]{32}$').hasMatch(url)) {
-      return url;
-    }
+  String? _extractCode(String url) {
+    try {
+      final uri = Uri.parse(url);
+      if (uri.scheme == 'yhdmgz' && uri.host == 'login') {
+        return uri.queryParameters['code'];
+      }
+    } catch (_) {}
     return null;
   }
 
@@ -43,8 +40,8 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
     if (_isProcessing || _loginSuccess) return;
     _isProcessing = true;
 
-    final token = _extractToken(code);
-    if (token == null) {
+    final qrCode = _extractCode(code);
+    if (qrCode == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("无效的登录二维码")),
       );
@@ -57,7 +54,7 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
 
     try {
       // 调用二维码登录接口
-      final result = await AuthService.qrcodeLogin(token);
+      final result = await QrLoginService.confirmLogin(qrCode, AuthService.getLocalToken() ?? '');
       
       KazumiDialog.dismiss();
 
@@ -65,10 +62,7 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
       // 方式1: status == 'confirmed'
       // 方式2: 有 token 字段
       // 方式3: 有 user_token 字段
-      final isSuccess = 
-          result['status'] == 'confirmed' ||
-          (result['token'] != null && result['token'].toString().isNotEmpty) ||
-          (result['user_token'] != null && result['user_token'].toString().isNotEmpty);
+      final isSuccess = result == true;
 
       if (isSuccess) {
         // 获取 token（优先使用 token，其次 user_token）
