@@ -1,0 +1,462 @@
+import 'dart:io';
+
+import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/utils/dandan_credentials.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/utils/device.dart';
+
+class AboutPage extends StatefulWidget {
+  const AboutPage({
+    super.key,
+    required this.controller,
+  });
+
+  final MyController controller;
+
+  @override
+  State<AboutPage> createState() => _AboutPageState();
+}
+
+class _AboutPageState extends State<AboutPage> {
+  final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
+  late dynamic defaultDanmakuArea;
+  late dynamic defaultThemeMode;
+  late dynamic defaultThemeColor;
+  late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
+  late bool autoUpdate;
+  late bool checkPluginUpdateOnStartup;
+  // 🔥 新增：更新渠道变量
+  late String updateChannel;
+  double _cacheSizeMB = -1;
+  MyController get myController => widget.controller;
+  final MenuController menuController = MenuController();
+
+  @override
+  void initState() {
+    super.initState();
+    autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+    checkPluginUpdateOnStartup =
+        GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
+    
+    // 🔥 新增：读取更新渠道，默认 'stable'，并兼容旧的 'preview'
+    String rawChannel = GStorage.getSetting(SettingsKeys.updateChannel) ?? 'stable';
+    if (rawChannel == 'preview') {
+      rawChannel = 'beta';
+      GStorage.putSetting(SettingsKeys.updateChannel, 'beta');
+    }
+    updateChannel = rawChannel;
+    
+    _getCacheSize();
+  }
+
+  void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
+  }
+
+  Future<Directory> _getCacheDir() async {
+    Directory tempDir = await getTemporaryDirectory();
+    return Directory('${tempDir.path}/libCachedImageData');
+  }
+
+  Future<void> _getCacheSize() async {
+    Directory cacheDir = await _getCacheDir();
+
+    if (await cacheDir.exists()) {
+      int totalSizeBytes = await _getTotalSizeOfFilesInDir(cacheDir);
+      double totalSizeMB = (totalSizeBytes / (1024 * 1024));
+
+      if (mounted) {
+        setState(() {
+          _cacheSizeMB = totalSizeMB;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _cacheSizeMB = 0.0;
+        });
+      }
+    }
+  }
+
+  Future<int> _getTotalSizeOfFilesInDir(final Directory directory) async {
+    final List<FileSystemEntity> children = directory.listSync();
+    int total = 0;
+
+    try {
+      for (final FileSystemEntity child in children) {
+        if (child is File) {
+          final int length = await child.length();
+          total += length;
+        } else if (child is Directory) {
+          total += await _getTotalSizeOfFilesInDir(child);
+        }
+      }
+    } catch (_) {}
+    return total;
+  }
+
+  Future<void> _clearCache() async {
+    final Directory libCacheDir = await _getCacheDir();
+    await libCacheDir.delete(recursive: true);
+    _getCacheSize();
+  }
+
+  void _showCacheDialog() {
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('缓存管理'),
+          content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  _clearCache();
+                } catch (_) {}
+                KazumiDialog.dismiss();
+              },
+              child: const Text('确认'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 🔥 新增：更新渠道选择对话框
+  void _showUpdateChannelDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('选择更新渠道'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('稳定版'),
+              leading: Radio<String>(
+                value: 'stable',
+                groupValue: updateChannel,
+                onChanged: (value) {
+                  setState(() {
+                    updateChannel = value!;
+                  });
+                  GStorage.putSetting(SettingsKeys.updateChannel, value);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('预览版'),
+              leading: Radio<String>(
+                value: 'beta',
+                groupValue: updateChannel,
+                onChanged: (value) {
+                  setState(() {
+                    updateChannel = value!;
+                  });
+                  GStorage.putSetting(SettingsKeys.updateChannel, value);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: const SysAppBar(title: Text('关于')),
+        body: SettingsList(
+          maxWidth: 1000,
+          sections: [
+            // 特别感谢 Kazumi
+            SettingsSection(
+              tiles: [
+                SettingsTile(
+                  title: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse('https://kazumi.app/');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_rounded,
+                              color: Colors.pink, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            '特别感谢 Kazumi 2.2.3',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.open_in_new,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    context.pushNamed('/settings/about/license');
+                  },
+                  title:
+                      Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看所有开源许可证',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.projectUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Github', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.iconUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse('https://trace.moe'),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('trace.moe',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('ID: ${dandanCredentials['id']}',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('弹弹play开放平台',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('Telegram',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+              SettingsSection(
+                title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+                tiles: [
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      if (menuController.isOpen) {
+                        menuController.close();
+                      } else {
+                        menuController.open();
+                      }
+                    },
+                    title:
+                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                    value: MenuAnchor(
+                      consumeOutsideTap: true,
+                      controller: menuController,
+                      builder: (_, __, ___) {
+                        return Text(exitBehaviorTitles[exitBehavior]);
+                      },
+                      menuChildren: [
+                        for (int i = 0; i < 3; i++)
+                          MenuItemButton(
+                            requestFocusOnHover: false,
+                            onPressed: () {
+                              exitBehavior = i;
+                              GStorage.putSetting(SettingsKeys.exitBehavior, i);
+                              setState(() {});
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  exitBehaviorTitles[i],
+                                  style: TextStyle(
+                                    color: i == exitBehavior
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    context.pushNamed('/settings/about/logs');
+                  },
+                  title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    _showCacheDialog();
+                  },
+                  title: Text('清除缓存', style: TextStyle(fontFamily: fontFamily)),
+                  value: _cacheSizeMB == -1
+                      ? Text('统计中...', style: TextStyle(fontFamily: fontFamily))
+                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
+                          style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('应用更新', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    autoUpdate = value ?? !autoUpdate;
+                    await GStorage.putSetting(
+                        SettingsKeys.autoUpdate, autoUpdate);
+                    setState(() {});
+                  },
+                  title: Text('启动时检查应用更新',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: autoUpdate,
+                ),
+                // 🔥 新增：更新渠道行
+                SettingsTile.navigation(
+                  onPressed: (_) => _showUpdateChannelDialog(),
+                  title: Text('更新渠道', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text(
+                    updateChannel == 'beta' ? '预览版' : '稳定版',
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    myController.checkUpdate();
+                  },
+                  title:
+                      Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('当前版本 ${ApiEndpoints.version}',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('规则更新', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    checkPluginUpdateOnStartup =
+                        value ?? !checkPluginUpdateOnStartup;
+                    await GStorage.putSetting(
+                      SettingsKeys.checkPluginUpdateOnStartup,
+                      checkPluginUpdateOnStartup,
+                    );
+                    setState(() {});
+                  },
+                  title: Text('启动时检查规则更新',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: checkPluginUpdateOnStartup,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
