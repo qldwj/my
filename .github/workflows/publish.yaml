@@ -1,0 +1,119 @@
+name: "publish"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如 2.2.2)'
+        required: true
+        default: '2.2.2'
+
+jobs:
+  publish:
+    name: "发布到官方仓库"
+    runs-on: "ubuntu-latest"
+    permissions: write-all
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set version
+        run: echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      # ====== 下载 APK ======
+      - name: Download APK from current repo release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ env.tag }} -p "*.apk" --repo ${{ github.repository }}
+          ls -la *.apk
+
+      # ====== 发布到 GitHub 官方仓库 ======
+      - name: Release to official repo (GitHub)
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          TAG="${{ env.tag }}"
+          
+          if gh release view $TAG --repo qldwj/Kazumikfc &>/dev/null; then
+            echo "Tag $TAG 已存在，删除重建..."
+            gh release delete $TAG --repo qldwj/Kazumikfc -y
+            git push --delete https://x-access-token:${GH_TOKEN}@github.com/qldwj/Kazumikfc.git $TAG 2>/dev/null || true
+            sleep 2
+          fi
+          
+          gh release create $TAG \
+            --repo qldwj/Kazumikfc \
+            --title "v$TAG" \
+            --notes "🎉 樱花动漫 v$TAG" \
+            YHDM_android_$TAG.apk
+
+      # ====== 发布到 GitCode（ATOMGIT）====== 
+      - name: Release to GitCode
+        env:
+          TAG: ${{ env.tag }}
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+        # repo 直接写死在这里，无需 secret
+        # 注意：只写 owner/repo，不要完整 URL
+        run: |
+          REPO="qldwi/kazumi"
+          API="https://gitcode.com/api/v1/repos"
+
+          echo "发布到 GitCode: $REPO, tag=$TAG"
+
+          # 1. 检查并删除已有 release（如果有）
+          echo "检查已有 release..."
+          EXISTING_ID=$(curl -s -H "Authorization: token $TOKEN" \
+            "$API/$REPO/releases/tags/$TAG" 2>/dev/null \
+            | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2 || echo "")
+
+          if [ -n "$EXISTING_ID" ]; then
+            echo "删除已有 release id=$EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: token $TOKEN" \
+              "$API/$REPO/releases/$EXISTING_ID" > /dev/null
+            sleep 2
+          fi
+
+          # 2. 创建 release
+          echo "创建 release v$TAG..."
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"$TAG\", \"name\": \"v$TAG\", \"body\": \"🎉 樱花动漫 v$TAG\"}" \
+            "$API/$REPO/releases")
+
+          echo "API 响应: $RESPONSE"
+
+          # 3. 提取 release id（纯 bash 解析，无需 jq/python）
+          RELEASE_ID=$(echo "$RESPONSE" \
+            | grep -o '"id":[0-9]*' \
+            | head -1 \
+            | cut -d: -f2 \
+            || echo "")
+
+          if [ -n "$RELEASE_ID" ]; then
+            # 4. 上传 APK
+            echo "上传 APK 到 release $RELEASE_ID..."
+            curl -s -X POST \
+              -H "Authorization: token $TOKEN" \
+              -F "attachment=@YHDM_android_$TAG.apk" \
+              "$API/$REPO/releases/$RELEASE_ID/assets"
+            echo ""
+            echo "✅ GitCode 发布完成"
+          else
+            echo "⚠️ GitCode 发布失败，检查上面 API 响应"
+          fi
+
+      # ====== TG 通知 ======
+      - name: Send Telegram notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          message: |
+            🎉 <b>樱花动漫 v${{ env.tag }} 发布成功！</b>
+            
+            📥 GitHub：https://github.com/qldwj/Kazumikfc/releases/download/${{ env.tag }}/YHDM_android_${{ env.tag }}.apk
+            📥 GitCode：https://gitcode.com/qldwi/kazumi/releases/${{ env.tag }}
+            🔗 发布页：https://github.com/qldwj/Kazumikfc/releases/tag/${{ env.tag }}
+          format: html
