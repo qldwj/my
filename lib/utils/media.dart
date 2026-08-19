@@ -88,7 +88,7 @@ Future<VideoSourceFormat> sniffHlsFormat(
         .get(Uri.parse(url), headers: headers ?? const {})
         .timeout(const Duration(seconds: 4));
     if (resp.statusCode != 200) return VideoSourceFormat.auto;
-    final head = resp.bodyBytes.take(256);
+    final head = resp.bodyBytes.take(256).toList();
     final text = utf8.decode(head, allowMalformed: true).trim();
     if (text.startsWith('#EXTM3U') || text.startsWith('#EXT-X-')) {
       return VideoSourceFormat.hls;
