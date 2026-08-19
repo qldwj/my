@@ -493,6 +493,14 @@ class CssRuleStrategy {
       visited.add(url);
       try {
         html = await fetcher(url).timeout(const Duration(seconds: 5));
+        // 🆕 HLS 伪装流识别：嵌套内容本身就是 HLS 播放列表
+        // （部分源用 .webp 等伪装后缀返回 #EXTM3U 内容），
+        // 当前 URL 就是 HLS 源，无需继续递归。
+        final trimmed = html.trim();
+        if (trimmed.startsWith('#EXTM3U') ||
+            trimmed.startsWith('#EXT-X-')) {
+          return url;
+        }
       } catch (_) {
         return url;
       }
