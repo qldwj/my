@@ -134,8 +134,7 @@ class VideoWebviewImpl
                 logEventController.add(
                     'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
-                videoParserEventController
-                    .add((decodeVideoSource(encodedUrl), offset));
+                notifyVideoSourceResolved(decodeVideoSource(encodedUrl));
               }
             }
           });
