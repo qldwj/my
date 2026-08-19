@@ -893,34 +893,14 @@ abstract class _VideoPageController with Store implements Disposable {
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
-      // 🆕 非标准后缀视频流兼容：部分源用 .webp/.png 等伪装后缀
-      // 实际返回 HLS(#EXTM3U)。非标准后缀时轻量嗅探，确认后强制 HLS
-      // 解复用（demuxer-lavf-format=hls），避免 mpv 解复用器选错报
-      // "Failed to initialize a decoder for codec 'webp'" 之类错误。
-      VideoSourceFormat videoFormat = source.format;
-      if (videoFormat == VideoSourceFormat.auto &&
-          !isStandardVideoUrl(source.url)) {
-        videoFormat = await sniffHlsFormat(
-          source.url,
-          headers: {
-            'user-agent': currentPlugin.userAgent.isEmpty
-                ? getRandomUA()
-                : currentPlugin.userAgent,
-            if (currentPlugin.referer.isNotEmpty)
-              'referer': currentPlugin.referer,
-          },
-        );
-        if (videoFormat == VideoSourceFormat.hls) {
-          KazumiLogger().i(
-              'VideoPageController: HLS 伪装流嗅探命中，强制 HLS 解复用: ${source.url}');
-        }
-      }
+      final bool forceAdBlocker =
+          GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
       final params = PlaybackInitParams(
         videoUrl: source.url,
         offset: source.offset,
         isLocalPlayback: false,
-        videoSourceFormat: videoFormat,
+        videoSourceFormat: source.format,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
         episode: resolvedEpisode.listIndex,
