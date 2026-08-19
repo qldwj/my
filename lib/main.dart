@@ -169,16 +169,72 @@ void handleAppLink(Uri uri) {
   else if (params['route'] == 'anime' && params['id'] != null) {
     animeId = int.tryParse(params['id']!);
   }
+  // 格式4: 网页版详情页分享
+  // https://qlyyz.xyz/yhdm/detail.html?id=622206&n=尼古喵喵&c=ヤニねこ
+  else if (path.endsWith('/yhdm/detail.html') && params['id'] != null) {
+    final idStr = params['id']!.trim();
+    animeId = int.tryParse(idStr);
+    if (animeId == null) {
+      KazumiLogger()
+          .w('AppLinks: 网页版详情链接 id 非纯数字: $idStr');
+    }
+  }
+  // 格式5: 网页版播放页分享（数据互通，跳 App 详情页兜底）
+  else if (path.endsWith('/yhdm/player.html') && params['id'] != null) {
+    animeId = int.tryParse(params['id']!.trim());
+  }
+  // 格式6: 网页版搜索链接 https://qlyyz.xyz/yhdm/search.html?wd=xxx
+  else if (path.endsWith('/yhdm/search.html') && params['wd'] != null) {
+    _openSearch(params['wd']!);
+    return;
+  }
 
   if (animeId != null) {
-    _openAnimeDetail(animeId);
+    _openAnimeDetail(animeId,
+        fallbackName: params['n']?.trim().isNotEmpty == true
+            ? params['n']!.trim()
+            : null);
+  } else {
+    KazumiLogger().w('AppLinks: 未识别的链接: ${uri.toString()}');
   }
 }
 
-// 通过ID拉取番剧信息 → 跳详情页（和DeepLinkService逻辑一致）
-Future<void> _openAnimeDetail(int id) async {
+/// 网页版搜索链接 → App 搜索页
+void _openSearch(String keyword) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
+      Navigator.of(rootNavigatorKey.currentContext!).pushNamed(
+        '/search/${Uri.encodeComponent(keyword)}',
+      );
+    } catch (e) {
+      KazumiLogger().e('AppLinks: 打开搜索失败', error: e);
+      _showToast('打开搜索失败');
+    }
+  });
+}
+
+/// 通过 ID 拉取番剧信息 → 跳详情页
+/// [fallbackName] 网页版链接携带的番剧名（n 参数），
+/// id 非 Bangumi subject_id 或查询失败时按名字搜索兜底。
+Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
   try {
-    final item = await BangumiApi.getBangumiInfoByID(id);
+    var item = await BangumiApi.getBangumiInfoByID(id);
+    // 兜底：ID 查不到时（例如 moonci 源的 vod_id），用名字在
+    // Bangumi 搜索，取最优结果打开详情页，实现网页版与应用版互通。
+    if (item == null && fallbackName != null) {
+      KazumiLogger().i('AppLinks: ID $id 查询失败，按名字搜索: $fallbackName');
+      final page = await BangumiApi.bangumiSearch(fallbackName, limit: 10);
+      if (page != null && page.items.isNotEmpty) {
+        final nameLower = fallbackName.toLowerCase();
+        // 优先精确名匹配，否则取第一条
+        item = page.items.firstWhere(
+          (e) =>
+              e.name.toLowerCase() == nameLower ||
+              (e.nameCn.isNotEmpty && e.nameCn.toLowerCase() == nameLower),
+          orElse: () => page.items.first,
+        );
+      }
+    }
     if (item == null) {
       _showToast('未找到该番剧');
       return;
