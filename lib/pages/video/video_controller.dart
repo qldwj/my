@@ -893,9 +893,6 @@ abstract class _VideoPageController with Store implements Disposable {
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
-      final bool forceAdBlocker =
-          GStorage.getSetting(SettingsKeys.forceAdBlocker);
-
       final params = PlaybackInitParams(
         videoUrl: source.url,
         offset: source.offset,
