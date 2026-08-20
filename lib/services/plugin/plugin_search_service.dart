@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
