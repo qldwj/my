@@ -4,6 +4,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/services/plugin/plugin_credential_store.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/utils/async_session.dart';
 
@@ -30,9 +31,19 @@ class PluginSearchService {
           (response) => response.pluginName == pluginName,
         );
         if (plugin.useLogin && !PluginCookieManager.instance.hasLoggedIn(plugin.name)) {
-          infoController.pluginSearchStatus[pluginName] =
-              PluginSearchStatus.login;
-          return;
+          // Cookie 未保存，尝试自动刷新：用保存的账号调用 auth/login
+          final cred = PluginCredentialStore.instance.load(plugin.name);
+          if (cred != null) {
+            final refreshed = await _tryAutoRefresh(plugin, cred.$1, cred.$2);
+            if (!refreshed) {
+              infoController.pluginSearchStatus[pluginName] = PluginSearchStatus.login;
+              return;
+            }
+            // 刷新成功，继续搜索
+          } else {
+            infoController.pluginSearchStatus[pluginName] = PluginSearchStatus.login;
+            return;
+          }
         }
         infoController.pluginSearchStatus[pluginName] =
             PluginSearchStatus.pending;
@@ -50,9 +61,17 @@ class PluginSearchService {
             );
             if (child.useLogin &&
                 !PluginCookieManager.instance.hasLoggedIn(child.name)) {
-              infoController.pluginSearchStatus[pluginName] =
-                  PluginSearchStatus.login;
-              return;
+              final cred = PluginCredentialStore.instance.load(child.name);
+              if (cred != null) {
+                final refreshed = await _tryAutoRefresh(child, cred.$1, cred.$2);
+                if (!refreshed) {
+                  infoController.pluginSearchStatus[pluginName] = PluginSearchStatus.login;
+                  return;
+                }
+              } else {
+                infoController.pluginSearchStatus[pluginName] = PluginSearchStatus.login;
+                return;
+              }
             }
             infoController.pluginSearchStatus[pluginName] =
                 PluginSearchStatus.pending;
@@ -146,5 +165,38 @@ class PluginSearchService {
   void cancel() {
     _isCancelled = true;
     _cancelToken.cancel();
+  }
+
+  /// 使用保存的账号密码调用 auth/login 自动刷新 Cookie
+  Future<bool> _tryAutoRefresh(Plugin plugin, String username, String password) async {
+    try {
+      final dio = Dio();
+      final resp = await dio.post(
+        '${plugin.baseUrl}api/auth/login',
+        data: {'username': username, 'password': password},
+        options: Options(headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-App-Name': 'cyc_web',
+          'X-App-Version': 'cycweb',
+          'Origin': plugin.baseUrl,
+          'Referer': plugin.baseUrl,
+        }, receiveTimeout: const Duration(seconds: 10)),
+      );
+      if (resp.statusCode == 200 && resp.data is Map && resp.data['code'] == 0) {
+        final token = resp.data['data']?['access_token'] ?? resp.data['data']?['token'] ?? '';
+        if (token.toString().isNotEmpty) {
+          final cookieStr = 'access_token=$token';
+          await PluginCookieManager.instance.saveFromWebView(plugin.name, plugin.baseUrl, cookieStr);
+          KazumiLogger().i('[PluginSearch] 自动刷新 Token 成功: ${plugin.name}');
+          return true;
+        }
+      }
+      KazumiLogger().i('[PluginSearch] 自动刷新 Token 失败: ${resp.data}');
+      return false;
+    } catch (e) {
+      KazumiLogger().i('[PluginSearch] 自动刷新异常: $e');
+      return false;
+    }
   }
 }
