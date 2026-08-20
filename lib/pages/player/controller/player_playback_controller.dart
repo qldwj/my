@@ -273,6 +273,7 @@ abstract class _PlayerPlaybackController with Store {
     required bool Function() canInstall,
     int offset = 0,
     VideoSourceFormat videoSourceFormat = VideoSourceFormat.auto,
+    Future<VideoSourceFormat>? formatResolver,
   }) async {
     startOffset = offset;
     superResolutionMode = SuperResolutionMode.fromStorageValue(
@@ -325,7 +326,12 @@ abstract class _PlayerPlaybackController with Store {
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
       }
-      if (videoSourceFormat == VideoSourceFormat.hls) {
+      // 并行解析格式：resolver 在 video_controller 侧已启动，
+      // 此时 Player 创建与前面 setProperty 均已并行完成，
+      // await 通常瞬时返回（缓存命中 0ms）。
+      final effectiveFormat =
+          formatResolver != null ? await formatResolver : videoSourceFormat;
+      if (effectiveFormat == VideoSourceFormat.hls) {
         await pp.setProperty('demuxer-lavf-format', 'hls');
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(candidate);
