@@ -3,6 +3,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/utils/async_session.dart';
 
@@ -28,6 +29,11 @@ class PluginSearchService {
         infoController.pluginSearchResponseList.removeWhere(
           (response) => response.pluginName == pluginName,
         );
+        if (plugin.useLogin && !PluginCookieManager.instance.hasLoggedIn(plugin.name)) {
+          infoController.pluginSearchStatus[pluginName] =
+              PluginSearchStatus.login;
+          return;
+        }
         infoController.pluginSearchStatus[pluginName] =
             PluginSearchStatus.pending;
         await _queryPlugin(plugin, keyword);
@@ -42,6 +48,12 @@ class PluginSearchService {
             infoController.pluginSearchResponseList.removeWhere(
               (response) => response.pluginName == pluginName,
             );
+            if (child.useLogin &&
+                !PluginCookieManager.instance.hasLoggedIn(child.name)) {
+              infoController.pluginSearchStatus[pluginName] =
+                  PluginSearchStatus.login;
+              return;
+            }
             infoController.pluginSearchStatus[pluginName] =
                 PluginSearchStatus.pending;
             await _queryPlugin(child, keyword);

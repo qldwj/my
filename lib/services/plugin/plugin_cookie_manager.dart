@@ -13,6 +13,11 @@ class PluginCookieManager {
 
   final Map<String, CookieJar> _jars = {};
 
+  /// 已成功登录过的规则名（内存内标记，重启后需重新登录）
+  final Set<String> _loggedInPlugins = {};
+
+  bool hasLoggedIn(String pluginName) => _loggedInPlugins.contains(pluginName);
+
   CookieJar _getJar(String pluginName) {
     return _jars.putIfAbsent(pluginName, () => CookieJar());
   }
@@ -28,6 +33,7 @@ class PluginCookieManager {
     if (cookies.isEmpty) return;
 
     await jar.saveFromResponse(uri, cookies);
+    _loggedInPlugins.add(pluginName);
     KazumiLogger().i(
         '[PluginCookieManager] Saved ${cookies.length} cookies for $pluginName');
   }

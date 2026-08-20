@@ -77,9 +77,10 @@ class _SourceSheetState extends State<SourceSheet>
         final sb = widget.infoController.pluginSearchStatus[b.name];
         const order = {
           PluginSearchStatus.success: 0,
-          PluginSearchStatus.captcha: 1,
-          PluginSearchStatus.noResult: 2,
-          PluginSearchStatus.error: 3,
+          PluginSearchStatus.login: 1,
+          PluginSearchStatus.captcha: 2,
+          PluginSearchStatus.noResult: 3,
+          PluginSearchStatus.error: 4,
         };
         final oa = order[sa] ?? 4;
         final ob = order[sb] ?? 4;
@@ -607,6 +608,27 @@ class _SourceSheetState extends State<SourceSheet>
     if (status == PluginSearchStatus.pending) {
       return const Center(child: CircularProgressIndicator());
     }
+    if (status == PluginSearchStatus.login) {
+      return GeneralErrorWidget(
+        errMsg: '${plugin.name} 需要登录后才能观看，请先完成登录',
+        actions: [
+          GeneralErrorButton(
+            onPressed: () {
+              this.context.pushNamed(
+                    '/plugin/login',
+                    arguments: plugin,
+                  );
+            },
+            text: '去登录',
+          ),
+          GeneralErrorButton(
+            onPressed: () =>
+                pluginSearchService?.querySource(keyword, plugin.name),
+            text: '重试',
+          ),
+        ],
+      );
+    }
     if (status == PluginSearchStatus.captcha) {
       return GeneralErrorWidget(
         errMsg: '${plugin.name} 需要验证码验证',
@@ -864,6 +886,7 @@ class _SourceSheetState extends State<SourceSheet>
                               color: switch (widget.infoController
                                   .pluginSearchStatus[plugin.name]) {
                                 PluginSearchStatus.success => Colors.green,
+                                PluginSearchStatus.login => Colors.purple,
                                 PluginSearchStatus.noResult => Colors.orange,
                                 PluginSearchStatus.captcha => Colors.blue,
                                 PluginSearchStatus.error => Colors.red,

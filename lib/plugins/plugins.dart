@@ -42,6 +42,12 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+
+  /// 🆕 API9 登录源：需登录后观看的站点登录页地址（如 https://x.com/login）
+  String loginUrl;
+
+  /// 🆕 API9：是否启用内置浏览器登录（loginUrl 非空或 api>=9 时）
+  bool useLogin;
   String searchMode;
   String chapterMode;
   ApiSearchConfig searchApiConfig;
@@ -85,6 +91,8 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
+    this.loginUrl = '',
+    this.useLogin = false,
     this.searchMode = RuleMode.xpath,
     this.chapterMode = RuleMode.xpath,
     ApiSearchConfig? searchApiConfig,
@@ -123,6 +131,8 @@ class Plugin {
       chapterRoads: json['chapterRoads'] as String? ?? '',
       chapterResult: json['chapterResult'] as String? ?? '',
       referer: json['referer'] ?? '',
+      loginUrl: json['loginUrl'] as String? ?? '',
+      useLogin: json['useLogin'] as bool? ?? (json['api']?.toString() == '9'),
       searchMode: RuleMode.normalize(json['searchMode']),
       chapterMode: RuleMode.normalize(json['chapterMode']),
       searchApiConfig: json['searchApiConfig'] is Map
@@ -180,6 +190,8 @@ class Plugin {
       chapterRoads: '',
       chapterResult: '',
       referer: '',
+      loginUrl: '',
+      useLogin: false,
       searchMode: RuleMode.xpath,
       chapterMode: RuleMode.xpath,
       searchApiConfig: ApiSearchConfig(),
@@ -216,6 +228,8 @@ class Plugin {
       'chapterRoads': chapterRoads,
       'chapterResult': chapterResult,
       'referer': referer,
+      'loginUrl': loginUrl,
+      'useLogin': useLogin,
       'searchMode': searchMode,
       'chapterMode': chapterMode,
       // Persisting re-serializes the whole plugin list, so a configured API
