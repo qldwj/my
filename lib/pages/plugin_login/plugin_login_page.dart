@@ -4,13 +4,15 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/services/plugin/plugin_credential_store.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
-/// API9 登录源 · 内置 WebView 登录页
+/// API9 登录源 · 内置 WebView 登录 + 本地保存账号密码
 ///
-/// 在 App 内打开规则配置的 [loginUrl]，用户在内置浏览器中完成登录，
-/// 检测到页面跳转离开登录页后自动抓取 Cookie 并保存。
+/// 1. WebView 登录：用户在内置浏览器登录，登录成功自动抓取 Cookie 保存
+/// 2. 保存账号密码：勾选「记住密码」后，保存到本地 Hive
+/// 3. Cookie 过期后：自动用保存的账号调用 /api/auth/login 刷新（用户无感知）
 class PluginLoginPage extends StatefulWidget {
   final String pluginName;
   final String loginUrl;
@@ -23,10 +25,25 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
   AndroidInAppWebViewController? _controller;
   final PlatformCookieManager _cookieManager =
       PlatformCookieManager(PlatformCookieManagerCreationParams());
+  final TextEditingController _usernameCtrl = TextEditingController();
+  final TextEditingController _passwordCtrl = TextEditingController();
   bool _saving = false;
+  bool _rememberPassword = false;
   String _statusText = '正在加载登录页…';
 
-  /// 登录成功检测：跳转离开 login 页即认为登录成功
+  @override
+  void initState() {
+    super.initState();
+    // 加载已保存的账号密码（如果有）
+    final cred = PluginCredentialStore.instance.load(widget.pluginName);
+    if (cred != null) {
+      _usernameCtrl.text = cred.$1;
+      _passwordCtrl.text = cred.$2;
+      _rememberPassword = true;
+    }
+  }
+
+  /// 登录成功检测：跳转离开 login 页
   void _onLoadStop(String url) {
     if (_saving) return;
     if (!url.contains('login') && url.contains('http')) {
@@ -36,6 +53,7 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     }
   }
 
+  /// 抓取 Cookie 并保存（+ 可选保存账号密码）
   Future<void> _finishAndSave(String currentUrl) async {
     if (_saving) return;
     _saving = true;
@@ -45,19 +63,27 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       final cookies = await _cookieManager.getCookies(url: WebUri(hostUrl));
       final cookieStr = cookies.map((c) => '${c.name}=${c.value}').join('; ').trim();
       if (cookieStr.isEmpty) {
-        KazumiDialog.showToast(message: '⚠️ 未获取到 Cookie，请确认已登录');
         _statusText = '请确认已登录后点「完成」';
         setState(() {});
+        _saving = false;
         return;
       }
       await PluginCookieManager.instance.saveFromWebView(widget.pluginName, currentUrl, cookieStr);
-      KazumiDialog.showToast(message: '✅ 登录成功，共保存 ${cookies.length} 条 Cookie');
+      // 保存账号密码（如果有填写）
+      if (_rememberPassword && _usernameCtrl.text.isNotEmpty && _passwordCtrl.text.isNotEmpty) {
+        await PluginCredentialStore.instance.save(
+            widget.pluginName, _usernameCtrl.text, _passwordCtrl.text);
+      }
+      KazumiDialog.showToast(message: '✅ 登录成功，共保存 ${cookies.length} 条');
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       KazumiLogger().e('[PluginLoginPage] 保存失败', error: e);
       KazumiDialog.showToast(message: '❌ 保存失败: $e');
     } finally { _saving = false; }
   }
+
+  @override
+  void dispose() { _usernameCtrl.dispose(); _passwordCtrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +93,10 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         title: Text('登录「${widget.pluginName}」'),
         actions: [
           TextButton(
-            onPressed: _saving ? null : () {
+            onPressed: _saving ? null : () async {
               if (_controller != null) {
-                _controller!.getUrl().then((url) {
-                  if (url != null) _finishAndSave(url.toString());
-                });
+                final url = await _controller!.getUrl();
+                if (url != null) _finishAndSave(url.toString());
               }
             },
             child: Text('完成', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
@@ -80,7 +105,7 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         ],
       ),
       body: Column(children: [
-        // 状态栏
+        // 状态提示
         Container(
           width: double.infinity,
           color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
@@ -101,9 +126,40 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
             ),
             onWebViewCreated: (controller) { _controller = controller; },
             onLoadStop: (controller, url) { _onLoadStop(url.toString()); },
-            onConsoleMessage: (controller, consoleMessage) {
-              KazumiLogger().i('[PluginLogin] console: ${consoleMessage.message}');
-            },
+          ),
+        ),
+        // 保存账号密码区域
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(children: [
+                Expanded(child: TextField(
+                  controller: _usernameCtrl,
+                  decoration: const InputDecoration(hintText: '账号（邮箱/用户名）', border: OutlineInputBorder(), isDense: true),
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: TextField(
+                  controller: _passwordCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(hintText: '密码', border: OutlineInputBorder(), isDense: true),
+                )),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Checkbox(
+                  value: _rememberPassword,
+                  onChanged: (v) => setState(() => _rememberPassword = v ?? false),
+                ),
+                Text('保存账号密码（Cookie 过期后自动登录）',
+                    style: theme.textTheme.bodySmall),
+              ]),
+            ],
           ),
         ),
       ]),
