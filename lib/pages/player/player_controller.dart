@@ -15,7 +15,6 @@ import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
 import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/video_source/video_source_format.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -161,10 +160,7 @@ class PlayerController implements Disposable {
     unawaited(GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
   }
 
-  Future<bool> init(
-    PlaybackInitParams params, {
-    Future<VideoSourceFormat>? formatResolver,
-  }) async {
+  Future<bool> init(PlaybackInitParams params) async {
     if (_initializations.isClosed) {
       return false;
     }
@@ -206,7 +202,6 @@ class PlayerController implements Disposable {
         canInstall: () => initialization.isActive,
         offset: params.offset,
         videoSourceFormat: params.videoSourceFormat,
-        formatResolver: formatResolver,
       );
     } catch (e) {
       if (initialization.isStale) {

@@ -82,10 +82,6 @@ Future<VideoSourceFormat> sniffHlsFormat(
   Map<String, String>? headers,
   Duration timeout = const Duration(seconds: 1),
 }) async {
-  final cacheKey = _sniffCacheKey(url);
-  final cached = _sniffCacheGet(cacheKey);
-  if (cached != null) return cached;
-
   HttpClient? client;
   try {
     client = HttpClient()..connectionTimeout = timeout;
@@ -112,11 +108,9 @@ Future<VideoSourceFormat> sniffHlsFormat(
     }
     final text = utf8.decode(body.take(1024).toList(), allowMalformed: true);
     final trimmed = text.trimLeft();
-    final result = (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-'))
-        ? VideoSourceFormat.hls
-        : VideoSourceFormat.auto;
-    _sniffCachePut(cacheKey, result);
-    return result;
+    if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
+      return VideoSourceFormat.hls;
+    }
   } catch (_) {
     // 任何异常/超时都视为无法确认，返回 auto 交给播放器默认处理
   } finally {
@@ -125,46 +119,4 @@ Future<VideoSourceFormat> sniffHlsFormat(
     } catch (_) {}
   }
   return VideoSourceFormat.auto;
-}
-
-/// ─── 嗅探结果缓存（优化2）──────────────────────────────
-/// 同一来源（host+path）的伪装流嗅探结果缓存 5 分钟，
-/// 重复播放/切集时直接命中，0 等待。
-const Duration _sniffCacheTtl = Duration(minutes: 5);
-const int _sniffCacheMax = 100;
-final Map<String, VideoSourceFormat> _sniffCache = {};
-final Map<String, DateTime> _sniffCacheAt = {};
-
-String _sniffCacheKey(String url) {
-  try {
-    final uri = Uri.parse(url);
-    return '${uri.host}${uri.path}';
-  } catch (_) {
-    return url;
-  }
-}
-
-VideoSourceFormat? _sniffCacheGet(String key) {
-  final cached = _sniffCache[key];
-  if (cached == null) return null;
-  final at = _sniffCacheAt[key];
-  if (at == null) {
-    _sniffCache.remove(key);
-    return null;
-  }
-  if (DateTime.now().difference(at) > _sniffCacheTtl) {
-    _sniffCache.remove(key);
-    _sniffCacheAt.remove(key);
-    return null;
-  }
-  return cached;
-}
-
-void _sniffCachePut(String key, VideoSourceFormat value) {
-  if (_sniffCache.length >= _sniffCacheMax) {
-    _sniffCache.clear();
-    _sniffCacheAt.clear();
-  }
-  _sniffCache[key] = value;
-  _sniffCacheAt[key] = DateTime.now();
 }

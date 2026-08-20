@@ -893,16 +893,14 @@ abstract class _VideoPageController with Store implements Disposable {
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
-      // 🆕 伪装 HLS 流兼容（并行嗅探）：
+      // 🆕 伪装 HLS 流兼容（快速嗅探）：
       // 部分源用 .webp/.png 等非标准后缀返回 #EXTM3U 内容。
-      // 这里只“启动”嗅探（不 await），URL 由 playback 层在
-      // Player 创建期间并行等待结果；命中后强制
-      // demuxer-lavf-format=hls，嗅探耗时被 mpv 初始化遮蔽。
-      final VideoSourceFormat baseFormat = source.format;
-      Future<VideoSourceFormat>? formatResolver;
-      if (baseFormat == VideoSourceFormat.auto &&
+      // 仅对非标准后缀 URL 做 1 秒轻量嗅探（流式读前 1KB），
+      // 命中后强制 demuxer-lavf-format=hls，避免 mpv 解复用器选错。
+      VideoSourceFormat videoFormat = source.format;
+      if (videoFormat == VideoSourceFormat.auto &&
           !isStandardVideoUrl(source.url)) {
-        formatResolver = sniffHlsFormat(
+        videoFormat = await sniffHlsFormat(
           source.url,
           headers: {
             'user-agent': currentPlugin.userAgent.isEmpty
@@ -912,13 +910,17 @@ abstract class _VideoPageController with Store implements Disposable {
               'referer': currentPlugin.referer,
           },
         );
+        if (videoFormat == VideoSourceFormat.hls) {
+          KazumiLogger().i(
+              'VideoPageController: HLS 伪装流嗅探命中，强制 HLS 解复用: ${source.url}');
+        }
       }
 
       final params = PlaybackInitParams(
         videoUrl: source.url,
         offset: source.offset,
         isLocalPlayback: false,
-        videoSourceFormat: baseFormat,
+        videoSourceFormat: videoFormat,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
         episode: resolvedEpisode.listIndex,
@@ -942,8 +944,7 @@ abstract class _VideoPageController with Store implements Disposable {
             : bangumiItem.name,
       );
 
-      final initialized = await playerController.init(params,
-          formatResolver: formatResolver);
+      final initialized = await playerController.init(params);
       if (session.isActive && initialized) {
         playingEpisode = VideoEpisodeSelection(
           episode: resolvedEpisode.listIndex,
