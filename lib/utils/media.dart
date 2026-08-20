@@ -81,7 +81,7 @@ bool isStandardVideoUrl(String url) {
 Future<VideoSourceFormat> sniffHlsFormat(
   String url, {
   Map<String, String>? headers,
-  Duration timeout = const Duration(seconds: 1),
+  Duration timeout = const Duration(seconds: 2),
 }) async {
   HttpClient? client;
   try {
@@ -98,10 +98,9 @@ Future<VideoSourceFormat> sniffHlsFormat(
         }
       });
     }
-    // 请求 Range，服务器遵守则只回 1KB；不遵守也无所谓，我们只读 1KB 就关
-    req.headers.set('Range', 'bytes=0-1023');
+    // 不用 Range 请求（部分服务器不支持），改用普通 GET。
+    // resp.take(1024) 流式限制读取量，即使返回全量也只取前 1KB 断开。
     final resp = await req.close().timeout(timeout);
-    // 流式只取前 1KB，随后立即关闭连接，不等待全量下载
     final body = <int>[];
     await for (final chunk in resp.timeout(timeout)) {
       body.addAll(chunk);
@@ -111,13 +110,12 @@ Future<VideoSourceFormat> sniffHlsFormat(
     final trimmed = text.trimLeft();
     final preview = trimmed.length > 80 ? trimmed.substring(0, 80) : trimmed;
     if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
-      KazumiLogger().i('SniffHls: 命中 HLS, head: $preview');
+      KazumiLogger().i('SniffHls: ✅ 命中 HLS, head: $preview');
       return VideoSourceFormat.hls;
     }
-    KazumiLogger().i('SniffHls: 未命中, head: $preview');
+    KazumiLogger().i('SniffHls: ❌ 未命中, head: $preview');
   } catch (e) {
-    KazumiLogger().i('SniffHls: 异常/超时, ${e.runtimeType}: $e');
-    // 任何异常/超时都视为无法确认，返回 auto 交给播放器默认处理
+    KazumiLogger().w('SniffHls: ⚠️ 异常/超时, ${e.runtimeType}: $e');
   } finally {
     try {
       client?.close(force: true);
