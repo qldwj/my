@@ -615,7 +615,7 @@ class _SourceSheetState extends State<SourceSheet>
           GeneralErrorButton(
             onPressed: () {
               this.context.pushNamed(
-                    '/plugin/login',
+                    '/settings/plugin/login',
                     arguments: plugin,
                   );
             },
