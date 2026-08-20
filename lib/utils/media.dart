@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:kazumi/services/video_source/video_source_format.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -108,10 +109,14 @@ Future<VideoSourceFormat> sniffHlsFormat(
     }
     final text = utf8.decode(body.take(1024).toList(), allowMalformed: true);
     final trimmed = text.trimLeft();
+    final preview = trimmed.length > 80 ? trimmed.substring(0, 80) : trimmed;
     if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
+      KazumiLogger().i('SniffHls: 命中 HLS, head: $preview');
       return VideoSourceFormat.hls;
     }
-  } catch (_) {
+    KazumiLogger().i('SniffHls: 未命中, head: $preview');
+  } catch (e) {
+    KazumiLogger().i('SniffHls: 异常/超时, ${e.runtimeType}: $e');
     // 任何异常/超时都视为无法确认，返回 auto 交给播放器默认处理
   } finally {
     try {

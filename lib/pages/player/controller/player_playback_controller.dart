@@ -326,10 +326,15 @@ abstract class _PlayerPlaybackController with Store {
         return await _discardIfNotCurrent(candidate);
       }
       if (videoSourceFormat == VideoSourceFormat.hls) {
+        KazumiLogger().i(
+            'PlaybackController: 强制 HLS demuxer, url=${videoUrl()}, format=$videoSourceFormat');
         await pp.setProperty('demuxer-lavf-format', 'hls');
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(candidate);
         }
+      } else {
+        KazumiLogger().i(
+            'PlaybackController: 使用自动格式, url=${videoUrl()}, format=$videoSourceFormat');
       }
       await pp.setProperty("af", "scaletempo2=max-speed=8");
       if (!isCurrentPlayer(player)) {

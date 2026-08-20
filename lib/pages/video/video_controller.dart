@@ -897,9 +897,14 @@ abstract class _VideoPageController with Store implements Disposable {
       // 部分源用 .webp/.png 等非标准后缀返回 #EXTM3U 内容。
       // 仅对非标准后缀 URL 做 1 秒轻量嗅探（流式读前 1KB），
       // 命中后强制 demuxer-lavf-format=hls，避免 mpv 解复用器选错。
+      KazumiLogger().i(
+          'VideoPageController: 解析完成, url=${source.url}, format=${source.format}');
       VideoSourceFormat videoFormat = source.format;
       if (videoFormat == VideoSourceFormat.auto &&
           !isStandardVideoUrl(source.url)) {
+        KazumiLogger().i(
+            'VideoPageController: 非标准后缀，开始嗅探伪装流: ${source.url}');
+        final sniffStart = DateTime.now();
         videoFormat = await sniffHlsFormat(
           source.url,
           headers: {
@@ -910,6 +915,8 @@ abstract class _VideoPageController with Store implements Disposable {
               'referer': currentPlugin.referer,
           },
         );
+        KazumiLogger().i(
+            'VideoPageController: 嗅探完成 ${DateTime.now().difference(sniffStart).inMilliseconds}ms, 结果=$videoFormat');
         if (videoFormat == VideoSourceFormat.hls) {
           KazumiLogger().i(
               'VideoPageController: HLS 伪装流嗅探命中，强制 HLS 解复用: ${source.url}');
