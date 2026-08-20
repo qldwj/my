@@ -3,155 +3,101 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
-import 'package:kazumi/utils/http_headers.dart';
-import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// API9 登录源 · 内置浏览器登录页
+/// API9 登录源 · 粘贴 Cookie 方案
 ///
-/// 在应用内打开规则配置的 [loginUrl]，用户完成登录（账号/密码、
-/// 验证码、扫码等）后点击「完成」，抓取当前站点 Cookie 并
-/// 保存到 [PluginCookieManager]，后续搜索/章节/播放请求自动携带。
+/// 点击「打开浏览器登录」→ 在系统浏览器登录 → 回到 App
+/// 在下方文本框粘贴 Cookie 字符串 → 保存后请求自动携带。
 class PluginLoginPage extends StatefulWidget {
   final String pluginName;
   final String loginUrl;
-
-  const PluginLoginPage({
-    super.key,
-    required this.pluginName,
-    required this.loginUrl,
-  });
-
+  const PluginLoginPage({super.key, required this.pluginName, required this.loginUrl});
   @override
   State<PluginLoginPage> createState() => _PluginLoginPageState();
 }
 
 class _PluginLoginPageState extends State<PluginLoginPage> {
-  PlatformInAppWebViewController? _controller;
-  final PlatformCookieManager _cookieManager =
-      PlatformCookieManager(PlatformCookieManagerCreationParams());
+  final TextEditingController _cookieController = TextEditingController();
   bool _saving = false;
-  String _currentUrl = '';
 
-  Future<void> _captureUrl() async {
-    try {
-      final url = await _controller?.getUrl();
-      if (url != null) _currentUrl = url.toString();
-    } catch (_) {}
-  }
-
-  /// 抓取当前站点 cookie 并保存到规则 cookie 管理器
-  Future<void> _finishAndSave() async {
-    if (_saving) return;
-    _saving = true;
-
-    try {
-      await _captureUrl();
-      var targetUrl = _currentUrl;
-      if (targetUrl.isEmpty || targetUrl == 'about:blank') {
-        targetUrl = widget.loginUrl;
-      }
-      final uri = Uri.tryParse(targetUrl);
-      if (uri == null || uri.host.isEmpty) {
-        KazumiDialog.showToast(message: '⚠️ 无法确定站点地址');
-        return;
-      }
-
-      final cookies = await _cookieManager.getCookies(
-        url: WebUri('https://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}'),
-      );
-      final cookieStr =
-          cookies.map((c) => '${c.name}=${c.value}').join('; ').trim();
-
-      if (cookieStr.isEmpty) {
-        KazumiLogger().w(
-            '[PluginLoginPage] 未获取到 Cookie（可能尚未完成登录）: ${uri.host}');
-        KazumiDialog.showToast(
-            message: '⚠️ 未获取到登录信息，请确认已登录后点「完成」');
-        return;
-      }
-
-      await PluginCookieManager.instance.saveFromWebView(
-        widget.pluginName,
-        targetUrl,
-        cookieStr,
-      );
-      KazumiDialog.showToast(message: '✅ 登录信息已保存，共 ${cookies.length} 条');
-      if (mounted) Navigator.of(context).pop();
-    } catch (e) {
-      KazumiLogger().e('[PluginLoginPage] 保存登录信息失败', error: e);
-      KazumiDialog.showToast(message: '❌ 保存失败: $e');
-    } finally {
-      _saving = false;
+  Future<void> _openInBrowser() async {
+    final uri = Uri.parse(widget.loginUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      KazumiDialog.showToast(message: '无法打开浏览器');
     }
   }
+
+  Future<void> _saveCookie() async {
+    final cookieStr = _cookieController.text.trim();
+    if (cookieStr.isEmpty) { KazumiDialog.showToast(message: 'Cookie 不能为空'); return; }
+    if (_saving) return;
+    _saving = true;
+    try {
+      await PluginCookieManager.instance.saveFromWebView(widget.pluginName, widget.loginUrl, cookieStr);
+      KazumiDialog.showToast(message: '登录信息已保存');
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      KazumiLogger().e('[PluginLoginPage] 保存失败', error: e);
+      KazumiDialog.showToast(message: '保存失败: $e');
+    } finally { _saving = false; }
+  }
+
+  @override
+  void dispose() { _cookieController.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return PopScope(
-      canPop: true,
-      child: Scaffold(
-        appBar: SysAppBar(
-          title: Text('登录「${widget.pluginName}」'),
-          actions: [
-            TextButton(
-              onPressed: _saving ? null : _finishAndSave,
-              child: Text(
-                _saving ? '保存中…' : '登录完成',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+    return PopScope(canPop: true, child: Scaffold(
+      appBar: SysAppBar(title: Text('登录「${widget.pluginName}」')),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('步骤说明', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          _step('1', '打开浏览器登录', '在系统浏览器中完成账号登录'),
+          _step('2', '复制 Cookie', '登录后在浏览器地址栏输入：\njavascript:document.title=document.cookie\n然后复制地址栏显示的内容'),
+          _step('3', '粘贴并保存', '回到本页粘贴 Cookie 字符串，点击保存'),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: _openInBrowser, icon: const Icon(Icons.open_in_browser), label: const Text('打开浏览器登录'),
+          )),
+          const SizedBox(height: 20),
+          Text('粘贴 Cookie', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(controller: _cookieController, maxLines: 3, minLines: 2,
+            decoration: const InputDecoration(hintText: '例: token=xxx; session=yyy', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: _saving ? null : _saveCookie,
+            icon: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check),
+            label: Text(_saving ? '保存中…' : '保存'),
+          )),
+          const SizedBox(height: 20),
+          Card(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), child: Padding(
+            padding: const EdgeInsets.all(12), child: Text(
+              'Cookie 仅保存在本设备，不上传任何服务器。重启 App 后可能需要重新粘贴。',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(
-                '请在下方页面完成登录，登录成功后点右上角「登录完成」',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            Expanded(
-              child: PlatformInAppWebView(
-                PlatformInAppWebViewCreationParams(
-                  initialSettings: InAppWebViewSettings(
-                    userAgent: getRandomUA(),
-                    mediaPlaybackRequiresUserGesture: true,
-                    cacheEnabled: true,
-                    blockNetworkImage: false,
-                    loadsImagesAutomatically: true,
-                    upgradeKnownHostsToHTTPS: false,
-                    safeBrowsingEnabled: false,
-                    javaScriptCanOpenWindowsAutomatically: true,
-                  ),
-                  onWebViewCreated: (controller) {
-                    _controller = controller;
-                    // 创建后立即加载登录页
-                    try {
-                      controller.loadUrl(
-                        urlRequest: URLRequest(url: WebUri(widget.loginUrl)),
-                      );
-                    } catch (e) {
-                      KazumiLogger().e('[PluginLoginPage] 加载登录页失败',
-                          error: e);
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+          )),
+        ],
+      )),
+    ));
   }
+
+  Widget _step(String num, String title, String desc) => Padding(
+    padding: const EdgeInsets.only(bottom: 10), child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CircleAvatar(radius: 12, child: Text(num, style: const TextStyle(fontSize: 12))),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 2),
+          Text(desc, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+        ])),
+      ],
+    ),
+  );
 }
