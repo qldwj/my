@@ -86,7 +86,15 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         KazumiLogger().w('[PluginLoginPage] Cookie 获取异常: $e');
       }
       if (cookieStr.trim().isEmpty) {
-        _statusText = '请确认已登录后点「完成」';
+        // 调试：显示所有 localStorage key，帮用户定位 token 存在哪
+        try {
+          final allKeys = await _webViewController.runJavaScriptReturningResult(
+              "JSON.stringify(Object.keys(localStorage))");
+          _statusText = '未获取到登录信息。localStorage keys: $allKeys';
+          KazumiDialog.showToast(message: '⚠️ 未获取到 Token，请截图 localStorage keys');
+        } catch (_) {
+          _statusText = '未获取到登录信息，请确认已登录';
+        }
         setState(() {});
         _saving = false;
         return;
