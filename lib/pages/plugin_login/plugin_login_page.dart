@@ -7,7 +7,6 @@ import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/plugin_credential_store.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 /// API9 登录源 · 内置 WebView 登录 + 本地保存账号密码
 ///
@@ -61,12 +60,11 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     try {
       final uri = Uri.parse(currentUrl);
       final hostUrl = Uri(scheme: 'https', host: uri.host, port: uri.port);
-      // 获取 Cookie（CookieManager.instance() 获取全局 cookie）
+      // 通过 JS 获取 document.cookie
       String cookieStr = '';
       try {
-        final cookieManager = CookieManager.instance();
-        final cookies = await cookieManager.getCookiesForRequest(hostUrl);
-        cookieStr = cookies.map((c) => '${c.name}=${c.value}').join('; ');
+        final raw = await _webViewController.runJavaScriptReturningResult('document.cookie');
+        cookieStr = raw.toString().replaceAll('"', '').trim();
       } catch (e) {
         KazumiLogger().w('[PluginLoginPage] Cookie 获取异常: $e');
       }
