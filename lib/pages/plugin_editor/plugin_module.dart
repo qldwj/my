@@ -3,7 +3,6 @@ import 'package:kazumi/pages/plugin_editor/plugin_editor_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_shop_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_test_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_view_page.dart';
-import 'package:kazumi/pages/plugin_login/plugin_login_page.dart';
 import 'package:kazumi/pages/route_error_page.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -44,18 +43,6 @@ final pluginModule = createModule(
           return PluginEditorPage(
             plugin: plugin,
             controller: inject<PluginsController>(),
-          );
-        },
-      )
-      ..route(
-        '/login',
-        child: (context, state) {
-          final plugin = state.arguments;
-          if (plugin is! Plugin || plugin.loginUrl.isEmpty) {
-            return const RouteErrorPage(message: '该规则未配置登录地址。');
-          }
-          return PluginLoginPage(
-            plugin: plugin as Plugin,
           );
         },
       );
