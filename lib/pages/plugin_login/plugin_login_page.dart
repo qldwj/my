@@ -60,15 +60,14 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     try {
       final uri = Uri.parse(currentUrl);
       final hostUrl = Uri(scheme: 'https', host: uri.host, port: uri.port);
-      // 获取 Cookie（webview_flutter 4.x Android CookieManager）
+      // 获取 Cookie（CookieManager.instance() 获取全局 cookie）
       String cookieStr = '';
       try {
-        final androidController = _webViewController.platform
-            as AndroidWebViewController;
-        final cookies = await androidController.getCookies(hostUrl);
+        final cookieManager = CookieManager.instance();
+        final cookies = await cookieManager.getCookiesForRequest(hostUrl);
         cookieStr = cookies.map((c) => '${c.name}=${c.value}').join('; ');
       } catch (e) {
-        KazumiLogger().w('[PluginLoginPage] Cookie 获取异常，尝试其他方式: $e');
+        KazumiLogger().w('[PluginLoginPage] Cookie 获取异常: $e');
       }
       if (cookieStr.trim().isEmpty) {
         _statusText = '请确认已登录后点「完成」';
