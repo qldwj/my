@@ -55,8 +55,7 @@ final pluginModule = createModule(
             return const RouteErrorPage(message: '该规则未配置登录地址。');
           }
           return PluginLoginPage(
-            pluginName: plugin.name,
-            loginUrl: plugin.loginUrl,
+            plugin: plugin as Plugin,
           );
         },
       );

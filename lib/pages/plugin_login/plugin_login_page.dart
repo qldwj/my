@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/plugin_credential_store.dart';
+import 'package:kazumi/plugins/plugins.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
@@ -14,9 +15,8 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 /// 2. 保存账号密码：勾选「记住密码」后保存到本地
 /// 3. Cookie 过期后：自动用保存的账号调用 auth/login 刷新（用户无感知）
 class PluginLoginPage extends StatefulWidget {
-  final String pluginName;
-  final String loginUrl;
-  const PluginLoginPage({super.key, required this.pluginName, required this.loginUrl});
+  final Plugin plugin;
+  const PluginLoginPage({super.key, required this.plugin});
   @override
   State<PluginLoginPage> createState() => _PluginLoginPageState();
 }
@@ -44,9 +44,9 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
           }
         },
       ))
-      ..loadRequest(Uri.parse(widget.loginUrl));
+      ..loadRequest(Uri.parse(widget.plugin.loginUrl));
     // 加载已保存的账号密码
-    final cred = PluginCredentialStore.instance.load(widget.pluginName);
+    final cred = PluginCredentialStore.instance.load(widget.plugin.name);
     if (cred != null) {
       _usernameCtrl.text = cred.$1;
       _passwordCtrl.text = cred.$2;
@@ -91,9 +91,19 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         _saving = false;
         return;
       }
-      await PluginCookieManager.instance.saveFromWebView(widget.pluginName, currentUrl, cookieStr);
+      await PluginCookieManager.instance.saveFromWebView(widget.plugin.name, currentUrl, cookieStr);
+      // 注入 Authorization header 到规则（SPA API 需要 Bearer token）
+      try {
+        final tokenPair = cookieStr.split('; ').firstWhere(
+          (s) => s.toLowerCase().contains('token'), orElse: () => '');
+        if (tokenPair.isNotEmpty) {
+          final tokenValue = tokenPair.split('=').skip(1).join('=');
+          widget.plugin.searchApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
+          widget.plugin.chapterApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
+        }
+      } catch (_) {}
       if (_rememberPassword && _usernameCtrl.text.isNotEmpty && _passwordCtrl.text.isNotEmpty) {
-        await PluginCredentialStore.instance.save(widget.pluginName, _usernameCtrl.text, _passwordCtrl.text);
+        await PluginCredentialStore.instance.save(widget.plugin.name, _usernameCtrl.text, _passwordCtrl.text);
       }
       KazumiDialog.showToast(message: '✅ 登录成功');
       if (mounted) Navigator.of(context).pop();
@@ -111,7 +121,7 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     final theme = Theme.of(context);
     return PopScope(canPop: true, child: Scaffold(
       appBar: SysAppBar(
-        title: Text('登录「${widget.pluginName}」'),
+        title: Text('登录「${widget.plugin.name}」'),
         actions: [
           TextButton(
             onPressed: _saving ? null : () async {
