@@ -60,11 +60,28 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     try {
       final uri = Uri.parse(currentUrl);
       final hostUrl = Uri(scheme: 'https', host: uri.host, port: uri.port);
-      // 通过 JS 获取 document.cookie
+      // SPA 站通常将 auth token 存在 localStorage 而非 cookie
+      // 同时获取 localStorage 中的 token 信息，组装成 cookie 格式
       String cookieStr = '';
       try {
+        // 先尝试 document.cookie
         final raw = await _webViewController.runJavaScriptReturningResult('document.cookie');
         cookieStr = raw.toString().replaceAll('"', '').trim();
+        // 再从 localStorage 找 token（SPA 常见 key）
+        final lsRaw = await _webViewController.runJavaScriptReturningResult(
+            "(() => {"
+            "  const entries = [];"
+            "  for(let i=0;i<localStorage.length;i++){"
+            "    const k = localStorage.key(i);"
+            "    const v = localStorage.getItem(k);"
+            "    if(v && k.toLowerCase().includes('token')) entries.push(k+'='+v);"
+            "  }"
+            "  return entries.join('; ');"
+            "})()");
+        final lsToken = lsRaw.toString().replaceAll('"', '').trim();
+        if (lsToken.isNotEmpty) {
+          cookieStr = cookieStr.isNotEmpty ? '$cookieStr; $lsToken' : lsToken;
+        }
       } catch (e) {
         KazumiLogger().w('[PluginLoginPage] Cookie 获取异常: $e');
       }
