@@ -7,6 +7,7 @@ import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/plugin_credential_store.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 /// API9 登录源 · 内置 WebView 登录 + 本地保存账号密码
 ///
