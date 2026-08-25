@@ -67,10 +67,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(
           uri,
-          mode: LaunchMode.inAppBrowserView, // 应用内浏览器
-          browserConfiguration: const LaunchBrowserConfiguration(
-            showTitle: true,
-          ),
+          mode: LaunchMode.inAppBrowserView,
         );
       } else {
         // 降级到外部浏览器
