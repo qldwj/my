@@ -132,9 +132,13 @@ class AuthService {
     }
   }
 
-  /// 🆕 是否为 OAuth 一次性账号（邮箱以 @oauth.local 结尾）
-  static bool get isOAuthAccount =>
-      (currentUserEmail ?? '').endsWith('@oauth.local');
+  /// 🆕 是否为 OAuth 一次性账号（邮箱以 @qq.login / @wechat.login / @oauth.local 结尾）
+  static bool get isOAuthAccount {
+    final email = currentUserEmail ?? '';
+    return email.endsWith('@qq.login') ||
+           email.endsWith('@wechat.login') ||
+           email.endsWith('@oauth.local');
+  }
 
   /// 登录（新用户自动注册；inviteCode 为新用户邀请码，选填）
   static Future<Map<String, dynamic>> login({
