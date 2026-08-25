@@ -101,7 +101,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
         const SizedBox(height: 40),
         Container(width: 80, height: 80,
           decoration: BoxDecoration(color: const Color(0xFF12B7F5).withAlpha(25), shape: BoxShape.circle),
-          child: const Image.asset('assets/images/icons/qq.png', width: 40, height: 40)),
+          child: Image.asset('assets/images/icons/qq.png', width: 40, height: 40)),
         const SizedBox(height: 20),
         const Text('QQ 授权登录', textAlign: TextAlign.center,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),

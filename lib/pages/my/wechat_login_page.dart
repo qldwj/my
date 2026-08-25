@@ -101,7 +101,7 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
         const SizedBox(height: 40),
         Container(width: 80, height: 80,
           decoration: BoxDecoration(color: const Color(0xFF07C160).withAlpha(25), shape: BoxShape.circle),
-          child: const Image.asset('assets/images/icons/wechat.png', width: 40, height: 40)),
+          child: Image.asset('assets/images/icons/wechat.png', width: 40, height: 40)),
         const SizedBox(height: 20),
         const Text('微信授权登录', textAlign: TextAlign.center,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
