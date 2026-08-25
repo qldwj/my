@@ -654,6 +654,31 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ),
             ),
             const SizedBox(height: 12),
+            // 🆕 绑定 QQ / 微信（邮箱登录时显示）
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QQLoginPage(bindMode: true)),
+                    ),
+                    icon: Image.asset('assets/images/icons/qq.png', width: 18, height: 18),
+                    label: const Text('绑定 QQ'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const WechatLoginPage(bindMode: true)),
+                    ),
+                    icon: Image.asset('assets/images/icons/wechat.png', width: 18, height: 18),
+                    label: const Text('绑定微信'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             // 🆕 OAuth 账号：绑定邮箱（可选，可用真实邮箱登录）
             if (AuthService.isOAuthAccount) ...[
               SizedBox(
