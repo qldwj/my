@@ -1,38 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 /// Bangumi OAuth 登录页面
-/// 使用应用内WebView授权登录
+/// 使用 Chrome Custom Tabs 授权（应用内显示，共享系统浏览器cookies）
 class BangumiLoginPage extends StatefulWidget {
   const BangumiLoginPage({super.key});
   @override
   State<BangumiLoginPage> createState() => _BangumiLoginPageState();
-}
-
-/// 应用内浏览器，拦截 yhdmgz:// 回调
-class _BangumiAuthBrowser extends InAppBrowser {
-  final void Function(String token) onTokenReceived;
-
-  _BangumiAuthBrowser({required this.onTokenReceived});
-
-  @override
-  void onLoadStop(WebUri? url) {
-    super.onLoadStop(url);
-    if (url == null) return;
-    // 拦截回调：yhdmgz://bangumi-auth?token=xxx
-    if (url.scheme == 'yhdmgz' && url.host == 'bangumi-auth') {
-      final token = url.queryParameters['token'];
-      if (token != null && token.isNotEmpty) {
-        onTokenReceived(token);
-      }
-      close();
-    }
-  }
 }
 
 class _BangumiLoginPageState extends State<BangumiLoginPage> {
@@ -44,33 +23,19 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   Future<void> _login() async {
     try {
       final authUrl = '$_authBaseUrl?action=login&redirect_uri=$_redirectUri';
+      final uri = Uri.parse(authUrl);
 
-      final browser = _BangumiAuthBrowser(
-        onTokenReceived: (token) async {
-          await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
-          await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
-          if (mounted) {
-            setState(() {});
-            KazumiDialog.showToast(message: '登录成功 🎉');
-          }
-        },
-      );
-
-      // 在应用内打开WebView
-      await browser.openUrlRequest(
-        urlRequest: URLRequest(url: WebUri(authUrl)),
-        settings: InAppBrowserClassOptions(
-          inAppWebViewGroupOptions: InAppWebViewGroupOptions(
-            crossPlatform: InAppWebViewOptions(
-              useShouldOverrideUrlLoading: true,
-              javaScriptEnabled: true,
-            ),
+      // Chrome Custom Tabs：应用内显示，共享系统浏览器cookies
+      await launch(
+        uri,
+        customTabsOptions: CustomTabsOptions(
+          colorSchemes: CustomTabsColorSchemes.defaults(),
+          shareState: CustomTabsShareState.browser,
+          urlBarHidingEnabled: true,
+          showTitle: true,
+          closeButton: CustomTabsCloseButton(
+            icon: CustomTabsCloseButtonIcons.back,
           ),
-          android: AndroidInAppBrowserOptions(
-            showTitleBar: true,
-            showCloseButton: true,
-          ),
-          inAppWebView: true, // 使用应用内WebView
         ),
       );
     } catch (e) {
