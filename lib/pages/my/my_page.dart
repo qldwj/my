@@ -639,37 +639,6 @@ class _MyPageState extends State<MyPage> {
                 title: '账号',
                 children: [
                   SettingsEntryTile(
-                    leading: bangumiLoggedIn
-                        ? BangumiAvatar(url: _bangumiAvatarUrl, size: 40)
-                        : Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.person_add,
-                              color: Colors.blue,
-                            ),
-                          ),
-                    title: bangumiLoggedIn
-                        ? (_bangumiName.isNotEmpty
-                            ? _bangumiName
-                            : 'Bangumi 已登录')
-                        : 'Bangumi 一键登录',
-                    description:
-                        bangumiLoggedIn ? '点击管理 Bangumi 账号' : '登录后可同步收藏与进度',
-                    onTap: () {
-                      final navContext = rootNavigatorKey.currentContext;
-                      if (navContext == null || !navContext.mounted) return;
-                      Navigator.of(navContext).push(
-                        MaterialPageRoute(
-                            builder: (_) => const BangumiLoginPage()),
-                      );
-                    },
-                  ),
-                  SettingsEntryTile(
                     leading: Container(
                       width: 40,
                       height: 40,
