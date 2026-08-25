@@ -12,6 +12,8 @@ import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/device_sessions_page.dart';
 import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart';
 import 'package:kazumi/pages/my/profile_edit_page.dart';
+import 'package:kazumi/pages/my/qq_login_page.dart';
+import 'package:kazumi/pages/my/wechat_login_page.dart';
 
 /// 樱花动漫账号登录页（验证码登录，无需密码）
 class KazumiLoginPage extends StatefulWidget {
@@ -439,6 +441,43 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   : const Text('登录 / 注册', style: TextStyle(fontSize: 17)),
             ),
             const SizedBox(height: 20),
+
+            // 🆕 其他方式登录
+            Row(
+              children: [
+                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('其他方式登录', style: TextStyle(fontSize: 12, color: colorScheme.outline)),
+                ),
+                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const WechatLoginPage()),
+                    ),
+                    icon: const Icon(Icons.wechat, color: Color(0xFF07C160)),
+                    label: const Text('微信登录'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QQLoginPage()),
+                    ),
+                    icon: const Icon(Icons.chat_bubble_rounded, color: Color(0xFF12B7F5)),
+                    label: const Text('QQ 登录'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
           ],
 
           if (_loggedIn) ...[

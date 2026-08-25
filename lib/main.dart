@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
@@ -189,6 +190,20 @@ void handleAppLink(Uri uri) {
     return;
   }
 
+  // 🆕 QQ 登录深链：yhdmgz://qq-auth?token=xxx
+  else if (uri.scheme == 'yhdmgz' && uri.host == 'qq-auth') {
+    final appToken = params['token'] ?? '';
+    if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, 'QQ');
+    return;
+  }
+
+  // 🆕 微信登录深链：yhdmgz://wx-auth?token=xxx
+  else if (uri.scheme == 'yhdmgz' && uri.host == 'wx-auth') {
+    final appToken = params['token'] ?? '';
+    if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, '微信');
+    return;
+  }
+
   if (animeId != null) {
     _openAnimeDetail(animeId,
         fallbackName: params['n']?.trim().isNotEmpty == true
@@ -256,6 +271,38 @@ Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
   } catch (e) {
     KazumiLogger().e('AppLinks: 打开番剧失败', error: e);
     _showToast('打开番剧失败');
+  }
+}
+
+/// 🆕 第三方登录 token 深链回调处理
+Future<void> _handleThirdPartyToken(String appToken, String providerName) async {
+  try {
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 15);
+    final request = await client.postUrl(
+      Uri.parse('https://qlyyz.xyz/api/login?action=verify_app_token'),
+    );
+    request.headers.set('Content-Type', 'application/json; charset=utf-8');
+    request.add(utf8.encode(jsonEncode({
+      'app_token': appToken,
+      'device_name': 'App 深链登录',
+    })));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    client.close();
+    final data = jsonDecode(body) as Map<String, dynamic>;
+    if (data['token'] != null) {
+      await GStorage.putSetting(SettingsKeys.kazumiToken, data['token']);
+      final user = data['user'];
+      if (user is Map && user['email'] != null) {
+        await GStorage.putSetting(SettingsKeys.kazumiEmail, user['email'].toString());
+      }
+      _showToast('$providerName 登录成功 🎉');
+    } else {
+      _showToast(data['error']?.toString() ?? '登录失败');
+    }
+  } catch (e) {
+    _showToast('登录验证失败: $e');
   }
 }
 
