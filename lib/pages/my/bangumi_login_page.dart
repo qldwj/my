@@ -1,78 +1,78 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:app_links/app_links.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Bangumi OAuth 登录页面
-/// 使用应用内浏览器（Chrome Custom Tabs）授权登录
+/// 使用应用内WebView授权登录
 class BangumiLoginPage extends StatefulWidget {
   const BangumiLoginPage({super.key});
   @override
   State<BangumiLoginPage> createState() => _BangumiLoginPageState();
 }
 
-class _BangumiLoginPageState extends State<BangumiLoginPage> {
-  // 授权地址
-  static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
-  // 回调地址格式：yhdmgz://bangumi-auth?token=xxx
-  static const String _redirectUri = 'yhdmgz://bangumi-auth';
+/// 应用内浏览器，拦截 yhdmgz:// 回调
+class _BangumiAuthBrowser extends InAppBrowser {
+  final void Function(String token) onTokenReceived;
 
-  StreamSubscription<Uri>? _linkSubscription;
-  final _appLinks = AppLinks();
-
-  bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+  _BangumiAuthBrowser({required this.onTokenReceived});
 
   @override
-  void initState() {
-    super.initState();
-    // 监听从浏览器回调回来的deep link
-    _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
-      _handleCallback(uri);
-    }, onError: (err) {
-      KazumiLogger().e('AppLinks监听失败', error: err);
-    });
-  }
-
-  @override
-  void dispose() {
-    _linkSubscription?.cancel();
-    super.dispose();
-  }
-
-  /// 处理回调URL：yhdmgz://bangumi-auth?token=xxx
-  void _handleCallback(Uri uri) {
-    if (uri.scheme == 'yhdmgz' && uri.host == 'bangumi-auth') {
-      final token = uri.queryParameters['token'];
+  void onLoadStop(WebUri? url) {
+    super.onLoadStop(url);
+    if (url == null) return;
+    // 拦截回调：yhdmgz://bangumi-auth?token=xxx
+    if (url.scheme == 'yhdmgz' && url.host == 'bangumi-auth') {
+      final token = url.queryParameters['token'];
       if (token != null && token.isNotEmpty) {
-        GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
-        GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
-        if (mounted) {
-          setState(() {});
-          KazumiDialog.showToast(message: '登录成功 🎉');
-        }
+        onTokenReceived(token);
       }
+      close();
     }
   }
+}
+
+class _BangumiLoginPageState extends State<BangumiLoginPage> {
+  static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
+  static const String _redirectUri = 'yhdmgz://bangumi-auth';
+
+  bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
   Future<void> _login() async {
     try {
       final authUrl = '$_authBaseUrl?action=login&redirect_uri=$_redirectUri';
-      final uri = Uri.parse(authUrl);
 
-      // 使用应用内浏览器打开（Android: Chrome Custom Tabs）
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.inAppBrowserView,
-        );
-      } else {
-        // 降级到外部浏览器
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      final browser = _BangumiAuthBrowser(
+        onTokenReceived: (token) async {
+          await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
+          await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+          if (mounted) {
+            setState(() {});
+            KazumiDialog.showToast(message: '登录成功 🎉');
+          }
+        },
+      );
+
+      // 在应用内打开WebView
+      await browser.openUrlRequest(
+        urlRequest: URLRequest(url: WebUri(authUrl)),
+        settings: InAppBrowserClassOptions(
+          inAppWebViewGroupOptions: InAppWebViewGroupOptions(
+            crossPlatform: InAppWebViewOptions(
+              useShouldOverrideUrlLoading: true,
+              javaScriptEnabled: true,
+            ),
+          ),
+          android: AndroidInAppBrowserOptions(
+            showTitleBar: true,
+            showCloseButton: true,
+          ),
+          inAppWebView: true, // 使用应用内WebView
+        ),
+      );
     } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
       KazumiDialog.showToast(message: '打开授权页面失败: $e');
