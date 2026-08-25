@@ -26,17 +26,9 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
       final uri = Uri.parse(authUrl);
 
       // Chrome Custom Tabs：应用内显示，共享系统浏览器cookies
-      await launch(
-        uri,
-        customTabsOptions: CustomTabsOptions(
-          colorSchemes: CustomTabsColorSchemes.defaults(),
-          shareState: CustomTabsShareState.browser,
-          urlBarHidingEnabled: true,
-          showTitle: true,
-          closeButton: CustomTabsCloseButton(
-            icon: CustomTabsCloseButtonIcons.back,
-          ),
-        ),
+      await CustomTabs.launch(
+        uri.toString(),
+        customTabsOptions: const CustomTabsOptions(),
       );
     } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
