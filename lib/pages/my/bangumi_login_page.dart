@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:app_links/app_links.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Bangumi OAuth 登录页面
-/// 使用 flutter_web_auth_2 实现应用内授权
-/// - Android: Chrome Custom Tabs（应用内显示，共享系统浏览器cookies）
-/// - iOS: ASWebAuthenticationSession（应用内弹窗，共享Safari cookies）
-/// - Web: Popup 窗口模式
+/// 使用 Chrome Custom Tabs 授权（Android）/ ASWebAuthenticationSession（iOS）
+/// 体验与 Telegram 一致：应用内打开授权页，共享系统浏览器 cookies，授权后自动跳回
 class BangumiLoginPage extends StatefulWidget {
   const BangumiLoginPage({super.key});
   @override
@@ -18,62 +17,56 @@ class BangumiLoginPage extends StatefulWidget {
 }
 
 class _BangumiLoginPageState extends State<BangumiLoginPage> {
-  /// Bangumi OAuth 授权端点
   static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
-
-  /// 自定义 URL Scheme 回调地址
-  /// 格式: yhdmgz://bangumi-auth?token=xxx
-  static const String _callbackScheme = 'yhdmgz';
   static const String _redirectUri = 'yhdmgz://bangumi-auth';
 
-  bool get _isLoggedIn =>
-      GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+  StreamSubscription<Uri>? _linkSub;
+  final _appLinks = AppLinks();
+
+  bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    // 监听从 Custom Tabs 回调回来的 deep link
+    _linkSub = _appLinks.uriLinkStream.listen((uri) {
+      _handleCallback(uri);
+    }, onError: (e) => KazumiLogger().e('AppLinks监听失败', error: e));
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  /// 处理回调：yhdmgz://bangumi-auth?token=xxx
+  void _handleCallback(Uri uri) {
+    if (uri.scheme == 'yhdmgz' && uri.host == 'bangumi-auth') {
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty) {
+        GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
+        GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+        if (mounted) {
+          setState(() {});
+          KazumiDialog.showToast(message: '登录成功 🎉');
+        }
+      }
+    }
+  }
 
   Future<void> _login() async {
     try {
-      // 1. 构建授权 URL
-      final authUrl = Uri.parse('$_authBaseUrl?action=login').replace(
-        queryParameters: {
-          'redirect_uri': _redirectUri,
-        },
-      );
+      final authUrl = '$_authBaseUrl?action=login&redirect_uri=$_redirectUri';
+      final uri = Uri.parse(authUrl);
 
-      // 2. 调用 flutter_web_auth_2 拉起认证窗口
-      //    - Android: Chrome Custom Tabs（应用内，共享Chrome cookies）
-      //    - iOS: ASWebAuthenticationSession（应用内，共享Safari cookies）
-      //    - Web: Popup窗口（需配合服务器端回调）
-      final result = await FlutterWebAuth2.authenticate(
-        url: authUrl.toString(),
-        callbackUrlScheme: _callbackScheme,
-        options: FlutterWebAuth2Options(
-          preferEphemeral: false, // 共享系统浏览器cookies
-        ),
-      );
-
-      // 3. 解析回调 URL
-      //    回调格式: yhdmgz://bangumi-auth?token=xxx
-      final callbackUri = Uri.parse(result);
-      final token = callbackUri.queryParameters['token'];
-
-      if (token == null || token.isEmpty) {
-        KazumiDialog.showToast(message: '授权失败：未获取到 Token');
-        return;
+      if (await canLaunchUrl(uri)) {
+        // inAppBrowserView = Chrome Custom Tabs（应用内，共享cookies，Telegram同款）
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       }
-
-      // 4. 保存 token
-      await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
-      await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
-
-      if (mounted) {
-        setState(() {});
-        KazumiDialog.showToast(message: '登录成功 🎉');
-      }
-    } on Exception catch (e) {
+    } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
-      // 用户取消授权时不弹错误提示
-      if (!e.toString().contains('cancelled')) {
-        KazumiDialog.showToast(message: '授权失败: $e');
-      }
+      KazumiDialog.showToast(message: '授权失败: $e');
     }
   }
 

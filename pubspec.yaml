@@ -41,7 +41,7 @@ dependencies:
   dynamic_color: ^1.8.1
   flutter_displaymode: ^0.6.0
   url_launcher: ^6.3.0
-  flutter_web_auth_2: ^5.1.0
+  app_links: ^6.3.2
   window_manager: ^0.5.1
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
@@ -109,10 +109,6 @@ dependencies:
   flutter_local_notifications: ^19.4.0
   hotkey_manager: ^0.2.0
 dependency_overrides:
-  desktop_webview_window:
-    git:
-      url: https://github.com/Predidit/linux_webview_window.git
-      ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
