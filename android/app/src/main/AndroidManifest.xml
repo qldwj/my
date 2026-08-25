@@ -31,7 +31,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- ===== 支持 yhdmgz:// 自定义协议（规则分享与导入） ===== -->
+            <!-- ===== 支持 yhdmgz:// 自定义协议（规则分享与导入 + OAuth回调） ===== -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -39,6 +39,14 @@
                 <data android:scheme="yhdmgz" />
             </intent-filter>
             <!-- ===== 结束 ===== -->
+
+            <!-- flutter_web_auth_2 回调拦截：yhdmgz://bangumi-auth?token=xxx -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="yhdmgz" android:host="bangumi-auth" />
+            </intent-filter>
 
             <!-- AppLinks 无弹窗唤起核心配置 -->
             <intent-filter android:autoVerify="true">

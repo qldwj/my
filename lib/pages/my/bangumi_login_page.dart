@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 /// Bangumi OAuth 登录页面
-/// 使用 Chrome Custom Tabs 授权（应用内显示，共享系统浏览器cookies）
+/// 使用 flutter_web_auth_2 实现应用内授权
+/// - Android: Chrome Custom Tabs（应用内显示，共享系统浏览器cookies）
+/// - iOS: ASWebAuthenticationSession（应用内弹窗，共享Safari cookies）
+/// - Web: Popup 窗口模式
 class BangumiLoginPage extends StatefulWidget {
   const BangumiLoginPage({super.key});
   @override
@@ -15,24 +18,62 @@ class BangumiLoginPage extends StatefulWidget {
 }
 
 class _BangumiLoginPageState extends State<BangumiLoginPage> {
+  /// Bangumi OAuth 授权端点
   static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
+
+  /// 自定义 URL Scheme 回调地址
+  /// 格式: yhdmgz://bangumi-auth?token=xxx
+  static const String _callbackScheme = 'yhdmgz';
   static const String _redirectUri = 'yhdmgz://bangumi-auth';
 
-  bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+  bool get _isLoggedIn =>
+      GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
   Future<void> _login() async {
     try {
-      final authUrl = '$_authBaseUrl?action=login&redirect_uri=$_redirectUri';
-      final uri = Uri.parse(authUrl);
-
-      // Chrome Custom Tabs：应用内显示，共享系统浏览器cookies
-      await CustomTabs.launch(
-        uri.toString(),
-        customTabsOptions: const CustomTabsOptions(),
+      // 1. 构建授权 URL
+      final authUrl = Uri.parse('$_authBaseUrl?action=login').replace(
+        queryParameters: {
+          'redirect_uri': _redirectUri,
+        },
       );
-    } catch (e) {
+
+      // 2. 调用 flutter_web_auth_2 拉起认证窗口
+      //    - Android: Chrome Custom Tabs（应用内，共享Chrome cookies）
+      //    - iOS: ASWebAuthenticationSession（应用内，共享Safari cookies）
+      //    - Web: Popup窗口（需配合服务器端回调）
+      final result = await FlutterWebAuth2.authenticate(
+        url: authUrl.toString(),
+        callbackUrlScheme: _callbackScheme,
+        options: FlutterWebAuth2Options(
+          preferEphemeral: false, // 共享系统浏览器cookies
+        ),
+      );
+
+      // 3. 解析回调 URL
+      //    回调格式: yhdmgz://bangumi-auth?token=xxx
+      final callbackUri = Uri.parse(result);
+      final token = callbackUri.queryParameters['token'];
+
+      if (token == null || token.isEmpty) {
+        KazumiDialog.showToast(message: '授权失败：未获取到 Token');
+        return;
+      }
+
+      // 4. 保存 token
+      await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
+      await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+
+      if (mounted) {
+        setState(() {});
+        KazumiDialog.showToast(message: '登录成功 🎉');
+      }
+    } on Exception catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
-      KazumiDialog.showToast(message: '打开授权页面失败: $e');
+      // 用户取消授权时不弹错误提示
+      if (!e.toString().contains('cancelled')) {
+        KazumiDialog.showToast(message: '授权失败: $e');
+      }
     }
   }
 
