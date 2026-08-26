@@ -71,14 +71,15 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       client.close();
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true && mounted) {
+        final statusData = data['data'] as Map<String, dynamic>? ?? {};
         setState(() {
           _status = {
-            'has_qq': data['has_qq'] ?? false,
-            'has_wechat': data['has_wechat'] ?? false,
-            'has_telegram': data['has_telegram'] ?? false,
-            'has_douyin': data['has_douyin'] ?? false,
-            'has_bangumi': data['has_bangumi'] ?? false,
-            'has_email': data['has_email'] ?? false,
+            'has_qq': statusData['has_qq'] ?? false,
+            'has_wechat': statusData['has_wechat'] ?? false,
+            'has_telegram': statusData['has_telegram'] ?? false,
+            'has_douyin': statusData['has_douyin'] ?? false,
+            'has_bangumi': statusData['has_bangumi'] ?? false,
+            'has_email': statusData['has_email'] ?? false,
           };
         });
       }
