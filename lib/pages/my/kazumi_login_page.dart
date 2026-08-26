@@ -50,9 +50,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
   /// 刷新登录状态
   void _refreshLoginState() {
-    final wasLoggedIn = _loggedIn;
     _loggedIn = AuthService.isLoggedIn;
-    if (_loggedIn && !wasLoggedIn) _loadStatus();
+    if (_loggedIn) _loadStatus(); // 只要已登录就加载状态
     if (mounted) setState(() {});
   }
 
