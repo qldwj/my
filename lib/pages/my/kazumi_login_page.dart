@@ -26,21 +26,23 @@ class KazumiLoginPage extends StatefulWidget {
 class _KazumiLoginPageState extends State<KazumiLoginPage> {
   bool _loggedIn = false;
   bool _syncing = false;
-  bool _loadingStatus = true;
   Map<String, bool> _status = {
-    'has_qq': false,
-    'has_wechat': false,
-    'has_telegram': false,
-    'has_douyin': false,
-    'has_bangumi': false,
-    'has_email': false,
+    'has_qq': false, 'has_wechat': false, 'has_telegram': false,
+    'has_douyin': false, 'has_bangumi': false, 'has_email': false,
   };
 
   @override
   void initState() {
     super.initState();
+    _refreshLoginState();
+  }
+
+  /// 刷新登录状态
+  void _refreshLoginState() {
+    final wasLoggedIn = _loggedIn;
     _loggedIn = AuthService.isLoggedIn;
-    if (_loggedIn) _loadStatus();
+    if (_loggedIn && !wasLoggedIn) _loadStatus();
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadStatus() async {
@@ -57,7 +59,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       final body = await response.transform(utf8.decoder).join();
       client.close();
       final data = jsonDecode(body) as Map<String, dynamic>;
-      if (data['success'] == true) {
+      if (data['success'] == true && mounted) {
         setState(() {
           _status = {
             'has_qq': data['has_qq'] ?? false,
@@ -67,12 +69,9 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             'has_bangumi': data['has_bangumi'] ?? false,
             'has_email': data['has_email'] ?? false,
           };
-          _loadingStatus = false;
         });
       }
-    } catch (e) {
-      setState(() => _loadingStatus = false);
-    }
+    } catch (e) {}
   }
 
   void _logout() {
@@ -97,17 +96,15 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     setState(() => _syncing = false);
   }
 
-  /// 登录/绑定操作后的回调
   Future<void> _onAuthResult(bool? result) async {
     if (result == true) {
-      setState(() => _loggedIn = AuthService.isLoggedIn);
-      if (_loggedIn) await _loadStatus();
+      _refreshLoginState();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('樱花动漫账号'),
@@ -128,12 +125,12 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: _loggedIn ? Colors.green.shade50 : colorScheme.surfaceContainerLow,
+            color: _loggedIn ? Colors.green.shade50 : cs.surfaceContainerLow,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(children: [
             Icon(_loggedIn ? Icons.check_circle : Icons.person, size: 48,
-              color: _loggedIn ? Colors.green : colorScheme.outline),
+              color: _loggedIn ? Colors.green : cs.outline),
             const SizedBox(height: 8),
             Text(_loggedIn ? '已登录' : '未登录', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ]),
@@ -141,34 +138,63 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
-          // 未登录：显示登录方式列表
-          _buildSectionTitle('选择登录方式'),
-          _buildLoginTile('assets/images/icons/wechat.png', '微信', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage()));
-            _onAuthResult(r);
-          }),
-          _buildLoginTile('assets/images/icons/qq.png', 'QQ', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage()));
-            _onAuthResult(r);
-          }),
-          _buildLoginTile('assets/images/icons/telegram.png', 'Telegram', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage()));
-            _onAuthResult(r);
-          }),
-          _buildLoginTile('assets/images/icons/douyin.png', '抖音', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage()));
-            _onAuthResult(r);
-          }),
-          _buildLoginTile('assets/images/icons/bangumi.png', 'Bangumi', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
-            _onAuthResult(r);
-          }),
-          _buildLoginTile('assets/images/icons/bangumi.png', 'Bangumi', null, () async {
-            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
-            _onAuthResult(r);
-          }),
+          // ========== 未登录：四宫格 + Bangumi + 邮箱登录 ==========
+          Row(children: [
+            Expanded(child: _buildLoginButton('assets/images/icons/wechat.png', '微信', () async {
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage()));
+              _onAuthResult(r);
+            })),
+            const SizedBox(width: 12),
+            Expanded(child: _buildLoginButton('assets/images/icons/qq.png', 'QQ', () async {
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage()));
+              _onAuthResult(r);
+            })),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _buildLoginButton('assets/images/icons/telegram.png', 'Telegram', () async {
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage()));
+              _onAuthResult(r);
+            })),
+            const SizedBox(width: 12),
+            Expanded(child: _buildLoginButton('assets/images/icons/douyin.png', '抖音', () async {
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage()));
+              _onAuthResult(r);
+            })),
+          ]),
+          const SizedBox(height: 12),
+          // Bangumi 满行
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+                _onAuthResult(r);
+              },
+              icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
+              label: const Text('Bangumi'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFED74A4),
+                side: const BorderSide(color: Color(0xFFED74A4)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 邮箱登录
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                // 跳转到邮箱登录（复用已有的登录逻辑）
+                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
+                _onAuthResult(r);
+              },
+              icon: const Icon(Icons.email),
+              label: const Text('邮箱登录'),
+            ),
+          ),
         ] else ...[
-          // 已登录：显示绑定状态列表
+          // ========== 已登录：绑定状态列表 ==========
           _buildSectionTitle('账号绑定'),
           _buildStatusTile('assets/images/icons/wechat.png', '微信', _status['has_wechat']!, () async {
             if (_status['has_wechat']!) {
@@ -213,7 +239,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
           const SizedBox(height: 16),
           _buildSectionTitle('数据同步'),
-          // 同步按钮
           SizedBox(
             width: double.infinity,
             child: FilledButton.tonalIcon(
@@ -223,7 +248,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             ),
           ),
           const SizedBox(height: 12),
-          // 设备管理
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.devices_rounded),
@@ -232,19 +256,26 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeviceSessionsPage())),
           ),
           const SizedBox(height: 16),
-          // 退出登录
           OutlinedButton.icon(
             onPressed: _logout,
             icon: const Icon(Icons.logout),
             label: const Text('退出登录'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
-              foregroundColor: colorScheme.error,
-              side: BorderSide(color: colorScheme.error),
+              foregroundColor: cs.error,
+              side: BorderSide(color: cs.error),
             ),
           ),
         ],
       ]),
+    );
+  }
+
+  Widget _buildLoginButton(String iconPath, String label, VoidCallback onTap) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Image.asset(iconPath, width: 20, height: 20),
+      label: Text(label),
     );
   }
 
@@ -255,42 +286,25 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     );
   }
 
-  Widget _buildLoginTile(String? iconPath, String name, bool? bound, VoidCallback onTap) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: iconPath != null ? Image.asset(iconPath, width: 28, height: 28) : Icon(Icons.email, color: cs.primary),
-        title: Text(name),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
-    );
-  }
-
   Widget _buildStatusTile(String? iconPath, String name, bool isBound, VoidCallback onTap) {
-    final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: iconPath != null ? Image.asset(iconPath, width: 28, height: 28) : Icon(Icons.email, color: cs.primary),
+        leading: iconPath != null ? Image.asset(iconPath, width: 28, height: 28) : const Icon(Icons.email),
         title: Text(name),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isBound ? Colors.green.shade50 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(isBound ? '已绑定' : '未绑定',
-                style: TextStyle(fontSize: 12, color: isBound ? Colors.green.shade700 : Colors.grey)),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: isBound ? Colors.green.shade50 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 4),
-            Icon(isBound ? Icons.link_off : Icons.add, size: 18),
-          ],
-        ),
+            child: Text(isBound ? '已绑定' : '未绑定',
+              style: TextStyle(fontSize: 12, color: isBound ? Colors.green.shade700 : Colors.grey)),
+          ),
+          const SizedBox(width: 4),
+          Icon(isBound ? Icons.link_off : Icons.add, size: 18),
+        ]),
         onTap: onTap,
       ),
     );
@@ -386,6 +400,106 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 邮箱登录页（复用已有的验证码登录逻辑）
+class _EmailLoginPage extends StatefulWidget {
+  const _EmailLoginPage();
+  @override
+  State<_EmailLoginPage> createState() => _EmailLoginPageState();
+}
+
+class _EmailLoginPageState extends State<_EmailLoginPage> {
+  final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _captchaController = TextEditingController();
+  bool _sending = false;
+  bool _logging = false;
+  String? _captchaChallenge;
+
+  Future<void> _sendCode() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
+    setState(() => _sending = true);
+    try {
+      final res = await AuthService.sendCode(email);
+      if (res['captcha_challenge'] != null) {
+        setState(() => _captchaChallenge = res['captcha_challenge']);
+        KazumiDialog.showToast(message: '验证码已发送');
+      } else {
+        KazumiDialog.showToast(message: res['error'] ?? '发送失败');
+      }
+    } catch (e) {
+      KazumiDialog.showToast(message: '网络错误: $e');
+    }
+    setState(() => _sending = false);
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final code = _codeController.text.trim();
+    final captcha = _captchaController.text.trim();
+    if (code.length != 6) { KazumiDialog.showToast(message: '请输入6位验证码'); return; }
+    setState(() => _logging = true);
+    try {
+      final res = await AuthService.login(email: email, code: code, captchaAnswer: captcha,
+        deviceName: AuthService.currentDeviceName());
+      if (res['token'] != null) {
+        AuthService.saveLocalToken(res['token']);
+        await SocialService.ensureProfileAfterLogin();
+        if (res['user'] is Map && res['user']['email'] != null) {
+          await AuthService.saveUserEmail(res['user']['email'].toString());
+        }
+        if (mounted) {
+          setState(() => _logging = false);
+          KazumiDialog.showToast(message: '登录成功');
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        if (mounted) { setState(() => _logging = false); KazumiDialog.showToast(message: res['error'] ?? '登录失败'); }
+      }
+    } catch (e) {
+      if (mounted) { setState(() => _logging = false); KazumiDialog.showToast(message: '网络错误: $e'); }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('邮箱登录')),
+      body: ListView(padding: const EdgeInsets.all(24), children: [
+        const SizedBox(height: 20),
+        const Icon(Icons.email, size: 72),
+        const SizedBox(height: 12),
+        const Text('邮箱验证码登录', textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 32),
+        TextField(controller: _emailController, keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: '邮箱', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email))),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: TextField(controller: _codeController, maxLength: 6, keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: '验证码', border: OutlineInputBorder()))),
+          const SizedBox(width: 12),
+          FilledButton.tonal(onPressed: _sending ? null : _sendCode, child: _sending ? const SizedBox(width: 16, height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2)) : const Text('发送')),
+        ]),
+        if (_captchaChallenge != null) ...[
+          const SizedBox(height: 16),
+          TextField(controller: _captchaController, maxLength: 6,
+            decoration: InputDecoration(labelText: '人机验证', border: const OutlineInputBorder(),
+              suffixIcon: Padding(padding: const EdgeInsets.all(12), child: Text(_captchaChallenge!,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4))))),
+        ],
+        const SizedBox(height: 24),
+        FilledButton(onPressed: _logging ? null : _login,
+          style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+          child: _logging ? const SizedBox(width: 20, height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Text('登录 / 注册', style: TextStyle(fontSize: 17))),
+      ]),
     );
   }
 }
