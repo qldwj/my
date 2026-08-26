@@ -218,6 +218,15 @@ void handleAppLink(Uri uri) {
     return;
   }
 
+  // 🆕 yhdmgz:// 规则分享链接 — 转发给 DeepLinkService 处理
+  if (uri.scheme == 'yhdmgz') {
+    KazumiLogger().i('AppLinks: 转发 yhdmgz 链接给 DeepLinkService: $uri');
+    // 通过 MethodChannel 转发，DeepLinkService 会处理规则导入
+    const channel = MethodChannel('com.predidit.kazumi/intent');
+    channel.invokeMethod('onIntent', {'url': uri.toString()});
+    return;
+  }
+
   if (animeId != null) {
     _openAnimeDetail(animeId,
         fallbackName: params['n']?.trim().isNotEmpty == true

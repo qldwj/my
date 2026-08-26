@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 抖音 OAuth 登录/绑定页
@@ -56,6 +58,7 @@ class _DouyinLoginPageState extends State<DouyinLoginPage> {
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['token'] != null) {
         AuthService.saveLocalToken(data['token']);
+        GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后自动开启同步
         final user = data['user'];
         if (user is Map && user['email'] != null) await AuthService.saveUserEmail(user['email'].toString());
         if (mounted) {

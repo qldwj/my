@@ -459,6 +459,7 @@ class _EmailLoginPageState extends State<_EmailLoginPage> {
         deviceName: AuthService.currentDeviceName());
       if (res['token'] != null) {
         AuthService.saveLocalToken(res['token']);
+        GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后自动开启同步
         await SocialService.ensureProfileAfterLogin();
         if (res['user'] is Map && res['user']['email'] != null) {
           await AuthService.saveUserEmail(res['user']['email'].toString());
