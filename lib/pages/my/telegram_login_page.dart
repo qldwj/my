@@ -7,7 +7,8 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Telegram OAuth 登录/绑定页
+/// Telegram 登录/绑定页
+/// 点击按钮 → 打开 Telegram Bot → Bot 发送确认链接 → 深链回 App
 class TelegramLoginPage extends StatefulWidget {
   final bool bindMode;
   const TelegramLoginPage({super.key, this.bindMode = false});
@@ -16,6 +17,7 @@ class TelegramLoginPage extends StatefulWidget {
 }
 
 class _TelegramLoginPageState extends State<TelegramLoginPage> {
+  static const String _botUsername = 'yhdmlogin_bot';
   static const String _verifyUrl = 'https://qlyyz.xyz/api/login?action=verify_app_token';
   static const String _bindUrl = 'https://qlyyz.xyz/api/login?action=bind_provider';
 
@@ -102,14 +104,17 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
     }
   }
 
-  Future<void> _login() async {
+  /// 打开 Telegram Bot
+  Future<void> _openBot() async {
     setState(() => _loading = true);
     try {
-      final bindParam = widget.bindMode ? '&bind=1' : '';
-      final uri = Uri.parse('https://qlyyz.xyz/api/telegram_login.php$bindParam');
-      if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      final startParam = widget.bindMode ? 'BIND' : 'LOGIN';
+      final uri = Uri.parse('https://t.me/$_botUsername?start=$startParam');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
     } catch (e) {
-      KazumiDialog.showToast(message: '打开授权页失败: $e');
+      KazumiDialog.showToast(message: '打开 Telegram 失败: $e');
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -128,17 +133,19 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
         Text(widget.bindMode ? '绑定 Telegram 账号' : 'Telegram 授权登录',
           textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(widget.bindMode ? '授权后 Telegram 将绑定到当前账号' : '点击下方按钮，跳转到 Telegram 授权页面',
+        Text(widget.bindMode
+          ? '点击下方按钮，打开 Telegram Bot 完成绑定'
+          : '点击下方按钮，打开 Telegram Bot 完成登录',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
         const SizedBox(height: 40),
-        FilledButton(onPressed: _loading ? null : _login,
+        FilledButton(onPressed: _loading ? null : _openBot,
           style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50),
             backgroundColor: const Color(0xFF0088CC)),
           child: _loading ? const SizedBox(width: 20, height: 20,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : Text(widget.bindMode ? '打开 Telegram 授权绑定' : '打开 Telegram 授权', style: const TextStyle(fontSize: 17))),
+            : Text(widget.bindMode ? '打开 Telegram 绑定' : '打开 Telegram 登录', style: const TextStyle(fontSize: 17))),
         const SizedBox(height: 16),
-        Text('授权后会自动跳回 App 完成${widget.bindMode ? "绑定" : "登录"}',
+        Text('在 Telegram 中点击确认按钮完成${widget.bindMode ? "绑定" : "登录"}',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: cs.outline)),
       ]),
     );
