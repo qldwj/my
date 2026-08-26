@@ -14,6 +14,7 @@ import 'package:kazumi/pages/my/yhdmgz_qr_scan_page.dart';
 import 'package:kazumi/pages/my/profile_edit_page.dart';
 import 'package:kazumi/pages/my/qq_login_page.dart';
 import 'package:kazumi/pages/my/wechat_login_page.dart';
+import 'package:kazumi/pages/my/telegram_login_page.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
 
 /// 樱花动漫账号登录页（验证码登录，无需密码）
@@ -489,25 +490,39 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ],
             ),
             const SizedBox(height: 12),
-            // 🆕 Bangumi 登录按钮（粉色）
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(builder: (_) => const BangumiLoginPage()),
-                  );
-                  if (result == true && mounted) {
-                    Navigator.of(context).pop(true);
-                  }
-                },
-                icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
-                label: const Text('Bangumi 登录'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFED74A4),
-                  side: const BorderSide(color: Color(0xFFED74A4)),
+            // 🆕 Telegram + Bangumi 登录
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final result = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(builder: (_) => const TelegramLoginPage()),
+                      );
+                      if (result == true && mounted) Navigator.of(context).pop(true);
+                    },
+                    icon: Image.asset('assets/images/icons/telegram.png', width: 20, height: 20),
+                    label: const Text('Telegram'),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final result = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(builder: (_) => const BangumiLoginPage()),
+                      );
+                      if (result == true && mounted) Navigator.of(context).pop(true);
+                    },
+                    icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
+                    label: const Text('Bangumi'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFED74A4),
+                      side: const BorderSide(color: const Color(0xFFED74A4)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
           ],
@@ -654,35 +669,56 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ),
             ),
             const SizedBox(height: 12),
-            // 🆕 绑定 QQ / 微信（邮箱登录时显示）
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const QQLoginPage(bindMode: true)),
-                    ),
-                    icon: Image.asset('assets/images/icons/qq.png', width: 18, height: 18),
-                    label: const Text('绑定 QQ'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const WechatLoginPage(bindMode: true)),
-                    ),
-                    icon: Image.asset('assets/images/icons/wechat.png', width: 18, height: 18),
-                    label: const Text('绑定微信'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // 🆕 OAuth 账号：绑定邮箱（可选，可用真实邮箱登录）
+            // 🆕 绑定区域：根据登录类型显示不同按钮
+            // QQ/微信/Telegram 登录 → 只显示绑定邮箱
+            // 邮箱登录 → 显示绑定 QQ/微信/Telegram
             if (AuthService.isOAuthAccount) ...[
               SizedBox(
                 width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showBindEmailDialog,
+                  icon: const Icon(Icons.alternate_email_rounded),
+                  label: const Text('绑定邮箱（改用邮箱登录）'),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              // 🆕 邮箱登录：绑定 QQ / 微信 / Telegram（三选一）
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const QQLoginPage(bindMode: true)),
+                      ),
+                      icon: Image.asset('assets/images/icons/qq.png', width: 18, height: 18),
+                      label: const Text('绑定 QQ'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const WechatLoginPage(bindMode: true)),
+                      ),
+                      icon: Image.asset('assets/images/icons/wechat.png', width: 18, height: 18),
+                      label: const Text('绑定微信'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const TelegramLoginPage(bindMode: true)),
+                      ),
+                      icon: Image.asset('assets/images/icons/telegram.png', width: 18, height: 18),
+                      label: const Text('TG'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ]
                 child: OutlinedButton.icon(
                   onPressed: _showBindEmailDialog,
                   icon: const Icon(Icons.alternate_email_rounded),

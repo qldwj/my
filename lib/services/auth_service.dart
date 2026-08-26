@@ -137,6 +137,7 @@ class AuthService {
     final email = currentUserEmail ?? '';
     return email.endsWith('@qq.login') ||
            email.endsWith('@wechat.login') ||
+           email.endsWith('@telegram.login') ||
            email.endsWith('@oauth.local');
   }
 

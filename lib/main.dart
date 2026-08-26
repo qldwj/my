@@ -204,6 +204,13 @@ void handleAppLink(Uri uri) {
     return;
   }
 
+  // 🆕 Telegram 登录深链：yhdmgz://tg-auth?token=xxx
+  else if (uri.scheme == 'yhdmgz' && uri.host == 'tg-auth') {
+    final appToken = params['token'] ?? '';
+    if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, 'Telegram');
+    return;
+  }
+
   if (animeId != null) {
     _openAnimeDetail(animeId,
         fallbackName: params['n']?.trim().isNotEmpty == true
