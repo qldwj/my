@@ -743,6 +743,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.misc,
   );
+  static const pendingThirdpartyLogin = SettingKey<bool>(
+    _SettingBoxKey.pendingThirdpartyLogin,
+    false,
+    group: SettingGroup.misc,
+  );
 
   // 🆕 社交：本地缓存的用户资料 JSON（uid/昵称/头像）
   static const socialProfile = SettingKey<String>(
