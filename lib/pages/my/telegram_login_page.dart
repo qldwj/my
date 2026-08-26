@@ -29,7 +29,7 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
   void initState() {
     super.initState();
     _linkSub = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'yhdmgz' && uri.host == 'tg-auth') {
+      if (uri.scheme == 'yhdm' && uri.host == 'tg-auth') {
         final appToken = uri.queryParameters['token'];
         if (appToken != null && appToken.isNotEmpty) {
           widget.bindMode ? _bindToken(appToken) : _verifyToken(appToken);

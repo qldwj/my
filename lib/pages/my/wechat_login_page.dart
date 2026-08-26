@@ -27,7 +27,7 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
   void initState() {
     super.initState();
     _linkSub = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'yhdmgz' && uri.host == 'wx-auth') {
+      if (uri.scheme == 'yhdm' && uri.host == 'wx-auth') {
         final appToken = uri.queryParameters['token'];
         if (appToken != null && appToken.isNotEmpty) {
           widget.bindMode ? _bindToken(appToken) : _verifyToken(appToken);

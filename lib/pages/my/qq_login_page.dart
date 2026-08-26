@@ -28,7 +28,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
   void initState() {
     super.initState();
     _linkSub = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'yhdmgz' && uri.host == 'qq-auth') {
+      if (uri.scheme == 'yhdm' && uri.host == 'qq-auth') {
         final appToken = uri.queryParameters['token'];
         if (appToken != null && appToken.isNotEmpty) {
           widget.bindMode ? _bindToken(appToken) : _verifyToken(appToken);

@@ -1,7 +1,7 @@
 
 /// 樱花动漫扫码登录协议解析
 class YhdmgzQrProtocol {
-  static const String scheme = 'yhdmgz';
+  static const String scheme = 'yhdm';
 
   /// 提取二维码中的会话码。
   /// 兼容 `?token=xxx` 与 `?code=xxx` 两种写法。

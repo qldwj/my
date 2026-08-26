@@ -16,7 +16,7 @@ class BangumiLoginPage extends StatefulWidget {
 
 class _BangumiLoginPageState extends State<BangumiLoginPage> {
   static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
-  static const String _redirectUri = 'yhdmgz://bangumi-auth';
+  static const String _redirectUri = 'yhdm://bangumi-auth';
 
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();
@@ -28,7 +28,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   void initState() {
     super.initState();
     _linkSub = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'yhdmgz' && uri.host == 'bangumi-auth') {
+      if (uri.scheme == 'yhdm' && uri.host == 'bangumi-auth') {
         final token = uri.queryParameters['token'];
         if (token != null && token.isNotEmpty) {
           GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);

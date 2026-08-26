@@ -6,7 +6,7 @@ import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
-/// 扫描 yhdmgz://login 二维码后的处理页
+/// 扫描 yhdm://login 二维码后的处理页
 /// 扫码插件只需把二维码字符串传入 handleCode 即可
 class YhdmgzScanLoginPage extends StatefulWidget {
   const YhdmgzScanLoginPage({super.key});

@@ -190,22 +190,22 @@ void handleAppLink(Uri uri) {
     return;
   }
 
-  // 🆕 QQ 登录深链：yhdmgz://qq-auth?token=xxx
-  else if (uri.scheme == 'yhdmgz' && uri.host == 'qq-auth') {
+  // 🆕 QQ 登录深链：yhdm://qq-auth?token=xxx
+  else if (uri.scheme == 'yhdm' && uri.host == 'qq-auth') {
     final appToken = params['token'] ?? '';
     if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, 'QQ');
     return;
   }
 
-  // 🆕 微信登录深链：yhdmgz://wx-auth?token=xxx
-  else if (uri.scheme == 'yhdmgz' && uri.host == 'wx-auth') {
+  // 🆕 微信登录深链：yhdm://wx-auth?token=xxx
+  else if (uri.scheme == 'yhdm' && uri.host == 'wx-auth') {
     final appToken = params['token'] ?? '';
     if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, '微信');
     return;
   }
 
-  // 🆕 Telegram 登录深链：yhdmgz://tg-auth?token=xxx
-  else if (uri.scheme == 'yhdmgz' && uri.host == 'tg-auth') {
+  // 🆕 Telegram 登录深链：yhdm://tg-auth?token=xxx
+  else if (uri.scheme == 'yhdm' && uri.host == 'tg-auth') {
     final appToken = params['token'] ?? '';
     if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, 'Telegram');
     return;

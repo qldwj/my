@@ -88,12 +88,12 @@ class DeepLinkService {
     });
   }
 
-  /// 处理 yhdmgz:// 链接（规则分享或 Bangumi 登录回调）
+  /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm://）
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
 
-    // 1️⃣ Bangumi OAuth 登录回调
-    if (url.startsWith('yhdmgz://bangumi-auth')) {
+    // 1️⃣ Bangumi OAuth 登录回调 (yhdm://bangumi-auth)
+    if (url.startsWith('yhdm://bangumi-auth')) {
       try {
         final uri = Uri.parse(url);
         final token = uri.queryParameters['token'];

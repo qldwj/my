@@ -8,7 +8,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
-/// 扫码登录页 - 生成 yhdmgz://login 协议二维码，供另一台设备扫描登录
+/// 扫码登录页 - 生成 yhdm://login 协议二维码，供另一台设备扫描登录
 class QrcodeLoginPage extends StatefulWidget {
   const QrcodeLoginPage({super.key});
 
