@@ -106,7 +106,7 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
     setState(() => _loading = true);
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
-      final uri = Uri.parse('https://qlyyz.xyz/api/oauth_login.php?action=login&provider=telegram$bindParam');
+      final uri = Uri.parse('https://qlyyz.xyz/api/telegram_login.php$bindParam');
       if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');
