@@ -312,7 +312,7 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
         await GStorage.putSetting(SettingsKeys.kazumiEmail, user['email'].toString());
       }
       // 🆕 存标记，让登录页检测到后自动刷新
-      await GStorage.putSetting('pending_thirdparty_login', true);
+      await GStorage.putSetting(SettingsKeys.pendingThirdpartyLogin, true);
       _showToast('$providerName 登录成功');
     } else {
       _showToast(data['error']?.toString() ?? '登录失败');

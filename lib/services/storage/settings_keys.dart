@@ -1025,5 +1025,6 @@ class _SettingBoxKey {
       ruleSortDefault = 'ruleSortDefault',
       ruleSortQuality = 'ruleSortQuality',
       ruleSortEpisodes = 'ruleSortEpisodes',
-      ruleSortSpeed = 'ruleSortSpeed';
+      ruleSortSpeed = 'ruleSortSpeed',
+      pendingThirdpartyLogin = 'pendingThirdpartyLogin';
 }
