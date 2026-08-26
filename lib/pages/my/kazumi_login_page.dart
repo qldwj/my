@@ -718,14 +718,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                 ],
               ),
               const SizedBox(height: 12),
-            ]
-                child: OutlinedButton.icon(
-                  onPressed: _showBindEmailDialog,
-                  icon: const Icon(Icons.alternate_email_rounded),
-                  label: const Text('绑定邮箱（改用邮箱登录）'),
-                ),
-              ),
-              const SizedBox(height: 12),
             ],
             const SizedBox(height: 16),const SizedBox(height: 12),
 
