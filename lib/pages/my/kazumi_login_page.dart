@@ -490,11 +490,10 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ],
             ),
             const SizedBox(height: 12),
-            // 🆕 Telegram(1份) + Bangumi(2份)
+            // 🆕 Telegram + 空位
             Row(
               children: [
                 Expanded(
-                  flex: 1,
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       final result = await Navigator.of(context).push<bool>(
@@ -507,24 +506,27 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final result = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(builder: (_) => const BangumiLoginPage()),
-                      );
-                      if (result == true && mounted) Navigator.of(context).pop(true);
-                    },
-                    icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
-                    label: const Text('Bangumi'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFED74A4),
-                      side: const BorderSide(color: Color(0xFFED74A4)),
-                    ),
-                  ),
-                ),
+                const Expanded(child: SizedBox()), // 空位，和 QQ 对齐
               ],
+            ),
+            const SizedBox(height: 12),
+            // 🆕 Bangumi 占满整行
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(builder: (_) => const BangumiLoginPage()),
+                  );
+                  if (result == true && mounted) Navigator.of(context).pop(true);
+                },
+                icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
+                label: const Text('Bangumi'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFED74A4),
+                  side: const BorderSide(color: Color(0xFFED74A4)),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
           ],
