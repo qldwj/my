@@ -14,6 +14,7 @@ import 'package:kazumi/pages/my/profile_edit_page.dart';
 import 'package:kazumi/pages/my/qq_login_page.dart';
 import 'package:kazumi/pages/my/wechat_login_page.dart';
 import 'package:kazumi/pages/my/telegram_login_page.dart';
+import 'package:kazumi/pages/my/douyin_login_page.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
 
 class KazumiLoginPage extends StatefulWidget {
@@ -30,6 +31,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     'has_qq': false,
     'has_wechat': false,
     'has_telegram': false,
+    'has_douyin': false,
     'has_bangumi': false,
     'has_email': false,
   };
@@ -61,6 +63,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             'has_qq': data['has_qq'] ?? false,
             'has_wechat': data['has_wechat'] ?? false,
             'has_telegram': data['has_telegram'] ?? false,
+            'has_douyin': data['has_douyin'] ?? false,
             'has_bangumi': data['has_bangumi'] ?? false,
             'has_email': data['has_email'] ?? false,
           };
@@ -78,7 +81,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
     setState(() {
       _loggedIn = false;
-      _status = {'has_qq': false, 'has_wechat': false, 'has_telegram': false, 'has_bangumi': false, 'has_email': false};
+      _status = {'has_qq': false, 'has_wechat': false, 'has_telegram': false, 'has_douyin': false, 'has_bangumi': false, 'has_email': false};
     });
     KazumiDialog.showToast(message: '已退出登录');
   }
@@ -152,6 +155,14 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage()));
             _onAuthResult(r);
           }),
+          _buildLoginTile('assets/images/icons/douyin.png', '抖音', null, () async {
+            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage()));
+            _onAuthResult(r);
+          }),
+          _buildLoginTile('assets/images/icons/bangumi.png', 'Bangumi', null, () async {
+            final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+            _onAuthResult(r);
+          }),
           _buildLoginTile('assets/images/icons/bangumi.png', 'Bangumi', null, () async {
             final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
             _onAuthResult(r);
@@ -180,6 +191,14 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               _showUnbindDialog('telegram', 'Telegram');
             } else {
               final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage(bindMode: true)));
+              _onAuthResult(r);
+            }
+          }),
+          _buildStatusTile('assets/images/icons/douyin.png', '抖音', _status['has_douyin'] ?? false, () async {
+            if (_status['has_douyin'] ?? false) {
+              _showUnbindDialog('douyin', '抖音');
+            } else {
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage(bindMode: true)));
               _onAuthResult(r);
             }
           }),

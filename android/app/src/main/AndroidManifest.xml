@@ -56,6 +56,32 @@
                 <data android:scheme="yhdm" android:host="bangumi-auth" />
             </intent-filter>
 
+            <!-- 第三方登录回调：yhdm://qq-auth / wx-auth / tg-auth / dy-auth -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="yhdm" android:host="qq-auth" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="yhdm" android:host="wx-auth" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="yhdm" android:host="tg-auth" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="yhdm" android:host="dy-auth" />
+            </intent-filter>
+
             <!-- AppLinks 无弹窗唤起核心配置 -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>

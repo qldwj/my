@@ -211,6 +211,13 @@ void handleAppLink(Uri uri) {
     return;
   }
 
+  // 🆕 抖音 登录深链：yhdm://dy-auth?token=xxx
+  else if (uri.scheme == 'yhdm' && uri.host == 'dy-auth') {
+    final appToken = params['token'] ?? '';
+    if (appToken.isNotEmpty) _handleThirdPartyToken(appToken, '抖音');
+    return;
+  }
+
   if (animeId != null) {
     _openAnimeDetail(animeId,
         fallbackName: params['n']?.trim().isNotEmpty == true
