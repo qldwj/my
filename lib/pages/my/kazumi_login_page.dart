@@ -490,10 +490,11 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ],
             ),
             const SizedBox(height: 12),
-            // 🆕 Telegram + Bangumi 登录
+            // 🆕 Telegram(1份) + Bangumi(2份)
             Row(
               children: [
                 Expanded(
+                  flex: 1,
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       final result = await Navigator.of(context).push<bool>(
@@ -507,6 +508,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       final result = await Navigator.of(context).push<bool>(
@@ -518,7 +520,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                     label: const Text('Bangumi'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFED74A4),
-                      side: const BorderSide(color: const Color(0xFFED74A4)),
+                      side: const BorderSide(color: Color(0xFFED74A4)),
                     ),
                   ),
                 ),
