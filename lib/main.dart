@@ -311,7 +311,9 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
       if (user is Map && user['email'] != null) {
         await GStorage.putSetting(SettingsKeys.kazumiEmail, user['email'].toString());
       }
-      _showToast('$providerName 登录成功 🎉');
+      // 🆕 存标记，让登录页检测到后自动刷新
+      await GStorage.putSetting('pending_thirdparty_login', true);
+      _showToast('$providerName 登录成功');
     } else {
       _showToast(data['error']?.toString() ?? '登录失败');
     }

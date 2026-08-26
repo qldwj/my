@@ -34,7 +34,18 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   @override
   void initState() {
     super.initState();
-    _refreshLoginState();
+    _checkPendingLogin();
+  }
+
+  /// 检测 main.dart 深链登录标记，自动刷新
+  void _checkPendingLogin() async {
+    final pending = GStorage.getSetting('pending_thirdparty_login');
+    if (pending == true) {
+      await GStorage.putSetting('pending_thirdparty_login', false);
+      _refreshLoginState();
+    } else {
+      _refreshLoginState();
+    }
   }
 
   /// 刷新登录状态
