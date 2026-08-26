@@ -707,59 +707,9 @@ class _VideoPageState extends State<VideoPage>
       return false;
     }
 
-    final DanmakuDestination? result =
-        await showAdaptiveBottomSheet<DanmakuDestination>(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MaterialBottomSheetHeader(
-                title: '发送弹幕至',
-                description: '选择这条弹幕的发送位置',
-                onClose: () => Navigator.of(context).pop(),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: MaterialBottomSheetGroup(
-                  title: '发送位置',
-                  children: [
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.groups_rounded),
-                      title: const Text('发送到聊天室'),
-                      subtitle: const Text('同步观看成员均可看到'),
-                      onTap: () => Navigator.of(context)
-                          .pop(DanmakuDestination.chatRoom),
-                    ),
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.cloud_upload_rounded),
-                      title: const Text('发送到远程弹幕库'),
-                      subtitle: const Text('作为视频弹幕发送'),
-                      onTap: () => Navigator.of(context)
-                          .pop(DanmakuDestination.remoteDanmaku),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (result == null || !mounted) {
-      return false;
-    }
-
+    // 直接发送到远程弹幕库，不弹窗
     setState(() {});
-    playerController.danmaku.danmakuDestination = result;
+    playerController.danmaku.danmakuDestination = DanmakuDestination.remoteDanmaku;
     return sendDanmaku(msg);
   }
 
