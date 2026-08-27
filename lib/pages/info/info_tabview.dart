@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
+import 'package:kazumi/pages/info/update_countdown.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
@@ -101,8 +102,6 @@ class _InfoTabViewState extends State<InfoTabView>
       widget.onCommentsTabSelected?.call();
     }
   }
-
-import 'package:kazumi/pages/info/update_countdown.dart';
 
   Widget get infoBody {
     return Center(

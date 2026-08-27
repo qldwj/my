@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/last_watch_card.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
