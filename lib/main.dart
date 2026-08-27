@@ -317,13 +317,31 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
     client.close();
     final data = jsonDecode(body) as Map<String, dynamic>;
     if (data['token'] != null) {
-      AuthService.saveLocalToken(data['token']); // 🆕 用统一方法保存 token
-      GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后开启同步
+      AuthService.saveLocalToken(data['token']);
+      GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
       final user = data['user'];
       if (user is Map && user['email'] != null) {
         await AuthService.saveUserEmail(user['email'].toString());
       }
-      // 🆕 存标记，让登录页检测到后自动刷新
+      // 🆕 将绑定状态写入 MySQL（深链登录不会自动写入 openid）
+      try {
+        final bindClient = HttpClient();
+        bindClient.connectionTimeout = const Duration(seconds: 10);
+        final bindReq = await bindClient.postUrl(
+          Uri.parse('https://qlyyz.xyz/api/login?action=sync_bindinfo'));
+        bindReq.headers.set('Content-Type', 'application/json; charset=utf-8');
+        bindReq.headers.set('Authorization', 'Bearer ${data['token']}');
+        bindReq.add(utf8.encode(jsonEncode({
+          'provider': providerName == 'QQ' ? 'qq'
+            : providerName == '微信' ? 'wechat'
+            : providerName == 'Telegram' ? 'telegram'
+            : providerName == '抖音' ? 'douyin' : '',
+          'has_bind': user['has_qq'] == true || user['has_wechat'] == true
+            || user['has_telegram'] == true || user['has_douyin'] == true,
+        })));
+        await bindReq.close();
+        bindClient.close();
+      } catch (_) {}
       await GStorage.putSetting(SettingsKeys.pendingThirdpartyLogin, true);
       _showToast('$providerName 登录成功');
     } else {
