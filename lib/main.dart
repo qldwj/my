@@ -8,6 +8,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
@@ -315,10 +317,11 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
     client.close();
     final data = jsonDecode(body) as Map<String, dynamic>;
     if (data['token'] != null) {
-      await GStorage.putSetting(SettingsKeys.kazumiToken, data['token']);
+      AuthService.saveLocalToken(data['token']); // 🆕 用统一方法保存 token
+      GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后开启同步
       final user = data['user'];
       if (user is Map && user['email'] != null) {
-        await GStorage.putSetting(SettingsKeys.kazumiEmail, user['email'].toString());
+        await AuthService.saveUserEmail(user['email'].toString());
       }
       // 🆕 存标记，让登录页检测到后自动刷新
       await GStorage.putSetting(SettingsKeys.pendingThirdpartyLogin, true);
