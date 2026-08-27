@@ -26,6 +26,10 @@ class KazumiLoginPage extends StatefulWidget {
 class _KazumiLoginPageState extends State<KazumiLoginPage> {
   bool _loggedIn = false;
   bool _syncing = false;
+  bool _sendingCode = false;
+  bool _logging = false;
+  final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
   Map<String, bool> _status = {
     'has_qq': false, 'has_wechat': false, 'has_telegram': false,
     'has_douyin': false, 'has_bangumi': false, 'has_email': false,
@@ -35,6 +39,51 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   void initState() {
     super.initState();
     _checkPendingLogin();
+  }
+
+  Future<void> _sendCode() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
+    setState(() => _sendingCode = true);
+    try {
+      final res = await AuthService.sendCode(email);
+      if (res['captcha_challenge'] != null) {
+        KazumiDialog.showToast(message: '验证码已发送');
+      } else {
+        KazumiDialog.showToast(message: res['error'] ?? '发送失败');
+      }
+    } catch (e) {
+      KazumiDialog.showToast(message: '网络错误');
+    }
+    setState(() => _sendingCode = false);
+  }
+
+  Future<void> _loginWithEmail() async {
+    final email = _emailController.text.trim();
+    final code = _codeController.text.trim();
+    if (code.length != 6) { KazumiDialog.showToast(message: '请输入6位验证码'); return; }
+    setState(() => _logging = true);
+    try {
+      final res = await AuthService.login(email: email, code: code, captchaAnswer: '',
+        deviceName: AuthService.currentDeviceName());
+      if (res['token'] != null) {
+        AuthService.saveLocalToken(res['token']);
+        GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
+        await SocialService.ensureProfileAfterLogin();
+        if (res['user'] is Map && res['user']['email'] != null) {
+          await AuthService.saveUserEmail(res['user']['email'].toString());
+        }
+        if (mounted) {
+          setState(() { _logging = false; });
+          KazumiDialog.showToast(message: '登录成功');
+          _refreshLoginState();
+        }
+      } else {
+        if (mounted) { setState(() { _logging = false; }); KazumiDialog.showToast(message: res['error'] ?? '登录失败'); }
+      }
+    } catch (e) {
+      if (mounted) { setState(() { _logging = false; }); KazumiDialog.showToast(message: '网络错误'); }
+    }
   }
 
   /// 检测 main.dart 深链登录标记，自动刷新
@@ -149,7 +198,56 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
-          // ========== 未登录：四宫格 + Bangumi + 邮箱登录 ==========
+          // ========== 未登录：邮箱登录 + 其他方式 ==========
+          // 🆕 邮箱登录区域（直接在页面上）
+          Text('验证码登录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface)),
+          const SizedBox(height: 4),
+          Text('我们将发送一封验证码邮件', style: TextStyle(fontSize: 13, color: cs.outline)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: '邮箱', hintText: '你的QQ邮箱地址',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(), isDense: true),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: TextField(
+              controller: _codeController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                labelText: '验证码', counterText: '',
+                border: OutlineInputBorder(), isDense: true),
+            )),
+            const SizedBox(width: 12),
+            SizedBox(
+              height: 48,
+              child: FilledButton.tonal(
+                onPressed: _sendingCode ? null : _sendCode,
+                child: _sendingCode
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('获取验证码'),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, height: 48,
+            child: FilledButton(
+              onPressed: _logging ? null : _loginWithEmail,
+              child: _logging
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('登录 / 注册', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 其他登录方式
+          Text('其他登录方式', style: TextStyle(fontSize: 14, color: cs.outline)),
+          const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _buildLoginButton('assets/images/icons/wechat.png', '微信', () async {
               final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage()));
@@ -174,7 +272,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             })),
           ]),
           const SizedBox(height: 12),
-          // Bangumi 满行
+          // Bangumi
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -188,20 +286,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                 foregroundColor: const Color(0xFFED74A4),
                 side: const BorderSide(color: Color(0xFFED74A4)),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 邮箱登录
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                // 跳转到邮箱登录（复用已有的登录逻辑）
-                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
-                _onAuthResult(r);
-              },
-              icon: const Icon(Icons.email),
-              label: const Text('邮箱登录'),
             ),
           ),
         ] else ...[

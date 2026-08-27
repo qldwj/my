@@ -343,12 +343,10 @@ class _SourceSheetState extends State<SourceSheet>
     }
   }
 
-  /// ⭐ 在浏览器中打开当前选中的源（修复版）
+  /// ⭐ 在浏览器中打开当前选中的源
   void _openInBrowser() {
-    // 使用监听的当前索引
     final currentIndex = _currentTabIndex;
     
-    // 检查索引是否有效
     if (currentIndex < 0 || currentIndex >= _filteredPlugins.length) {
       KazumiDialog.showToast(message: '请先选择一个播放源');
       return;
@@ -360,15 +358,12 @@ class _SourceSheetState extends State<SourceSheet>
       return;
     }
     
-    // 构建URL
-    final targetUrl = currentPlugin.usesApiSearch
-        ? currentPlugin.baseUrl
-        : currentPlugin.searchURL.replaceFirst(
-            '@keyword',
-            Uri.encodeQueryComponent(keyword),
-          );
+    // 🆕 统一用 searchURL 拼接关键词打开（不再区分 API 模式）
+    final targetUrl = currentPlugin.searchURL.replaceFirst(
+      '@keyword',
+      Uri.encodeQueryComponent(keyword),
+    );
     
-    // 打开浏览器
     launchUrl(
       Uri.parse(targetUrl),
       mode: LaunchMode.externalApplication,

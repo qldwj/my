@@ -102,6 +102,8 @@ class _InfoTabViewState extends State<InfoTabView>
     }
   }
 
+import 'package:kazumi/pages/info/update_countdown.dart';
+
   Widget get infoBody {
     return Center(
       child: Padding(
@@ -113,6 +115,15 @@ class _InfoTabViewState extends State<InfoTabView>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🆕 更新倒计时
+              if (widget.bangumiItem.airWeekday > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: UpdateCountdown(
+                    airWeekday: widget.bangumiItem.airWeekday,
+                    airDate: widget.bangumiItem.airDate,
+                  ),
+                ),
               Text('简介', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines

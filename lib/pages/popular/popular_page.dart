@@ -15,6 +15,12 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/pages/my/profile_edit_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
 
@@ -290,6 +296,7 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
+    final isLoggedIn = AuthService.isLoggedIn;
     final actions = <Widget>[
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
@@ -298,11 +305,32 @@ class _PopularPageState extends State<PopularPage> {
           icon: const Icon(Icons.search),
         ),
     ];
+    // 🆕 已登录显示头像，未登录显示登录图标
     actions.add(
       IconButton(
-        tooltip: '历史记录',
-        onPressed: () => context.pushNamed('/settings/history/'),
-        icon: const Icon(Icons.history),
+        tooltip: isLoggedIn ? '个人中心' : '登录',
+        onPressed: () => _showUserMenu(context),
+        icon: isLoggedIn
+            ? FutureBuilder<SocialProfile?>(
+                future: SocialService.getProfile(),
+                builder: (ctx, snap) {
+                  final profile = snap.data;
+                  if (profile != null && profile.avatar.isNotEmpty) {
+                    return CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      child: ClipOval(
+                        child: NetworkImgLayer(
+                          width: 28, height: 28,
+                          src: SocialService.proxiedAvatar(profile.avatar),
+                        ),
+                      ),
+                    );
+                  }
+                  return const Icon(Icons.account_circle, size: 28);
+                },
+              )
+            : const Icon(Icons.account_circle_outlined),
       ),
     );
     if (isDesktop()) {
@@ -317,6 +345,119 @@ class _PopularPageState extends State<PopularPage> {
       }
     }
     return actions;
+  }
+
+  /// 🆕 用户菜单弹窗
+  void _showUserMenu(BuildContext context) {
+    final isLoggedIn = AuthService.isLoggedIn;
+    final cs = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: cs.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<SocialProfile?>(
+          future: SocialService.getProfile(),
+          builder: (ctx, snap) {
+            final profile = snap.data;
+            final displayName = profile?.nickname ?? (isLoggedIn ? '樱花动漫用户' : '未登录');
+            final avatar = profile?.avatar ?? '';
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 头像
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: cs.primaryContainer,
+                    child: avatar.isNotEmpty
+                        ? ClipOval(
+                            child: NetworkImgLayer(
+                              width: 72, height: 72,
+                              src: SocialService.proxiedAvatar(avatar),
+                            ),
+                          )
+                        : Icon(
+                            isLoggedIn ? Icons.account_circle : Icons.account_circle_outlined,
+                            size: 48, color: cs.primary,
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(displayName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+
+                  if (isLoggedIn) ...[
+                    _menuTile(ctx, Icons.edit, '编辑个人资料', () {
+                      Navigator.pop(ctx);
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ProfileEditPage()));
+                    }),
+                    _menuTile(ctx, Icons.history, '播放历史', () {
+                      Navigator.pop(ctx);
+                      context.pushNamed('/settings/history/');
+                    }),
+                    _menuTile(ctx, Icons.settings, '设置', () {
+                      Navigator.pop(ctx);
+                      context.pushNamed('/settings/');
+                    }),
+                    _menuTile(ctx, Icons.logout, '退出登录', () async {
+                      Navigator.pop(ctx);
+                      final confirm = await KazumiDialog.show<bool>(
+                        builder: (c) => AlertDialog(
+                          title: const Text('退出登录'),
+                          content: const Text('确定退出登录吗？'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
+                            TextButton(onPressed: () => Navigator.pop(c, true),
+                              child: Text('确定', style: TextStyle(color: cs.error))),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        AuthService.clearLocalToken();
+                        SocialService.clearProfileCache();
+                        setState(() {});
+                      }
+                    }),
+                  ] else ...[
+                    _menuTile(ctx, Icons.login, '注册 / 登录', () {
+                      Navigator.pop(ctx);
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const KazumiLoginPage()));
+                    }),
+                    _menuTile(ctx, Icons.history, '播放历史', () {
+                      Navigator.pop(ctx);
+                      context.pushNamed('/settings/history/');
+                    }),
+                    _menuTile(ctx, Icons.settings, '设置', () {
+                      Navigator.pop(ctx);
+                      context.pushNamed('/settings/');
+                    }),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _menuTile(BuildContext ctx, IconData icon, String label, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+      title: Text(label),
+      trailing: const Icon(Icons.chevron_right, size: 20),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    );
   }
 
   Future<void> showTagMenu() async {

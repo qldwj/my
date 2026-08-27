@@ -115,6 +115,23 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
               style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
               child: const Text('登录 / 注册', style: TextStyle(fontSize: 17)),
             ),
+            const SizedBox(height: 12),
+            // 🆕 检查 Bangumi 服务状态
+            InkWell(
+              onTap: () => launchUrl(
+                Uri.parse('https://bgm-status.ry.mk'),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('检查 Bangumi 状态',
+                    style: TextStyle(fontSize: 13, color: colorScheme.outline)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 16, color: colorScheme.outline),
+                ],
+              ),
+            ),
           ] else ...[
             Container(
               padding: const EdgeInsets.all(20),
