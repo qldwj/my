@@ -56,14 +56,47 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
       final body = await response.transform(utf8.decoder).join();
       client.close();
       final data = jsonDecode(body) as Map<String, dynamic>;
+
+      // 🆕 绑定模式：服务器返回 bind_mode，调用 bind_provider 完成绑定
+      if (data['bind_mode'] == true) {
+        final bindProvider = data['provider'] ?? '';
+        final bindToken = data['app_token'] ?? '';
+        if (bindProvider.isNotEmpty && bindToken.isNotEmpty) {
+          final currentToken = AuthService.getLocalToken();
+          if (currentToken != null) {
+            final bindClient = HttpClient();
+            bindClient.connectionTimeout = const Duration(seconds: 15);
+            final bindReq = await bindClient.postUrl(Uri.parse(_bindUrl));
+            bindReq.headers.set('Content-Type', 'application/json; charset=utf-8');
+            bindReq.headers.set('Authorization', 'Bearer $currentToken');
+            bindReq.add(utf8.encode(jsonEncode({'provider': bindProvider, 'app_token': bindToken})));
+            final bindRes = await bindReq.close();
+            final bindBody = await bindRes.transform(utf8.decoder).join();
+            bindClient.close();
+            final bindData = jsonDecode(bindBody) as Map<String, dynamic>;
+            if (mounted) {
+              setState(() => _loading = false);
+              if (bindData['success'] == true) {
+                KazumiDialog.showToast(message: '绑定成功');
+              } else {
+                KazumiDialog.showToast(message: bindData['error'] ?? '绑定失败');
+              }
+              Navigator.of(context).pop(true);
+            }
+            return;
+          }
+        }
+      }
+
+      // 登录模式
       if (data['token'] != null) {
         AuthService.saveLocalToken(data['token']);
-        GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后自动开启同步
+        GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
         final user = data['user'];
         if (user is Map && user['email'] != null) await AuthService.saveUserEmail(user['email'].toString());
         if (mounted) {
           setState(() => _loading = false);
-          KazumiDialog.showToast(message: '微信登录成功 🎉');
+          KazumiDialog.showToast(message: '登录成功');
           Navigator.of(context).pop(true);
         }
       } else if (mounted) {
