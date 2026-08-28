@@ -375,7 +375,7 @@ class _InfoTabViewState extends State<InfoTabView>
     // 失败静默：不弹报错（没有就没有吧）
 
   Widget get commentsListBody {
-    return CommentListWidget(subjectId: widget.bangumiItem.id);
+    return CommentListPage(subjectId: widget.bangumiItem.id);
   }
 
   Widget get staffListBody {
