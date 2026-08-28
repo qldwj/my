@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/widgets/comment/comment_list.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/pages/info/update_countdown.dart';
@@ -375,7 +374,7 @@ class _InfoTabViewState extends State<InfoTabView>
     // 失败静默：不弹报错（没有就没有吧）
 
   Widget get commentsListBody {
-    return CommentListPage(subjectId: widget.bangumiItem.id, animeName: widget.bangumiItem.nameCn.isNotEmpty ? widget.bangumiItem.nameCn : widget.bangumiItem.name);
+    return const Center(child: Text("评论加载中..."));
   }
 
   Widget get staffListBody {

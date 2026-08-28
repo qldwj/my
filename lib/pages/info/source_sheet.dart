@@ -13,6 +13,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/widgets/comment/comment_list.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 import 'package:url_launcher/url_launcher.dart';
@@ -118,9 +119,9 @@ class _SourceSheetState extends State<SourceSheet>
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    // TabController 长度与过滤后的插件数一致
+    // TabController 长度 = 插件数 + 1（评论 Tab）
     _sourceTabController = TabController(
-      length: _filteredPlugins.length,
+      length: _filteredPlugins.length + 1,
       vsync: this,
     );
     // ⭐ 监听 Tab 变化，更新当前索引
@@ -813,7 +814,7 @@ class _SourceSheetState extends State<SourceSheet>
                             setState(() {
                               _filterText = '';
                               _sourceTabController = TabController(
-                                length: _filteredPlugins.length,
+                                length: _filteredPlugins.length + 1,
                                 vsync: this,
                               );
                             });
@@ -829,7 +830,7 @@ class _SourceSheetState extends State<SourceSheet>
                   setState(() {
                     _filterText = value.trim().toLowerCase();
                     _sourceTabController = TabController(
-                      length: _filteredPlugins.length,
+                      length: _filteredPlugins.length + 1,
                       vsync: this,
                     );
                   });
@@ -929,6 +930,13 @@ class _SourceSheetState extends State<SourceSheet>
                   }
                   return buildPluginView(plugin, cardList);
                 }),
+                // 🆕 评论 Tab
+                CommentListPage(
+                  subjectId: widget.infoController.bangumiItem.id,
+                  animeName: widget.infoController.bangumiItem.nameCn.isNotEmpty
+                      ? widget.infoController.bangumiItem.nameCn
+                      : widget.infoController.bangumiItem.name,
+                ),
               ),
             ),
           )
