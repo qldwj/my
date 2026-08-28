@@ -342,6 +342,12 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
         await bindReq.close();
         bindClient.close();
       } catch (_) {}
+      // 🆕 保存 Bangumi token
+      final bangumiToken = data['bangumi_token'];
+      if (bangumiToken is String && bangumiToken.isNotEmpty) {
+        await GStorage.putSetting(SettingsKeys.bangumiAccessToken, bangumiToken);
+        await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+      }
       await GStorage.putSetting(SettingsKeys.pendingThirdpartyLogin, true);
       _showToast('$providerName 登录成功');
     } else {

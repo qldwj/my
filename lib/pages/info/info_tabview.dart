@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/widgets/comment/comment_list.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/pages/info/update_countdown.dart';
@@ -18,7 +19,6 @@ import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/utils/device.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -73,11 +73,8 @@ class InfoTabView extends StatefulWidget {
 
 class _InfoTabViewState extends State<InfoTabView>
     with SingleTickerProviderStateMixin {
-  final TextEditingController _commentController = TextEditingController();
 
   /// 🆕 评论附带打分 0-10（0=不评分）
-  int _commentRating = 0;
-  bool _commentSending = false;
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
@@ -258,107 +255,6 @@ class _InfoTabViewState extends State<InfoTabView>
     );
   }
 
-  /// ⭐ 发表评论输入框（发到樱花服务器，含关键词拦截 + 打分）
-  Widget _buildCommentInput() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: _commentRating > 0
-                  ? '已评 $_commentRating 分，点击修改'
-                  : '给这部番打分（0-10）',
-              onPressed: _pickCommentRating,
-              icon: Icon(
-                _commentRating > 0
-                    ? Icons.star_rounded
-                    : Icons.star_outline_rounded,
-                color: _commentRating > 0 ? Colors.amber : null,
-              ),
-            ),
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                maxLength: 500,
-                minLines: 1,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: '发一条评论…（樱花服务器）',
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  counterText: '',
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: _commentSending ? null : _publishComment,
-              icon: const Icon(Icons.send_rounded),
-              tooltip: '发表',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 🆕 打分弹窗（0-10 分）
-  Future<void> _pickCommentRating() async {
-    var value = _commentRating.toDouble();
-    final result = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('给这部番打分'),
-        content: StatefulBuilder(
-          builder: (ctx, setDialogState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value <= 0 ? '未评分' : '${value.round()} 分',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              RatingBar.builder(
-                initialRating: value,
-                minRating: 0,
-                maxRating: 10,
-                itemCount: 10,
-                itemSize: 28,
-                allowHalfRating: false,
-                onRatingUpdate: (v) {
-                  value = v;
-                  setDialogState(() {});
-                },
-                itemBuilder: (context, index) => const Icon(
-                  Icons.star_rounded,
-                  color: Colors.amber,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 0.0),
-            child: Text('取消评分',
-                style: TextStyle(color: Theme.of(ctx).colorScheme.outline)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, value),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-    if (result != null && mounted) {
-      setState(() => _commentRating = result.round().clamp(0, 10));
-    }
-  }
 
   /// 🆕 管理员长按评论：置顶/取消置顶自己的评论、修改自己头衔
   Future<void> _showCommentAdminMenu(
@@ -476,172 +372,11 @@ class _InfoTabViewState extends State<InfoTabView>
     }
   }
 
-  Future<void> _publishComment() async {
-    final text = _commentController.text.trim();
-    if (text.isEmpty || _commentSending) return;
-    final publish = widget.onPublishComment;
-    if (publish == null) return;
-    setState(() => _commentSending = true);
-    final error = await publish(text, _commentRating);
-    if (!mounted) return;
-    setState(() => _commentSending = false);
-    if (error == null) {
-      _commentController.clear();
-      setState(() => _commentRating = 0);
-      KazumiDialog.showToast(message: '评论已发布 ✅');
-    }
     // 失败静默：不弹报错（没有就没有吧）
   }
 
   Widget get commentsListBody {
-    return Builder(
-      builder: (BuildContext context) {
-        return NotificationListener<ScrollEndNotification>(
-          onNotification: (scrollEnd) {
-            final metrics = scrollEnd.metrics;
-            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
-              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
-            }
-            return true;
-          },
-          child: CustomScrollView(
-            scrollBehavior: const ScrollBehavior().copyWith(
-              scrollbars: false,
-            ),
-            key: PageStorageKey<String>('吐槽'),
-            slivers: <Widget>[
-              SliverOverlapInjector(
-                handle:
-                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              ),
-              // ⭐ 发表评论输入框（樱花服务器）
-              if (widget.onPublishComment != null)
-                SliverToBoxAdapter(child: _buildCommentInput()),
-              SliverLayoutBuilder(builder: (context, _) {
-                final myInterest = widget.bangumiItem.interest;
-                final showMyReview = !widget.commentsIsLoading &&
-                    myInterest != null &&
-                    myInterest.hasUserProfile &&
-                    myInterest.hasReviewContent;
-                final listItemCount =
-                    widget.commentsList.length + (showMyReview ? 1 : 0);
-
-                if (listItemCount > 0) {
-                  return SliverList.separated(
-                    addAutomaticKeepAlives: false,
-                    itemCount: listItemCount,
-                    itemBuilder: (context, index) {
-                      final commentIndex = showMyReview ? index - 1 : index;
-                      final myUser = myInterest?.user;
-                      final card = showMyReview && index == 0 && myUser != null
-                          ? CommentsCard.own(
-                              commentItem: CommentItem(
-                                user: myUser,
-                                comment: Comment(
-                                  rate: myInterest.rate,
-                                  comment: myInterest.comment,
-                                  updatedAt: myInterest.updatedAt,
-                                ),
-                              ),
-                            )
-                          : CommentsCard(
-                              commentItem: widget.commentsList[commentIndex],
-                            );
-                      final isServer =
-                          widget.commentsList[commentIndex].source == 'server';
-                      return SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: Center(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: SizedBox(
-                              width: MediaQuery.sizeOf(context).width > maxWidth
-                                  ? maxWidth
-                                  : MediaQuery.sizeOf(context).width - 32,
-                              child: GestureDetector(
-                                onLongPress: isServer
-                                    ? () => _showCommentAdminMenu(context,
-                                        widget.commentsList[commentIndex])
-                                    : null,
-                                child: card,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    separatorBuilder: (BuildContext context, int index) {
-                      return SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: Center(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: SizedBox(
-                              width: MediaQuery.sizeOf(context).width > maxWidth
-                                  ? maxWidth
-                                  : MediaQuery.sizeOf(context).width - 32,
-                              child: Divider(
-                                  thickness: 0.5, indent: 10, endIndent: 10),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-                if (widget.commentsQueryTimeout) {
-                  return SliverFillRemaining(
-                    child: GeneralErrorWidget(
-                      errMsg: '获取失败，请重试',
-                      actions: [
-                        GeneralErrorButton(
-                          onPressed: () {
-                            widget.loadMoreComments(
-                                loadMore: widget.commentsList.isNotEmpty);
-                          },
-                          text: '重试',
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                if (widget.commentsIsEmpty) {
-                  return const SliverFillRemaining(
-                    child: Center(
-                      child: Text('什么都没有找到 (´;ω;`)'),
-                    ),
-                  );
-                }
-                return SliverList.builder(
-                  itemCount: 4,
-                  itemBuilder: (context, _) {
-                    return SafeArea(
-                      top: false,
-                      bottom: false,
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: MediaQuery.sizeOf(context).width > maxWidth
-                                ? maxWidth
-                                : MediaQuery.sizeOf(context).width - 32,
-                            child: CommentsCard.bone(),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              })
-            ],
-          ),
-        );
-      },
-    );
+    return CommentListWidget(subjectId: widget.bangumiItem.id);
   }
 
   Widget get staffListBody {

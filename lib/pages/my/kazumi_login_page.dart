@@ -28,8 +28,10 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   bool _syncing = false;
   bool _sendingCode = false;
   bool _logging = false;
+  String? _captchaChallenge;
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
+  final _captchaController = TextEditingController();
   Map<String, bool> _status = {
     'has_qq': false, 'has_wechat': false, 'has_telegram': false,
     'has_douyin': false, 'has_bangumi': false, 'has_email': false,
@@ -44,10 +46,11 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Future<void> _sendCode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
-    setState(() => _sendingCode = true);
+    setState(() { _sendingCode = true; _captchaChallenge = null; });
     try {
       final res = await AuthService.sendCode(email);
       if (res['captcha_challenge'] != null) {
+        setState(() => _captchaChallenge = res['captcha_challenge']);
         KazumiDialog.showToast(message: '验证码已发送');
       } else {
         KazumiDialog.showToast(message: res['error'] ?? '发送失败');
@@ -61,10 +64,11 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   Future<void> _loginWithEmail() async {
     final email = _emailController.text.trim();
     final code = _codeController.text.trim();
+    final captcha = _captchaController.text.trim();
     if (code.length != 6) { KazumiDialog.showToast(message: '请输入6位验证码'); return; }
     setState(() => _logging = true);
     try {
-      final res = await AuthService.login(email: email, code: code, captchaAnswer: '',
+      final res = await AuthService.login(email: email, code: code, captchaAnswer: captcha,
         deviceName: AuthService.currentDeviceName());
       if (res['token'] != null) {
         AuthService.saveLocalToken(res['token']);
@@ -233,6 +237,23 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ),
             ),
           ]),
+          // 🆕 人机验证输入框
+          if (_captchaChallenge != null) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _captchaController,
+              maxLength: 6,
+              decoration: InputDecoration(
+                labelText: '人机验证', counterText: '',
+                border: const OutlineInputBorder(), isDense: true,
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(_captchaChallenge!,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4)),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity, height: 48,

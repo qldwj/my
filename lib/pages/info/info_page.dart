@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
+import 'package:http/http.dart' as http;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/playlist/playlist_module.dart';
@@ -184,30 +186,160 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   }
 
   void onBangumiRatingTap() {
-    final token =
-        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
-    if (token.isEmpty) {
-      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
+    final bangumiToken = GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
+    final isLoggedIn = AuthService.isLoggedIn;
+    
+    // 两个都没登录，不能打开
+    if (bangumiToken.isEmpty && !isLoggedIn) {
+      KazumiDialog.showToast(message: '请先登录 Bangumi 或樱花动漫账号');
       return;
     }
-    final localType = infoController.collectController
-        .getCollectType(infoController.bangumiItem);
+
+    final localType = infoController.collectController.getCollectType(infoController.bangumiItem);
     if (localType == 0) {
       KazumiDialog.showToast(message: '请先追番后再发表评价');
       return;
     }
+
+    // 🆕 选择发送到哪里
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              const Text('发表吐槽', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              if (bangumiToken.isNotEmpty)
+                ListTile(
+                  leading: Image.asset('assets/images/icons/bangumi.png', width: 28, height: 28),
+                  title: const Text('发送到 Bangumi'),
+                  subtitle: const Text('同步到 Bangumi 评分系统'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _submitToBangumi(localType);
+                  },
+                ),
+              if (isLoggedIn)
+                ListTile(
+                  leading: const Icon(Icons.comment, color: Colors.blue),
+                  title: const Text('发送到樱花动漫'),
+                  subtitle: const Text('发表到樱花动漫评论系统'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _submitToServer(localType);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _submitToBangumi(int localType) {
     KazumiDialog.show(
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
         onSubmit: (data) async {
-          final updated =
-              await infoController.rateBangumi(data, localType: localType);
-          if (updated && mounted) {
-            setState(() {});
-          }
+          final updated = await infoController.rateBangumi(data, localType: localType);
+          if (updated && mounted) setState(() {});
           return updated;
         },
       ),
+    );
+  }
+
+  void _submitToServer(int localType) {
+    var serverRating = 0;
+    final commentController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('发表吐槽'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('评分: '),
+                      for (int i = 1; i <= 10; i++)
+                        GestureDetector(
+                          onTap: () => setDialogState(() => serverRating = i),
+                          child: Icon(
+                            i <= serverRating ? Icons.star : Icons.star_outline,
+                            color: i <= serverRating ? Colors.amber : Colors.grey,
+                            size: 28,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    maxLength: 500,
+                    decoration: const InputDecoration(
+                      hintText: '写下你的吐槽...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+                FilledButton(
+                  onPressed: () async {
+                    final text = commentController.text.trim();
+                    if (text.isEmpty && serverRating == 0) {
+                      KazumiDialog.showToast(message: '请输入评分或评论');
+                      return;
+                    }
+                    Navigator.pop(ctx);
+                    try {
+                      final user = SocialService.myProfile;
+                      final res = await http.post(
+                        Uri.parse('https://qlyyz.xyz/api/comment.php?action=add'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'subjectId': infoController.bangumiItem.id,
+                          'episode': 0,
+                          'text': text,
+                          'sender': user?.nickname ?? '匿名',
+                          'uid': user?.uid ?? '',
+                          'avatar': user?.avatar ?? '',
+                          'rating': serverRating,
+                        }),
+                      );
+                      if (res.statusCode == 200) {
+                        KazumiDialog.showToast(message: '吐槽发表成功');
+                      } else {
+                        KazumiDialog.showToast(message: '发表失败');
+                      }
+                    } catch (e) {
+                      KazumiDialog.showToast(message: '网络错误: $e');
+                    }
+                  },
+                  child: const Text('发表'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
