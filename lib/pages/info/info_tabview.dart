@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
-import 'package:kazumi/pages/info/update_countdown.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
@@ -114,10 +113,6 @@ class _InfoTabViewState extends State<InfoTabView>
               if (widget.bangumiItem.airWeekday > 0)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: UpdateCountdown(
-                    airWeekday: widget.bangumiItem.airWeekday,
-                    airDate: widget.bangumiItem.airDate,
-                  ),
                 ),
               Text('简介', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
@@ -374,7 +369,154 @@ class _InfoTabViewState extends State<InfoTabView>
     // 失败静默：不弹报错（没有就没有吧）
 
   Widget get commentsListBody {
-    return const Center(child: Text("评论加载中..."));
+    return Builder(
+      builder: (BuildContext context) {
+        return NotificationListener<ScrollEndNotification>(
+          onNotification: (scrollEnd) {
+            final metrics = scrollEnd.metrics;
+            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
+              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
+            }
+            return true;
+          },
+          child: CustomScrollView(
+            scrollBehavior: const ScrollBehavior().copyWith(
+              scrollbars: false,
+            ),
+            key: PageStorageKey<String>('吐槽'),
+            slivers: <Widget>[
+              SliverOverlapInjector(
+                handle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              ),
+              // ⭐ 发表评论输入框（樱花服务器）
+              if (widget.onPublishComment != null)
+                SliverToBoxAdapter(child: _buildCommentInput()),
+              SliverLayoutBuilder(builder: (context, _) {
+                final myInterest = widget.bangumiItem.interest;
+                final showMyReview = !widget.commentsIsLoading &&
+                    myInterest != null &&
+                    myInterest.hasUserProfile &&
+                    myInterest.hasReviewContent;
+                final listItemCount =
+                    widget.commentsList.length + (showMyReview ? 1 : 0);
+
+                if (listItemCount > 0) {
+                  return SliverList.separated(
+                    addAutomaticKeepAlives: false,
+                    itemCount: listItemCount,
+                    itemBuilder: (context, index) {
+                      final commentIndex = showMyReview ? index - 1 : index;
+                      final myUser = myInterest?.user;
+                      final card = showMyReview && index == 0 && myUser != null
+                          ? CommentsCard.own(
+                              commentItem: CommentItem(
+                                user: myUser,
+                                comment: Comment(
+                                  rate: myInterest.rate,
+                                  comment: myInterest.comment,
+                                  updatedAt: myInterest.updatedAt,
+                                ),
+                              ),
+                            )
+                          : CommentsCard(
+                              commentItem: widget.commentsList[commentIndex],
+                            );
+                      final isServer =
+                          widget.commentsList[commentIndex].source == 'server';
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Center(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: SizedBox(
+                              width: MediaQuery.sizeOf(context).width > maxWidth
+                                  ? maxWidth
+                                  : MediaQuery.sizeOf(context).width - 32,
+                              child: GestureDetector(
+                                onLongPress: isServer
+                                    ? () => _showCommentAdminMenu(context,
+                                        widget.commentsList[commentIndex])
+                                    : null,
+                                child: card,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) {
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Center(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: SizedBox(
+                              width: MediaQuery.sizeOf(context).width > maxWidth
+                                  ? maxWidth
+                                  : MediaQuery.sizeOf(context).width - 32,
+                              child: Divider(
+                                  thickness: 0.5, indent: 10, endIndent: 10),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+                if (widget.commentsQueryTimeout) {
+                  return SliverFillRemaining(
+                    child: GeneralErrorWidget(
+                      errMsg: '获取失败，请重试',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: () {
+                            widget.loadMoreComments(
+                                loadMore: widget.commentsList.isNotEmpty);
+                          },
+                          text: '重试',
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                if (widget.commentsIsEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text('什么都没有找到 (´;ω;`)'),
+                    ),
+                  );
+                }
+                return SliverList.builder(
+                  itemCount: 4,
+                  itemBuilder: (context, _) {
+                    return SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width > maxWidth
+                                ? maxWidth
+                                : MediaQuery.sizeOf(context).width - 32,
+                            child: CommentsCard.bone(),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              })
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget get staffListBody {

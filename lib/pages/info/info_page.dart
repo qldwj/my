@@ -842,7 +842,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
     final bool showWindowButton =
         GStorage.getSetting(SettingsKeys.showWindowButton);
-    final bool showRatingFab = true;
+    final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
     return PopScope(
       canPop: true,
       child: DefaultTabController(
