@@ -604,4 +604,3 @@ class _InfoTabViewState extends State<InfoTabView>
       ],
     );
   }
-}
