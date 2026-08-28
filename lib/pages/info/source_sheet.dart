@@ -820,7 +820,7 @@ class _SourceSheetState extends State<SourceSheet>
                     },
                   ), // ← 这里 `}),` 正确：闭包后跟右括号和逗号
                   CommentListPage(
-                    subjectId: widget.infoController.bangumiItem.id.toString(),
+                    subjectId: widget.infoController.bangumiItem.id,
                     animeName: widget.infoController.bangumiItem.nameCn.isNotEmpty
                         ? widget.infoController.bangumiItem.nameCn
                         : widget.infoController.bangumiItem.name,
