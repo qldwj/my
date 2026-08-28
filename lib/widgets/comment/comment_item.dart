@@ -1,3 +1,11 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kazumi/models/episode_comment.dart';
+import 'package:kazumi/services/comment/episode_comment_service.dart';
+import 'package:kazumi/services/auth_service.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
@@ -55,8 +63,12 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               ),
             ]),
             const SizedBox(height: 8),
-            // 评论内容
-            Text(c.content, style: const TextStyle(fontSize: 14, height: 1.5)),
+            // 评论内容（BBCode 渲染）
+            RichText(
+              text: TextSpan(
+                children: _renderBBCode(c.content, TextStyle(fontSize: 14, height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
+              ),
+            ),
             // 表情回应
             if (c.reactions.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -88,6 +100,9 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               // 回复
               if (c.isSakura)
                 _actionButton(Icons.reply_outlined, '回复 ${c.replyCount}', _toggleReplyInput, cs),
+              // 举报
+              if (c.isSakura)
+                _actionButton(Icons.flag_outlined, '', _showReportDialog, cs),
               const Spacer(),
               // 展开回复
               if (c.replies.isNotEmpty)
@@ -163,6 +178,76 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
   }
 
   bool _showReplyInput = false;
+
+
+  /// BBCode 渲染
+  List<TextSpan> _renderBBCode(String text, TextStyle baseStyle) {
+    final spans = <TextSpan>[];
+    final regex = RegExp(r'\[(b|i|u|s|mask|color=([^\]]+)|size=(\d+)|url(=([^\]]+))?|img)\](.+?)\[/\1\]', dotAll: true);
+    int lastEnd = 0;
+    for (final match in regex.allMatches(text)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
+      }
+      final tag = match.group(1)!;
+      final content = match.group(match.groupCount) ?? '';
+      switch (tag) {
+        case 'b': spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontWeight: FontWeight.bold))); break;
+        case 'i': spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontStyle: FontStyle.italic))); break;
+        case 'u': spans.add(TextSpan(text: content, style: baseStyle.copyWith(decoration: TextDecoration.underline))); break;
+        case 's': spans.add(TextSpan(text: content, style: baseStyle.copyWith(decoration: TextDecoration.lineThrough))); break;
+        case 'mask': spans.add(TextSpan(text: content, style: baseStyle.copyWith(color: Colors.transparent, backgroundColor: Colors.grey))); break;
+        case 'color': final color = match.group(2) ?? 'white'; spans.add(TextSpan(text: content, style: baseStyle.copyWith(color: _parseColor(color)))); break;
+        case 'size': final size = double.tryParse(match.group(3) ?? '14') ?? 14; spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontSize: size))); break;
+        default: spans.add(TextSpan(text: content, style: baseStyle));
+      }
+      lastEnd = match.end;
+    }
+    if (lastEnd < text.length) spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+    return spans;
+  }
+
+  Color _parseColor(String name) {
+    const colors = {'red': Colors.red, 'blue': Colors.blue, 'green': Colors.green, 'orange': Colors.orange, 'yellow': Colors.yellow, 'purple': Colors.purple, 'pink': Colors.pink, 'white': Colors.white, 'black': Colors.black, 'grey': Colors.grey};
+    return colors[name.toLowerCase()] ?? Colors.white;
+  }
+
+  void _showReportDialog() {
+    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('举报评论'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('请选择举报原因：', style: TextStyle(fontSize: 13)),
+            const SizedBox(height: 8),
+            ...['广告', '骚扰', '剧透', '违规内容', '其他'].map((r) =>
+              ListTile(
+                dense: true,
+                title: Text(r, style: const TextStyle(fontSize: 13)),
+                onTap: () { Navigator.pop(ctx); _submitReport(r); },
+              )),
+          ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消'))],
+      ),
+    );
+  }
+
+  Future<void> _submitReport(String reason) async {
+    final res = await http.post(
+      Uri.parse('https://qlyyz.xyz/api/episode_comment.php?action=report'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ${AuthService.getLocalToken() ?? ''}'},
+      body: jsonEncode({'commentId': widget.comment.id, 'reason': reason}),
+    );
+    final data = jsonDecode(res.body);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(data['success'] == true ? '举报成功，管理员将审核' : (data['error'] ?? '举报失败'))));
+  }
+
   void _toggleReplyInput() {
     if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
     setState(() => _showReplyInput = !_showReplyInput);
