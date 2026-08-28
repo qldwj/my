@@ -63,12 +63,8 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               ),
             ]),
             const SizedBox(height: 8),
-            // 评论内容（BBCode 渲染）
-            RichText(
-              text: TextSpan(
-                children: _renderBBCode(c.content, TextStyle(fontSize: 14, height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
-              ),
-            ),
+            // 评论内容（BBCode + 表情渲染）
+            _buildContent(c.content),
             // 表情回应
             if (c.reactions.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -180,12 +176,70 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
   bool _showReplyInput = false;
 
 
+  Widget _buildContent(String text) {
+    final baseStyle = TextStyle(fontSize: 14, height: 1.5, color: Theme.of(context).colorScheme.onSurface);
+    final spans = <TextSpan>[];
+    final emojiRegex = RegExp(r'\(bgm(\d+)\)');
+    final bbcodeRegex = RegExp(r'\[(b|i|u|s|mask|color=([^\]]+)|size=(\d+)|url(=([^\]]+))?|img)\](.+?)\[/\1\]', dotAll: true);
+    
+    // 先按表情分割
+    final parts = text.split(emojiRegex);
+    for (int i = 0; i < parts.length; i++) {
+      if (i % 2 == 1) {
+        final emoji = _getEmoji('bgm$parts[i]');
+        spans.add(TextSpan(text: emoji, style: baseStyle.copyWith(fontSize: 18)));
+      } else if (parts[i].isNotEmpty) {
+        // 解析 BBCode
+        int lastEnd = 0;
+        for (final match in bbcodeRegex.allMatches(parts[i])) {
+          if (match.start > lastEnd) {
+            spans.add(TextSpan(text: parts[i].substring(lastEnd, match.start), style: baseStyle));
+          }
+          final tag = match.group(1)!;
+          final content = match.group(match.groupCount) ?? '';
+          switch (tag) {
+            case 'b': spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontWeight: FontWeight.bold))); break;
+            case 'i': spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontStyle: FontStyle.italic))); break;
+            case 'u': spans.add(TextSpan(text: content, style: baseStyle.copyWith(decoration: TextDecoration.underline))); break;
+            case 's': spans.add(TextSpan(text: content, style: baseStyle.copyWith(decoration: TextDecoration.lineThrough))); break;
+            case 'mask': spans.add(TextSpan(text: content, style: baseStyle.copyWith(color: Colors.transparent, backgroundColor: Colors.grey))); break;
+            case 'color': spans.add(TextSpan(text: content, style: baseStyle.copyWith(color: _parseColor(match.group(2) ?? 'white')))); break;
+            case 'size': spans.add(TextSpan(text: content, style: baseStyle.copyWith(fontSize: double.tryParse(match.group(3) ?? '14')))); break;
+            default: spans.add(TextSpan(text: content, style: baseStyle));
+          }
+          lastEnd = match.end;
+        }
+        if (lastEnd < parts[i].length) {
+          spans.add(TextSpan(text: parts[i].substring(lastEnd), style: baseStyle));
+        }
+      }
+    }
+    return RichText(text: TextSpan(children: spans.isEmpty ? [TextSpan(text: text, style: baseStyle)] : spans));
+  }
+
   /// BBCode 渲染
   List<TextSpan> _renderBBCode(String text, TextStyle baseStyle) {
     final spans = <TextSpan>[];
+    // 先解析 (bgm1) 格式的表情
+    final emojiRegex = RegExp(r'\(bgm(\d+)\)');
+    final parts = text.split(emojiRegex);
+    for (int i = 0; i < parts.length; i++) {
+      if (i % 2 == 1) {
+        // 这是表情编号
+        final emoji = _getEmoji('bgm$parts[i]');
+        spans.add(TextSpan(text: emoji, style: baseStyle.copyWith(fontSize: 18)));
+      } else if (parts[i].isNotEmpty) {
+        // 这是普通文本，需要解析 BBCode
+        spans.addAll(_renderBBCodeSingle(parts[i], baseStyle));
+      }
+    }
+    return spans.isEmpty ? [TextSpan(text: text, style: baseStyle)] : spans;
+  }
+
+  List<TextSpan> _renderBBCodeSingle(String text, TextStyle baseStyle) {
+    final spans = <TextSpan>[];
     final regex = RegExp(r'\[(b|i|u|s|mask|color=([^\]]+)|size=(\d+)|url(=([^\]]+))?|img)\](.+?)\[/\1\]', dotAll: true);
     int lastEnd = 0;
-    for (final match in regex.allMatches(text)) {
       if (match.start > lastEnd) {
         spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
       }
@@ -306,6 +360,9 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
       'bgm1':'👍','bgm2':'❤️','bgm3':'😂','bgm4':'😮','bgm5':'😢','bgm6':'😡',
       'bgm7':'🎉','bgm8':'🔥','bgm9':'💀','bgm10':'👀','bgm11':'🤡','bgm12':'💔',
       'bgm13':'✅','bgm14':'❌','bgm15':'💪','bgm16':'🙏',
+      'bgm17':'🎯','bgm18':'💡','bgm19':'🌟','bgm20':'🎵',
+      'bgm21':'🎬','bgm22':'📺','bgm23':'🎮','bgm24':'📚',
+      'bgm25':'❤️‍🔥','bgm26':'🫡','bgm27':'🤯','bgm28':'💀',
     };
     return map[sticker] ?? '👍';
   }
