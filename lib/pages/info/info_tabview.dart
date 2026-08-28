@@ -1,4 +1,3 @@
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -36,7 +35,6 @@ class InfoTabView extends StatefulWidget {
     required this.commentsList,
     required this.commentsIsLoading,
     this.onCommentsTabSelected,
-    this.onPublishComment,
     this.onRefreshComments,
     required this.characterList,
     required this.staffList,
@@ -49,9 +47,6 @@ class InfoTabView extends StatefulWidget {
   final VoidCallback? onCommentsTabSelected;
   /// 🆕 刷新评论列表（管理员操作置顶/头衔后调用）
   final VoidCallback? onRefreshComments;
-  /// ⭐ 发表评论（樱花服务器）；返回错误信息，null 表示成功
-  /// [rating] 0-10，0=不评分
-  final Future<String?> Function(String text, int rating)? onPublishComment;
   final bool charactersQueryTimeout;
   final bool charactersIsEmpty;
   final bool staffQueryTimeout;
@@ -370,127 +365,12 @@ class _InfoTabViewState extends State<InfoTabView>
     // 失败静默：不弹报错（没有就没有吧）
 
 
-  final TextEditingController _commentController = TextEditingController();
-  /// 评论附带打分 0-10（0=不评分）
-  int _commentRating = 0;
-  bool _commentSending = false;
 
-  Widget _buildCommentInput() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: _commentRating > 0
-                  ? '已评 $_commentRating 分，点击修改'
-                  : '给这部番打分（0-10）',
-              onPressed: _pickCommentRating,
-              icon: Icon(
-                _commentRating > 0
-                    ? Icons.star_rounded
-                    : Icons.star_outline_rounded,
-                color: _commentRating > 0 ? Colors.amber : null,
-              ),
-            ),
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                maxLength: 500,
-                minLines: 1,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: '发一条评论…（樱花服务器）',
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  counterText: '',
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: _commentSending ? null : _publishComment,
-              icon: const Icon(Icons.send_rounded),
-              tooltip: '发表',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Future<void> _pickCommentRating() async {
-    var value = _commentRating.toDouble();
-    final result = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('给这部番打分'),
-        content: StatefulBuilder(
-          builder: (ctx, setDialogState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value <= 0 ? '未评分' : '${value.round()} 分',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              RatingBar.builder(
-                initialRating: value,
-                minRating: 0,
-                maxRating: 10,
-                itemCount: 10,
-                itemSize: 28,
-                allowHalfRating: false,
-                onRatingUpdate: (v) {
-                  value = v;
-                  setDialogState(() {});
-                },
-                itemBuilder: (context, index) => const Icon(
-                  Icons.star_rounded,
-                  color: Colors.amber,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 0.0),
-            child: Text('取消评分',
-                style: TextStyle(color: Theme.of(ctx).colorScheme.outline)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, value),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-    if (result != null && mounted) {
-      setState(() => _commentRating = result.round().clamp(0, 10));
-    }
-  }
 
-  Future<void> _publishComment() async {
-    final text = _commentController.text.trim();
-    if (text.isEmpty || _commentSending) return;
-    final publish = widget.onPublishComment;
-    if (publish == null) return;
-    setState(() => _commentSending = true);
-    final error = await publish(text, _commentRating);
-    if (!mounted) return;
-    setState(() => _commentSending = false);
-    if (error == null) {
-      _commentController.clear();
-      setState(() => _commentRating = 0);
-      KazumiDialog.showToast(message: '评论已发布 ✅');
-    }
-    // 失败静默：不弹报错（没有就没有吧）
-  }
+
+
+
 
   Widget get commentsListBody {
     return Builder(
@@ -513,9 +393,7 @@ class _InfoTabViewState extends State<InfoTabView>
                 handle:
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
-              // ⭐ 发表评论输入框（樱花服务器）
-              if (widget.onPublishComment != null)
-                SliverToBoxAdapter(child: _buildCommentInput()),
+
               SliverLayoutBuilder(builder: (context, _) {
                 final myInterest = widget.bangumiItem.interest;
                 final showMyReview = !widget.commentsIsLoading &&

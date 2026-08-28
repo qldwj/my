@@ -1006,8 +1006,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 commentsList: infoController.commentsList,
                 commentsIsLoading: commentsIsLoading,
                 onCommentsTabSelected: onCommentsTabSelected,
-                onPublishComment: (text, rating) =>
-                    infoController.addCustomComment(text, rating: rating),
+
                 onRefreshComments: () =>
                     infoController.queryBangumiCommentsByID(
                         infoController.bangumiItem.id),
