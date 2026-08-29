@@ -532,22 +532,66 @@ class BangumiApi {
   ///
   /// 与 Ani 的 SubjectAiringInfo.computeFromEpisodeList 一致：仅统计正片(type==0)，
   /// 取 airdate <= 今天的最大 sort。
+  ///
+  /// 修复停播问题：按集顺序检查，如果某集与上一集的间隔超过了
+  /// 平均间隔的 2.5 倍，则视为停播（不再往后计数），避免停播后
+  /// 仍显示错误的高集数。
   static int computeLatestAiredEpisode(List<EpisodeInfo> episodes) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    int latest = 0;
-    for (final ep in episodes) {
-      if (ep.type != 0) continue; // 仅正片，忽略 SP/OP/ED
-      final epNum = ep.episode.toInt();
-      if (epNum <= latest) continue;
+
+    // 1. 收集正片，按集数排序
+    final mains = episodes
+        .where((e) => e.type == 0)
+        .toList()
+      ..sort((a, b) => a.episode.compareTo(b.episode));
+
+    if (mains.isEmpty) return 0;
+
+    // 2. 计算相邻集之间的平均间隔（天）
+    int totalGap = 0;
+    int gapCount = 0;
+    DateTime? prevDate;
+    for (final ep in mains) {
       final airdate = ep.airdate.trim();
       if (airdate.isEmpty) continue;
       final d = DateTime.tryParse(airdate);
       if (d == null) continue;
-      if (!d.isAfter(today)) {
-        latest = epNum;
+      if (prevDate != null) {
+        totalGap += d.difference(prevDate).inDays.abs();
+        gapCount++;
       }
+      prevDate = d;
     }
+
+    // 如果集数太少（<2 集能算出间隔），回退到简单逻辑
+    final avgGap = gapCount > 0 ? totalGap / gapCount : 7.0;
+
+    // 3. 按顺序判定已播出集数
+    int latest = 0;
+    DateTime? lastAiredDate;
+    for (final ep in mains) {
+      final epNum = ep.episode.toInt();
+      final airdate = ep.airdate.trim();
+      if (airdate.isEmpty) break;
+      final d = DateTime.tryParse(airdate);
+      if (d == null) break;
+
+      // 如果 airdate 是未来，则停止计数
+      if (d.isAfter(today)) break;
+
+      // 如果与上一集间隔超过平均间隔的 2 倍（如周更番停播一周），
+      // 视为停播：不再往后计数。等真实播出后 airdate 更新、间隔恢复正常，
+      // 就会自动重新计入该集。
+      if (lastAiredDate != null) {
+        final gap = d.difference(lastAiredDate).inDays.abs();
+        if (gap > avgGap * 2.0) break; // 停播检测
+      }
+
+      latest = epNum;
+      lastAiredDate = d;
+    }
+
     return latest;
   }
 
