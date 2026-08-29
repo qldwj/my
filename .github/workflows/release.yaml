@@ -97,8 +97,8 @@ jobs:
         if: ${{ github.event.inputs.sign_check == '1' }}
         run: |
           # 这里直接写入您提供的指纹
-          echo "EXPECTED_SIGNATURE_SHA256=bd447520c59668c3a084879a4834bf23f0ffb1c38a9eb0e6c3418c69fe7a88c2" >> $GITHUB_ENV
-          echo "🔑 使用硬编码签名指纹: bd447520c59668c3a084879a4834bf23f0ffb1c38a9eb0e6c3418c69fe7a88c2"
+          echo "EXPECTED_SIGNATURE_SHA256=8e40ab9c9e59efda3b7f7dbd6afe6dc2c108216e629641d16aa73a5769baee62" >> $GITHUB_ENV
+          echo "🔑 使用硬编码签名指纹: 8e40ab9c9e59efda3b7f7dbd6afe6dc2c108216e629641d16aa73a5769baee62"
         shell: bash
 
       - name: Build Flutter for Android
