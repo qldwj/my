@@ -81,15 +81,31 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
         shell: bash
 
+      - name: Validate keystore
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          keytool -list -keystore yhdm.jks -storepass "$KEYSTORE_PASS" -storetype JKS > /dev/null 2>&1 || {
+            echo "❌ Keystore validation failed. Please check password or keystore file."
+            exit 1
+          }
+          echo "✅ Keystore is valid."
+        shell: bash
+
       - name: Compute signing cert SHA-256
         if: ${{ github.event.inputs.sign_check == '1' }}
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          SHA=$(keytool -list -v -keystore yhdm.jks \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null \
+          SHA=$(keytool -list -v -keystore yhdm.jks -storepass "$KEYSTORE_PASS" 2>&1 \
             | grep "^SHA256:" \
             | sed 's/^SHA256:[ ]*//' \
             | tr -d ':' \
             | tr '[:upper:]' '[:lower:]')
+          if [ -z "$SHA" ]; then
+            echo "❌ Failed to extract SHA256 fingerprint. Check keystore and password."
+            exit 1
+          fi
           echo "EXPECTED_SIGNATURE_SHA256=$SHA" >> $GITHUB_ENV
           echo "🔑 签名指纹: $SHA"
         shell: bash
@@ -105,13 +121,16 @@ jobs:
         shell: bash
 
       - name: Sign APK
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
           $APKSIGNER sign \
             --ks yhdm.jks \
-            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --ks-pass pass:"$KEYSTORE_PASS" \
             --ks-key-alias ${{ secrets.KEY_ALIAS }} \
-            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --key-pass pass:"$KEY_PASS" \
             --out YHDM_android_${{ env.tag }}.apk \
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
         shell: bash
