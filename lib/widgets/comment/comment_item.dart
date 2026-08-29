@@ -3,6 +3,7 @@ import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/pages/my/profile_page.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
 class CommentItemWidget extends StatefulWidget {
@@ -31,11 +32,40 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
           children: [
             // 头部：头像 + 昵称 + 来源标签 + 时间
             Row(children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: c.isSakura ? cs.primaryContainer : Colors.orange.shade100,
-                child: Text(c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
-                  style: TextStyle(fontSize: 14, color: c.isSakura ? cs.primary : Colors.orange)),
+              GestureDetector(
+                onTap: () {
+                  // 🆕 点击头像查看个人主页（仅樱花评论有 uid）
+                  if (c.isSakura && c.uid.isNotEmpty) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProfilePage(
+                          uid: c.uid,
+                          nickname: c.sender,
+                          avatar: c.avatar,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: c.isSakura ? cs.primaryContainer : Colors.orange.shade100,
+                  child: c.avatar.isNotEmpty && c.isSakura
+                      ? ClipOval(
+                          child: Image.network(
+                            SocialService.proxiedAvatar(c.avatar),
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Text(
+                              c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
+                              style: TextStyle(fontSize: 14, color: c.isSakura ? cs.primary : Colors.orange),
+                            ),
+                          ),
+                        )
+                      : Text(c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
+                          style: TextStyle(fontSize: 14, color: c.isSakura ? cs.primary : Colors.orange)),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(child: Column(

@@ -192,6 +192,20 @@ class AuthService {
         .toList();
   }
 
+  /// 🆕 登录日志（账号安全中心：最近登录 IP / 设备 / 时间）
+  static Future<List<Map<String, dynamic>>> loginLogs() async {
+    final token = getLocalToken();
+    if (token == null) return [];
+    final res =
+        await _request('login_logs', {}, authToken: token, skipSignature: true);
+    final list = res['logs'];
+    if (list is! List) return [];
+    return list
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   /// 🆕 踢掉指定设备（传 session_list 返回的 token 标识）
   static Future<String?> sessionKick(String sessionToken) async {
     final token = getLocalToken();

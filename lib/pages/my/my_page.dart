@@ -19,6 +19,8 @@ import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/friends_page.dart';
 import 'package:kazumi/pages/my/chat_list_page.dart';
+import 'package:kazumi/pages/my/privacy_settings_page.dart';
+import 'package:kazumi/pages/my/security_center_page.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -489,6 +491,17 @@ class _MyPageState extends State<MyPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.security_rounded, color: Colors.blue),
+              title: const Text('安全中心'),
+              subtitle: const Text('登录记录 / 设备管理'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SecurityCenterPage()),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.cloud_off_rounded),
               title: const Text('清除云端数据'),
               subtitle: const Text('删除服务器上的收藏/历史/进度，保留账号'),
@@ -806,6 +819,36 @@ class _MyPageState extends State<MyPage> {
                         ? '清除云端数据 / 注销账号'
                         : '登录后可管理账号数据',
                     onTap: () => _manageAccountData(context),
+                  ),
+                  SettingsEntryTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.privacy_tip_outlined,
+                        color: Colors.purple.shade400,
+                      ),
+                    ),
+                    title: '隐私设置',
+                    description: AuthService.isLoggedIn
+                        ? '主页可见性 / 资料可见性 / 好友申请'
+                        : '登录后可用',
+                    onTap: () {
+                      if (!AuthService.isLoggedIn) {
+                        KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                        return;
+                      }
+                      final navContext = rootNavigatorKey.currentContext;
+                      if (navContext == null || !navContext.mounted) return;
+                      Navigator.of(navContext).push(
+                        MaterialPageRoute(
+                            builder: (_) => const PrivacySettingsPage()),
+                      );
+                    },
                   ),
                 ],
               ),

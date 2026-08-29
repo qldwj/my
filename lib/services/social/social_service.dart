@@ -16,6 +16,14 @@ class SocialProfile {
     this.createdAt = 0,
     this.lastSeen = 0,
     this.hideOnline = false,
+    this.bio = '',
+    this.gender = 0,
+    this.birthday = '',
+    this.privacy = false,
+    this.isOnline = false,
+    this.allowViewProfile = true,
+    this.allowViewInfo = true,
+    this.allowAddFriend = true,
   });
 
   final String uid;
@@ -29,10 +37,45 @@ class SocialProfile {
   /// 🆕 是否隐藏在线状态（好友看不到我的在线）
   final bool hideOnline;
 
+  /// 🆕 个人介绍（最多 200 字）
+  final String bio;
+
+  /// 🆕 性别（0=保密 1=男 2=女 3=其他）
+  final int gender;
+
+  /// 🆕 生日（YYYY-MM-DD，空=不填）
+  final String birthday;
+
+  /// 🆕 隐私用户（对方不允许查看主页 → 主页只显示遮挡信息）
+  final bool privacy;
+
+  /// 🆕 是否在线（查看他人主页时由后端返回）
+  final bool isOnline;
+
+  /// 🆕 隐私设置：允许他人查看主页
+  final bool allowViewProfile;
+
+  /// 🆕 隐私设置：允许他人查看资料（介绍/性别/生日）
+  final bool allowViewInfo;
+
+  /// 🆕 隐私设置：允许他人添加好友
+  final bool allowAddFriend;
+
   /// 🆕 是否在线（最近 5 分钟内有活跃且公开）
-  bool get isOnline {
+  bool get isOnlineNow {
+    if (privacy) return false;
+    if (hideOnline) return false;
     if (lastSeen <= 0) return false;
     return DateTime.now().millisecondsSinceEpoch ~/ 1000 - lastSeen < 300;
+  }
+
+  String get genderText {
+    switch (gender) {
+      case 1: return '男';
+      case 2: return '女';
+      case 3: return '其他';
+      default: return '保密';
+    }
   }
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +84,12 @@ class SocialProfile {
         'avatar': avatar,
         'created_at': createdAt,
         'last_seen': lastSeen,
+        'bio': bio,
+        'gender': gender,
+        'birthday': birthday,
+        'allow_view_profile': allowViewProfile ? 1 : 0,
+        'allow_view_info': allowViewInfo ? 1 : 0,
+        'allow_add_friend': allowAddFriend ? 1 : 0,
       };
 
   factory SocialProfile.fromJson(Map<String, dynamic> json) => SocialProfile(
@@ -50,6 +99,14 @@ class SocialProfile {
         createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
         lastSeen: (json['last_seen'] as num?)?.toInt() ?? 0,
         hideOnline: (json['hide_online'] as num?)?.toInt() == 1,
+        bio: json['bio']?.toString() ?? '',
+        gender: (json['gender'] as num?)?.toInt() ?? 0,
+        birthday: json['birthday']?.toString() ?? '',
+        privacy: json['privacy'] == true,
+        isOnline: json['is_online'] == true,
+        allowViewProfile: (json['allow_view_profile'] as num?)?.toInt() != 0,
+        allowViewInfo: (json['allow_view_info'] as num?)?.toInt() != 0,
+        allowAddFriend: (json['allow_add_friend'] as num?)?.toInt() != 0,
       );
 }
 
@@ -201,22 +258,56 @@ class SocialService {
     }
   }
 
-  /// 修改昵称/头像/隐藏在线状态
+  /// 修改昵称/头像/隐藏在线状态/个人介绍/性别/生日
   static Future<String?> updateProfile({
     String? nickname,
     String? avatar,
     bool? hideOnline,
+    String? bio,
+    int? gender,
+    String? birthday,
   }) async {
     final res = await _post('profile_update', {
       if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
       if (avatar != null && avatar.isNotEmpty) 'avatar': avatar,
       if (hideOnline != null) 'hide_online': hideOnline,
+      if (bio != null && bio.isNotEmpty) 'bio': bio,
+      if (gender != null) 'gender': gender,
+      if (birthday != null && birthday.isNotEmpty) 'birthday': birthday,
     });
     if (!_isSuccess(res)) return res['error']?.toString() ?? '更新失败';
     // 更新缓存
     _myProfile = null;
     await getProfile(refresh: true);
     return null;
+  }
+
+  /// 🆕 查看他人主页（受对方隐私设置约束，可能只返回遮挡信息）
+  /// 返回 [SocialProfile?]，profile.privacy == true 表示对方开启了隐私保护
+  static Future<SocialProfile?> getPublicProfile(String uid) async {
+    final res = await _post('profile_public', {'uid': uid});
+    if (!_isSuccess(res)) return null;
+    final p = res['profile'];
+    if (p is! Map) return null;
+    return SocialProfile.fromJson(Map<String, dynamic>.from(p));
+  }
+
+  /// 🆕 保存隐私设置（1=允许 0=禁止；默认全禁止保护隐私）
+  /// [allowViewProfile] 允许他人查看主页
+  /// [allowViewInfo] 允许他人查看资料（介绍/性别/生日）
+  /// [allowAddFriend] 允许他人添加好友
+  static Future<String?> updatePrivacy({
+    bool? allowViewProfile,
+    bool? allowViewInfo,
+    bool? allowAddFriend,
+  }) async {
+    final res = await _post('privacy_update', {
+      if (allowViewProfile != null) 'allow_view_profile': allowViewProfile,
+      if (allowViewInfo != null) 'allow_view_info': allowViewInfo,
+      if (allowAddFriend != null) 'allow_add_friend': allowAddFriend,
+    });
+    if (_isSuccess(res)) return null;
+    return res['error']?.toString() ?? '保存失败';
   }
 
   /// 上传头像（base64），返回头像 URL
