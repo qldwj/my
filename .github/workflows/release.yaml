@@ -7,6 +7,10 @@ on:
         description: '版本号 (如 2.2.2)'
         required: true
         default: '2.2.2'
+      sign_check:
+        description: '签名校验 (0=不开启, 1=开启)'
+        required: true
+        default: '0'
 
 env:
   DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
@@ -17,7 +21,7 @@ env:
 jobs:
   build-and-sign:
     name: "构建并签名"
-    runs-on: "ubuntu-latest" 
+    runs-on: "ubuntu-latest"
     permissions: write-all
     steps:
       - name: Clone repository
@@ -51,7 +55,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'          
+          distribution: 'temurin'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.16.0
@@ -71,6 +75,26 @@ jobs:
       - name: Remove build id
         run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}/hosted/pub.dev/jni-*/src/CMakeLists.txt
 
+      # ========== keystore 始终解码（发布用 keystore 签名，签名校验开关只决定是否加运行时校验） ==========
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
+        shell: bash
+
+      - name: Compute signing cert SHA-256
+        if: ${{ github.event.inputs.sign_check == '1' }}
+        run: |
+          SHA=$(keytool -list -v -keystore yhdm.jks \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -alias "${{ secrets.KEY_ALIAS }}" 2>/dev/null \
+            | grep "^SHA256:" \
+            | sed 's/^SHA256:[ ]*//' \
+            | tr -d ':' \
+            | tr '[:upper:]' '[:lower:]')
+          echo "EXPECTED_SIGNATURE_SHA256=$SHA" >> $GITHUB_ENV
+          echo "🔑 签名指纹: $SHA"
+        shell: bash
+
       - name: Build Flutter for Android
         run: >
           flutter build apk --split-per-abi
@@ -78,12 +102,7 @@ jobs:
           --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
           --dart-define=KAZUMI_APPID=$KAZUMI_APPID
           --dart-define=KAZUMI_KEY=$KAZUMI_KEY
-        shell: bash
-
-      # 签名
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
+          ${{ github.event.inputs.sign_check == '1' && '--dart-define=SIGNATURE_CHECK=true --dart-define=EXPECTED_SIGNATURE_SHA256=$EXPECTED_SIGNATURE_SHA256' || '' }}
         shell: bash
 
       - name: Sign APK
@@ -110,14 +129,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ env.tag }}"
-          
+
           # 如果 tag 已存在则删除重建
           if gh release view $TAG &>/dev/null; then
             gh release delete $TAG -y
             git push --delete origin $TAG 2>/dev/null || true
             sleep 2
           fi
-          
+
           gh release create $TAG \
             --title "v$TAG" \
             --notes "樱花动漫 v$TAG（已签名，可下载修改后发布）" \
