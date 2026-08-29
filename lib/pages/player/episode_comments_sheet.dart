@@ -86,7 +86,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       if (bangumiLoaded) {
         for (final item in videoPageController.episodeCommentsList) {
           merged.add(EpisodeComment(
-            id: item.comment.id,
+            id: item.comment.user.id,
             subjectId: videoPageController.bangumiItem.id,
             episode: _episode,
             content: item.comment.comment,
@@ -95,8 +95,10 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             avatar: item.comment.user.avatar.large,
             source: 'bangumi',
             createdAt: item.comment.createdAt,
-            replies: item.replies.map((r) => EpisodeComment(
-              id: r.id,
+            replies: item.replies.map<EpisodeComment>((r) => EpisodeComment(
+              id: r.user.id,
+              subjectId: videoPageController.bangumiItem.id,
+              episode: _episode,
               content: r.comment,
               sender: r.user.nickname,
               uid: 'bangumi_${r.user.id}',
