@@ -114,6 +114,99 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
+  void _editBio() {
+    final ctrl = TextEditingController(text: _profile?.bio ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('修改个人介绍'),
+        content: TextField(
+          controller: ctrl, maxLength: 200, maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: '介绍一下自己吧（最多200字）',
+            border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(onPressed: () async {
+            final bio = ctrl.text.trim();
+            final error = await SocialService.updateProfile(bio: bio);
+            if (!mounted) return;
+            Navigator.pop(ctx);
+            if (error == null) {
+              setState(() => _profile = SocialService.myProfile);
+              KazumiDialog.showToast(message: '个人介绍已更新');
+            } else {
+              KazumiDialog.showToast(message: error);
+            }
+          }, child: const Text('保存')),
+        ],
+      ),
+    );
+  }
+
+  void _editGender() {
+    const genders = [
+      (0, '保密'),
+      (1, '男'),
+      (2, '女'),
+      (3, '其他'),
+    ];
+    final current = _profile?.gender ?? 0;
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('选择性别'),
+        children: genders.map((g) => SimpleDialogOption(
+          onPressed: () async {
+            final error = await SocialService.updateProfile(gender: g.$1);
+            if (!mounted) return;
+            Navigator.pop(ctx);
+            if (error == null) {
+              setState(() => _profile = SocialService.myProfile);
+              KazumiDialog.showToast(message: '性别已更新');
+            } else {
+              KazumiDialog.showToast(message: error);
+            }
+          },
+          child: Row(children: [
+            Icon(current == g.$1 ? Icons.check_circle : Icons.circle_outlined,
+              size: 18, color: current == g.$1
+                ? Theme.of(context).colorScheme.primary : Colors.grey),
+            const SizedBox(width: 12),
+            Text(g.$2),
+          ]),
+        )).toList(),
+      ),
+    );
+  }
+
+  void _editBirthday() async {
+    final now = DateTime.now();
+    final initial = _profile?.birthday.isNotEmpty == true
+        ? DateTime.tryParse(_profile!.birthday)
+        : null;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1950, 1, 1),
+      lastDate: now,
+      helpText: '选择生日',
+    );
+    if (picked == null || !mounted) return;
+    final dateStr = '${picked.year.toString().padLeft(4, '0')}-'
+        '${picked.month.toString().padLeft(2, '0')}-'
+        '${picked.day.toString().padLeft(2, '0')}';
+    final error = await SocialService.updateProfile(birthday: dateStr);
+    if (!mounted) return;
+    if (error == null) {
+      setState(() => _profile = SocialService.myProfile);
+      KazumiDialog.showToast(message: '生日已更新');
+    } else {
+      KazumiDialog.showToast(message: error);
+    }
+  }
+
   void _editEmail() {
     final emailCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
@@ -251,6 +344,15 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
           // 昵称
           _infoTile('昵称', _profile?.nickname ?? '未设置', onTap: _editNickname),
+          const Divider(height: 1),
+          // 个人介绍
+          _infoTile('个人介绍', _profile?.bio.isNotEmpty == true ? _profile!.bio : '未填写', onTap: _editBio),
+          const Divider(height: 1),
+          // 性别
+          _infoTile('性别', _profile?.genderText ?? '保密', onTap: _editGender),
+          const Divider(height: 1),
+          // 生日
+          _infoTile('生日', _profile?.birthday.isNotEmpty == true ? _profile!.birthday : '未填写', onTap: _editBirthday),
           const Divider(height: 1),
           // 邮箱
           _infoTile('邮箱', displayEmail, onTap: _editEmail),
