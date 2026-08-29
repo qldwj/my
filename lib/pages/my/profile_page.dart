@@ -162,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  OnlineDot(isOnline: p.isOnlineNow, size: 10),
+                  OnlineDot(online: p.isOnlineNow, size: 10),
                   const SizedBox(width: 6),
                   Text(p.isOnlineNow ? '在线' : '离线',
                     style: TextStyle(fontSize: 13, color: cs.outline)),
