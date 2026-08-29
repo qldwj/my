@@ -26,6 +26,8 @@ class GStorage {
   static late final Box<dynamic> _setting;
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
+  /// 🆕 通知屏蔽列表：键=番剧ID（String），值为番剧名（方便展示）。屏蔽后不再推送该番的更新提醒。
+  static late Box<String> notifyMuted;
 
   /// Hive directory path, initialized during init()
   static String? _hivePath;
@@ -158,6 +160,7 @@ class GStorage {
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
+    notifyMuted = await _openBoxSafe<String>('notifyMuted');
   }
 
   /// Open a Hive box with automatic recovery on corruption.

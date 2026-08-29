@@ -888,6 +888,36 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
+                      // 🆕 不再提醒更新（通知屏蔽）
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          tooltip: GStorage.notifyMuted.containsKey(infoController.bangumiItem.id.toString())
+                              ? '已屏蔽更新提醒，点击取消'
+                              : '不再提醒更新',
+                          icon: Icon(
+                            GStorage.notifyMuted.containsKey(infoController.bangumiItem.id.toString())
+                                ? Icons.notifications_off_rounded
+                                : Icons.notifications_rounded,
+                          ),
+                          onPressed: () {
+                            final id = infoController.bangumiItem.id.toString();
+                            final name = infoController.bangumiItem.nameCn.isNotEmpty
+                                ? infoController.bangumiItem.nameCn
+                                : infoController.bangumiItem.name;
+                            if (GStorage.notifyMuted.containsKey(id)) {
+                              GStorage.notifyMuted.delete(id);
+                              GStorage.notifyMuted.flush();
+                              setState(() {});
+                              KazumiDialog.showToast(message: '已开启「$name」更新提醒');
+                            } else {
+                              GStorage.notifyMuted.put(id, name);
+                              GStorage.notifyMuted.flush();
+                              setState(() {});
+                              KazumiDialog.showToast(message: '已屏蔽「$name」更新提醒');
+                            }
+                          },
+                        ),
+                      ),
                       // 添加到播放列表
                       EmbeddedNativeControlArea(
                         child: IconButton(

@@ -210,8 +210,11 @@ class AnimeUpdateNotificationService {
   /// 收集未看新集（按最近放送日期排序）
   static Future<List<_AnimeUpdate>> _collectUpdates() async {
     final onlyWatching = GStorage.getSetting(SettingsKeys.animeUpdateOnlyWatching);
+    // 🆕 通知屏蔽列表：被屏蔽的番剧不推送更新提醒
+    final mutedIds = GStorage.notifyMuted.keys.toSet();
     final collectibles = GStorage.collectibles.values.where((c) {
       if (onlyWatching) return c.type == 1; // 在看
+      if (mutedIds.contains(c.bangumiItem.id.toString())) return false; // 被屏蔽
       return c.type == 1 || c.type == 2; // 在看 / 想看
     }).toList();
     if (collectibles.isEmpty) return [];

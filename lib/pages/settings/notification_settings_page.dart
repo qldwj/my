@@ -5,8 +5,6 @@ import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/services/notification/anime_update_notification_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/date_time.dart';
-
-/// 追番更新提醒设置页
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -97,6 +95,60 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     return '上次检查：${dateFormat(ts)}';
   }
 
+  /// 🆕 显示已屏蔽更新提醒的番剧列表，可取消屏蔽
+  void _showMutedList() {
+    final muted = GStorage.notifyMuted.toMap();
+    if (muted.isEmpty) {
+      KazumiDialog.showToast(message: '暂无已屏蔽的番剧');
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Text('已屏蔽更新提醒的番剧（${muted.length}）',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Divider(),
+              SizedBox(
+                maxHeight: 400,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: muted.entries.map((e) {
+                    return ListTile(
+                      leading: const Icon(Icons.notifications_off_outlined,
+                        color: Colors.grey),
+                      title: Text(e.value, style: const TextStyle(fontSize: 14)),
+                      subtitle: const Text('已屏蔽更新提醒', style: TextStyle(fontSize: 12)),
+                      trailing: TextButton(
+                        onPressed: () {
+                          GStorage.notifyMuted.delete(e.key);
+                          GStorage.notifyMuted.flush();
+                          setState(() {});
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(message: '已取消屏蔽「${e.value}」');
+                        },
+                        child: const Text('取消屏蔽', style: TextStyle(fontSize: 12)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -185,6 +237,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         : null,
                     onTap: _checking ? null : _sendTestNotification,
                   ),
+                  // 🆕 已屏蔽的番剧
+                  if (_enabled) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.notifications_off_outlined),
+                      title: const Text('已屏蔽更新提醒的番剧'),
+                      subtitle: Text(
+                        GStorage.notifyMuted.isEmpty
+                            ? '没有屏蔽任何番剧'
+                            : '已屏蔽 ${GStorage.notifyMuted.length} 部番剧',
+                      ),
+                      onTap: _showMutedList,
+                    ),
+                  ],
                 ],
               ),
               Padding(
