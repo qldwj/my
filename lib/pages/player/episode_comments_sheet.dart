@@ -7,6 +7,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/widgets/comment/comment_editor.dart';
 
 class EpisodeCommentsSheet extends StatefulWidget {
   const EpisodeCommentsSheet({
@@ -311,7 +312,19 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         key: _refreshIndicatorKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [commentsInfo, Expanded(child: episodeCommentsBody)],
+          children: [
+            commentsInfo,
+            Expanded(child: episodeCommentsBody),
+            // 🆕 底部评论输入框（像吐槽一样在底部）
+            CommentEditor(
+              subjectId: videoPageController.bangumiItem.id,
+              episode: widget.episode,
+              onSubmitted: () {
+                // 刷新评论列表
+                _refreshIndicatorKey.currentState?.show();
+              },
+            ),
+          ],
         ),
         onRefresh: () async {
           await loadComments(ep == 0 ? widget.episode : ep);
