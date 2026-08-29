@@ -5,6 +5,8 @@ import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/services/notification/anime_update_notification_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/date_time.dart';
+
+/// 追番更新提醒设置页
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -117,8 +119,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Divider(),
-              SizedBox(
-                maxHeight: 400,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 400),
                 child: ListView(
                   shrinkWrap: true,
                   children: muted.entries.map((e) {
