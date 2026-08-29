@@ -105,6 +105,12 @@ abstract class _InfoController with Store {
     if (value == null) {
       return;
     }
+    // 同步播出/集数字段（详情页「连载至第几集/已完结全N话/未开播」）
+    final needProgress = value.status == 1; // ON_AIR 才计算连载至第几话
+    if (needProgress) {
+      final episodes = await BangumiApi.getBangumiEpisodesByID(id);
+      value.latestEpisode = BangumiApi.computeLatestAiredEpisode(episodes);
+    }
     if (type == "init") {
       bangumiItem = value;
     } else {
@@ -117,6 +123,9 @@ abstract class _InfoController with Store {
       bangumiItem.ratingScore = value.ratingScore;
       bangumiItem.votes = value.votes;
       bangumiItem.votesCount = value.votesCount;
+      bangumiItem.status = value.status;
+      bangumiItem.totalEpisodes = value.totalEpisodes;
+      bangumiItem.latestEpisode = value.latestEpisode;
       final incomingInterest = value.interest;
       final previousInterest = bangumiItem.interest;
       if (incomingInterest == null) {

@@ -94,6 +94,58 @@ class _InfoTabViewState extends State<InfoTabView>
     }
   }
 
+  /// 详情页「连载状态条」 —— 照搬 Ani 的 AiringLabel / renderTotalEpisodeText 规则：
+  ///   UPCOMING  -> 未开播 · 预定全 N 话
+  ///   ON_AIR    -> 连载至第 N 话 · 预定全 M 话   (N=latestEpisode, M=totalEpisodes)
+  ///   COMPLETED -> 已完结 · 全 M 话
+  Widget _buildAiringLabel() {
+    final item = widget.bangumiItem;
+    final cs = Theme.of(context).colorScheme;
+    final kind = item.status; // 0=UPCOMING 1=ON_AIR 2=COMPLETED
+    final total = item.totalEpisodes;
+
+    if (kind == 0 && total <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    // progressText (Ani AiringLabelState.progressText，不含个人观看进度分支)
+    final bool onAir = kind == 1;
+    final bool completed = kind == 2;
+    final bool highlight = onAir && item.latestEpisode > 0;
+    final String progressText;
+    if (onAir) {
+      progressText = item.latestEpisode > 0
+          ? '连载至 第${item.latestEpisode}话'
+          : '连载中';
+    } else if (completed) {
+      progressText = '已完结';
+    } else {
+      progressText = '未开播';
+    }
+
+    // totalEpisodesText (Ani renderTotalEpisodeText)
+    final String? totalText;
+    if (completed) {
+      totalText = total > 0 ? '全 $total 话' : null;
+    } else {
+      totalText = total > 0 ? '预定全 $total 话' : null;
+    }
+
+    final progressColor = highlight ? cs.primary : cs.onSurfaceVariant;
+    final textColor = cs.onSurfaceVariant;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(progressText,
+          style: TextStyle(
+              fontSize: 13,
+              color: progressColor,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.normal)),
+      if (totalText != null) ...[
+        Text(' · ', style: TextStyle(fontSize: 13, color: textColor)),
+        Text(totalText, style: TextStyle(fontSize: 13, color: textColor)),
+      ],
+    ]);
+  }
+
   Widget get infoBody {
     return Center(
       child: Padding(
@@ -105,14 +157,14 @@ class _InfoTabViewState extends State<InfoTabView>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🆕 更新倒计时
-              if (widget.bangumiItem.airWeekday > 0)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                ),
-              Text('简介', style: TextStyle(fontSize: 18)),
+              // 🆕 连载状态条：复制 Ani 的 AiringLabel 规则，展示
+              // - 未开播 · 预定全 N 话
+              // - 连载至第 N 话 · 全 M 话
+              // - 已完结 · 全 M 话
+              _buildAiringLabel(),
               const SizedBox(height: 8),
-              // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
+              // 简介
+              Text('简介', style: TextStyle(fontSize: 18)),
               // only show expand button when line > 7
               LayoutBuilder(builder: (context, constraints) {
                 final span = TextSpan(text: widget.bangumiItem.summary);

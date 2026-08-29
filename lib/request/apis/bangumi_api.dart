@@ -397,6 +397,17 @@ class BangumiApi {
   }
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
+    // 镜像模式优先走 api.qlyyz.top（与官方同构的 /v0/subjects/{id}）；失败回退直连 next.bgm.tv
+    if (_proxyEnabled) {
+      try {
+        final jsonData = await _client.get(ApiEndpoints.bangumiMirrorDomain +
+            ApiEndpoints.formatUrl(ApiEndpoints.bangumiInfoByID, [id]));
+        return BangumiItem.fromJson(jsonData);
+      } catch (e) {
+        KazumiLogger().e('Network: mirror bangumi info failed, fallback to direct',
+            error: e);
+      }
+    }
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -471,6 +482,20 @@ class BangumiApi {
   }
 
   static Future<List<EpisodeInfo>> getBangumiEpisodesByID(int id) async {
+    // 镜像模式优先走 api.qlyyz.top（/v0/episodes 同构）；失败回退直连 api.bgm.tv
+    if (_proxyEnabled) {
+      try {
+        return await _fetchEpisodesPage(ApiEndpoints.bangumiMirrorDomain, id);
+      } catch (e) {
+        KazumiLogger().e(
+            'Network: mirror bangumi episode list failed, fallback to direct',
+            error: e);
+      }
+    }
+    return _fetchEpisodesPage(ApiEndpoints.bangumiAPIDomain, id);
+  }
+
+  static Future<List<EpisodeInfo>> _fetchEpisodesPage(String base, int id) async {
     final List<EpisodeInfo> episodeList = [];
     const int limit = 100;
     int offset = 0;
@@ -483,7 +508,7 @@ class BangumiApi {
           'limit': limit,
         };
         final jsonData = await _client.get(
-          ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiEpisodeByID,
+          base + ApiEndpoints.bangumiEpisodeByID,
           queryParameters: params,
         );
         total ??= jsonData['total'] as int?;
@@ -501,6 +526,29 @@ class BangumiApi {
           .e('Network: resolve bangumi episode list failed', error: e);
     }
     return episodeList;
+  }
+
+  /// 计算连载进度：返回最新已播出的正片集数（0 = 尚未播出）。
+  ///
+  /// 与 Ani 的 SubjectAiringInfo.computeFromEpisodeList 一致：仅统计正片(type==0)，
+  /// 取 airdate <= 今天的最大 sort。
+  static int computeLatestAiredEpisode(List<EpisodeInfo> episodes) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int latest = 0;
+    for (final ep in episodes) {
+      if (ep.type != 0) continue; // 仅正片，忽略 SP/OP/ED
+      final epNum = ep.episode.toInt();
+      if (epNum <= latest) continue;
+      final airdate = ep.airdate.trim();
+      if (airdate.isEmpty) continue;
+      final d = DateTime.tryParse(airdate);
+      if (d == null) continue;
+      if (!d.isAfter(today)) {
+        latest = epNum;
+      }
+    }
+    return latest;
   }
 
   static Future<CommentResponse> getBangumiCommentsByID(int id,

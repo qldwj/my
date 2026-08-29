@@ -39,6 +39,18 @@ class BangumiItem {
   String info;
   BangumiInterest? interest;
 
+  // ==================== 新增：详情页展示用的集数/状态 ====================
+  /// 0 = 未开播 / UPCOMING, 1 = 连载中 / ON_AIR, 2 = 完结 / COMPLETED
+  @HiveField(15, defaultValue: 0)
+  int status;
+  /// 总话数（主线剧集数）
+  @HiveField(16, defaultValue: 0)
+  int totalEpisodes;
+  /// 最近更新到第几话（为 0 时表示未播出）
+  @HiveField(17, defaultValue: 0)
+  int latestEpisode;
+  // ====================
+
   BangumiItem({
     required this.id,
     required this.type,
@@ -56,6 +68,9 @@ class BangumiItem {
     required this.votesCount,
     required this.info,
     this.interest,
+    this.status = 0,
+    this.totalEpisodes = 0,
+    this.latestEpisode = 0,
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -163,7 +178,38 @@ class BangumiItem {
       votes: json['rating']['total'] ?? 0,
       votesCount: voteList,
       info: json['info'] ?? '',
+      // 集数/播出状态：api.bgm.tv /v0 与 next.bgm.tv /p1 均有 eps 与 status 字段
+      totalEpisodes: (json['eps'] is num) ? (json['eps'] as num).toInt() : 0,
+      status: _parseAiringStatus(json['status'], airDateStr),
       interest: interest,
     );
   }
+
+  /// 把 Bangumi 的 status 字段映射为本地位：
+  /// 0=未开播(UPCOMING), 1=连载中(ON_AIR), 2=已完结(COMPLETED)
+  ///
+  /// 与 Ani 的 SubjectAiringInfo.computeFromSubjectInfo 逻辑一致：
+  /// completeDate 有效 => COMPLETED；airDate 在过去 => ON_AIR；否则 UPCOMING。
+  /// Bangumi status 取值：airing(连载中) / finished(完结) / na(未放送)。
+  static int _parseAiringStatus(dynamic statusRaw, String airDateStr) {
+    final s = statusRaw?.toString() ?? '';
+    switch (s) {
+      case 'airing':
+        return 1;
+      case 'finished':
+        return 2;
+      case 'na':
+      default:
+        // na：按首播日期推断（Ani 同款推断）
+        if (airDateStr.isNotEmpty) {
+          final d = DateTime.tryParse(airDateStr);
+          if (d != null) {
+            final now = DateTime.now();
+            if (d.isBefore(now)) return 1; // 已开播且未标完结 => 连载中
+            return 0; // 未开播
+      }
+    }
+    return 0;
+  }
 }
+  }
