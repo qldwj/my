@@ -268,12 +268,12 @@ class SocialService {
     String? birthday,
   }) async {
     final res = await _post('profile_update', {
-      if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+      if (nickname != null) 'nickname': nickname, // 允许空字符串（清空昵称？但实际昵称不能为空，后端会处理）
       if (avatar != null && avatar.isNotEmpty) 'avatar': avatar,
       if (hideOnline != null) 'hide_online': hideOnline,
-      if (bio != null && bio.isNotEmpty) 'bio': bio,
+      if (bio != null) 'bio': bio, // 🆕 允许空字符串，用户可清空个人介绍
       if (gender != null) 'gender': gender,
-      if (birthday != null && birthday.isNotEmpty) 'birthday': birthday,
+      if (birthday != null) 'birthday': birthday, // 🆕 允许空字符串，用户可清空生日
     });
     if (!_isSuccess(res)) return res['error']?.toString() ?? '更新失败';
     // 更新缓存

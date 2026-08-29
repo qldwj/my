@@ -11,18 +11,29 @@ class EpisodeCommentService {
   }) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    // 🆕 带上用户昵称，后端用昵称而不是邮箱显示
+    SocialService.restoreLocalProfile();
+    final sender = SocialService.myProfile?.nickname ?? '';
+    final body = <String, dynamic>{
+      'subjectId': subjectId, 'episode': episode, 'content': content,
+      'sender': sender, 'avatar': avatar ?? '',
+    };
     final res = await http.post(Uri.parse('$_baseUrl?action=add'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-      body: jsonEncode({'subjectId': subjectId, 'episode': episode, 'content': content, 'avatar': avatar ?? ''}));
+      body: jsonEncode(body));
     return jsonDecode(res.body);
   }
 
   static Future<Map<String, dynamic>> replyComment({required int commentId, required String content}) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    // 🆕 带上用户昵称和头像
+    SocialService.restoreLocalProfile();
+    final sender = SocialService.myProfile?.nickname ?? '';
+    final avatar = SocialService.myProfile?.avatar ?? '';
     final res = await http.post(Uri.parse('$_baseUrl?action=reply'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-      body: jsonEncode({'commentId': commentId, 'content': content}));
+      body: jsonEncode({'commentId': commentId, 'content': content, 'sender': sender, 'avatar': avatar}));
     return jsonDecode(res.body);
   }
 
