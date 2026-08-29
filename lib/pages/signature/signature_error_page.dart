@@ -71,7 +71,7 @@ class SignatureErrorPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 32),
                     FilledButton.icon(
-                      onPressed: () => _open(ApiEndpoints.allAppReleasesMirror),
+                      onPressed: () => _open(ApiEndpoints.projectUrl),
                       style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14)),
                       icon: const Icon(Icons.download),

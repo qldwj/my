@@ -197,7 +197,9 @@ class MainActivity: AudioServiceActivity() {
             }
             signatures.joinToString(",") { sig ->
                 val digest = java.security.MessageDigest.getInstance("SHA-256").digest(sig.toByteArray())
-                digest.joinToString("") { "%02x".format(it) }
+                // 注意：%02x 直接 format Byte 时，>0x7F 的值会被符号扩展成 ffffffxx（8位），
+                // 必须先用 toInt() and 0xFF 归一到 0..255，才能得到标准的 64 位小写十六进制指纹。
+                digest.joinToString("") { "%02x".format(it.toInt() and 0xFF) }
             }
         } catch (e: Exception) {
             ""
