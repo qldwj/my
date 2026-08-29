@@ -16,8 +16,22 @@ class _CommentEditorState extends State<CommentEditor> {
   final _controller = TextEditingController();
   bool _preview = false;
   bool _sending = false;
-  int _selectedEpisode = 0;
+  late int _selectedEpisode;
   bool _showToolbar = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedEpisode = widget.episode; // 🆕 自动匹配当前集数
+  }
+
+  @override
+  void didUpdateWidget(CommentEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episode != widget.episode) {
+      _selectedEpisode = widget.episode; // 🆕 切换集数时同步
+    }
+  }
 
   // 表情改为本地资源（见 lib/utils/bgm_sticker.dart），不再引用失效的远程链接。
   // 可用表情 id 见 BgmSticker.allIds（bgm1..bgm23）。

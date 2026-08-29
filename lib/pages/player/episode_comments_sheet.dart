@@ -1,14 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/card/episode_comments_card.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/widgets/comment/comment_editor.dart';
+import 'package:kazumi/widgets/comment/comment_item.dart';
 
+/// 播放页评论 Tab（樱花动漫评论系统）
+///
+/// - 列表：读取樱花动漫评论（当前集数）
+/// - 底部：评论输入框，自动匹配当前观看集数
 class EpisodeCommentsSheet extends StatefulWidget {
   const EpisodeCommentsSheet({
     super.key,
@@ -27,47 +32,16 @@ class EpisodeCommentsSheet extends StatefulWidget {
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   VideoPageController get videoPageController => widget.videoPageController;
-  bool commentsQueryTimeout = false;
-  bool commentsIsEmpty = false;
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      GlobalKey<RefreshIndicatorState>();
-
-  int ep = 0;
-
-  Future<void> loadComments(int episode) async {
-    commentsQueryTimeout = false;
-    commentsIsEmpty = false;
-    try {
-      final applied = await videoPageController.queryBangumiEpisodeCommentsByID(
-          videoPageController.bangumiItem.id, episode);
-      if (!mounted || !applied) {
-        return;
-      }
-      if (videoPageController.episodeCommentsList.isEmpty && mounted) {
-        setState(() {
-          commentsIsEmpty = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          commentsQueryTimeout = true;
-        });
-      }
-    }
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void toggleSortOrder() {
-    videoPageController.toggleSortOrder();
-  }
+  List<EpisodeComment> _comments = [];
+  bool _loading = true;
+  bool _error = false;
+  int _episode = 0;
 
   @override
   void initState() {
     super.initState();
-    _resetAndScheduleRefresh();
+    _episode = widget.episode;
+    _loadComments();
   }
 
   @override
@@ -75,160 +49,81 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.episode != widget.episode ||
         oldWidget.selection != widget.selection) {
-      _resetAndScheduleRefresh();
+      _episode = widget.episode;
+      _loadComments();
     }
   }
 
-  void _resetAndScheduleRefresh() {
-    ep = 0;
-    commentsQueryTimeout = false;
-    commentsIsEmpty = false;
-    final targetEpisode = widget.episode;
-    final targetSelection = widget.selection;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          widget.episode != targetEpisode ||
-          widget.selection != targetSelection) {
-        return;
-      }
-      if (videoPageController.episodeCommentsList.isEmpty) {
-        _refreshIndicatorKey.currentState?.show();
-      }
+  Future<void> _loadComments() async {
+    setState(() {
+      _loading = true;
+      _error = false;
     });
+    try {
+      // 1. 加载樱花动漫评论
+      final sakuraComments = await EpisodeCommentService.getComments(
+        subjectId: videoPageController.bangumiItem.id,
+        episode: _episode,
+      );
+      // 2. 加载 Bangumi 评论（结果存到 episodeCommentsList）
+      bool bangumiLoaded = false;
+      try {
+        bangumiLoaded = await videoPageController.queryBangumiEpisodeCommentsByID(
+          videoPageController.bangumiItem.id,
+          _episode,
+        );
+      } catch (_) {
+        // Bangumi 评论加载失败不影响樱花评论
+      }
+
+      if (!mounted) return;
+
+      // 合并列表：樱花在前，Bangumi 在后
+      final merged = <EpisodeComment>[];
+      // 樱花评论（已自带 source='sakura'）
+      merged.addAll(sakuraComments);
+      // Bangumi 评论（转成 EpisodeComment 格式）
+      if (bangumiLoaded) {
+        for (final item in videoPageController.episodeCommentsList) {
+          merged.add(EpisodeComment(
+            id: item.comment.id,
+            subjectId: videoPageController.bangumiItem.id,
+            episode: _episode,
+            content: item.comment.comment,
+            sender: item.comment.user.nickname,
+            uid: 'bangumi_${item.comment.user.id}',
+            avatar: item.comment.user.avatar.large,
+            source: 'bangumi',
+            createdAt: item.comment.createdAt,
+            replies: item.replies.map((r) => EpisodeComment(
+              id: r.id,
+              content: r.comment,
+              sender: r.user.nickname,
+              uid: 'bangumi_${r.user.id}',
+              avatar: r.user.avatar.large,
+              source: 'bangumi',
+              createdAt: r.createdAt,
+            )).toList(),
+          ));
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _comments = merged;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
   }
 
-  Widget get episodeCommentsBody {
-    return CustomScrollView(
-      scrollBehavior: const ScrollBehavior().copyWith(
-        scrollbars: false,
-        dragDevices: {
-          PointerDeviceKind.mouse,
-          PointerDeviceKind.touch,
-          PointerDeviceKind.trackpad
-        },
-      ),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-          sliver: Observer(builder: (context) {
-            if (commentsQueryTimeout) {
-              return SliverFillRemaining(
-                child: GeneralErrorWidget(
-                  errMsg: '评论获取失败',
-                  actions: [
-                    GeneralErrorButton(
-                      onPressed: () {
-                        _refreshIndicatorKey.currentState?.show();
-                      },
-                      text: '重试',
-                    ),
-                  ],
-                ),
-              );
-            }
-            if (commentsIsEmpty) {
-              return const SliverFillRemaining(
-                child: Center(
-                  child: Text('什么都没有找到 (´;ω;`)'),
-                ),
-              );
-            }
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  // Keep loaded image cards alive to avoid scroll jumps when
-                  // network images report their final size.
-                  return KeepAlive(
-                    keepAlive: true,
-                    child: IndexedSemantics(
-                      index: index,
-                      child: EpisodeCommentsCard(
-                        commentItem:
-                            videoPageController.episodeCommentsList[index],
-                      ),
-                    ),
-                  );
-                },
-                childCount: videoPageController.episodeCommentsList.length,
-                addAutomaticKeepAlives: false,
-                addRepaintBoundaries: false,
-                addSemanticIndexes: false,
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget get commentsInfo {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(' 本集标题  '),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline)),
-                Text(
-                    (videoPageController.episodeInfo.nameCn != '')
-                        ? '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.nameCn}'
-                        : '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.only(left: 4.0, right: 4.0)),
-              ),
-              onPressed: () {
-                showEpisodeSelection();
-              },
-              child: const Text(
-                '手动切换',
-                style: TextStyle(fontSize: 13),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 34,
-            child: TextButton(
-              style: ButtonStyle(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(horizontal: 4.0)),
-              ),
-              onPressed: toggleSortOrder,
-              child: Observer(builder: (context) {
-                return Text(
-                  videoPageController.isCommentsAscending ? '倒序' : '正序',
-                  style: const TextStyle(fontSize: 13),
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void showEpisodeSelection() async {
-    final int selectedEpisode = ep == 0 ? widget.episode : ep;
+  void _showEpisodeSelection() async {
+    final int selectedEpisode = _episode == 0 ? widget.episode : _episode;
     KazumiDialog.showLoading(msg: '分集列表加载中');
     final List<EpisodeInfo> episodeList =
         await BangumiApi.getBangumiEpisodesByID(
@@ -263,8 +158,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                       final episodeTitle = episode.nameCn.isNotEmpty
                           ? episode.nameCn
                           : episode.name;
-                      final episodeText =
-                          '${episode.readType()}.${episode.episode}';
+                      final episodeText = '${episode.readType()}.${episode.episode}';
                       final bool selected = index + 1 == selectedEpisode;
                       return ListTile(
                         selected: selected,
@@ -275,8 +169,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () {
-                          ep = index + 1;
-                          _refreshIndicatorKey.currentState?.show();
+                          _episode = index + 1;
+                          _loadComments();
                           KazumiDialog.dismiss();
                         },
                       );
@@ -305,30 +199,92 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     );
   }
 
+  /// 切换集数（手动选择）
+  void _switchEpisode(int ep) {
+    if (ep == _episode) return;
+    setState(() => _episode = ep);
+    _loadComments();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      body: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            commentsInfo,
-            Expanded(child: episodeCommentsBody),
-            // 🆕 底部评论输入框（像吐槽一样在底部）
-            CommentEditor(
-              subjectId: videoPageController.bangumiItem.id,
-              episode: widget.episode,
-              onSubmitted: () {
-                // 刷新评论列表
-                _refreshIndicatorKey.currentState?.show();
-              },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 顶部信息：当前集数 + 切换按钮
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    videoPageController.episodeInfo.nameCn.isNotEmpty
+                        ? '第${_episode == 0 ? widget.episode : _episode}集 '
+                            '${videoPageController.episodeInfo.nameCn}'
+                        : '第${_episode == 0 ? widget.episode : _episode}集',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                  ),
+                ),
+                TextButton(
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(
+                        const EdgeInsets.only(left: 4.0, right: 4.0)),
+                  ),
+                  onPressed: _showEpisodeSelection,
+                  child: const Text('手动切换', style: TextStyle(fontSize: 13)),
+                ),
+              ],
             ),
-          ],
-        ),
-        onRefresh: () async {
-          await loadComments(ep == 0 ? widget.episode : ep);
-        },
+          ),
+          const Divider(height: 1),
+          // 评论列表（樱花动漫评论）
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('评论加载失败',
+                                style: TextStyle(color: cs.outline)),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _loadComments,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('重试'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _comments.isEmpty
+                        ? const Center(
+                            child: Text('还没有评论，来抢沙发吧 (´;ω;`)',
+                                style: TextStyle(color: Colors.grey)),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadComments,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              itemCount: _comments.length,
+                              itemBuilder: (ctx, i) => CommentItemWidget(
+                                comment: _comments[i],
+                                subjectId: videoPageController.bangumiItem.id,
+                                onRefresh: _loadComments,
+                              ),
+                            ),
+                          ),
+          ),
+          // 底部评论输入框（自动匹配当前集）
+          CommentEditor(
+            subjectId: videoPageController.bangumiItem.id,
+            episode: _episode == 0 ? widget.episode : _episode,
+            onSubmitted: _loadComments,
+          ),
+        ],
       ),
     );
   }
