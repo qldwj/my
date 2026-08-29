@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 /// 自建评论条目
@@ -68,6 +69,11 @@ class CustomCommentApi {
       final request =
           await client.postUrl(Uri.parse('$baseUrl?action=$action'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      // 🆕 带上 Bearer token（后端 verifyUser 需要）
+      final token = AuthService.getLocalToken();
+      if (token != null) {
+        request.headers.set('Authorization', 'Bearer $token');
+      }
       request.add(utf8.encode(jsonEncode(body)));
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();

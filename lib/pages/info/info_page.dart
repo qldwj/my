@@ -311,10 +311,20 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     }
                     Navigator.pop(ctx);
                     try {
+                      // 🆕 修复：走 CustomCommentApi.add（带 Bearer token，
+                      // 后端 verifyUser 才能通过，且正确解析 success 字段，不再"假成功"）
+                      final token = AuthService.getLocalToken();
+                      if (token == null) {
+                        KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                        return;
+                      }
                       final user = SocialService.myProfile;
                       final res = await http.post(
                         Uri.parse('https://qlyyz.xyz/api/comment.php?action=add'),
-                        headers: {'Content-Type': 'application/json'},
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer $token',
+                        },
                         body: jsonEncode({
                           'subjectId': infoController.bangumiItem.id,
                           'episode': 0,
@@ -325,10 +335,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           'rating': serverRating,
                         }),
                       );
-                      if (res.statusCode == 200) {
+                      final data = jsonDecode(res.body) as Map<String, dynamic>;
+                      if (res.statusCode == 200 && data['success'] == true) {
                         KazumiDialog.showToast(message: '吐槽发表成功');
+                        // 刷新评论列表
+                        unawaited(infoController.queryBangumiCommentsByID(
+                            infoController.bangumiItem.id));
                       } else {
-                        KazumiDialog.showToast(message: '发表失败');
+                        KazumiDialog.showToast(
+                            message: data['error']?.toString() ?? '发表失败');
                       }
                     } catch (e) {
                       KazumiDialog.showToast(message: '网络错误: $e');
