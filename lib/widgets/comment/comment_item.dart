@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
 class CommentItemWidget extends StatefulWidget {
@@ -89,6 +90,16 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               // 回复
               if (c.isSakura)
                 _actionButton(Icons.reply_outlined, '回复 ${c.replyCount}', _toggleReplyInput, cs),
+              // 删除（仅显示在自己发布的樱花评论上）
+              if (c.isSakura && _isMine(c.uid)) ...[
+                const SizedBox(width: 12),
+                _actionButton(Icons.delete_outline, '删除', _deleteComment, cs),
+              ],
+              // 举报（仅显示在别人的樱花评论上）
+              if (c.isSakura && !_isMine(c.uid)) ...[
+                const SizedBox(width: 12),
+                _actionButton(Icons.flag_outlined, '举报', _reportComment, cs),
+              ],
               const Spacer(),
               // 展开回复
               if (c.replies.isNotEmpty)
@@ -188,6 +199,67 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     _replyController.clear();
     setState(() => _showReplyInput = false);
     widget.onRefresh?.call();
+  }
+
+  bool _isMine(String uid) {
+    final myUid = SocialService.restoreLocalProfile()?.uid ?? '';
+    return myUid.isNotEmpty && uid.isNotEmpty && uid == myUid;
+  }
+
+  Future<void> _deleteComment() async {
+    if (!AuthService.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除评论'),
+        content: const Text('确定删除这条评论吗？其下回复也会一并删除。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final res = await EpisodeCommentService.removeComment(widget.comment.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res['success'] == true ? '已删除' : (res['error'] ?? '删除失败'))));
+    widget.onRefresh?.call();
+  }
+
+  Future<void> _reportComment() async {
+    if (!AuthService.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      return;
+    }
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('举报评论'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: '请填写举报理由（必填）',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('提交')),
+        ],
+      ),
+    );
+    if (reason == null || reason.isEmpty) return;
+    final res = await EpisodeCommentService.reportComment(commentId: widget.comment.id, reason: reason);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res['success'] == true ? '举报已提交，感谢反馈' : (res['error'] ?? '举报失败'))));
   }
 
   void _showStickerPicker() {

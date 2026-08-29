@@ -62,6 +62,15 @@ class EpisodeCommentService {
     return jsonDecode(res.body);
   }
 
+  static Future<Map<String, dynamic>> reportComment({required int commentId, required String reason}) async {
+    final token = AuthService.getLocalToken();
+    if (token == null) return {'success': false, 'error': '请先登录'};
+    final res = await http.post(Uri.parse('$_baseUrl?action=report'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode({'commentId': commentId, 'reason': reason}));
+    return jsonDecode(res.body);
+  }
+
   static Future<List<Map<String, String>>> getStickers() async {
     final res = await http.get(Uri.parse('$_baseUrl?action=stickers'));
     final data = jsonDecode(res.body);
