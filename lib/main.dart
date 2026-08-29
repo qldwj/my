@@ -30,9 +30,19 @@ import 'package:kazumi/services/update/auto_updater.dart';
 import 'package:app_links/app_links.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
+// ✅ 新增导入：签名校验
+import 'package:kazumi/services/signature/signature_service.dart';
+import 'package:kazumi/pages/signature/signature_error_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // ✅ 签名校验：在一切业务初始化之前执行。
+  // 未开启校验、或校验通过 → 进入正常主程序。
+  // 校验失败 → 仅渲染独立错误页，主应用任何内容都不会加载。
+  if (!await SignatureService.verify()) {
+    runApp(const SignatureErrorPage());
+    return;
+  }
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

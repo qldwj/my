@@ -31,6 +31,7 @@ class MainActivity: AudioServiceActivity() {
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
     private val SHORTCUT_CHANNEL = "com.predidit.kazumi/shortcut"
+    private val SIGNATURE_CHANNEL = "com.predidit.kazumi/signature"
     private val SHORTCUT_ACTION = "com.predidit.kazumi.SHORTCUT_PLAY"
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
@@ -170,6 +171,36 @@ class MainActivity: AudioServiceActivity() {
             } else {
                 result.notImplemented()
             }
+        }
+
+        // 🆕 签名校验：把当前安装包的签名证书 SHA-256 返回给 Flutter 层比对
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SIGNATURE_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "getSigningCertSha256") {
+                    result.success(getSigningCertSha256())
+                } else {
+                    result.notImplemented()
+                }
+            }
+    }
+
+    /// 返回当前 APK 签名证书的 SHA-256（调用方签名证书的十六进制字符串，多个证书用逗号分隔）
+    private fun getSigningCertSha256(): String {
+        return try {
+            val pm = packageManager
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                    .signingInfo?.apkContentsSigners ?: arrayOf()
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures ?: arrayOf()
+            }
+            signatures.joinToString(",") { sig ->
+                val digest = java.security.MessageDigest.getInstance("SHA-256").digest(sig.toByteArray())
+                digest.joinToString("") { "%02x".format(it) }
+            }
+        } catch (e: Exception) {
+            ""
         }
     }
 
