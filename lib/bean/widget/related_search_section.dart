@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/subject_relation.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/nsfw_filter.dart';
 
-/// 智能关联搜索 Tab
+/// 关联作品 Tab
 ///
-/// 根据当前番剧名称自动提取关键词：
-/// 如「海绵宝宝 第四季」→ 自动提取「海绵宝宝」进行搜索，
-/// 支持多关键词切换，点击结果卡片跳转到对应详情页。
+/// 与官方 Kazumi 一致：优先基于 Bangumi API
+/// `GET /v0/subjects/{id}/subjects` 获取真实关联条目
+/// （续集、前传、衍生等，镜像开启时走 api.qlyyz.top），
+/// 拿不到时才回退为关键词自动搜索。
 class RelatedSearchSection extends StatefulWidget {
   final BangumiItem currentBangumi;
 
@@ -23,6 +25,11 @@ class RelatedSearchSection extends StatefulWidget {
 }
 
 class _RelatedSearchSectionState extends State<RelatedSearchSection> {
+  /// 关联条目 API 结果（item + 关系名），非空时优先展示
+  List<MapEntry<BangumiItem, String>> _apiEntries = [];
+  bool _apiLoading = true;
+
+  /// 关键词搜索回退状态
   List<String> _keywords = [];
   String _currentKeyword = '';
   List<BangumiItem> _results = [];
@@ -32,13 +39,51 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
   @override
   void initState() {
     super.initState();
+    _initLoad();
+  }
+
+  /// 先走关联条目 API，为空再回退关键词搜索
+  Future<void> _initLoad() async {
+    final relations =
+        await BangumiApi.getRelatedSubjects(widget.currentBangumi.id);
+    if (!mounted) return;
+    final valid = relations
+        .where((r) => r.id != widget.currentBangumi.id && r.images.isNotEmpty)
+        .toList();
+    if (valid.isNotEmpty) {
+      setState(() {
+        _apiEntries =
+            valid.map((r) => MapEntry(_toBangumiItem(r), r.relation)).toList();
+        _apiLoading = false;
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _apiLoading = false);
     _keywords = _deriveKeywords(widget.currentBangumi);
     _autoSearch();
   }
 
-  /// 智能关键词提取：
-  /// 优先基础名（去掉"第X季/Season X/S\d+/Part X"等后缀），
-  /// 再补充完整中文名、英文名，按顺序排列。
+  /// 将 SubjectRelation 转换为 BangumiItem（复用现有卡片渲染）
+  BangumiItem _toBangumiItem(SubjectRelation r) => BangumiItem(
+        id: r.id,
+        type: r.type,
+        name: r.name,
+        nameCn: r.nameCn,
+        summary: '',
+        airDate: '',
+        airWeekday: 0,
+        rank: 0,
+        images: r.images,
+        tags: const [],
+        alias: const [],
+        ratingScore: 0,
+        votes: 0,
+        votesCount: const [],
+        info: r.relation,
+      );
+
+  /// 智能关键词提取（回退方案）
   List<String> _deriveKeywords(BangumiItem item) {
     final ordered = <String>[];
     void add(String? n) {
@@ -68,7 +113,7 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
         .replaceAll(RegExp(r'Season\s*\d+', caseSensitive: false), '')
         .replaceAll(RegExp(r'S\d+', caseSensitive: false), '')
         .replaceAll(RegExp(r'Part\s*\d+', caseSensitive: false), '')
-        .replaceAll(RegExp(r'[\\(（].*?[\\)）]'), '')
+        .replaceAll(RegExp(r'[\(（].*?[\)）]'), '')
         .trim();
   }
 
@@ -146,73 +191,34 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '关联搜索',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '自动提取关键词搜索，点击结果跳转详情',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_keywords.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          for (final kw in _keywords)
-                            ChoiceChip(
-                              label: Text(
-                                kw,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              selected: kw == _currentKeyword,
-                              onSelected: (_) => _searchKeyword(kw),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            if (_loading)
+            if (_apiLoading)
               const SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (_results.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(_error ?? '什么都没有找到 (´;ω;`)'),
+            else if (_apiEntries.isNotEmpty) ...[
+              // 与官方一致：展示 Bangumi 真实关联条目
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '关联作品',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            else
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
                 sliver: SliverGrid(
@@ -227,14 +233,132 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
                             MediaQuery.textScalerOf(context).scale(32.0),
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => BangumiCardV(
-                      enableHero: false,
-                      bangumiItem: _results[index],
-                    ),
-                    childCount: _results.length,
+                    (context, index) {
+                      final entry = _apiEntries[index];
+                      return Stack(
+                        children: [
+                          BangumiCardV(
+                            enableHero: false,
+                            bangumiItem: entry.key,
+                          ),
+                          Positioned(
+                            left: 6,
+                            top: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                entry.value,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                    childCount: _apiEntries.length,
                   ),
                 ),
               ),
+            ] else ...[
+              // 回退：关键词自动搜索
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '关联搜索',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '自动提取关键词搜索，点击结果跳转详情',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_keywords.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            for (final kw in _keywords)
+                              ChoiceChip(
+                                label: Text(
+                                  kw,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                selected: kw == _currentKeyword,
+                                onSelected: (_) => _searchKeyword(kw),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              if (_loading)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_results.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(_error ?? '什么都没有找到 (´;ω;`)'),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 8,
+                      crossAxisCount: _crossCount(context),
+                      mainAxisExtent:
+                          MediaQuery.sizeOf(context).width /
+                                  _crossCount(context) /
+                                  0.65 +
+                              MediaQuery.textScalerOf(context).scale(32.0),
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => BangumiCardV(
+                        enableHero: false,
+                        bangumiItem: _results[index],
+                      ),
+                      childCount: _results.length,
+                    ),
+                  ),
+                ),
+            ],
           ],
         );
       },

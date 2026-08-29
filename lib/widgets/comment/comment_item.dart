@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
 class CommentItemWidget extends StatefulWidget {
   final EpisodeComment comment;
@@ -56,7 +57,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
             ]),
             const SizedBox(height: 8),
             // 评论内容
-            Text(c.content, style: const TextStyle(fontSize: 14, height: 1.5)),
+            BgmRichText(c.content, style: const TextStyle(fontSize: 14, height: 1.5)),
             // 表情回应
             if (c.reactions.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -138,7 +139,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                       Text(r.timeAgo, style: TextStyle(fontSize: 10, color: cs.outline)),
                     ]),
                     const SizedBox(height: 4),
-                    Text(r.content, style: const TextStyle(fontSize: 13)),
+                    BgmRichText(r.content, style: const TextStyle(fontSize: 13)),
                   ],
                 ),
               )),

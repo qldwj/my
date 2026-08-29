@@ -67,3 +67,28 @@ String kazumiBase64ToJson(String input) {
     throw const FormatException('规则链接内容无效');
   }
 }
+
+/// 解析文本中的 Kazumi / YHDMGZ 规则链接片段（批量导入功能使用）
+final RegExp _kazumiRuleLinkSchemePattern = RegExp(
+  r'(?:yhdmgz|kazumi):(?://)?',
+  caseSensitive: false,
+);
+
+Iterable<({String scheme, String rawPayload})> findKazumiRuleLinkSegments(
+  String input,
+) sync* {
+  final matches = _kazumiRuleLinkSchemePattern.allMatches(input).toList();
+  for (var index = 0; index < matches.length; index++) {
+    final match = matches[index];
+    final end = index + 1 < matches.length
+        ? matches[index + 1].start
+        : input.length;
+    yield (
+      scheme: match.group(0)!,
+      rawPayload: input.substring(match.end, end),
+    );
+  }
+}
+
+/// 插件名归一化（批量导入去重时使用）
+String pluginNameKey(String name) => name.toLowerCase();

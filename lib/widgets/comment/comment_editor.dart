@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/utils/bgm_sticker.dart';
 
 class CommentEditor extends StatefulWidget {
   final int subjectId;
@@ -18,37 +19,8 @@ class _CommentEditorState extends State<CommentEditor> {
   int _selectedEpisode = 0;
   bool _showToolbar = true;
 
-  // 表情列表
-  static const Map<String, String> _stickers = {
-    'bgm1': 'https://lain.bgm.tv/r/express/l/bgm/bgm1.gif',
-    'bgm2': 'https://lain.bgm.tv/r/express/l/bgm/bgm2.gif',
-    'bgm3': 'https://lain.bgm.tv/r/express/l/bgm/bgm3.gif',
-    'bgm4': 'https://lain.bgm.tv/r/express/l/bgm/bgm4.gif',
-    'bgm5': 'https://lain.bgm.tv/r/express/l/bgm/bgm5.gif',
-    'bgm6': 'https://lain.bgm.tv/r/express/l/bgm/bgm6.gif',
-    'bgm7': 'https://lain.bgm.tv/r/express/l/bgm/bgm7.gif',
-    'bgm8': 'https://lain.bgm.tv/r/express/l/bgm/bgm8.gif',
-    'bgm9': 'https://lain.bgm.tv/r/express/l/bgm/bgm9.gif',
-    'bgm10': 'https://lain.bgm.tv/r/express/l/bgm/bgm10.gif',
-    'bgm11': 'https://lain.bgm.tv/r/express/l/bgm/bgm11.gif',
-    'bgm12': 'https://lain.bgm.tv/r/express/l/bgm/bgm12.gif',
-    'bgm13': 'https://lain.bgm.tv/r/express/l/bgm/bgm13.gif',
-    'bgm14': 'https://lain.bgm.tv/r/express/l/bgm/bgm14.gif',
-    'bgm15': 'https://lain.bgm.tv/r/express/l/bgm/bgm15.gif',
-    'bgm16': 'https://lain.bgm.tv/r/express/l/bgm/bgm16.gif',
-    'bgm17': 'https://lain.bgm.tv/r/express/l/bgm/bgm17.gif',
-    'bgm18': 'https://lain.bgm.tv/r/express/l/bgm/bgm18.gif',
-    'bgm19': 'https://lain.bgm.tv/r/express/l/bgm/bgm19.gif',
-    'bgm20': 'https://lain.bgm.tv/r/express/l/bgm/bgm20.gif',
-    'bgm21': 'https://lain.bgm.tv/r/express/l/bgm/bgm21.gif',
-    'bgm22': 'https://lain.bgm.tv/r/express/l/bgm/bgm22.gif',
-    'bgm23': 'https://lain.bgm.tv/r/express/l/bgm/bgm23.gif',
-    'bgm24': 'https://lain.bgm.tv/r/express/l/bgm/bgm24.gif',
-    'bgm25': 'https://lain.bgm.tv/r/express/l/bgm/bgm25.gif',
-    'bgm26': 'https://lain.bgm.tv/r/express/l/bgm/bgm26.gif',
-    'bgm27': 'https://lain.bgm.tv/r/express/l/bgm/bgm27.gif',
-    'bgm28': 'https://lain.bgm.tv/r/express/l/bgm/bgm28.gif',
-  };
+  // 表情改为本地资源（见 lib/utils/bgm_sticker.dart），不再引用失效的远程链接。
+  // 可用表情 id 见 BgmSticker.allIds（bgm1..bgm23）。
 
   @override
   Widget build(BuildContext context) {
@@ -204,15 +176,21 @@ class _CommentEditorState extends State<CommentEditor> {
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8, mainAxisSpacing: 8, crossAxisSpacing: 8),
-                itemCount: _stickers.length,
+                itemCount: BgmSticker.allIds.length,
                 itemBuilder: (ctx, i) {
-                  final entry = _stickers.entries.elementAt(i);
+                  final id = BgmSticker.allIds[i];
+                  final asset = BgmSticker.assetFor(id);
                   return GestureDetector(
                     onTap: () {
                       Navigator.pop(ctx);
-                      _insert('(${entry.key})', '');
+                      _insert('($id)', '');
                     },
-                    child: Center(child: Text(entry.value, style: const TextStyle(fontSize: 24))),
+                    child: Center(
+                      child: asset != null
+                          ? Image.asset(asset, height: 28, width: 28,
+                              errorBuilder: (_, __, ___) => Text(id))
+                          : Text(id),
+                    ),
                   );
                 },
               ),
@@ -225,47 +203,67 @@ class _CommentEditorState extends State<CommentEditor> {
 
   Widget _renderPreview() {
     final text = _controller.text;
-    if (text.isEmpty) return Text('暂无内容', style: TextStyle(color: Theme.of(context).colorScheme.outline));
-    
-    // 简单 BBCode 渲染
-    final spans = <TextSpan>[];
+    if (text.isEmpty) {
+      return Text('暂无内容', style: TextStyle(color: Theme.of(context).colorScheme.outline));
+    }
+
+    final spans = <InlineSpan>[];
     final regex = RegExp(r'\[(b|i|u|s|mask|color=([^\]]+)|size=(\d+)|url(=([^\]]+))?|img)\](.+?)\[/\1\]', dotAll: true);
     final emojiRegex = RegExp(r'\(bgm(\d+)\)');
-    
-    // 先解析表情
-    final parts = text.split(emojiRegex);
-    for (int i = 0; i < parts.length; i++) {
-      if (i % 2 == 1) {
-        final emoji = _stickers['bgm$parts[i]'] ?? '👍';
-        spans.add(TextSpan(text: emoji, style: const TextStyle(fontSize: 18)));
-      } else if (parts[i].isNotEmpty) {
-        // 解析 BBCode
-        int lastEnd = 0;
-        for (final match in regex.allMatches(parts[i])) {
-          if (match.start > lastEnd) {
-            spans.add(TextSpan(text: parts[i].substring(lastEnd, match.start)));
-          }
-          final tag = match.group(1)!;
-          final content = match.group(match.groupCount) ?? '';
-          switch (tag) {
-            case 'b': spans.add(TextSpan(text: content, style: const TextStyle(fontWeight: FontWeight.bold))); break;
-            case 'i': spans.add(TextSpan(text: content, style: const TextStyle(fontStyle: FontStyle.italic))); break;
-            case 'u': spans.add(TextSpan(text: content, style: const TextStyle(decoration: TextDecoration.underline))); break;
-            case 's': spans.add(TextSpan(text: content, style: const TextStyle(decoration: TextDecoration.lineThrough))); break;
-            case 'mask': spans.add(TextSpan(text: content, style: const TextStyle(color: Colors.transparent, backgroundColor: Colors.grey))); break;
-            case 'color': spans.add(TextSpan(text: content, style: TextStyle(color: _parseColor(match.group(2) ?? 'white')))); break;
-            case 'size': spans.add(TextSpan(text: content, style: TextStyle(fontSize: double.tryParse(match.group(3) ?? '14')))); break;
-            default: spans.add(TextSpan(text: content));
-          }
-          lastEnd = match.end;
-        }
-        if (lastEnd < parts[i].length) {
-          spans.add(TextSpan(text: parts[i].substring(lastEnd)));
-        }
+
+    int lastEnd = 0;
+    for (final em in emojiRegex.allMatches(text)) {
+      if (em.start > lastEnd) {
+        _appendBBCode(spans, text.substring(lastEnd, em.start), regex);
       }
+      final id = 'bgm${em.group(1)}';
+      final asset = BgmSticker.assetFor(id);
+      if (asset != null) {
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Image.asset(asset, height: 18, width: 18,
+                errorBuilder: (_, __, ___) => Text('($id)')),
+          ),
+        ));
+      } else {
+        spans.add(TextSpan(text: '($id)'));
+      }
+      lastEnd = em.end;
     }
-    
-    return RichText(text: TextSpan(children: spans.isEmpty ? [TextSpan(text: text)] : spans));
+    if (lastEnd < text.length) {
+      _appendBBCode(spans, text.substring(lastEnd), regex);
+    }
+    if (spans.isEmpty) return Text(text);
+
+    return RichText(text: TextSpan(children: spans, style: const TextStyle(fontSize: 14, height: 1.5)));
+  }
+
+  void _appendBBCode(List<InlineSpan> spans, String segment, RegExp regex) {
+    if (segment.isEmpty) return;
+    int lastEnd = 0;
+    for (final match in regex.allMatches(segment)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: segment.substring(lastEnd, match.start)));
+      }
+      final tag = match.group(1)!;
+      final content = match.group(match.groupCount) ?? '';
+      switch (tag) {
+        case 'b': spans.add(TextSpan(text: content, style: const TextStyle(fontWeight: FontWeight.bold))); break;
+        case 'i': spans.add(TextSpan(text: content, style: TextStyle(fontStyle: FontStyle.italic))); break;
+        case 'u': spans.add(TextSpan(text: content, style: TextStyle(decoration: TextDecoration.underline))); break;
+        case 's': spans.add(TextSpan(text: content, style: TextStyle(decoration: TextDecoration.lineThrough))); break;
+        case 'mask': spans.add(TextSpan(text: content, style: TextStyle(color: Colors.transparent, backgroundColor: Colors.grey))); break;
+        case 'color': spans.add(TextSpan(text: content, style: TextStyle(color: _parseColor(match.group(2) ?? 'white')))); break;
+        case 'size': spans.add(TextSpan(text: content, style: TextStyle(fontSize: double.tryParse(match.group(3) ?? '14')))); break;
+        default: spans.add(TextSpan(text: content));
+      }
+      lastEnd = match.end;
+    }
+    if (lastEnd < segment.length) {
+      spans.add(TextSpan(text: segment.substring(lastEnd)));
+    }
   }
 
   Color _parseColor(String name) {

@@ -65,6 +65,10 @@ class ApiEndpoints {
   static const String bangumiInfoByID = '/v0/subjects/{0}';
   static const String bangumiRelatedSubjects = '/v0/subjects/{0}/subjects';
 
+  /// 镜像后端的关联条目路径（与 Bangumi 原始路径一致，走 api.qlyyz.top）
+  static String buildBangumiMirrorRelatedPath(int id) =>
+      '/v0/subjects/$id/subjects';
+
   /// 条目搜索
   static const String bangumiRankSearch =
       '/v0/search/subjects?limit={0}&offset={1}';

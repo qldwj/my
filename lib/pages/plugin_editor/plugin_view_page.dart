@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,8 @@ import 'package:kazumi/utils/encoding.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/request/clients/plugin_site_client.dart';
 import 'package:kazumi/request/apis/plugin_market_api.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:kazumi/services/plugin/plugin_import_parser.dart';
 
 /// 默认 Animeko 规则仓库地址
 const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/qlgfwz/anisubs/main/';
@@ -166,6 +169,16 @@ class _PluginViewPageState extends State<PluginViewPage>
                 onTap: () {
                   KazumiDialog.dismiss();
                   _showInputDialog();
+                },
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: const Icon(Icons.file_open),
+                title: const Text('从文件批量导入'),
+                subtitle: const Text('选择 JSON 文件，可一次导入多条规则'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  _importFromFile();
                 },
               ),
               const SizedBox(height: 10),
@@ -566,6 +579,63 @@ class _PluginViewPageState extends State<PluginViewPage>
         );
       },
     );
+  }
+
+  // 官方 v2.3.0 新增：从文件批量导入规则
+  Future<void> _importFromFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        withData: true,
+      );
+      if (result == null) return;
+      final file = result.files.single;
+      final bytes = file.bytes ??
+          (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null) {
+        throw const FileSystemException('无法读取所选文件');
+      }
+      await _importFromText(utf8.decode(bytes));
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'Plugin: failed to import rules from file',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      KazumiDialog.showToast(message: '读取规则文件失败：$error');
+    }
+  }
+
+  // 官方 v2.3.0 新增：批量解析并写入规则（支持多条 kazumi:// 或 JSON）
+  Future<void> _importFromText(
+    String text, {
+    bool dismissDialog = false,
+  }) async {
+    final result = PluginImportParser.parse(text);
+    if (result.plugins.isEmpty) {
+      if (dismissDialog) KazumiDialog.dismiss();
+      KazumiDialog.showToast(
+        message: result.failures.isEmpty ? '没有可导入的规则' : result.failures.first,
+      );
+      return;
+    }
+
+    if (dismissDialog) KazumiDialog.dismiss();
+    try {
+      await pluginsController.updatePlugins(result.plugins);
+      KazumiDialog.showToast(
+        message: '导入完成：成功 ${result.plugins.length} 条，'
+            '跳过重复 ${result.duplicateCount} 条，失败 ${result.failureCount} 条',
+      );
+    } catch (error, stackTrace) {
+      KazumiLogger().e(
+        'Plugin: failed to persist imported rules',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      KazumiDialog.showToast(message: '保存导入规则失败：$error');
+    }
   }
 
   void onBackPressed(BuildContext context) {

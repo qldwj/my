@@ -264,6 +264,18 @@ abstract class _PluginsController with Store {
     );
   }
 
+  // 批量导入：将解析出的规则一次性写入并持久化（v2.3.0 新增功能）
+  Future<void> updatePlugins(Iterable<Plugin> plugins) {
+    return _mutateAndPersist(
+      () {
+        for (final plugin in plugins) {
+          _replacePlugin(plugin);
+        }
+      },
+      errorMessage: 'Plugin: failed to persist imported rules',
+    );
+  }
+
   Future<void> onReorder(int oldIndex, int newIndex) {
     final previous = List<Plugin>.from(pluginList);
     final plugin = pluginList.removeAt(oldIndex);

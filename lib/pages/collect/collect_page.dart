@@ -332,16 +332,68 @@ class _CollectPageState extends State<CollectPage>
     Tab(text: '抛弃'),
   ];
 
+  /// 官方 v2.3.0 新增：各标签页的收藏数量（type-1 对应 tabs 顺序）
+  List<int> get _collectibleCounts {
+    final List<int> counts = List<int>.filled(tabs.length, 0);
+    for (final element in collectController.collectibles) {
+      counts[element.type - 1]++;
+    }
+    return counts;
+  }
+
+  Tab _buildTabWithCount(Tab tab, int? count) {
+    if (count == null) {
+      return tab;
+    }
+    final ThemeData theme = Theme.of(context);
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(tab.text ?? ''),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$count',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 104,
-        bottom: TabBar(
-          controller: tabController,
-          tabs: tabs,
-          indicatorColor: Theme.of(context).colorScheme.primary,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(kTextTabBarHeight),
+          child: Observer(
+            builder: (context) {
+              final bool showAnimeCounter =
+                  GStorage.getSetting(SettingsKeys.showAnimeCounter);
+              return TabBar(
+                controller: tabController,
+                tabs: showAnimeCounter
+                    ? [
+                        for (int i = 0; i < tabs.length; i++)
+                          _buildTabWithCount(tabs[i], _collectibleCounts[i]),
+                      ]
+                    : tabs,
+                indicatorColor: Theme.of(context).colorScheme.primary,
+              );
+            },
+          ),
         ),
         title: const Text('追番'),
         actions: [

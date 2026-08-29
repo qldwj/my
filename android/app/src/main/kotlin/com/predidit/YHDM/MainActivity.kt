@@ -24,6 +24,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioServiceActivity
+import com.ryanheise.audioservice.AudioService
 
 class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
@@ -67,6 +68,9 @@ class MainActivity: AudioServiceActivity() {
 
     override fun onDestroy() {
         unregisterPipActionReceiverIfNeeded()
+        // 官方 v2.3.0：audio_service 在整个 Activity 生命周期内保持绑定，
+        // 其自身的 stopSelf() 不会销毁为播放启动的服务，故此处显式停止
+        stopService(Intent(this, AudioService::class.java))
         super.onDestroy()
     }
 

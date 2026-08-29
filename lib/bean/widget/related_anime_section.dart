@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/modules/bangumi/subject_relation.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 
-/// 续集/关联作品推荐组件
+/// 续集 / 关联作品组件（番剧详情页概览 Tab 底部）
 ///
-/// 在番剧详情页底部显示"续集"和"关联作品"
-/// 基于番剧名称关键词（如"第X季""Season X"等）匹配
-class RelatedAnimeSection extends StatelessWidget {
+/// 与官方 Kazumi 一致：基于 Bangumi API
+/// `GET /v0/subjects/{id}/subjects` 获取真实关联条目
+/// （续集、前传、衍生、OVA 等），不再用本地关键词猜测。
+/// Bangumi 镜像开启时自动走 api.qlyyz.top 镜像后端。
+class RelatedAnimeSection extends StatefulWidget {
   final BangumiItem currentBangumi;
 
   const RelatedAnimeSection({
@@ -18,12 +19,55 @@ class RelatedAnimeSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final related = _getRelatedAnime();
+  State<RelatedAnimeSection> createState() => _RelatedAnimeSectionState();
+}
 
-    if (related.isEmpty) {
-      return const SizedBox.shrink();
-    }
+class _RelatedAnimeSectionState extends State<RelatedAnimeSection> {
+  List<SubjectRelation> _related = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final list =
+        await BangumiApi.getRelatedSubjects(widget.currentBangumi.id);
+    if (!mounted) return;
+    setState(() {
+      _related = list;
+      _loading = false;
+    });
+  }
+
+  /// 将 SubjectRelation 转换为 BangumiItem（复用现有卡片渲染）
+  BangumiItem _toBangumiItem(SubjectRelation r) => BangumiItem(
+        id: r.id,
+        type: r.type,
+        name: r.name,
+        nameCn: r.nameCn,
+        summary: '',
+        airDate: '',
+        airWeekday: 0,
+        rank: 0,
+        images: r.images,
+        tags: const [],
+        alias: const [],
+        ratingScore: 0,
+        votes: 0,
+        votesCount: const [],
+        info: r.relation,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox.shrink();
+    final valid = _related
+        .where((r) => r.id != widget.currentBangumi.id)
+        .toList();
+    if (valid.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
 
@@ -34,81 +78,33 @@ class RelatedAnimeSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              Icon(Icons.connected_tv_rounded, size: 20, color: theme.colorScheme.primary),
+              Icon(Icons.connected_tv_rounded,
+                  size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 '续集 / 关联作品',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
         ),
         SizedBox(
-          height: 220,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: related.length,
+            itemCount: valid.length,
             itemBuilder: (context, index) {
+              final bgmItem = _toBangumiItem(valid[index]);
               return SizedBox(
                 width: 140,
-                child: BangumiCardV(bangumiItem: related[index]),
+                child: BangumiCardV(bangumiItem: bgmItem),
               );
             },
           ),
         ),
       ],
     );
-  }
-
-  /// 从收藏和历史中查找关联作品
-  List<BangumiItem> _getRelatedAnime() {
-    try {
-      final currentName = currentBangumi.nameCn.isNotEmpty
-          ? currentBangumi.nameCn
-          : currentBangumi.name;
-      if (currentName.isEmpty) return [];
-
-      // 提取番剧基础名称（去掉"第X季"等后缀）
-      final baseName = _extractBaseName(currentName);
-      if (baseName.isEmpty) return [];
-
-      final Map<BangumiItem, double> scored = {};
-      final allItems = <BangumiItem>{};
-
-      // 从收藏中收集
-      for (final collectible in GStorage.collectibles.values) {
-        allItems.add(collectible.bangumiItem);
-      }
-
-      for (final item in allItems) {
-        if (item.id == currentBangumi.id) continue;
-        final itemName = item.nameCn.isNotEmpty ? item.nameCn : item.name;
-        if (itemName.contains(baseName) || baseName.contains(itemName)) {
-          scored[item] = 1.0;
-        }
-      }
-
-      final sorted = scored.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      return sorted.take(10).map((e) => e.key).toList();
-    } catch (e) {
-      KazumiLogger().e('RelatedAnime: 获取关联作品失败', error: e);
-      return [];
-    }
-  }
-
-  String _extractBaseName(String name) {
-    // 去掉常见的季数后缀
-    final cleaned = name
-        .replaceAll(RegExp(r'[第][一二三四五六七八九十\d]+[季期部]'), '')
-        .replaceAll(RegExp(r'Season\s*\d+', caseSensitive: false), '')
-        .replaceAll(RegExp(r'S\d+', caseSensitive: false), '')
-        .replaceAll(RegExp(r'Part\s*\d+', caseSensitive: false), '')
-        .replaceAll(RegExp(r'[\(\（].*?[\)\）]'), '')
-        .trim();
-    return cleaned;
   }
 }

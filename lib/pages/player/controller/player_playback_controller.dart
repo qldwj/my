@@ -16,6 +16,7 @@ import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
+import 'package:kazumi/services/player/player_error_mapper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
 import 'package:kazumi/services/video_source/video_source_format.dart';
@@ -446,8 +447,15 @@ abstract class _PlayerPlaybackController with Store {
               KazumiDialog.showToast(
                   message: '当前线路加载失败，正在自动切换...');
             } else {
+              // 官方 v2.3.0 新增：用 PlayerErrorMapper 统一生成“加载失败”提示
+              final actionableMessage = PlayerErrorMapper.toActionableMessage(
+                event,
+                isBuffering: playerBuffering,
+              );
               KazumiDialog.showToast(
-                  message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
+                  message: actionableMessage ??
+                      '加载失败, 请尝试更换其他视频来源',
+                  showActionButton: true);
             }
           } else {
             KazumiDialog.showToast(
