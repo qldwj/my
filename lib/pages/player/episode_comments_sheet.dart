@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart' show EpisodeCommentItem;
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
