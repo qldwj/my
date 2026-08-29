@@ -92,13 +92,27 @@ jobs:
           }
         shell: bash
 
-      # ========== 关键修改：直接硬编码 SHA256 指纹 ==========
+      # ========== 关键修改：指纹拆分为 16 段不等长注入（3~5字符，防sed替换） ==========
       - name: Set signature fingerprint (hardcoded)
         if: ${{ github.event.inputs.sign_check == '1' }}
         run: |
-          # 这里直接写入您提供的指纹
-          echo "EXPECTED_SIGNATURE_SHA256=8e40ab9c9e59efda3b7f7dbd6afe6dc2c108216e629641d16aa73a5769baee62" >> $GITHUB_ENV
-          echo "🔑 使用硬编码签名指纹: 8e40ab9c9e59efda3b7f7dbd6afe6dc2c108216e629641d16aa73a5769baee62"
+          echo "SIG_P1=8e40a" >> $GITHUB_ENV
+          echo "SIG_P2=b9c9" >> $GITHUB_ENV
+          echo "SIG_P3=e59ef" >> $GITHUB_ENV
+          echo "SIG_P4=da3b" >> $GITHUB_ENV
+          echo "SIG_P5=7f7d" >> $GITHUB_ENV
+          echo "SIG_P6=bd6a" >> $GITHUB_ENV
+          echo "SIG_P7=fe6d" >> $GITHUB_ENV
+          echo "SIG_P8=c2c1" >> $GITHUB_ENV
+          echo "SIG_P9=0821" >> $GITHUB_ENV
+          echo "SIG_P10=6e6" >> $GITHUB_ENV
+          echo "SIG_P11=2964" >> $GITHUB_ENV
+          echo "SIG_P12=1d1" >> $GITHUB_ENV
+          echo "SIG_P13=6aa7" >> $GITHUB_ENV
+          echo "SIG_P14=3a576" >> $GITHUB_ENV
+          echo "SIG_P15=9ba" >> $GITHUB_ENV
+          echo "SIG_P16=ee62" >> $GITHUB_ENV
+          echo "🔑 签名指纹已拆分为 16 段不等长注入（安全加固）"
         shell: bash
 
       - name: Build Flutter for Android
@@ -108,7 +122,7 @@ jobs:
           --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
           --dart-define=KAZUMI_APPID=$KAZUMI_APPID
           --dart-define=KAZUMI_KEY=$KAZUMI_KEY
-          ${{ github.event.inputs.sign_check == '1' && '--dart-define=SIGNATURE_CHECK=true --dart-define=EXPECTED_SIGNATURE_SHA256=$EXPECTED_SIGNATURE_SHA256' || '' }}
+          ${{ github.event.inputs.sign_check == '1' && '--dart-define=SIGNATURE_CHECK=true --dart-define=SIG_P1=$SIG_P1 --dart-define=SIG_P2=$SIG_P2 --dart-define=SIG_P3=$SIG_P3 --dart-define=SIG_P4=$SIG_P4 --dart-define=SIG_P5=$SIG_P5 --dart-define=SIG_P6=$SIG_P6 --dart-define=SIG_P7=$SIG_P7 --dart-define=SIG_P8=$SIG_P8 --dart-define=SIG_P9=$SIG_P9 --dart-define=SIG_P10=$SIG_P10 --dart-define=SIG_P11=$SIG_P11 --dart-define=SIG_P12=$SIG_P12 --dart-define=SIG_P13=$SIG_P13 --dart-define=SIG_P14=$SIG_P14 --dart-define=SIG_P15=$SIG_P15 --dart-define=SIG_P16=$SIG_P16' || '' }}
         shell: bash
 
       - name: Sign APK
