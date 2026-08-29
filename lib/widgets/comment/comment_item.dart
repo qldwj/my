@@ -77,12 +77,6 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
             // 底部操作栏
             const SizedBox(height: 8),
             Row(children: [
-              // 点赞
-              _actionButton(Icons.thumb_up_outlined, '${c.likes}', () => _vote(1), cs),
-              const SizedBox(width: 12),
-              // 点踩
-              _actionButton(Icons.thumb_down_outlined, '${c.dislikes}', () => _vote(-1), cs),
-              const SizedBox(width: 12),
               // 表情
               if (c.isSakura)
                 _actionButton(Icons.emoji_emotions_outlined, '', _showStickerPicker, cs),
@@ -90,24 +84,31 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               // 回复
               if (c.isSakura)
                 _actionButton(Icons.reply_outlined, '回复 ${c.replyCount}', _toggleReplyInput, cs),
-              // 删除（仅显示在自己发布的樱花评论上）
+              // 删除（仅自己的樱花评论）
               if (c.isSakura && _isMine(c.uid)) ...[
                 const SizedBox(width: 12),
                 _actionButton(Icons.delete_outline, '删除', _deleteComment, cs),
               ],
-              // 举报（仅显示在别人的樱花评论上）
+              // 举报（别人的樱花评论）
               if (c.isSakura && !_isMine(c.uid)) ...[
                 const SizedBox(width: 12),
                 _actionButton(Icons.flag_outlined, '举报', _reportComment, cs),
               ],
-              const Spacer(),
               // 展开回复
-              if (c.replies.isNotEmpty)
+              if (c.replies.isNotEmpty) ...[
+                const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () => setState(() => _showReplies = !_showReplies),
                   child: Text(_showReplies ? '收起' : '展开${c.replies.length}条回复',
                     style: TextStyle(fontSize: 12, color: cs.primary)),
                 ),
+              ],
+              const Spacer(),
+              // 点赞 —— 右下角（横排，心形，点红/取消，会话内缓存）
+              _likeButton(cs),
+              const SizedBox(width: 8),
+              // 点踩
+              _actionButton(Icons.thumb_down_outlined, '${c.dislikes}', () => _vote(-1), cs),
             ]),
             // 回复输入框
             if (_showReplyInput) ...[
@@ -174,6 +175,8 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     );
   }
 
+  /// 会话内点过赞的评论 id 缓存（刷新后仍保持，重进页面后重置）
+  static final Set<int> _likedIds = <int>{};
   bool _showReplyInput = false;
   void _toggleReplyInput() {
     if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
@@ -184,6 +187,45 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
     await EpisodeCommentService.vote(commentId: widget.comment.id, value: value);
     widget.onRefresh?.call();
+  }
+
+  /// 快手风格：右下角点赞按钮（横排，心形 + 数字，点红/取消）
+  Widget _likeButton(ColorScheme cs) {
+    final liked = _likedIds.contains(widget.comment.id);
+    return GestureDetector(
+      onTap: _toggleLike,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(liked ? Icons.favorite : Icons.favorite_border,
+              size: 16, color: liked ? Colors.redAccent : cs.outline),
+          const SizedBox(width: 3),
+          Text('${widget.comment.likes}',
+              style: TextStyle(fontSize: 12, color: liked ? Colors.redAccent : cs.outline)),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _toggleLike() async {
+    if (!AuthService.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      return;
+    }
+    final liked = _likedIds.contains(widget.comment.id);
+    final res = await EpisodeCommentService.vote(
+        commentId: widget.comment.id, value: liked ? 0 : 1);
+    if (!mounted) return;
+    if (res['success'] == true) {
+      setState(() {
+        liked ? _likedIds.remove(widget.comment.id) : _likedIds.add(widget.comment.id);
+      });
+      widget.onRefresh?.call();
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(res['error'] ?? '操作失败')));
+    }
   }
 
   Future<void> _toggleReaction(String sticker) async {
