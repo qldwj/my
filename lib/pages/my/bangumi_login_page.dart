@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
@@ -27,15 +28,23 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   @override
   void initState() {
     super.initState();
-    _linkSub = _appLinks.uriLinkStream.listen((uri) {
+    _linkSub = _appLinks.uriLinkStream.listen((uri) async {
       if (uri.scheme == 'yhdm' && uri.host == 'bangumi-auth') {
         final token = uri.queryParameters['token'];
         if (token != null && token.isNotEmpty) {
           GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
           GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
+          // 🆕 通知后端：樱花账号绑定 Bangumi（这样 KazumiLoginPage 的 _loadStatus()
+          // 才能正确返回 has_bangumi=true，显示"已绑定"）
+          final myToken = AuthService.getLocalToken();
+          if (myToken != null) {
+            await AuthService.bindBangumi(token);
+          }
           if (mounted) {
             setState(() {});
             KazumiDialog.showToast(message: '登录成功 🎉');
+            // 返回上一页并刷新
+            Navigator.of(context).pop(true);
           }
         }
       }

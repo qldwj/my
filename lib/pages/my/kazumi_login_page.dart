@@ -346,7 +346,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
           }),
           _buildStatusTile('assets/images/icons/bangumi.png', 'Bangumi', _status['has_bangumi']!, () async {
             if (!_status['has_bangumi']!) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+              _onAuthResult(r);
             }
           }),
           _buildStatusTile(null, '邮箱', _status['has_email']!, () {
