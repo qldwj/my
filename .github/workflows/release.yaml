@@ -85,8 +85,7 @@ jobs:
         if: ${{ github.event.inputs.sign_check == '1' }}
         run: |
           SHA=$(keytool -list -v -keystore yhdm.jks \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -alias "${{ secrets.KEY_ALIAS }}" 2>/dev/null \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>/dev/null \
             | grep "^SHA256:" \
             | sed 's/^SHA256:[ ]*//' \
             | tr -d ':' \
