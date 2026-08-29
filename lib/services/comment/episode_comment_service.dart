@@ -27,11 +27,13 @@ class EpisodeCommentService {
   }
 
   static Future<List<EpisodeComment>> getComments({required int subjectId, int episode = 0, String sort = 'time'}) async {
-    final res = await http.get(Uri.parse('$_baseUrl?action=list&id=$subjectId&ep=$episode&sort=$sort'));
-    final data = jsonDecode(res.body);
-    if (data['success'] == true) {
-      return (data['data'] as List).map((e) => EpisodeComment.fromJson(e)).toList();
-    }
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl?action=list&id=$subjectId&ep=$episode&sort=$sort'));
+      final data = jsonDecode(res.body);
+      if (data['success'] == true) {
+        return (data['data'] as List).map((e) => EpisodeComment.fromJson(e)).toList();
+      }
+    } catch (_) {}
     return [];
   }
 
