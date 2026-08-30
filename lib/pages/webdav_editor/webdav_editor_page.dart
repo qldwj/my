@@ -33,8 +33,8 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
         GStorage.getSetting(SettingsKeys.webDavUsername);
     webDavPasswordController.text =
         GStorage.getSetting(SettingsKeys.webDavPassword);
-    _githubToken = GStorage.getSetting('github_cloud_token') ?? '';
-    _lastSync = GStorage.getSetting('github_last_sync') ?? 0;
+    _githubToken = GStorage._setting.get('github_cloud_token') ?? '';
+    _lastSync = (GStorage._setting.get('github_last_sync') as int?) ?? 0;
   }
 
   @override
@@ -42,7 +42,7 @@ Future<void> _syncToGitHub() async {
     setState(() => _syncing = true);
     try {
       final results = await GitHubSyncService.syncToCloud();
-      await GStorage.putSetting('github_last_sync', DateTime.now().millisecondsSinceEpoch);
+      await GStorage._setting.put('github_last_sync', DateTime.now().millisecondsSinceEpoch);
       setState(() { _syncing = false; _lastSync = GStorage.getSetting('github_last_sync'); });
       final ok = results.values.every((v) => v);
       KazumiDialog.showToast(message: ok ? '同步成功' : '同步部分失败');
@@ -142,7 +142,7 @@ Future<void> _syncToGitHub() async {
                           ),
                           onChanged: (v) async {
                             _githubToken = v;
-                            await GStorage.putSetting('github_cloud_token', v);
+                            await GStorage._setting.put('github_cloud_token', v);
                           },
                         ),
                         const SizedBox(height: 12),
