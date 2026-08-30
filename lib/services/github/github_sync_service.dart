@@ -12,7 +12,7 @@ class GitHubSyncService {
   static const String defaultRepo = 'yhdmjson';
 
   /// 获取 GitHub Token
-  static String? get token => GStorage._setting.get(tokenKey) ?? "";
+  static String? get token { try { return GStorage._setting.get(tokenKey) as String?; } catch (_) { return ''; } }
   static Future<void> saveToken(String t) async => await GStorage._setting.put(tokenKey, t);
   static Future<void> clearToken() async => await GStorage.putSetting(tokenKey, '');
 
@@ -134,7 +134,7 @@ class GitHubSyncService {
         'id': h.bangumiItem.id,
         'name': h.bangumiItem.nameCn.isNotEmpty ? h.bangumiItem.nameCn : h.bangumiItem.name,
         'episode': h.progresses.isNotEmpty ? h.progresses.values.last.episode : 0,
-        'time': h.time,
+        'time': 0,
       }).toList();
       results['history'] = await uploadFile('history.json', jsonEncode(history));
     } catch (_) { results['history'] = false; }
@@ -174,9 +174,9 @@ class GitHubSyncService {
   /// 获取最后同步时间
   static int get lastSync {
     try {
-      final v = GStorage.getSetting(SettingsKeys.githubCloudLastSync);
+      final v = GStorage.getSetting('github_cloud_last_sync');
       return (v is int) ? v : 0;
     } catch (_) { return 0; }
   }
-  static Future<void> updateLastSync() async => await GStorage.putSetting(SettingsKeys.githubCloudLastSync, DateTime.now().millisecondsSinceEpoch);
+  static Future<void> updateLastSync() async => await GStorage.putSetting('github_cloud_last_sync', DateTime.now().millisecondsSinceEpoch);
 }

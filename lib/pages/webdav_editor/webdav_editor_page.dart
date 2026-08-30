@@ -33,7 +33,7 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
         GStorage.getSetting(SettingsKeys.webDavUsername);
     webDavPasswordController.text =
         GStorage.getSetting(SettingsKeys.webDavPassword);
-    _githubToken = GStorage._setting.get('github_cloud_token') ?? '';
+    _githubToken = (GStorage._setting.get('github_cloud_token') as String?) ?? '';
     _lastSync = (GStorage._setting.get('github_last_sync') as int?) ?? 0;
   }
 
