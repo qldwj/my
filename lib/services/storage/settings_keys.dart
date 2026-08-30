@@ -782,6 +782,22 @@ class SettingsKeys {
     '{}',
     group: SettingGroup.misc,
   );
+  // 🆕 GitHub 仓库同步
+  static const githubCloudToken = SettingKey<String>(
+    _SettingBoxKey.githubCloudToken,
+    '',
+    group: SettingGroup.misc,
+  );
+  static const githubCloudRepo = SettingKey<String>(
+    _SettingBoxKey.githubCloudRepo,
+    'yhdmjson',
+    group: SettingGroup.misc,
+  );
+  static const githubCloudLastSync = SettingKey<int>(
+    _SettingBoxKey.githubCloudLastSync,
+    0,
+    group: SettingGroup.misc,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
@@ -1031,5 +1047,8 @@ class _SettingBoxKey {
       ruleSortQuality = 'ruleSortQuality',
       ruleSortEpisodes = 'ruleSortEpisodes',
       ruleSortSpeed = 'ruleSortSpeed',
-      pendingThirdpartyLogin = 'pendingThirdpartyLogin';
+      pendingThirdpartyLogin = 'pendingThirdpartyLogin',
+      githubCloudToken = 'githubCloudToken',
+      githubCloudRepo = 'githubCloudRepo',
+      githubCloudLastSync = 'githubCloudLastSync';
 }

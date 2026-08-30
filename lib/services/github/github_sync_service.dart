@@ -12,13 +12,13 @@ class GitHubSyncService {
   static const String defaultRepo = 'yhdmjson';
 
   /// 获取 GitHub Token
-  static String? get token { try { return GStorage._setting.get(tokenKey) as String?; } catch (_) { return ''; } }
-  static Future<void> saveToken(String t) async => await GStorage._setting.put(tokenKey, t);
-  static Future<void> clearToken() async => await GStorage.putSetting(tokenKey, '');
+  static String? get token => GStorage.getSetting(SettingsKeys.githubCloudToken);
+  static Future<void> saveToken(String t) async => await GStorage.putSetting(SettingsKeys.githubCloudToken, t);
+  static Future<void> clearToken() async => await GStorage.putSetting(SettingsKeys.githubCloudToken, '');
 
   /// 获取仓库名
-  static String get repo => GStorage._setting.get(repoKey) ?? defaultRepo ?? defaultRepo;
-  static Future<void> saveRepo(String r) async => await GStorage._setting.put(repoKey, r);
+  static String get repo => GStorage.getSetting(SettingsKeys.githubCloudRepo);
+  static Future<void> saveRepo(String r) async => await GStorage.putSetting(SettingsKeys.githubCloudRepo, r);
 
   /// 获取 GitHub 用户名（带缓存）
   static String? _username;
@@ -173,10 +173,8 @@ class GitHubSyncService {
 
   /// 获取最后同步时间
   static int get lastSync {
-    try {
-      final v = GStorage.getSetting('github_cloud_last_sync');
-      return (v is int) ? v : 0;
-    } catch (_) { return 0; }
+    final v = GStorage.getSetting(SettingsKeys.githubCloudLastSync);
+    return v;
   }
-  static Future<void> updateLastSync() async => await GStorage.putSetting('github_cloud_last_sync', DateTime.now().millisecondsSinceEpoch);
+  static Future<void> updateLastSync() async => await GStorage.putSetting(SettingsKeys.githubCloudLastSync, DateTime.now().millisecondsSinceEpoch);
 }
