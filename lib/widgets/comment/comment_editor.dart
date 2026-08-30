@@ -281,9 +281,9 @@ class _CommentEditorState extends State<CommentEditor> {
   }
 
   Color _parseColor(String name) {
-    const colors = {'red': Colors.red, 'blue': Colors.blue, 'green': Colors.green, 'orange': Colors.orange, 'yellow': Colors.yellow, 'purple': Colors.purple, 'pink': Colors.pink};
-    return colors[name.toLowerCase()] ?? Colors.white;
-  }
+      const colors = {'red': Colors.red, 'blue': Colors.blue, 'green': Colors.green, 'orange': Colors.orange, 'yellow': Colors.yellow, 'purple': Colors.purple, 'pink': Colors.pink};
+      return colors[name.toLowerCase()] ?? Colors.black; // 🆕 默认黑色，避免白色看不见
+    }
 
   Future<void> _submit() async {
     final text = _controller.text.trim();
