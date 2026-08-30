@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/social/social_service.dart';
 
 class EpisodeCommentService {
   static const String _baseUrl = 'https://qlyyz.xyz/api/episode_comment.php';
