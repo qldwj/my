@@ -4,6 +4,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/pages/my/feedback_page.dart';
 import 'package:kazumi/pages/settings/proxy/service_status_page.dart';
+import 'package:kazumi/pages/settings/github_sync_page.dart';
 
 /// 设置主页（总设置）
 ///
@@ -103,6 +104,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: '同步设置',
                     description: '设置同步参数',
                     onTap: () => context.pushNamed('/settings/webdav/'),
+                  ),
+                  SettingsEntryTile(
+                    icon: Icons.cloud_sync,
+                    title: '仓库同步',
+                    description: 'GitHub/Gitee 仓库同步收藏与历史',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GitHubSyncPage()),
+                    ),
                   ),
                 ],
               ),
