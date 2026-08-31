@@ -83,7 +83,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
             style: DefaultTextStyle.of(context).style,
             children: bbcodeBaseListener.bbcode.map((e) {
               if (e is BBCodeText) {
-                Color? textColor = (!_isVisible && e.masked)
+                Color textColor = (!_isVisible && e.masked)
                     ? Colors.transparent
                     : (e.link != null)
                         ? Colors.blue
@@ -91,7 +91,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                             ? Theme.of(context).colorScheme.outline
                             : (e.color != null)
                                 ? _parseColor(e.color!)
-                                : null;
+                                : Colors.black;
                 return TextSpan(
                   text: e.text,
                   mouseCursor: (e.link != null || e.masked)
