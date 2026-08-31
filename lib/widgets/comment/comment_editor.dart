@@ -6,7 +6,7 @@ import 'package:kazumi/utils/bgm_sticker.dart';
 class CommentEditor extends StatefulWidget {
   final int subjectId;
   final int episode;
-  final Function() onSubmitted;
+  final Function(Map<String, dynamic>?) onSubmitted;
   const CommentEditor({super.key, required this.subjectId, required this.episode, required this.onSubmitted});
   @override
   State<CommentEditor> createState() => _CommentEditorState();
@@ -299,7 +299,7 @@ class _CommentEditorState extends State<CommentEditor> {
     if (res['success'] == true) {
       _controller.clear();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('评论已发送')));
-      widget.onSubmitted();
+      widget.onSubmitted(res);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['error'] ?? '发送失败')));
     }

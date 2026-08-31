@@ -284,7 +284,26 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           CommentEditor(
             subjectId: videoPageController.bangumiItem.id,
             episode: _episode == 0 ? widget.episode : _episode,
-            onSubmitted: _loadComments,
+            onSubmitted: (res) {
+              // 立即插入新评论到列表
+              if (res != null && res['success'] == true) {
+                setState(() {
+                  _comments.insert(0, EpisodeComment(
+                    id: res['id'] ?? 0,
+                    subjectId: videoPageController.bangumiItem.id,
+                    episode: _episode == 0 ? widget.episode : _episode,
+                    content: res['content'] ?? '',
+                    sender: res['sender'] ?? '匿名',
+                    uid: res['uid'] ?? '',
+                    avatar: res['avatar'] ?? '',
+                    source: 'sakura',
+                    createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                  ));
+                });
+              }
+              // 后台刷新服务器数据
+              _loadComments();
+            },
           ),
         ],
       ),
