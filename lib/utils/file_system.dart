@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 /// user can grant persistent access to an arbitrary directory. On macOS this
 /// additionally requires a security-scoped bookmark (SecureBookmarkService).
 bool get supportsCustomDownloadDirectory =>
-    Platform.isWindows || Platform.isMacOS;
+    Platform.isWindows || Platform.isMacOS || Platform.isAndroid;
 
 Future<String> getDefaultDownloadDirectory() async {
   final appSupport = await getApplicationSupportDirectory();

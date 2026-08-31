@@ -64,21 +64,39 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
 
     setState(() => isSelectingDirectory = true);
     try {
-      final effectiveDirectory = _effectiveDownloadDirectory;
-      final initialDirectory = effectiveDirectory.isNotEmpty &&
-              await Directory(effectiveDirectory).exists()
-          ? effectiveDirectory
-          : null;
-      final selectedPath = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: '选择下载位置',
-        initialDirectory: initialDirectory,
-      );
+      String? selectedPath;
+
+      if (Platform.isAndroid) {
+        // Android: 使用 SAF 选择文件后取父目录
+        final result = await FilePicker.platform.pickFiles();
+        if (result != null && result.files.isNotEmpty) {
+          final dir = result.files.first.parent;
+          if (dir != null) {
+            selectedPath = dir.path;
+          }
+        }
+      } else {
+        // 桌面平台: 直接选择目录
+        final effectiveDirectory = _effectiveDownloadDirectory;
+        final initialDirectory = effectiveDirectory.isNotEmpty &&
+                await Directory(effectiveDirectory).exists()
+            ? effectiveDirectory
+            : null;
+        selectedPath = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: '选择下载位置',
+          initialDirectory: initialDirectory,
+        );
+      }
+
       if (selectedPath == null || selectedPath.isEmpty) return;
 
       await ensureDirectoryWritable(selectedPath);
-      if (!await SecureBookmarkService.persist(selectedPath)) {
-        KazumiDialog.showToast(message: '无法获得该目录的持久访问权限，请更换目录');
-        return;
+      if (!Platform.isAndroid) {
+        // 桌面平台需要持久访问权限
+        if (!await SecureBookmarkService.persist(selectedPath)) {
+          KazumiDialog.showToast(message: '无法获得该目录的持久访问权限，请更换目录');
+          return;
+        }
       }
       await GStorage.putSetting(
         SettingsKeys.downloadDirectory,
