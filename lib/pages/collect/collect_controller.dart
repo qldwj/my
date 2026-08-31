@@ -8,6 +8,7 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/github/github_sync_service.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:mobx/mobx.dart';
@@ -83,6 +84,10 @@ abstract class _CollectController with Store {
 
     // 3. Sync with Kazumi if enabled（本地已更新，上传最新 type）
     await _syncKazumiCollectIfEnabled();
+    // 🆕 同步到 GitHub 仓库
+    if (GitHubSyncService.isConfigured) {
+      GitHubSyncService.syncToCloud();
+    }
   }
 
   @action
@@ -100,12 +105,14 @@ abstract class _CollectController with Store {
       case _BangumiDeleteSyncAction.openWeb:
         await _deleteCollectLocally(bangumiItem);
         await _syncKazumiCollectIfEnabled();
+        if (GitHubSyncService.isConfigured) GitHubSyncService.syncToCloud();
         await _openBangumiSubjectPage(bangumiItem.id);
         return;
 
       case _BangumiDeleteSyncAction.deleteLocalOnly:
         await _deleteCollectLocally(bangumiItem);
         await _syncKazumiCollectIfEnabled();
+        if (GitHubSyncService.isConfigured) GitHubSyncService.syncToCloud();
         return;
 
       case _BangumiDeleteSyncAction.cancel:

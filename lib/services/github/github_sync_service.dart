@@ -62,7 +62,7 @@ class GitHubSyncService {
     }
   }
 
-  /// 🆕 上传文件到仓库
+  /// 🆕 上传文件到仓库（自动处理创建/更新）
   static Future<bool> uploadFile(String path, String content) async {
     if (!isConfigured) return false;
     final username = await getUsername();
@@ -79,8 +79,13 @@ class GitHubSyncService {
       }
       final body = {'message': 'Update $path', 'content': base64Encode(utf8.encode(content))};
       if (sha != null) body['sha'] = sha;
-      final res = await http.put(
-        Uri.parse('https://api.github.com/repos/$username/$repo/contents/$path'),
+      // 新建用 POST，更新用 PUT
+      final url = sha != null
+          ? 'https://api.github.com/repos/$username/$repo/contents/$path'
+          : 'https://api.github.com/repos/$username/$repo/contents/$path';
+      final method = sha != null ? http.put : http.post;
+      final res = await method(
+        Uri.parse(url),
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'},
         body: jsonEncode(body),
       );
