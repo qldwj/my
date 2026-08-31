@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+import 'package:kazumi/services/github/github_sync_service.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -372,6 +374,40 @@ class PlayerController implements Disposable {
   @override
   void dispose() {
     beginShutdown();
+    // 🆕 退出时同步播放进度到樱花动漫服务器
+    if (AuthService.isLoggedIn) {
+      _syncProgressToServer();
+    }
+  }
+
+  Future<void> _syncProgressToServer() async {
+    try {
+      final token = AuthService.getLocalToken();
+      if (token == null) return;
+      final progress = {
+        'bangumiId': bangumiId,
+        'episode': currentEpisode,
+        'position': playback.currentPosition.inMilliseconds,
+        'road': currentRoad,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      final res = await http.post(
+        Uri.parse('https://qlyyz.xyz/api/progress.php?action=save_progress'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(progress),
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true) {
+          KazumiLogger().i('Progress sync saved');
+        }
+      }
+    } catch (e) {
+      KazumiLogger().w('Progress sync failed', error: e);
+    }
   }
 
   /// Starts the idempotent player shutdown without blocking route navigation.
