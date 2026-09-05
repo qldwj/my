@@ -23,6 +23,7 @@ import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
@@ -668,70 +669,36 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 const SizedBox(height: 16),
                 Row(
                   children: [
+                    // 按钮1：分享给好友（App内好友）
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await FriendPicker.shareAnime(
+                            context,
+                            name: name,
+                            link: deepLink,
+                          );
+                        },
+                        icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                        label: const Text('分享给好友'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 按钮2：系统分享（QQ/微信/跨平台）
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () {
-                          Clipboard.setData(ClipboardData(text: shareText));
                           Navigator.pop(ctx);
-                          KazumiDialog.showToast(message: '已复制分享文案');
+                          // 🆕 调用系统分享（Share SharePlus）
+                          // 传入分享文案，用户可以选择 QQ/微信/跨平台好友
+                          Share.share(shareText);
                         },
-                        icon: const Icon(Icons.copy_rounded, size: 18),
-                        label: const Text('复制文案'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: deepLink));
-                          Navigator.pop(ctx);
-                          KazumiDialog.showToast(message: '已复制番剧ID，打开 App 自动打开');
-                        },
-                        icon: const Icon(Icons.link_rounded, size: 18),
-                        label: const Text('网页版观看'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          launchUrl(
-                            Uri.parse('https://bangumi.tv/subject/${item.id}'),
-                            mode: LaunchMode.externalApplication,
-                          );
-                        },
-                        icon: const Icon(Icons.open_in_browser_rounded, size: 18),
-                        label: const Text('Bangumi'),
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: const Text('系统分享'),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                // ⭐ 生成二维码（内容为深链，不带集数，扫码直达详情页）
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showShareQrcode(context, item, name),
-                    icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                    label: const Text('生成二维码'),                  ),
-                ),
-                const SizedBox(height: 4),
-                // 🆕 分享给好友（发 anime 消息到好友聊天）
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      await FriendPicker.shareAnime(
-                        context,
-                        name: name,
-                        link: deepLink,
-                      );
-                    },
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                    label: const Text('分享给好友'),
-                  ),
                 ),
               ],
             ),
