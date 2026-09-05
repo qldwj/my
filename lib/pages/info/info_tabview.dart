@@ -1,0 +1,801 @@
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/card/comments_card.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/card/character_card.dart';
+import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/widget/recommendation_section.dart';
+import 'package:kazumi/bean/widget/related_anime_section.dart';
+import 'package:kazumi/bean/widget/related_search_section.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/services/social/admin_service.dart';
+import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/utils/device.dart';
+
+class InfoTabView extends StatefulWidget {
+  const InfoTabView({
+    super.key,
+    required this.commentsQueryTimeout,
+    required this.commentsIsEmpty,
+    required this.charactersQueryTimeout,
+    required this.charactersIsEmpty,
+    required this.staffQueryTimeout,
+    required this.staffIsEmpty,
+    required this.tabController,
+    required this.loadMoreComments,
+    required this.loadCharacters,
+    required this.loadStaff,
+    required this.bangumiItem,
+    required this.commentsList,
+    required this.commentsIsLoading,
+    this.onCommentsTabSelected,
+    this.onRefreshComments,
+    required this.characterList,
+    required this.staffList,
+    required this.isLoading,
+  });
+
+  final bool commentsQueryTimeout;
+  final bool commentsIsEmpty;
+  final bool commentsIsLoading;
+  final VoidCallback? onCommentsTabSelected;
+  /// 🆕 刷新评论列表（管理员操作置顶/头衔后调用）
+  final VoidCallback? onRefreshComments;
+  final bool charactersQueryTimeout;
+  final bool charactersIsEmpty;
+  final bool staffQueryTimeout;
+  final bool staffIsEmpty;
+  final TabController tabController;
+  final Future<void> Function({bool loadMore}) loadMoreComments;
+  final Future<void> Function() loadCharacters;
+  final Future<void> Function() loadStaff;
+  final BangumiItem bangumiItem;
+  final List<CommentItem> commentsList;
+  final List<CharacterItem> characterList;
+  final List<StaffFullItem> staffList;
+  final bool isLoading;
+
+  @override
+  State<InfoTabView> createState() => _InfoTabViewState();
+}
+
+class _InfoTabViewState extends State<InfoTabView>
+    with SingleTickerProviderStateMixin {
+
+  /// 🆕 评论附带打分 0-10（0=不评分）
+  final maxWidth = 950.0;
+  bool fullIntro = false;
+  bool fullTag = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.tabController.addListener(_onTabChanged);
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabController.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
+
+  /// 详情页「连载状态条」 —— 照搬 Ani 的 AiringLabel / renderTotalEpisodeText 规则：
+  ///   UPCOMING  -> 未开播 · 预定全 N 话
+  ///   ON_AIR    -> 连载至第 N 话 · 预定全 M 话   (N=latestEpisode, M=totalEpisodes)
+  ///   COMPLETED -> 已完结 · 全 M 话
+  Widget _buildAiringLabel() {
+    final item = widget.bangumiItem;
+    final cs = Theme.of(context).colorScheme;
+    final kind = item.status; // 0=UPCOMING 1=ON_AIR 2=COMPLETED
+    final total = item.totalEpisodes;
+
+    if (kind == 0 && total <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    // progressText (Ani AiringLabelState.progressText，不含个人观看进度分支)
+    final bool onAir = kind == 1;
+    final bool completed = kind == 2;
+    final bool highlight = onAir && item.latestEpisode > 0;
+    final String progressText;
+    if (onAir) {
+      progressText = item.latestEpisode > 0
+          ? '连载至 第${item.latestEpisode}话'
+          : '连载中';
+    } else if (completed) {
+      progressText = '已完结';
+    } else {
+      progressText = '未开播';
+    }
+
+    // totalEpisodesText (Ani renderTotalEpisodeText)
+    final String? totalText;
+    if (completed) {
+      totalText = total > 0 ? '全 $total 话' : null;
+    } else {
+      totalText = total > 0 ? '预定全 $total 话' : null;
+    }
+
+    final progressColor = highlight ? cs.primary : cs.onSurfaceVariant;
+    final textColor = cs.onSurfaceVariant;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(progressText,
+          style: TextStyle(
+              fontSize: 13,
+              color: progressColor,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.normal)),
+      if (totalText != null) ...[
+        Text(' · ', style: TextStyle(fontSize: 13, color: textColor)),
+        Text(totalText, style: TextStyle(fontSize: 13, color: textColor)),
+      ],
+    ]);
+  }
+
+  Widget get infoBody {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width > maxWidth
+              ? maxWidth
+              : MediaQuery.sizeOf(context).width - 32,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🆕 连载状态条：复制 Ani 的 AiringLabel 规则，展示
+              // - 未开播 · 预定全 N 话
+              // - 连载至第 N 话 · 全 M 话
+              // - 已完结 · 全 M 话
+              _buildAiringLabel(),
+              const SizedBox(height: 8),
+              // 简介
+              Text('简介', style: TextStyle(fontSize: 18)),
+              // only show expand button when line > 7
+              LayoutBuilder(builder: (context, constraints) {
+                final span = TextSpan(text: widget.bangumiItem.summary);
+                final tp =
+                    TextPainter(text: span, textDirection: TextDirection.ltr);
+                tp.layout(maxWidth: constraints.maxWidth);
+                final numLines = tp.computeLineMetrics().length;
+                if (numLines > 7) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        // make intro expandable
+                        height: fullIntro ? null : 120,
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: SelectableText(
+                          widget.bangumiItem.summary,
+                          textAlign: TextAlign.start,
+                          scrollBehavior: const ScrollBehavior().copyWith(
+                            scrollbars: false,
+                          ),
+                          scrollPhysics: NeverScrollableScrollPhysics(),
+                          selectionHeightStyle: ui.BoxHeightStyle.max,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            fullIntro = !fullIntro;
+                          });
+                        },
+                        child: Text(fullIntro ? '加载更少' : '加载更多'),
+                      ),
+                    ],
+                  );
+                } else {
+                  return SelectableText(
+                    widget.bangumiItem.summary,
+                    textAlign: TextAlign.start,
+                    scrollPhysics: NeverScrollableScrollPhysics(),
+                    selectionHeightStyle: ui.BoxHeightStyle.max,
+                  );
+                }
+              }),
+              const SizedBox(height: 16),
+              Text('标签', style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: isDesktop() ? 8 : 0,
+                children: List<Widget>.generate(
+                    fullTag || widget.bangumiItem.tags.length < 13
+                        ? widget.bangumiItem.tags.length
+                        : 13, (int index) {
+                  if (!fullTag && index == 12) {
+                    // make tag expandable
+                    return ActionChip(
+                      label: Text(
+                        '更多 +',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          fullTag = !fullTag;
+                        });
+                      },
+                    );
+                  }
+                  return ActionChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${widget.bangumiItem.tags[index].name} '),
+                        Text(
+                          '${widget.bangumiItem.tags[index].count}',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      final tagName = Uri.encodeComponent(
+                          widget.bangumiItem.tags[index].name);
+                      context.pushNamed('/search/$tagName');
+                    },
+                  );
+                }).toList(),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bone for Skeleton Loader
+  Widget get infoBodyBone {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width > maxWidth
+              ? maxWidth
+              : MediaQuery.sizeOf(context).width - 32,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 50)),
+              const SizedBox(height: 8),
+              Skeletonizer.zone(child: Bone.multiText(lines: 7)),
+              const SizedBox(height: 16),
+              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 50)),
+              const SizedBox(height: 8),
+              if (widget.isLoading)
+                Skeletonizer.zone(
+                  child: Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: List.generate(
+                        4, (_) => Bone.button(uniRadius: 8, height: 32)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  /// 🆕 管理员长按评论：置顶/取消置顶自己的评论、修改自己头衔
+  Future<void> _showCommentAdminMenu(
+      BuildContext context, CommentItem item) async {
+    // 🆕 通用评论菜单：加好友（他人评论）+ 管理员操作（自己的评论）
+    final admin = await AdminService.me();
+    final myUid = SocialService.restoreLocalProfile()?.uid ?? '';
+    final canAddFriend = item.source == 'server' &&
+        item.uid.isNotEmpty &&
+        item.uid != myUid;
+    final canAdmin = admin != null &&
+        admin.admin &&
+        item.uid.isNotEmpty &&
+        item.uid == myUid;
+    if (!canAddFriend && !canAdmin) {
+      KazumiDialog.showToast(message: '暂无可用操作');
+      return;
+    }
+    if (!context.mounted) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ➕ 加TA为好友（他人评论）
+            if (canAddFriend)
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_1_rounded),
+                title: const Text('加TA为好友'),
+                subtitle: const Text('添加这条评论的作者为好友'),
+                onTap: () => Navigator.pop(ctx, 'add_friend'),
+              ),
+            // 管理员操作（自己的评论）
+            if (canAdmin) ...[
+              ListTile(
+                leading: Icon(
+                  item.pinned
+                      ? Icons.vertical_align_top_rounded
+                      : Icons.push_pin_outlined,
+                ),
+                title: Text(item.pinned ? '取消置顶' : '置顶评论'),
+                subtitle: Text(
+                    item.pinned ? '取消后按时间排序' : '置顶后显示在评论最前'),
+                onTap: () => Navigator.pop(ctx, 'pin'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.badge_outlined),
+                title: const Text('修改我的头衔'),
+                subtitle: const Text('如：官方小编 / 管理员（最长 20 字）'),
+                onTap: () => Navigator.pop(ctx, 'title'),
+              ),
+            ],
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('取消'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+
+    if (action == 'add_friend') {
+      // ➕ 发送好友申请
+      final error = await SocialService.addFriend(item.uid);
+      if (!mounted) return;
+      KazumiDialog.showToast(
+          message: error == null ? '✅ 好友申请已发送' : '❌ $error');
+      return;
+    }
+    if (action == 'pin') {
+      final error =
+          await AdminService.pinSelf(item.user.id.abs(), pinned: !item.pinned);
+      if (!mounted) return;
+      KazumiDialog.showToast(
+          message: error == null ? '✅ 已${item.pinned ? '取消置顶' : '置顶'}' : '❌ $error');
+      widget.onRefreshComments?.call();
+    } else if (action == 'title') {
+      final controller =
+          TextEditingController(text: admin?.headTitle ?? '');
+      final title = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('修改我的头衔'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 20,
+            decoration: const InputDecoration(hintText: '如：官方小编'),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('取消',
+                  style:
+                      TextStyle(color: Theme.of(ctx).colorScheme.outline)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      );
+      if (title == null || title.trim().isEmpty || !mounted) return;
+      final error = await AdminService.setTitle(title.trim());
+      if (!mounted) return;
+      KazumiDialog.showToast(
+          message: error == null ? '✅ 头衔已更新为「${title.trim()}」' : '❌ $error');
+      widget.onRefreshComments?.call();
+    }
+  }
+
+    // 失败静默：不弹报错（没有就没有吧）
+
+
+
+
+
+
+
+
+
+  Widget get commentsListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return NotificationListener<ScrollEndNotification>(
+          onNotification: (scrollEnd) {
+            final metrics = scrollEnd.metrics;
+            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
+              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
+            }
+            return true;
+          },
+          child: CustomScrollView(
+            scrollBehavior: const ScrollBehavior().copyWith(
+              scrollbars: false,
+            ),
+            key: PageStorageKey<String>('吐槽'),
+            slivers: <Widget>[
+              SliverOverlapInjector(
+                handle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              ),
+
+              SliverLayoutBuilder(builder: (context, _) {
+                final myInterest = widget.bangumiItem.interest;
+                final showMyReview = !widget.commentsIsLoading &&
+                    myInterest != null &&
+                    myInterest.hasUserProfile &&
+                    myInterest.hasReviewContent;
+                final listItemCount =
+                    widget.commentsList.length + (showMyReview ? 1 : 0);
+
+                if (listItemCount > 0) {
+                  return SliverList.separated(
+                    addAutomaticKeepAlives: false,
+                    itemCount: listItemCount,
+                    itemBuilder: (context, index) {
+                      final commentIndex = showMyReview ? index - 1 : index;
+                      final myUser = myInterest?.user;
+                      final card = showMyReview && index == 0 && myUser != null
+                          ? CommentsCard.own(
+                              commentItem: CommentItem(
+                                user: myUser,
+                                comment: Comment(
+                                  rate: myInterest.rate,
+                                  comment: myInterest.comment,
+                                  updatedAt: myInterest.updatedAt,
+                                ),
+                              ),
+                            )
+                          : CommentsCard(
+                              commentItem: widget.commentsList[commentIndex],
+                            );
+                      final isServer =
+                          widget.commentsList[commentIndex].source == 'server';
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Center(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: SizedBox(
+                              width: MediaQuery.sizeOf(context).width > maxWidth
+                                  ? maxWidth
+                                  : MediaQuery.sizeOf(context).width - 32,
+                              child: GestureDetector(
+                                onLongPress: isServer
+                                    ? () => _showCommentAdminMenu(context,
+                                        widget.commentsList[commentIndex])
+                                    : null,
+                                child: card,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) {
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Center(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: SizedBox(
+                              width: MediaQuery.sizeOf(context).width > maxWidth
+                                  ? maxWidth
+                                  : MediaQuery.sizeOf(context).width - 32,
+                              child: Divider(
+                                  thickness: 0.5, indent: 10, endIndent: 10),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+                if (widget.commentsQueryTimeout) {
+                  return SliverFillRemaining(
+                    child: GeneralErrorWidget(
+                      errMsg: '获取失败，请重试',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: () {
+                            widget.loadMoreComments(
+                                loadMore: widget.commentsList.isNotEmpty);
+                          },
+                          text: '重试',
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                if (widget.commentsIsEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text('什么都没有找到 (´;ω;`)'),
+                    ),
+                  );
+                }
+                return SliverList.builder(
+                  itemCount: 4,
+                  itemBuilder: (context, _) {
+                    return SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width > maxWidth
+                                ? maxWidth
+                                : MediaQuery.sizeOf(context).width - 32,
+                            child: CommentsCard.bone(),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              })
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget get staffListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: PageStorageKey<String>('制作人员'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(builder: (context, _) {
+              if (widget.staffList.isNotEmpty) {
+                return SliverList.builder(
+                  itemCount: widget.staffList.length,
+                  itemBuilder: (context, index) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SizedBox(
+                          width: MediaQuery.sizeOf(context).width > maxWidth
+                              ? maxWidth
+                              : MediaQuery.sizeOf(context).width - 32,
+                          child: StaffCard(
+                            staffFullItem: widget.staffList[index],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+              if (widget.staffQueryTimeout) {
+                return SliverFillRemaining(
+                  child: GeneralErrorWidget(
+                    errMsg: '获取失败，请重试',
+                    actions: [
+                      GeneralErrorButton(
+                        onPressed: () {
+                          widget.loadStaff();
+                        },
+                        text: '重试',
+                      ),
+                    ],
+                  ),
+                );
+              }
+              if (widget.staffIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
+                  ),
+                );
+              }
+              return SliverList.builder(
+                itemCount: 8,
+                itemBuilder: (context, _) {
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: MediaQuery.sizeOf(context).width > maxWidth
+                          ? maxWidth
+                          : MediaQuery.sizeOf(context).width - 32,
+                      child: Skeletonizer.zone(
+                        child: ListTile(
+                          leading: Bone.circle(size: 36),
+                          title: Bone.text(width: 100),
+                          subtitle: Bone.text(width: 80),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget get charactersListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: PageStorageKey<String>('角色'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(builder: (context, _) {
+              if (widget.characterList.isNotEmpty) {
+                return SliverList.builder(
+                  itemCount: widget.characterList.length,
+                  itemBuilder: (context, index) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SizedBox(
+                          width: MediaQuery.sizeOf(context).width > maxWidth
+                              ? maxWidth
+                              : MediaQuery.sizeOf(context).width - 32,
+                          child: CharacterCard(
+                            characterItem: widget.characterList[index],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+              if (widget.charactersQueryTimeout) {
+                return SliverFillRemaining(
+                  child: GeneralErrorWidget(
+                    errMsg: '获取失败，请重试',
+                    actions: [
+                      GeneralErrorButton(
+                        onPressed: () {
+                          widget.loadCharacters();
+                        },
+                        text: '重试',
+                      ),
+                    ],
+                  ),
+                );
+              }
+              if (widget.charactersIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
+                  ),
+                );
+              }
+              return SliverList.builder(
+                itemCount: 4,
+                itemBuilder: (context, _) {
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: MediaQuery.sizeOf(context).width > maxWidth
+                          ? maxWidth
+                          : MediaQuery.sizeOf(context).width - 32,
+                      child: Skeletonizer.zone(
+                        child: ListTile(
+                          leading: Bone.circle(size: 36),
+                          title: Bone.text(width: 100),
+                          subtitle: Bone.text(width: 80),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TabBarView(
+      controller: widget.tabController,
+      children: [
+        Builder(
+          // This Builder is needed to provide a BuildContext that is
+          // "inside" the NestedScrollView, so that
+          // sliverOverlapAbsorberHandleFor() can find the
+          // NestedScrollView.
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
+              ),
+              // The PageStorageKey should be unique to this ScrollView;
+              // it allows the list to remember its scroll position when
+              // the tab view is not on the screen.
+              key: PageStorageKey<String>('概览'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(
+                  child: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: widget.isLoading ? infoBodyBone : infoBody,
+                  ),
+                ),
+                // 关联推荐
+                SliverToBoxAdapter(
+                  child: RecommendationSection(
+                    currentBangumi: widget.bangumiItem,
+                  ),
+                ),
+                // 续集/关联作品
+                SliverToBoxAdapter(
+                  child: RelatedAnimeSection(
+                    currentBangumi: widget.bangumiItem,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        commentsListBody,
+        charactersListBody,
+        // 关联搜索：根据当前番剧名称智能提取关键词自动搜索
+        Builder(
+          builder: (BuildContext context) {
+            return RelatedSearchSection(
+              currentBangumi: widget.bangumiItem,
+            );
+          },
+        ),
+        staffListBody,
+      ],
+    );
+  }
+}
