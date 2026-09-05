@@ -1,0 +1,283 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/platform/secure_bookmark_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/file_system.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:file_picker/file_picker.dart';
+
+class DownloadSettingsPage extends StatefulWidget {
+  const DownloadSettingsPage({super.key});
+
+  @override
+  State<DownloadSettingsPage> createState() => _DownloadSettingsPageState();
+}
+
+class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
+  late int parallelEpisodes;
+  late int parallelSegments;
+  late bool downloadDanmaku;
+  late bool downloadNotify;
+  String downloadDirectory = '';
+  String defaultDownloadDirectory = '';
+  bool isSelectingDirectory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    parallelEpisodes =
+        GStorage.getSetting(SettingsKeys.downloadParallelEpisodes);
+    parallelSegments =
+        GStorage.getSetting(SettingsKeys.downloadParallelSegments);
+    downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
+    downloadNotify = GStorage.getSetting(SettingsKeys.downloadCompleteNotify);
+    downloadDirectory =
+        GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
+    _loadDefaultDownloadDirectory();
+  }
+
+  bool get _canPickDirectory => supportsCustomDownloadDirectory;
+
+  bool get _hasCustomDirectory =>
+      _canPickDirectory && downloadDirectory.isNotEmpty;
+
+  String get _effectiveDownloadDirectory =>
+      _hasCustomDirectory ? downloadDirectory : defaultDownloadDirectory;
+
+  Future<void> _loadDefaultDownloadDirectory() async {
+    final directory = await getDefaultDownloadDirectory();
+    if (!mounted) return;
+    setState(() {
+      defaultDownloadDirectory = directory;
+    });
+  }
+
+  Future<void> _selectDownloadDirectory() async {
+    if (!_canPickDirectory) {
+      KazumiDialog.showToast(message: '当前平台不支持手动选择目录');
+      return;
+    }
+    if (isSelectingDirectory) return;
+
+    setState(() => isSelectingDirectory = true);
+    try {
+      String? selectedPath;
+
+      if (Platform.isAndroid) {
+        // Android: 使用 SAF 选择文件后取父目录
+        final result = await FilePicker.platform.pickFiles();
+        if (result != null && result.files.isNotEmpty) {
+          final dir = result.files.first.parent;
+          if (dir != null) {
+            selectedPath = dir.path;
+          }
+        }
+      } else {
+        // 桌面平台: 直接选择目录
+        final effectiveDirectory = _effectiveDownloadDirectory;
+        final initialDirectory = effectiveDirectory.isNotEmpty &&
+                await Directory(effectiveDirectory).exists()
+            ? effectiveDirectory
+            : null;
+        selectedPath = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: '选择下载位置',
+          initialDirectory: initialDirectory,
+        );
+      }
+
+      if (selectedPath == null || selectedPath.isEmpty) return;
+
+      await ensureDirectoryWritable(selectedPath);
+      if (!Platform.isAndroid) {
+        // 桌面平台需要持久访问权限
+        if (!await SecureBookmarkService.persist(selectedPath)) {
+          KazumiDialog.showToast(message: '无法获得该目录的持久访问权限，请更换目录');
+          return;
+        }
+      }
+      await GStorage.putSetting(
+        SettingsKeys.downloadDirectory,
+        selectedPath,
+      );
+      if (mounted) {
+        setState(() => downloadDirectory = selectedPath);
+      }
+      KazumiDialog.showToast(message: '下载位置已更新，仅对新下载生效');
+    } on FileSystemException catch (e) {
+      KazumiDialog.showToast(message: '无法写入该目录: ${e.message}');
+    } catch (e) {
+      KazumiDialog.showToast(message: '选择下载位置失败: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isSelectingDirectory = false);
+      }
+    }
+  }
+
+  Future<void> _resetDownloadDirectory() async {
+    await SecureBookmarkService.clear();
+    await GStorage.putSetting(SettingsKeys.downloadDirectory, '');
+    if (mounted) {
+      setState(() => downloadDirectory = '');
+    }
+    KazumiDialog.showToast(message: '已恢复默认下载位置，仅对新下载生效');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    return Scaffold(
+      appBar: const SysAppBar(title: Text('下载设置')),
+      body: SettingsList(
+        maxWidth: 1000,
+        sections: [
+          SettingsSection(
+            title: Text('并发设置', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile(
+                title: Text('同时下载集数', style: TextStyle(fontFamily: fontFamily)),
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '同时下载 $parallelEpisodes 集',
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                    Slider(
+                      value: parallelEpisodes.toDouble(),
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                      label: '$parallelEpisodes',
+                      onChanged: (value) {
+                        setState(() => parallelEpisodes = value.toInt());
+                        GStorage.putSetting(
+                          SettingsKeys.downloadParallelEpisodes,
+                          parallelEpisodes,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SettingsTile(
+                title: Text('分片并发数', style: TextStyle(fontFamily: fontFamily)),
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '每集同时下载 $parallelSegments 个分片',
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                    Slider(
+                      value: parallelSegments.toDouble(),
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      label: '$parallelSegments',
+                      onChanged: (value) {
+                        setState(() => parallelSegments = value.toInt());
+                        GStorage.putSetting(
+                          SettingsKeys.downloadParallelSegments,
+                          parallelSegments,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('缓存设置', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile(
+                title: Text('下载位置', style: TextStyle(fontFamily: fontFamily)),
+                description: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _effectiveDownloadDirectory.isEmpty
+                          ? '正在读取默认位置...'
+                          : _effectiveDownloadDirectory,
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _hasCustomDirectory
+                          ? '当前使用自定义下载位置，修改后仅对新下载生效'
+                          : '当前使用默认下载位置，修改后仅对新下载生效',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+                trailing: isSelectingDirectory
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : _hasCustomDirectory
+                        ? IconButton(
+                            tooltip: '恢复默认',
+                            icon: const Icon(Icons.restore_rounded),
+                            onPressed: _resetDownloadDirectory,
+                          )
+                        : null,
+                onPressed: (_) => _selectDownloadDirectory(),
+              ),
+              SettingsTile.switchTile(
+                onToggle: (value) {
+                  setState(() => downloadDanmaku = value ?? !downloadDanmaku);
+                  GStorage.putSetting(
+                      SettingsKeys.downloadDanmaku, downloadDanmaku);
+                },
+                title: Text('缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
+                description: Text(
+                  '下载视频时同时缓存弹幕数据',
+                  style: TextStyle(fontFamily: fontFamily),
+                ),
+                initialValue: downloadDanmaku,
+              ),
+              SettingsTile.switchTile(
+                onToggle: (value) {
+                  setState(() => downloadNotify = value ?? !downloadNotify);
+                  GStorage.putSetting(
+                      SettingsKeys.downloadCompleteNotify, downloadNotify);
+                },
+                title: Text('下载完成通知',
+                    style: TextStyle(fontFamily: fontFamily)),
+                description: Text(
+                  '每集下载完成后发送系统通知，点击直达下载管理',
+                  style: TextStyle(fontFamily: fontFamily),
+                ),
+                initialValue: downloadNotify,
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('说明', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile(
+                title: Text('关于并发设置', style: TextStyle(fontFamily: fontFamily)),
+                description: Text(
+                  '• 集数并发：同时下载多少集视频\n'
+                  '• 分片并发：每集内同时下载多少个视频片段\n'
+                  '• 较高的并发可提升速度，但可能被服务器限制\n'
+                  '• 修改后对新开始的下载生效',
+                  style: TextStyle(fontFamily: fontFamily),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
