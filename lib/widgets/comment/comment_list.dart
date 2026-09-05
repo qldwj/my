@@ -96,7 +96,7 @@ class _CommentListPageState extends State<CommentListPage> {
           CommentEditor(
             subjectId: widget.subjectId,
             episode: _selectedEpisode,
-            onSubmitted: _loadComments,
+            onSubmitted: (_) => _loadComments(),
           ),
         ],
       ),

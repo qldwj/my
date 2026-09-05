@@ -66,6 +66,13 @@ class NetworkErrorMapper {
           rawError: error,
           stackTrace: error.stackTrace,
         );
+      default:
+        return NetworkException(
+          type: NetworkExceptionType.unknown,
+          message: '未知网络异常',
+          rawError: error,
+          stackTrace: error.stackTrace,
+        );
     }
   }
 
