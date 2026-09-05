@@ -70,9 +70,9 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
         // Android: 使用 SAF 选择文件后取父目录
         final result = await FilePicker.platform.pickFiles();
         if (result != null && result.files.isNotEmpty) {
-          final dir = result.files.first.parent;
-          if (dir != null) {
-            selectedPath = dir.path;
+          final filePath = result.files.first.path;
+          if (filePath != null) {
+            selectedPath = filePath.substring(0, filePath.lastIndexOf('/'));
           }
         }
       } else {
@@ -103,7 +103,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
         selectedPath,
       );
       if (mounted) {
-        setState(() => downloadDirectory = selectedPath);
+        setState(() => downloadDirectory = selectedPath!);
       }
       KazumiDialog.showToast(message: '下载位置已更新，仅对新下载生效');
     } on FileSystemException catch (e) {
