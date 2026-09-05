@@ -90,7 +90,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                         : (e.quoted)
                             ? Theme.of(context).colorScheme.outline
                             : (e.color != null)
-                                ? _parseColor(e.color!)
+                                ? (_parseColor(e.color!) ?? Colors.black)
                                 : Colors.black;
                 return TextSpan(
                   text: e.text,
