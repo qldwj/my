@@ -3,14 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// API 镜像代理设置页面
-///
-/// 用户可以：
-/// 1. 填写镜像主域名（如 api.qlyyz.top）
-/// 2. 为每个 Bangumi API 端点自定义路径
-/// 3. 选择不使用代理（直连 Bangumi 官方）
 class ApiProxyPage extends StatefulWidget {
   const ApiProxyPage({super.key});
 
@@ -22,6 +18,12 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   late TextEditingController _domainController;
   late bool _proxyEnabled;
   late Map<String, TextEditingController> _pathControllers;
+
+  // 预设域名选项
+  static const List<String> _presetDomains = [
+    'https://api.qlyyz.top',
+    'https://api.kazumi.fyi',
+  ];
 
   // 原始端点 → 默认镜像路径
   static const Map<String, _ApiEndpoint> _endpoints = {
@@ -37,7 +39,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     ),
     'popular': _ApiEndpoint(
       label: '热门番剧',
-      original: 'api.qlyyz.top/kazumi/v1/popular/subjects',
+      original: 'next.bgm.tv/p1/trending/subjects',
       defaultMirrorPath: '/kazumi/v1/popular/subjects',
     ),
     'season': _ApiEndpoint(
@@ -124,8 +126,19 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     super.dispose();
   }
 
+  /// 自动补全 https://
+  String _normalizeDomain(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return trimmed;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return 'https://$trimmed';
+    }
+    return trimmed;
+  }
+
   Future<void> _save() async {
-    final domain = _domainController.text.trim();
+    final domain = _normalizeDomain(_domainController.text);
+    _domainController.text = domain;
     await GStorage.putSetting(SettingsKeys.bangumiProxyDomain, domain);
     await GStorage.putSetting(SettingsKeys.enableBangumiProxy, _proxyEnabled);
     for (final entry in _pathControllers.entries) {
@@ -134,11 +147,15 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
         entry.value.text.trim(),
       );
     }
-    KazumiDialog.showToast(message: '已保存');
+    ProxyManager.applyProxy();
+    if (mounted) {
+      KazumiDialog.showToast(message: '已保存');
+    }
   }
 
   Future<void> _testConnection() async {
-    final domain = _domainController.text.trim();
+    final domain = _normalizeDomain(_domainController.text);
+    _domainController.text = domain;
     if (domain.isEmpty) {
       KazumiDialog.showToast(message: '请先填写镜像域名');
       return;
@@ -154,13 +171,46 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
       final response = await request.close().timeout(const Duration(seconds: 10));
       client.close();
       if (response.statusCode == 200) {
-        KazumiDialog.showToast(message: '连接测试通过');
+        KazumiDialog.showToast(message: '✅ 连接测试通过');
       } else {
         KazumiDialog.showToast(message: '连接失败: ${response.statusCode}');
       }
     } catch (e) {
       KazumiDialog.showToast(message: '连接测试失败: $e');
     }
+  }
+
+  void _showDomainPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('选择预设域名', style: Theme.of(ctx).textTheme.titleMedium),
+              ),
+              ..._presetDomains.map((domain) => ListTile(
+                leading: Icon(Icons.language, color: cs.primary),
+                title: Text(domain),
+                subtitle: Text(
+                  domain == 'https://api.kazumi.fyi' ? 'Kazumi 官方镜像' : 'Qlyyz 镜像',
+                  style: TextStyle(fontSize: 12, color: cs.outline),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _domainController.text = domain);
+                },
+              )),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -194,18 +244,31 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _domainController,
-                    decoration: const InputDecoration(
-                      labelText: '镜像主域名',
-                      hintText: 'https://api.qlyyz.top',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.language),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _domainController,
+                          decoration: const InputDecoration(
+                            labelText: '镜像主域名',
+                            hintText: 'api.qlyyz.top',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.language),
+                          ),
+                          onSubmitted: (_) => _save(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _showDomainPicker,
+                        icon: const Icon(Icons.arrow_drop_down_circle),
+                        tooltip: '选择预设域名',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '填写后所有 API 请求将通过此域名代理',
+                    '填写后所有 API 请求将通过此域名代理（自动补全 https://）',
                     style: TextStyle(fontSize: 12, color: cs.outline),
                   ),
                 ],
@@ -245,10 +308,23 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
           const SizedBox(height: 80),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _save,
-        icon: const Icon(Icons.save),
-        label: const Text('保存'),
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: _testConnection,
+            heroTag: 'test',
+            icon: const Icon(Icons.wifi_find),
+            label: const Text('测试'),
+          ),
+          const SizedBox(width: 12),
+          FloatingActionButton.extended(
+            onPressed: _save,
+            heroTag: 'save',
+            icon: const Icon(Icons.save),
+            label: const Text('保存'),
+          ),
+        ],
       ),
     );
   }
@@ -267,7 +343,6 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            // 原始地址（灰色小字）
             GestureDetector(
               onTap: () {
                 final url = 'https://${endpoint.original}';
@@ -279,7 +354,6 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
               ),
             ),
             const SizedBox(height: 8),
-            // 自定义路径
             TextField(
               controller: _pathControllers[key],
               decoration: InputDecoration(
