@@ -8,6 +8,7 @@ import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
 import 'package:kazumi/bean/widget/recommendation_section.dart';
 import 'package:kazumi/bean/widget/related_anime_section.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/widget/related_search_section.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -534,6 +535,15 @@ class _InfoTabViewState extends State<InfoTabView>
                           },
                           text: '重试',
                         ),
+                        GeneralErrorButton(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse('https://qlyyz.top'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          text: '检查服务器状态',
+                        ),
                       ],
                     ),
                   );
@@ -617,6 +627,15 @@ class _InfoTabViewState extends State<InfoTabView>
                         },
                         text: '重试',
                       ),
+                      GeneralErrorButton(
+                        onPressed: () {
+                          launchUrl(
+                            Uri.parse('https://qlyyz.top'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        text: '检查服务器状态',
+                      ),
                     ],
                   ),
                 );
@@ -698,6 +717,15 @@ class _InfoTabViewState extends State<InfoTabView>
                           widget.loadCharacters();
                         },
                         text: '重试',
+                      ),
+                      GeneralErrorButton(
+                        onPressed: () {
+                          launchUrl(
+                            Uri.parse('https://qlyyz.top'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        text: '检查服务器状态',
                       ),
                     ],
                   ),

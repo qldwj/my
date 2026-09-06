@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BangumiMirrorErrorWidget extends StatelessWidget {
   const BangumiMirrorErrorWidget({
@@ -30,6 +31,15 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
         GeneralErrorButton(
           onPressed: onRetry,
           text: '点击重试',
+        ),
+        GeneralErrorButton(
+          onPressed: () {
+            launchUrl(
+              Uri.parse('https://qlyyz.top'),
+              mode: LaunchMode.externalApplication,
+            );
+          },
+          text: '检查服务器状态',
         ),
       ],
     );

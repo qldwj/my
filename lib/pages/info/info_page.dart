@@ -688,11 +688,16 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     // 按钮2：系统分享（QQ/微信/跨平台）
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(ctx);
-                          // 🆕 调用系统分享（Share SharePlus）
-                          // 传入分享文案，用户可以选择 QQ/微信/跨平台好友
-                          Share.share(shareText);
+                          try {
+                            await SharePlus.instance.share(
+                              ShareParams(text: shareText),
+                            );
+                          } catch (e) {
+                            KazumiLogger().e('Share: 系统分享失败', error: e);
+                            KazumiDialog.showToast(message: '系统分享不可用，请复制链接后手动分享');
+                          }
                         },
                         icon: const Icon(Icons.share_rounded, size: 18),
                         label: const Text('系统分享'),

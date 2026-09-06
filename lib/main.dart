@@ -33,6 +33,7 @@ import 'package:kazumi/services/logging/logger.dart';
 // ✅ 新增导入：签名校验
 import 'package:kazumi/services/signature/signature_service.dart';
 import 'package:kazumi/pages/signature/signature_error_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -286,7 +287,7 @@ Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
       }
     }
     if (item == null) {
-      _showToast('未找到该番剧');
+      _openServerSite('未找到该番剧');
       return;
     }
     if (rootNavigatorKey.currentContext == null) {
@@ -305,7 +306,7 @@ Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
     });
   } catch (e) {
     KazumiLogger().e('AppLinks: 打开番剧失败', error: e);
-    _showToast('打开番剧失败');
+    _openServerSite('打开番剧失败');
   }
 }
 
@@ -372,6 +373,18 @@ void _showToast(String message) {
   try {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       KazumiDialog.showToast(message: message);
+    });
+  } catch (_) {}
+}
+
+void _openServerSite(String message) {
+  try {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      KazumiDialog.showToast(message: '$message，正在跳转...');
+      launchUrl(
+        Uri.parse('https://qlyyz.top'),
+        mode: LaunchMode.externalApplication,
+      );
     });
   } catch (_) {}
 }
