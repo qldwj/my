@@ -301,7 +301,7 @@ class SettingsKeys {
   );
   static const enableBangumiProxy = SettingKey<bool>(
     _SettingBoxKey.enableBangumiProxy,
-    true,
+    false,
     group: SettingGroup.proxy,
   );
   static const bangumiProxyDomain = SettingKey<String>(
