@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
@@ -145,6 +146,15 @@ class _CharacterPageState extends State<CharacterPage> {
             onPressed: loadCharacter,
             text: '点击重试',
           ),
+          GeneralErrorButton(
+            onPressed: () {
+              launchUrl(
+                Uri.parse('https://qlyyz.top'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+            text: '检查服务器状态',
+          ),
         ],
       );
     }
@@ -283,6 +293,15 @@ class _CharacterPageState extends State<CharacterPage> {
                         loadComments();
                       },
                       text: '点击重试',
+                    ),
+                    GeneralErrorButton(
+                      onPressed: () {
+                        launchUrl(
+                          Uri.parse('https://qlyyz.top'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                      text: '检查服务器状态',
                     ),
                   ],
                 ),
