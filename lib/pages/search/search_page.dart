@@ -12,6 +12,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/search_parser.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({
@@ -347,6 +348,15 @@ class _SearchPageState extends State<SearchPage> {
                                 type: 'init');
                           },
                           text: '点击重试',
+                        ),
+                        GeneralErrorButton(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse('https://qlyyz.top'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          text: '检查服务器状态',
                         ),
                       ],
                     ),
