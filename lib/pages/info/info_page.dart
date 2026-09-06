@@ -691,9 +691,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         onPressed: () async {
                           Navigator.pop(ctx);
                           try {
-                            await SharePlus.instance.share(
-                              ShareParams(text: shareText),
-                            );
+                            await Share.share(shareText);
                           } catch (e) {
                             KazumiLogger().e('Share: 系统分享失败', error: e);
                             KazumiDialog.showToast(message: '系统分享不可用，请复制链接后手动分享');
