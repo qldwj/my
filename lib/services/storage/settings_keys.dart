@@ -304,6 +304,20 @@ class SettingsKeys {
     true,
     group: SettingGroup.proxy,
   );
+  static const bangumiProxyDomain = SettingKey<String>(
+    _SettingBoxKey.bangumiProxyDomain,
+    'https://api.qlyyz.top',
+    group: SettingGroup.proxy,
+  );
+
+  /// 根据 key 获取/设置自定义镜像路径
+  static SettingKey<String> bangumiProxyPath(String endpointKey) =>
+      SettingKey<String>(
+        'bangumiProxyPath_$endpointKey',
+        '',
+        group: SettingGroup.proxy,
+      );
+
   static const enableSystemProxy = SettingKey<bool>(
     _SettingBoxKey.enableSystemProxy,
     false,
@@ -972,6 +986,7 @@ class _SettingBoxKey {
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
       enableBangumiProxy = 'enableBangumiProxy',
+      bangumiProxyDomain = 'bangumiProxyDomain',
       enableSystemProxy = 'enableSystemProxy',
       defaultStartupPage = 'defaultStartupPage',
       isWideScreen = 'isWideScreen',

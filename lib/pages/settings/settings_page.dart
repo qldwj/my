@@ -3,7 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/pages/my/feedback_page.dart';
-import 'package:kazumi/pages/settings/proxy/service_status_page.dart';
+import 'package:kazumi/pages/settings/proxy/api_proxy_page.dart';
 /// 设置主页（总设置）
 ///
 /// - 不含两个登录（在「我的」页）
@@ -76,11 +76,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   SettingsEntryTile(
                     icon: Icons.vpn_key_rounded,
-                    title: '代理',
-                    description: '检测服务连接状态 / 配置HTTP代理',
+                    title: 'API 镜像代理',
+                    description: '配置 Bangumi API 镜像域名和端点路径',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const ServiceStatusPage(),
+                        builder: (_) => const ApiProxyPage(),
                       ),
                     ),
                   ),
