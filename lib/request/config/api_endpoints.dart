@@ -1,9 +1,11 @@
+import 'package:kazumi/services/storage/storage.dart';
+
 class ApiEndpoints {
   /// 当前版本
   static const String version = '2.3.5';
 
   /// 规则API级别
-  static const int apiLevel = 8;
+  static const int apiLevel = 9;
 
   /// 项目主页
   static const String projectUrl = "https://qlyyz.xyz/";
@@ -36,8 +38,9 @@ class ApiEndpoints {
       'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
 /// 所有版本列表镜像（含测试版）
   static const String allAppReleasesMirror = 'https://qlyyz.xyz/api/releases/index'; 
-  /// Bangumi 镜像测试后端
-  static const String bangumiMirrorDomain = 'https://api.qlyyz.top';
+  /// Bangumi 镜像测试后端（动态读取用户设置）
+  static String get bangumiMirrorDomain =>
+      GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
 
   /// Bangumi 图片代理（镜像模式用）
   static const String bangumiImageProxyBase = 'https://wsrv.nl/?url=';
