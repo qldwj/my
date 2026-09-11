@@ -690,7 +690,7 @@ class _MyPageState extends State<MyPage> {
                     ),
                     subtitle: Text(
                       AuthService.isLoggedIn
-                          ? (_bangumiLoggedIn ? 'Bangumi · 樱花动漫 已登录' : '樱花动漫已登录')
+                          ? (bangumiLoggedIn ? 'Bangumi · 樱花动漫 已登录' : '樱花动漫已登录')
                           : '登录后可同步收藏与进度',
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
                     ),
