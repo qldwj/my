@@ -146,7 +146,7 @@ final List<_SettingsGroup> _settingsGroups = [
         description: '版本与开源信息',
         icon: Icons.info_outline_rounded,
         builder: (_) => AboutPage(
-          onCheckUpdate: inject<MyController>().checkUpdate,
+          controller: inject<MyController>(),
         ),
       ),
     ],
