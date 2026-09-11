@@ -3,23 +3,18 @@ class CollectSyncPlan {
     required this.webDavEnabled,
     required this.webDavCollectiblesEnabled,
     required this.bangumiEnabled,
-    this.kazumiSyncEnabled = false,
   });
 
   final bool webDavEnabled;
   final bool webDavCollectiblesEnabled;
   final bool bangumiEnabled;
-  final bool kazumiSyncEnabled;
 
   bool get shouldSyncWebDavCollectibles =>
       webDavEnabled && webDavCollectiblesEnabled;
 
   bool get shouldSyncBangumi => bangumiEnabled;
 
-  bool get shouldSyncKazumi => kazumiSyncEnabled;
-
-  bool get canSync =>
-      shouldSyncWebDavCollectibles || shouldSyncBangumi || shouldSyncKazumi;
+  bool get canSync => shouldSyncWebDavCollectibles || shouldSyncBangumi;
 
   bool shouldUploadWebDavAfterBangumi({
     required bool webDavSynced,

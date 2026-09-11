@@ -851,6 +851,10 @@ class _SpaceShapeClipper extends CustomClipper<Path> {
     path.addOval(Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.6));
     return path;
   }
+
+  @override
+  bool shouldReclip(covariant _SpaceShapeClipper oldClipper) =>
+      oldClipper.shape != shape;
 }
 
 // ── 可交互卡片基类（带动画）──

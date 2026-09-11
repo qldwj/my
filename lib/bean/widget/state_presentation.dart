@@ -1,110 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:material_new_shapes/material_new_shapes.dart';
 
-class StateIconBadge extends StatelessWidget {
-  const StateIconBadge({
-    super.key,
-    required this.icon,
-    required this.size,
-    required this.iconSize,
-    required this.backgroundColor,
-    required this.foregroundColor,
-  });
-
-  final IconData icon;
-  final double size;
-  final double iconSize;
-  final Color backgroundColor;
-  final Color foregroundColor;
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-        child: ClipPath(
-          clipper: const _StateShapeClipper(),
-          child: ColoredBox(
-            color: backgroundColor,
-            child: SizedBox.square(
-              dimension: size,
-              child: Icon(icon, size: iconSize, color: foregroundColor),
-            ),
-          ),
-        ),
-      );
-}
-
-class _StateShapeClipper extends CustomClipper<Path> {
-  const _StateShapeClipper();
-
-  static final _path = MaterialShapes.cookie4Sided.toPath();
-
-  @override
-  Path getClip(Size size) => _path
-      .transform(Matrix4.diagonal3Values(size.width, size.height, 1).storage);
-
-  @override
-  bool shouldReclip(_StateShapeClipper oldClipper) => false;
-}
-
+/// 状态操作按钮（Tonal风格）
 class StateActionButton extends StatelessWidget {
   const StateActionButton({
     super.key,
-    required this.onPressed,
     required this.text,
     this.icon,
-    this.reserveText,
-  }) : _tonal = false;
+    this.onPressed,
+  });
+
+  final String text;
+  final IconData? icon;
+  final VoidCallback? onPressed;
 
   const StateActionButton.tonal({
     super.key,
-    required this.onPressed,
     required this.text,
     this.icon,
-    this.reserveText,
-  }) : _tonal = true;
-
-  final VoidCallback? onPressed;
-  final String text;
-  final IconData? icon;
-
-  /// Reserves label space for a longer status without changing button size.
-  final String? reserveText;
-  final bool _tonal;
+    this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final style = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(64, 48)),
-      padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-      shape: WidgetStateProperty.resolveWith((states) => RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-                states.contains(WidgetState.pressed) ? 16 : 28),
-          )),
-      animationDuration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 200),
-    );
-    final button = _tonal ? FilledButton.tonalIcon : FilledButton.icon;
-    final label = Text(text, textAlign: TextAlign.center);
-    return button(
+    final colors = Theme.of(context).colorScheme;
+    return FilledButton.tonal(
       onPressed: onPressed,
-      style: style,
-      icon: icon == null ? null : Icon(icon, size: 20),
-      label: reserveText == null
-          ? label
-          : Stack(
-              alignment: Alignment.center,
-              children: [
-                Visibility(
-                  visible: false,
-                  maintainSize: true,
-                  maintainState: true,
-                  maintainAnimation: true,
-                  child: Text(reserveText!, textAlign: TextAlign.center),
-                ),
-                label,
-              ],
-            ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18),
+            const SizedBox(width: 6),
+          ],
+          Text(text),
+        ],
+      ),
+    );
+  }
+}
+
+/// 空状态展示
+class GeneralEmptyState extends StatelessWidget {
+  const GeneralEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.description,
+    this.actions,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? description;
+  final List<Widget>? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 64, color: colors.outlineVariant),
+            const SizedBox(height: 16),
+            Text(title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700, color: colors.onSurface)),
+            if (description != null) ...[
+              const SizedBox(height: 8),
+              Text(description!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: colors.onSurfaceVariant)),
+            ],
+            if (actions != null) ...[
+              const SizedBox(height: 24),
+              Wrap(spacing: 8, runSpacing: 8, children: actions!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 加载状态展示
+class LoadingStatePresentation extends StatelessWidget {
+  const LoadingStatePresentation({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }
