@@ -618,328 +618,507 @@ class _MyPageState extends State<MyPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final bangumiLoggedIn =
         GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
     return Scaffold(
       appBar: SysAppBar(
-        title: const Text('我的'),
+        toolbarHeight: 72,
+        title: Text(
+          '我的',
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
         needTopOffset: false,
-        // 🆕 二维码仅在樱花动漫登录时显示（用于扫码登录其他设备）
         actions: [
+          // 隐私设置（已登录时显示）
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: '显示登录二维码',
-              icon: const Icon(Icons.qr_code_2_rounded),
+              tooltip: '隐私设置',
+              icon: const Icon(Icons.privacy_tip_outlined, size: 22),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const QrcodeLoginPage(),
-                  ),
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                Navigator.of(navContext).push(
+                  MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
                 );
               },
             ),
+          // 二维码（已登录时显示）
+          if (AuthService.isLoggedIn)
+            IconButton(
+              tooltip: '显示登录二维码',
+              icon: const Icon(Icons.qr_code_2_rounded, size: 22),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
+                );
+              },
+            ),
+          // 设置入口
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: '全部设置',
+              icon: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.tune_rounded, size: 18, color: colorScheme.onSurface),
+                    const SizedBox(width: 6),
+                    Text('设置', style: TextStyle(fontSize: 13, color: colorScheme.onSurface)),
+                  ],
+                ),
+              ),
+              onPressed: () => context.pushNamed('/settings/'),
+            ),
+          ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // ── 个人中心（用户信息卡片 + 隐私设置）──
-              SettingsSectionCard(
-                title: '个人中心',
-                children: [
-                  // 用户信息行
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: CircleAvatar(
-                      radius: 24,
-                      backgroundColor: AuthService.isLoggedIn
-                          ? Colors.green.shade50
-                          : Colors.blue.shade50,
-                      child: AuthService.isLoggedIn &&
-                              _socialProfile != null &&
-                              _socialProfile!.avatar.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: NetworkImgLayer(
-                                width: 48,
-                                height: 48,
-                                src: SocialService.proxiedAvatar(
-                                    _socialProfile!.avatar),
-                              ),
-                            )
-                          : Icon(
-                              AuthService.isLoggedIn
-                                  ? Icons.check_circle
-                                  : Icons.person_add,
-                              color: AuthService.isLoggedIn
-                                  ? Colors.green.shade600
-                                  : Colors.blue.shade600,
-                            ),
-                    ),
-                    title: Text(
-                      AuthService.isLoggedIn
-                          ? (_socialProfile?.nickname.isNotEmpty == true
-                              ? _socialProfile!.nickname
-                              : '樱花动漫账号')
-                          : '点击登录',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      AuthService.isLoggedIn
-                          ? (bangumiLoggedIn ? 'Bangumi · 樱花动漫 已登录' : '樱花动漫已登录')
-                          : '登录后可同步收藏与进度',
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
-                    ),
-                    trailing: AuthService.isLoggedIn
-                        ? IconButton(
-                            icon: const Icon(Icons.privacy_tip_outlined, size: 20),
-                            tooltip: '隐私设置',
-                            onPressed: () {
-                              final navContext = rootNavigatorKey.currentContext;
-                              if (navContext == null || !navContext.mounted) return;
-                              Navigator.of(navContext).push(
-                                MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
-                              );
-                            },
-                          )
-                        : null,
-                    onTap: () {
-                      final navContext = rootNavigatorKey.currentContext;
-                      if (navContext == null || !navContext.mounted) return;
-                      Navigator.of(navContext).push(
-                        MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  // 好友
-                  SettingsEntryTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AuthService.isLoggedIn
-                            ? Colors.teal.shade50
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.people_rounded,
-                        color: AuthService.isLoggedIn
-                            ? Colors.teal.shade600
-                            : Colors.grey.shade500,
-                      ),
-                    ),
-                    title: '我的好友',
-                    description: AuthService.isLoggedIn
-                        ? '搜索好友 / 好友申请 / 聊天'
-                        : '登录后可添加好友',
-                    trailing: _friendRequestCount > 0
-                        ? _Badge(count: _friendRequestCount, color: Colors.red)
-                        : null,
-                    onTap: () {
-                      if (!AuthService.isLoggedIn) {
-                        KazumiDialog.showToast(message: '请先登录樱花动漫账号');
-                        return;
-                      }
-                      final navContext = rootNavigatorKey.currentContext;
-                      if (navContext == null || !navContext.mounted) return;
-                      Navigator.of(navContext).push(
-                        MaterialPageRoute(builder: (_) => const FriendsPage()),
-                      ).then((_) => _loadSocialProfile());
-                    },
-                  ),
-                ],
-              ),
-
-              // ── 本周目标 ──
-              SettingsSectionCard(
-                title: '本周目标',
-                leading: Icon(
-                  Icons.flag_rounded,
-                  size: 20,
-                  color: colorScheme.primary,
-                ),
-                children: [
-                  if (weeklyGoal <= 0)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Text(
-                            '本周还没设定目标，本周已看 $thisWeekEpisodes 集',
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          FilledButton.tonal(
-                            onPressed: () {
-                              setState(() => weeklyGoal = 5);
-                              GStorage.putSetting(
-                                  SettingsKeys.weeklyWatchGoal, 5);
-                            },
-                            child: const Text('设定目标（5 集 / 周）'),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                      child: Column(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final inset = constraints.maxWidth < 600 ? 16.0 : 32.0;
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(inset, 8, inset, 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── 个人中心 + 账号 ──
+                      _buildHeader(colorScheme, textTheme, bangumiLoggedIn),
+                      const SizedBox(height: 20),
+                      // ── 本周目标 ──
+                      _buildWeeklyGoal(colorScheme, textTheme),
+                      const SizedBox(height: 12),
+                      // ── 规则设置 + 历史记录/离线下载 ──
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '本周已看 $thisWeekEpisodes / $weeklyGoal 集',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                          Expanded(child: _buildRulesTile(colorScheme, textTheme)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildToolTile(
+                                  colorScheme, textTheme,
+                                  icon: Icons.history_rounded,
+                                  title: '历史记录',
+                                  caption: '查看观看记录',
+                                  color: colorScheme.secondaryContainer,
+                                  foreground: colorScheme.onSecondaryContainer,
+                                  onTap: () => context.pushNamed('/settings/history/'),
                                 ),
-                              ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                onPressed: weeklyGoal > 1
-                                    ? () {
-                                        setState(() => weeklyGoal--);
-                                        GStorage.putSetting(
-                                            SettingsKeys.weeklyWatchGoal,
-                                            weeklyGoal);
-                                      }
-                                    : null,
-                                icon: const Icon(Icons.remove_circle_outline),
-                              ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () {
-                                  setState(() => weeklyGoal++);
-                                  GStorage.putSetting(SettingsKeys.weeklyWatchGoal,
-                                      weeklyGoal);
-                                },
-                                icon: const Icon(Icons.add_circle_outline),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: (thisWeekEpisodes / weeklyGoal).clamp(0.0, 1.0),
-                              minHeight: 8,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            thisWeekEpisodes >= weeklyGoal
-                                ? '🎉 本周目标已完成！'
-                                : '还差 ${weeklyGoal - thisWeekEpisodes} 集达成目标',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: thisWeekEpisodes >= weeklyGoal
-                                  ? Colors.green
-                                  : colorScheme.onSurfaceVariant,
+                                const SizedBox(height: 12),
+                                _buildToolTile(
+                                  colorScheme, textTheme,
+                                  icon: Icons.download_rounded,
+                                  title: '离线下载',
+                                  caption: '管理离线内容',
+                                  color: colorScheme.tertiaryContainer,
+                                  foreground: colorScheme.onTertiaryContainer,
+                                  onTap: () => context.pushNamed('/settings/download/'),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                ],
-              ),
-
-              // ── 历史记录 + 离线下载（仅这两个选项）──
-              SettingsSectionCard(
-                children: [
-                  SettingsEntryTile(
-                    icon: Icons.history_rounded,
-                    title: '历史记录',
-                    description: '查看播放历史记录',
-                    onTap: () => context.pushNamed('/settings/history/'),
-                  ),
-                  SettingsEntryTile(
-                    icon: Icons.download_rounded,
-                    title: '离线下载',
-                    description: '查看和管理离线下载',
-                    onTap: () => context.pushNamed('/settings/download/'),
-                  ),
-                  SettingsEntryTile(
-                    icon: Icons.bar_chart_rounded,
-                    title: '观看统计',
-                    description: '查看你的追番报告和统计数据',
-                    onTap: () => context.pushNamed('/stats/'),
-                  ),
-                  SettingsEntryTile(
-                    icon: Icons.cleaning_services_rounded,
-                    title: '缓存清理',
-                    description: '查看图片缓存占用，一键清理释放空间',
-                    onTap: () => _showCacheCleanup(context),
-                  ),
-                ],
-              ),
-
-              // ── 设置（入口）──
-              SettingsSectionCard(
-                children: [
-                  SettingsEntryTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 12),
+                      // ── 偏好设置 + 同步/存储 ──
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildPreferencesPanel(colorScheme, textTheme)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildToolTile(
+                                  colorScheme, textTheme,
+                                  icon: Icons.cloud_sync_rounded,
+                                  title: '同步备份',
+                                  caption: '跨设备同步数据',
+                                  color: colorScheme.surfaceContainer,
+                                  foreground: colorScheme.onSurface,
+                                  onTap: () => context.pushNamed('/settings'),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildToolTile(
+                                  colorScheme, textTheme,
+                                  icon: Icons.cleaning_services_rounded,
+                                  title: '存储管理',
+                                  caption: '缓存与日志',
+                                  color: colorScheme.surfaceContainer,
+                                  foreground: colorScheme.onSurface,
+                                  onTap: () => _showCacheCleanup(context),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        Icons.settings_rounded,
-                        color: colorScheme.onPrimaryContainer,
+                      const SizedBox(height: 24),
+                      // ── 关于 ──
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => context.pushNamed('/settings/about/'),
+                          icon: const Icon(Icons.info_outline_rounded, size: 18),
+                          label: const Text('关于 Kazumi'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
-                    ),
-                    title: '设置',
-                    description: '播放 / 下载 / 规则 / 同步等全部设置',
-                    onTap: () => context.pushNamed('/settings'),
+                    ],
                   ),
-                ],
-              ),
-
-              // ── 简易历史记录（最多 5 条，点击直接继续观看）──
-              SettingsSectionCard(
-                title: '历史记录',
-                leading: Icon(
-                  Icons.history_rounded,
-                  size: 20,
-                  color: colorScheme.primary,
                 ),
-                children: [
-                  if (_recentHistories.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('暂无历史记录'),
-                    )
-                  else
-                    for (final h in _recentHistories)
-                      BangumiHistoryCardV(historyItem: h),
-                  const Divider(height: 1),
-                  ListTile(
-                    onTap: () => context.pushNamed('/settings/history/'),
-                    title: Text(
-                      '更多历史记录请在历史记录页查看',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.outline,
-                      ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ── 个人中心头部 ──
+  Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme, bool bangumiLoggedIn) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '个人中心',
+                style: textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AuthService.isLoggedIn
+                    ? '欢迎回来，${_socialProfile?.nickname ?? '用户'}'
+                    : '登录以同步数据',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        // 登录 + 好友
+        Row(
+          children: [
+            _buildAccountAction(
+              colorScheme: colorScheme,
+              icon: AuthService.isLoggedIn ? Icons.check_circle_rounded : Icons.login_rounded,
+              title: AuthService.isLoggedIn ? '已登录' : '登录',
+              color: AuthService.isLoggedIn ? Colors.green : colorScheme.primary,
+              onTap: () {
+                if (!AuthService.isLoggedIn) {
+                  final navContext = rootNavigatorKey.currentContext;
+                  if (navContext == null || !navContext.mounted) return;
+                  Navigator.of(navContext).push(
+                    MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+                  );
+                }
+              },
+            ),
+            const SizedBox(width: 16),
+            _buildAccountAction(
+              colorScheme: colorScheme,
+              icon: Icons.people_rounded,
+              title: '好友',
+              color: colorScheme.tertiary,
+              badge: _friendRequestCount,
+              onTap: () {
+                if (!AuthService.isLoggedIn) {
+                  KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                  return;
+                }
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                Navigator.of(navContext).push(
+                  MaterialPageRoute(builder: (_) => const FriendsPage()),
+                ).then((_) => _loadSocialProfile());
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountAction({
+    required ColorScheme colorScheme,
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+    int badge = 0,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: color.withValues(alpha: 0.1),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              if (badge > 0)
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
                     ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.outline,
+                    child: Text(
+                      badge > 99 ? '99+' : '$badge',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+        ],
+      ),
+    );
+  }
+
+  // ── 本周目标 ──
+  Widget _buildWeeklyGoal(ColorScheme colorScheme, TextTheme textTheme) {
+    return Material(
+      color: colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(28),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.flag_rounded, size: 20, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('本周目标', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (weeklyGoal <= 0)
+              Column(
+                children: [
+                  Text('本周还没设定目标，本周已看 $thisWeekEpisodes 集',
+                      style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                  const SizedBox(height: 12),
+                  FilledButton.tonal(
+                    onPressed: () {
+                      setState(() => weeklyGoal = 5);
+                      GStorage.putSetting(SettingsKeys.weeklyWatchGoal, 5);
+                    },
+                    child: const Text('设定目标（5 集 / 周）'),
+                  ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('本周已看 $thisWeekEpisodes / $weeklyGoal 集',
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: weeklyGoal > 1
+                            ? () {
+                                setState(() => weeklyGoal--);
+                                GStorage.putSetting(SettingsKeys.weeklyWatchGoal, weeklyGoal);
+                              }
+                            : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          setState(() => weeklyGoal++);
+                          GStorage.putSetting(SettingsKeys.weeklyWatchGoal, weeklyGoal);
+                        },
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: (thisWeekEpisodes / weeklyGoal).clamp(0.0, 1.0),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    thisWeekEpisodes >= weeklyGoal ? '🎉 本周目标已完成！' : '还差 ${weeklyGoal - thisWeekEpisodes} 集达成目标',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: thisWeekEpisodes >= weeklyGoal ? Colors.green : colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 规则设置大卡片 ──
+  Widget _buildRulesTile(ColorScheme colorScheme, TextTheme textTheme) {
+    return Material(
+      color: colorScheme.primary,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(28),
+        topRight: Radius.circular(64),
+        bottomLeft: Radius.circular(28),
+        bottomRight: Radius.circular(28),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: () => context.pushNamed('/settings/plugin/'),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('规则设置',
+                  style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimary)),
+              const SizedBox(height: 6),
+              Text('管理番剧来源', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary)),
+              const SizedBox(height: 32),
+              Container(
+                width: 52,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colorScheme.onPrimary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(Icons.arrow_forward_rounded, color: colorScheme.primary, size: 20),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 工具磁贴 ──
+  Widget _buildToolTile(
+    ColorScheme colorScheme,
+    TextTheme textTheme, {
+    required IconData icon,
+    required String title,
+    required String caption,
+    required Color color,
+    required Color foreground,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 28, color: foreground),
+                  const Spacer(),
+                  Icon(Icons.arrow_forward_rounded, size: 18, color: foreground),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(title,
+                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: foreground)),
+              const SizedBox(height: 4),
+              Text(caption,
+                  style: textTheme.bodySmall?.copyWith(color: foreground, height: 1.4)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 偏好设置面板 ──
+  Widget _buildPreferencesPanel(ColorScheme colorScheme, TextTheme textTheme) {
+    return Material(
+      color: colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(28),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('偏好设置',
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildPrefButton(colorScheme, Icons.palette_rounded, '外观', () => context.pushNamed('/settings/theme'))),
+                const SizedBox(width: 4),
+                Expanded(child: _buildPrefButton(colorScheme, Icons.play_circle_rounded, '播放', () => context.pushNamed('/settings/player'))),
+                const SizedBox(width: 4),
+                Expanded(child: _buildPrefButton(colorScheme, Icons.subtitles_rounded, '弹幕', () => context.pushNamed('/settings/danmaku/'))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrefButton(ColorScheme colorScheme, IconData icon, String label, VoidCallback onTap) {
+    return Material(
+      color: colorScheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              Icon(icon, size: 28, color: colorScheme.onSecondaryContainer),
+              const SizedBox(height: 8),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSecondaryContainer)),
             ],
           ),
         ),
