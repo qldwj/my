@@ -19,6 +19,7 @@ import 'package:kazumi/pages/settings/settings_page.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/webview_embed_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
+import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 final settingsModule = createModule(
@@ -71,6 +72,10 @@ final settingsModule = createModule(
       ..route(
         '/desktop',
         child: (context, state) => const DesktopSettingsPage(),
+      )
+      ..route(
+        '/sync',
+        child: (context, state) => const SyncSettingsPage(),
       )
       ..module(bangumiModule);
   },
