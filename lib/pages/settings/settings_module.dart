@@ -16,10 +16,7 @@ import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/settings/renderer_settings.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
-import 'package:kazumi/pages/settings/storage_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
-import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
-import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
 import 'package:kazumi/pages/settings/webview_embed_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
@@ -74,18 +71,6 @@ final settingsModule = createModule(
       ..route(
         '/desktop',
         child: (context, state) => const DesktopSettingsPage(),
-      )
-      ..route(
-        '/sync',
-        child: (context, state) => const SyncSettingsPage(),
-      )
-      ..route(
-        '/sync/bangumi',
-        child: (context, state) => const BangumiSyncPage(),
-      )
-      ..route(
-        '/storage',
-        child: (context, state) => const StorageSettingsPage(),
       )
       ..module(bangumiModule);
   },
