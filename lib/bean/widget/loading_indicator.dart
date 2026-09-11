@@ -1,19 +1,11 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:material_new_shapes/material_new_shapes.dart';
 
+/// 自适应加载指示器
 class LoadingIndicator extends StatefulWidget {
-  const LoadingIndicator({
-    super.key,
-    this.size = 48,
-    this.color,
-    this.semanticsLabel = '加载中',
-  });
+  const LoadingIndicator({super.key, this.size = 48});
 
   final double size;
-  final Color? color;
-  final String semanticsLabel;
 
   @override
   State<LoadingIndicator> createState() => _LoadingIndicatorState();
@@ -21,35 +13,15 @@ class LoadingIndicator extends StatefulWidget {
 
 class _LoadingIndicatorState extends State<LoadingIndicator>
     with SingleTickerProviderStateMixin {
-  static final _shapes = [
-    MaterialShapes.softBurst,
-    MaterialShapes.cookie9Sided,
-    MaterialShapes.pill,
-    MaterialShapes.sunny,
-    MaterialShapes.cookie4Sided,
-    MaterialShapes.oval,
-    MaterialShapes.cookie7Sided,
-  ];
-  // Share expensive morph matching across indicator instances.
-  static final _morphs = List.generate(
-    _shapes.length,
-    (index) => Morph(_shapes[index], _shapes[(index + 1) % _shapes.length]),
-  );
-
-  late final _controller = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: 650 * _shapes.length),
-  );
+  late final AnimationController _controller;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled) {
-      _controller.stop();
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
-    }
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
   }
 
   @override
@@ -60,56 +32,55 @@ class _LoadingIndicatorState extends State<LoadingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: widget.semanticsLabel,
-      child: RepaintBoundary(
-        child: SizedBox.square(
-          dimension: widget.size,
-          child: CustomPaint(
-            painter: _LoadingShapePainter(
-              animation: _controller,
-              morphs: _morphs,
-              color: widget.color ?? Theme.of(context).colorScheme.primary,
-            ),
+    final colors = Theme.of(context).colorScheme;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          size: Size(widget.size, widget.size),
+          painter: _LoadingPainter(
+            progress: _controller.value,
+            color: colors.primary,
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class _LoadingShapePainter extends CustomPainter {
-  _LoadingShapePainter({
-    required this.animation,
-    required this.morphs,
-    required this.color,
-  }) : super(repaint: animation);
+class _LoadingPainter extends CustomPainter {
+  _LoadingPainter({required this.progress, required this.color});
 
-  final Animation<double> animation;
-  final List<Morph> morphs;
+  final double progress;
   final Color color;
-  final Path _path = Path();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final position = animation.value * morphs.length;
-    final index = position.floor() % morphs.length;
-    final progress = Curves.easeInOutCubicEmphasized.transform(position % 1);
-    final path = morphs[index].toPath(progress: progress, path: _path);
-    // Fit the diagonal so rotation stays inside small indicator slots.
-    final scale = size.shortestSide / math.sqrt2;
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(animation.value * math.pi * 2);
-    canvas.scale(scale);
-    canvas.translate(-0.5, -0.5);
-    canvas.drawPath(path, Paint()..color = color);
-    canvas.restore();
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+
+    // 旋转的圆弧
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    final startAngle = 2 * math.pi * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      math.pi * 1.5,
+      false,
+      paint,
+    );
+
+    // 中心点
+    final dotPaint = Paint()..color = color;
+    canvas.drawCircle(center, 3, dotPaint);
   }
 
   @override
-  bool shouldRepaint(_LoadingShapePainter oldDelegate) =>
-      oldDelegate.color != color ||
-      oldDelegate.animation != animation ||
-      oldDelegate.morphs != morphs;
+  bool shouldRepaint(covariant _LoadingPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }
