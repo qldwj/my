@@ -1217,35 +1217,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ),
                   ),
-                  // 🆕 连播队列
-                  if (widget.onAddToPlayQueue != null)
-                    MenuItemButton(
-                      onPressed: () {
-                        widget.onAddToPlayQueue!();
-                      },
-                      child: Container(
-                        height: 48,
-                        constraints: BoxConstraints(minWidth: 112),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("加入连播队列"),
-                        ),
-                      ),
-                    ),
-                  if (widget.onOpenPlayQueue != null)
-                    MenuItemButton(
-                      onPressed: () {
-                        widget.onOpenPlayQueue!();
-                      },
-                      child: Container(
-                        height: 48,
-                        constraints: BoxConstraints(minWidth: 112),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("连播队列"),
-                        ),
-                      ),
-                    ),
+                  // 加入连播队列 - 已移除
+                  // 连播队列 - 已移除
                   // 🆕 邀请好友一起看（Syncplay）
                   if (widget.onInviteSyncPlay != null)
                     MenuItemButton(
@@ -1261,29 +1234,42 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ),
                       ),
                     ),
-                  MenuItemButton(
-                    onPressed: () => _showSkipDurationDialog(isOp: true),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 160),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "片头时长：${_formatDuration(SkipSegmentsService.opSeconds(videoPageController.bangumiItem.id))}",
+                  // 片头/片尾 合并为一个展开项
+                  SubmenuButton(
+                    menuChildren: [
+                      MenuItemButton(
+                        onPressed: () => _showSkipDurationDialog(isOp: true),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 160),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "片头：${_formatDuration(SkipSegmentsService.opSeconds(videoPageController.bangumiItem.id))}",
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  MenuItemButton(
-                    onPressed: () => _showSkipDurationDialog(isOp: false),
+                      MenuItemButton(
+                        onPressed: () => _showSkipDurationDialog(isOp: false),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 160),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "片尾：${_formatDuration(SkipSegmentsService.edSeconds(videoPageController.bangumiItem.id))}",
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     child: Container(
                       height: 48,
-                      constraints: BoxConstraints(minWidth: 160),
+                      constraints: BoxConstraints(minWidth: 112),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          "片尾时长：${_formatDuration(SkipSegmentsService.edSeconds(videoPageController.bangumiItem.id))}",
-                        ),
+                        child: Text("片头/片尾设置"),
                       ),
                     ),
                   ),
