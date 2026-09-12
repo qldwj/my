@@ -3,6 +3,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BangumiSyncPage extends StatefulWidget {
   const BangumiSyncPage({super.key});
@@ -143,6 +144,15 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                   children: [
                                     FilledButton.tonal(
                                       onPressed: _isVerified ? null : () async {
+                                        // 先保存token到存储
+                                        final token = _tokenController.text.trim();
+                                        if (token.isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('请输入Access Token')),
+                                          );
+                                          return;
+                                        }
+                                        await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
                                         try {
                                           await _bangumi.init();
                                           setState(() {});
@@ -163,8 +173,11 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                     ),
                                     const SizedBox(width: 8),
                                     TextButton(
-                                      onPressed: () {
-                                        // TODO: 打开Bangumi网页获取token
+                                      onPressed: () async {
+                                        final uri = Uri.parse('https://next.bgm.tv/demo/access-token/create');
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        }
                                       },
                                       child: const Text('获取授权码'),
                                     ),

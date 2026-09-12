@@ -187,8 +187,17 @@ class _CollectPageState extends State<CollectPage> {
                       setSheetState(() => syncing = true);
                       try {
                         for (final step in services) {
-                          if (step.name == 'WebDAV') {
-                            await ctrl.syncCollectibles(showSuccessToast: false);
+                          try {
+                            if (step.name == 'WebDAV') {
+                              await ctrl.syncCollectibles(showSuccessToast: false);
+                            } else if (step.name == 'Bangumi') {
+                              await ctrl.syncCollectiblesBangumi(
+                                showSuccessToast: false,
+                                onProgress: (msg, cur, total) {},
+                              );
+                            }
+                          } catch (e) {
+                            // 单个服务失败继续
                           }
                         }
                         if (ctx.mounted) {
