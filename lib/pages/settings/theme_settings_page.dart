@@ -65,49 +65,56 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void setTheme(Color? color) {
+    final seedColor = color ?? Colors.green;
+    var lightTheme = ThemeData(
+      useMaterial3: true,
+      fontFamily: themeProvider.currentFontFamily,
+      brightness: Brightness.light,
+      colorSchemeSeed: seedColor,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024,
+    );
     var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        fontFamily: themeProvider.currentFontFamily,
-        brightness: Brightness.dark,
-        colorSchemeSeed: color,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
+      useMaterial3: true,
+      fontFamily: themeProvider.currentFontFamily,
+      brightness: Brightness.dark,
+      colorSchemeSeed: seedColor,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024,
+    );
     var oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
-      ThemeData(
-          useMaterial3: true,
-          fontFamily: themeProvider.currentFontFamily,
-          brightness: Brightness.light,
-          colorSchemeSeed: color,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
+      lightTheme,
       oledEnhance ? oledTheme : defaultDarkTheme,
     );
-    defaultThemeColor = color?.toARGB32().toRadixString(16) ?? 'default';
+    defaultThemeColor = seedColor.toARGB32().toRadixString(16);
     GStorage.putSetting(SettingsKeys.themeColor, defaultThemeColor);
   }
 
   void resetTheme() {
+    var lightTheme = ThemeData(
+      useMaterial3: true,
+      fontFamily: themeProvider.currentFontFamily,
+      brightness: Brightness.light,
+      colorSchemeSeed: Colors.green,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024,
+    );
     var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        fontFamily: themeProvider.currentFontFamily,
-        brightness: Brightness.dark,
-        colorSchemeSeed: Colors.green,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
+      useMaterial3: true,
+      fontFamily: themeProvider.currentFontFamily,
+      brightness: Brightness.dark,
+      colorSchemeSeed: Colors.green,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024,
+    );
     var oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
-      ThemeData(
-          useMaterial3: true,
-          fontFamily: themeProvider.currentFontFamily,
-          brightness: Brightness.light,
-          colorSchemeSeed: Colors.green,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
+      lightTheme,
       oledEnhance ? oledTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
