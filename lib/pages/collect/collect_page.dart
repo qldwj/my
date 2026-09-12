@@ -185,8 +185,12 @@ class _CollectPageState extends State<CollectPage> {
                   child: FilledButton.icon(
                     onPressed: syncing ? null : () async {
                       setSheetState(() => syncing = true);
-                      try {
-                        for (final step in services) {
+                      int completed = 0;
+                      final results = <String, bool>{};
+                      // 同时执行所有服务
+                      final futures = <Future>[];
+                      for (final step in services) {
+                        futures.add((() async {
                           try {
                             if (step.name == 'WebDAV') {
                               await ctrl.syncCollectibles(showSuccessToast: false);
@@ -196,14 +200,24 @@ class _CollectPageState extends State<CollectPage> {
                                 onProgress: (msg, cur, total) {},
                               );
                             }
+                            results[step.name] = true;
                           } catch (e) {
-                            // 单个服务失败继续
+                            results[step.name] = false;
                           }
-                        }
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                          KazumiDialog.showToast(message: '同步完成');
-                        }
+                          completed++;
+                          if (ctx.mounted) setSheetState(() {});
+                        })());
+                      }
+                      await Future.wait(futures);
+                      // 显示结果
+                      if (ctx.mounted) {
+                        final successCount = results.values.where((v) => v).length;
+                        final failCount = results.values.where((v) => !v).length;
+                        Navigator.pop(ctx);
+                        KazumiDialog.showToast(
+                          message: '同步完成: $successCount成功${failCount > 0 ? ', $failCount失败' : ''}',
+                        );
+                      }
                       } catch (e) {
                         if (ctx.mounted) KazumiDialog.showToast(message: '同步失败: $e');
                       } finally {
