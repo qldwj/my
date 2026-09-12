@@ -488,32 +488,39 @@ class _CollectTileState extends State<_CollectTile> {
                   // 状态标签 + 展开
                   Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _typeColor(currentType, colors).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _typeName(currentType),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _typeColor(currentType, colors),
-                          ),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _typeColor(currentType, colors).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _typeName(currentType),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _typeColor(currentType, colors),
                       ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: () => setState(() => _expanded = !_expanded),
-                        child: Icon(
-                          _expanded
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: colors.onSurfaceVariant,
-                        ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: Icon(
+                        _expanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 24,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                     ],
                   ),
                 ],
@@ -562,7 +569,7 @@ class _CollectTileState extends State<_CollectTile> {
     return GestureDetector(
       onTap: selected ? null : () => widget.onTypeChanged(type),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected
               ? colors.surfaceContainerHighest
@@ -576,12 +583,12 @@ class _CollectTileState extends State<_CollectTile> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: selected ? colors.onSurface : colors.onSurfaceVariant,
             )),
             if (selected) ...[
               const SizedBox(width: 4),
-              Icon(Icons.check_rounded, size: 14, color: colors.onSurface),
+              Icon(Icons.check_rounded, size: 16, color: colors.onSurface),
             ],
           ],
         ),
@@ -594,13 +601,13 @@ class _CollectTileState extends State<_CollectTile> {
     return GestureDetector(
       onTap: widget.onDelete,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: colors.errorContainer,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text('取消收藏',
-            style: TextStyle(fontSize: 13, color: colors.onErrorContainer)),
+            style: TextStyle(fontSize: 14, color: colors.onErrorContainer)),
       ),
     );
   }
