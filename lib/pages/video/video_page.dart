@@ -1281,28 +1281,44 @@ class _VideoPageState extends State<VideoPage>
                 },
                 menuChildren: List<MenuItemButton>.generate(
                   videoPageController.roadList.length,
-                  (int i) => MenuItemButton(
-                    onPressed: () {
-                      setState(() {
-                        visibleRoad = i;
-                      });
-                    },
-                    child: Container(
-                      height: 40,
-                      constraints: const BoxConstraints(minWidth: 120),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          videoPageController.roadList[i].name,
-                          style: TextStyle(
-                            color: i == visibleRoad
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
+                  (int i) {
+                    final roadEpCount = videoPageController.roadList[i].data.length;
+                    return MenuItemButton(
+                      onPressed: () {
+                        setState(() {
+                          visibleRoad = i;
+                        });
+                      },
+                      child: Container(
+                        height: 40,
+                        constraints: const BoxConstraints(minWidth: 160),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Text(
+                                videoPageController.roadList[i].name,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: i == visibleRoad
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${roadEpCount}集',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 8),

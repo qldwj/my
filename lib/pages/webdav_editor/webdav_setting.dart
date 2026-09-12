@@ -1,334 +1,243 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/my/sync_log_page.dart';
-import 'package:kazumi/pages/my/kazumi_login_page.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/sync/bangumi_sync_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
   const WebDavSettingsPage({super.key});
 
   @override
-  State<WebDavSettingsPage> createState() => _PlayerSettingsPageState();
+  State<WebDavSettingsPage> createState() => _WebDavSettingsPageState();
 }
 
-class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
-  late bool webDavEnable;
-  late bool webDavEnableHistory;
-  late bool webDavEnableCollect;
-  late bool enableGitProxy;
-  late bool enableBangumiProxy;
-  late bool bangumiSyncEnable;
-  late bool kazumiSyncEnable;
-  late bool enableWidget;
-  late bool enableNotification;
+class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
+  final _urlController = TextEditingController();
+  final _userController = TextEditingController();
+  final _passController = TextEditingController();
+  bool _webDavEnable = false;
+  bool _enableHistory = true;
+  bool _enableCollect = true;
+  bool _testing = false;
+  bool _passwordVisible = false;
 
   @override
   void initState() {
     super.initState();
-    webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
-    webDavEnableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
-    webDavEnableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-    enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
-    bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-    kazumiSyncEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
+    _webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
+    _enableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
+    _enableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    _urlController.text = GStorage.getSetting(SettingsKeys.webDavURL);
+    _userController.text = GStorage.getSetting(SettingsKeys.webDavUsername);
+    _passController.text = GStorage.getSetting(SettingsKeys.webDavPassword);
   }
 
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _userController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _testConnection() async {
+    if (_urlController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先配置服务器地址')),
+      );
       return;
     }
-  }
-
-  Future<void> syncHistoryWithWebDav() async {
-    var webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
-    if (webDavEnable) {
-      KazumiLogger().i('WebDav: manual history sync started');
-      KazumiDialog.showToast(message: '正在同步观看记录');
-      var webDav = WebDav();
-      try {
-        if (!webDav.isHistorySyncing) {
-          await webDav.ping();
-        }
-        try {
-          await webDav.syncHistory();
-          KazumiLogger().i('WebDav: manual history sync completed');
-          KazumiDialog.showToast(message: '观看记录同步完成');
-        } catch (e) {
-          KazumiLogger().w('WebDav: manual history sync failed', error: e);
-          KazumiDialog.showToast(message: '观看记录同步失败 ${e.toString()}');
-        }
-      } catch (e) {
-        KazumiLogger().w('WebDav: manual history sync ping failed', error: e);
-        KazumiDialog.showToast(message: 'WebDav连接失败');
+    setState(() => _testing = true);
+    try {
+      await GStorage.putSetting(SettingsKeys.webDavURL, _urlController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavUsername, _userController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavPassword, _passController.text.trim());
+      await WebDav().init();
+      await WebDav().ping();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('连接成功')),
+        );
+        setState(() => _webDavEnable = true);
+        await GStorage.putSetting(SettingsKeys.webDavEnable, true);
       }
-    } else {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('连接失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _testing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        onBackPressed(context);
-      },
-      child: Scaffold(
-        appBar: const SysAppBar(title: Text('同步设置')),
-        body: SettingsList(
-          maxWidth: 1000,
-          sections: [
-            SettingsSection(
-              title: Text('规则仓库', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    enableGitProxy = value ?? !enableGitProxy;
-                    await GStorage.putSetting(
-                        SettingsKeys.enableGitProxy, enableGitProxy);
-                    setState(() {});
-                  },
-                  title:
-                      Text('规则仓库镜像', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用镜像访问规则更新和管理仓库',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: enableGitProxy,
-                ),
-              ],
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: SysAppBar(
+        toolbarHeight: 72,
+        title: Text('WebDAV 多端同步',
+            style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+        needTopOffset: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 标题
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.devices_rounded, size: 28, color: colors.primary),
+                            const SizedBox(width: 12),
+                            Text('多设备同步', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('连接自己云盘，同步观看与收藏', style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 连接配置
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('连接你的云盘', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text('需要支持WebDAV的云盘或服务器', style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _urlController,
+                          decoration: InputDecoration(
+                            labelText: '服务器地址',
+                            hintText: 'https://example.com/dav/',
+                            filled: true,
+                            fillColor: colors.surfaceContainerHighest,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _userController,
+                          decoration: InputDecoration(
+                            labelText: '用户名',
+                            filled: true,
+                            fillColor: colors.surfaceContainerHighest,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _passController,
+                          obscureText: !_passwordVisible,
+                          decoration: InputDecoration(
+                            labelText: '密码或应用授权码',
+                            filled: true,
+                            fillColor: colors.surfaceContainerHighest,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            suffixIcon: IconButton(
+                              icon: Icon(_passwordVisible ? Icons.visibility_off : Icons.visibility, size: 20),
+                              onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _testing ? null : _testConnection,
+                            icon: _testing
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.wifi_find_rounded),
+                            label: Text(_testing ? '测试中...' : '测试连接'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 同步内容
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('同步内容', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 12),
+                        SwitchListTile(
+                          title: const Text('观看记录'),
+                          subtitle: const Text('自动同步观看进度与历史记录'),
+                          value: _enableHistory,
+                          onChanged: (v) {
+                            setState(() => _enableHistory = v);
+                            GStorage.putSetting(SettingsKeys.webDavEnableHistory, v);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        SwitchListTile(
+                          title: const Text('收藏'),
+                          subtitle: const Text('同步所有追番分类'),
+                          value: _enableCollect,
+                          onChanged: (v) {
+                            setState(() => _enableCollect = v);
+                            GStorage.putSetting(SettingsKeys.webDavEnableCollect, v);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 启动开关
+                  Material(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(28),
+                    child: SwitchListTile(
+                      title: const Text('启动 WebDAV 同步'),
+                      subtitle: Text(_webDavEnable ? '已开启' : '连接测试通过后自动开启'),
+                      value: _webDavEnable,
+                      onChanged: (v) {
+                        setState(() => _webDavEnable = v);
+                        GStorage.putSetting(SettingsKeys.webDavEnable, v);
+                      },
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            SettingsSection(
-              title: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    enableBangumiProxy = value ?? !enableBangumiProxy;
-                    await GStorage.putSetting(
-                        SettingsKeys.enableBangumiProxy, enableBangumiProxy);
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                  title: Text('Bangumi 镜像',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用本地 Bangumi 缓存后端加载热门与分类榜单',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: enableBangumiProxy,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    final tBangumiEnableSync = value ?? !bangumiSyncEnable;
-                    final bangumi = BangumiSyncService();
-                    if (tBangumiEnableSync == true) {
-                      final token =
-                          GStorage.getSetting(SettingsKeys.bangumiAccessToken)
-                              .trim();
-                      if (token.isEmpty) {
-                        KazumiDialog.showToast(
-                            message: '请先配置 Bangumi 的 Access Token');
-                        return;
-                      } else {
-                        if (!bangumi.initialized) {
-                          try {
-                            await bangumi.init();
-                          } catch (e) {
-                            KazumiDialog.showToast(
-                                message: "Bangumi 初始化失败，请稍后再试");
-                            return;
-                          }
-                        }
-                      }
-                    }
-                    bangumiSyncEnable = tBangumiEnableSync;
-                    await GStorage.putSetting(
-                        SettingsKeys.bangumiSyncEnable, bangumiSyncEnable);
-                    if (!mounted) {
-                      return;
-                    }
-                    setState(() {});
-                  },
-                  title: Text('Bangumi 同步',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许与Bangumi自动同步收藏/追番状态',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: bangumiSyncEnable,
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    await context.pushNamed('/settings/bangumi/');
-                    bangumiSyncEnable =
-                        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-                    setState(() {});
-                  },
-                  title: Text('Bangumi 配置',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text('樱花动漫', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    if (!AuthService.isLoggedIn) {
-                      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
-                      return;
-                    }
-                    kazumiSyncEnable = value ?? !kazumiSyncEnable;
-                    await GStorage.putSetting(
-                        SettingsKeys.kazumiSyncEnable, kazumiSyncEnable);
-                    setState(() {});
-                  },
-                  title: Text('樱花动漫同步',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('登录后自动开启，同步收藏到樱花服务器',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: kazumiSyncEnable,
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const KazumiLoginPage(),
-                      ),
-                    );
-                    if (context.mounted) {
-                      setState(() {
-                        kazumiSyncEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
-                      });
-                    }
-                  },
-                  title: Text('樱花动漫账号',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text(AuthService.isLoggedIn ? '已登录' : '未登录',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.sync_rounded),
-                  onPressed: (_) async {
-                    if (!AuthService.isLoggedIn) {
-                      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
-                      return;
-                    }
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const KazumiLoginPage(),
-                      ),
-                    );
-                  },
-                  title: Text('立即同步收藏',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('进入账号页点击「开始同步」',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.bug_report_outlined),
-                  onPressed: (_) async {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SyncLogPage()),
-                    );
-                  },
-                  title: Text('同步诊断',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看详细同步日志和错误信息',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text('WEBDAV', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    webDavEnable = value ?? !webDavEnable;
-                    if (!WebDav().initialized && webDavEnable) {
-                      try {
-                        await WebDav().init();
-                      } catch (e) {
-                        webDavEnable = false;
-                        KazumiDialog.showToast(message: 'WEBDAV初始化失败 $e');
-                      }
-                    }
-                    if (!webDavEnable) {
-                      webDavEnableHistory = false;
-                      webDavEnableCollect = false;
-                      await GStorage.putSetting(
-                          SettingsKeys.webDavEnableHistory, false);
-                      await GStorage.putSetting(
-                          SettingsKeys.webDavEnableCollect, false);
-                    }
-                    await GStorage.putSetting(
-                        SettingsKeys.webDavEnable, webDavEnable);
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                  title: Text('WEBDAV同步',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: webDavEnable,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    if (!webDavEnable) {
-                      KazumiDialog.showToast(message: '请先开启WEBDAV同步');
-                      return;
-                    }
-                    webDavEnableHistory = value ?? !webDavEnableHistory;
-                    await GStorage.putSetting(
-                        SettingsKeys.webDavEnableHistory, webDavEnableHistory);
-                    setState(() {});
-                  },
-                  title:
-                      Text('观看记录同步', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许自动同步观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: webDavEnableHistory,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    if (!webDavEnable) {
-                      KazumiDialog.showToast(message: '请先开启WEBDAV同步');
-                      return;
-                    }
-                    webDavEnableCollect = value ?? !webDavEnableCollect;
-                    await GStorage.putSetting(
-                        SettingsKeys.webDavEnableCollect, webDavEnableCollect);
-                    setState(() {});
-                  },
-                  title: Text('收藏同步', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('允许 WebDAV 参与追番状态同步',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: webDavEnableCollect,
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    context.pushNamed('/settings/webdav/editor');
-                  },
-                  title: Text('WEBDAV配置',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.sync_rounded),
-                  onPressed: (_) {
-                    syncHistoryWithWebDav();
-                  },
-                  title: Text('立即同步观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('与WEBDAV双向合并观看记录',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
