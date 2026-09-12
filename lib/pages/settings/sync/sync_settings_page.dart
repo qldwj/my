@@ -17,6 +17,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   bool get _webdavHasConfig => GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty;
   bool get _webdavEnabled => GStorage.getSetting(SettingsKeys.webDavEnable);
 
+  // 同步缓存：上次同步时间戳
+  int _lastSyncTime = 0;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -81,9 +84,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     iconBg: colors.secondaryContainer,
                     iconFg: colors.onSecondaryContainer,
                     onTap: () {
-                      if (!AuthService.isLoggedIn) {
-                        context.pushNamed('/my/login');
-                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+                      );
                     },
                   ),
                 ],
