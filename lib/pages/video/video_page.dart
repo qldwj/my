@@ -1530,7 +1530,7 @@ class _VideoPageState extends State<VideoPage>
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   labelPadding:
-                      const EdgeInsetsDirectional.only(start: 30, end: 30),
+                      const EdgeInsetsDirectional.only(start: 40, end: 40),
                   onTap: (index) {
                     if (index == 0) {
                       menuJumpToCurrentEpisode();
