@@ -687,34 +687,44 @@ class _TimelinePageState extends State<TimelinePage>
         title: InkWell(
           borderRadius: BorderRadius.circular(8),
           child: Observer(builder: (context) {
-            return Text(timelineController.seasonString);
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(timelineController.seasonString),
+                const SizedBox(width: 4),
+                const Icon(Icons.expand_more_rounded, size: 20),
+              ],
+            );
           }),
           onTap: () {
             showSeasonBottomSheet(context);
           },
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          KazumiDialog.showBottomSheet(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            isScrollControlled: true,
-            constraints: buildTimelineBottomSheetConstraints(
-              context,
-              compactHeightFactor: 2 / 3,
-            ),
-            clipBehavior: Clip.antiAlias,
-            useSafeArea: true,
-            context: context,
-            builder: (context) {
-              return buildTimelineOptionsSheet(context);
+        actions: [
+          IconButton(
+            tooltip: '排序与筛选',
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () {
+              KazumiDialog.showBottomSheet(
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                isScrollControlled: true,
+                constraints: buildTimelineBottomSheetConstraints(
+                  context,
+                  compactHeightFactor: 2 / 3,
+                ),
+                clipBehavior: Clip.antiAlias,
+                useSafeArea: true,
+                context: context,
+                builder: (context) {
+                  return buildTimelineOptionsSheet(context);
+                },
+              );
             },
-          );
-        },
-        child: const Icon(Icons.tune),
+          ),
+        ],
       ),
       body: Observer(builder: (context) {
         if (timelineController.isLoading &&
