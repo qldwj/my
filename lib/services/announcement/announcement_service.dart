@@ -5,9 +5,9 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class AnnouncementService {
-  // 使用您提供的接口地址
   static const String _apiUrl = 'https://qlyyz.xyz/api/notice?action=get';
 
   static Future<void> checkAnnouncement() async {
@@ -30,6 +30,13 @@ class AnnouncementService {
     }
   }
 
+  /// 判断内容是否为HTML
+  static bool _isHtml(String content) {
+    final trimmed = content.trim();
+    return trimmed.startsWith('<') &&
+        (trimmed.contains('</') || trimmed.contains('/>'));
+  }
+
   static void _showAnnouncementDialog(String title, String content, int version) {
     bool dontShowAgain = false;
 
@@ -46,41 +53,60 @@ class AnnouncementService {
                   Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      content,
-                      style: const TextStyle(fontSize: 15, height: 1.6),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Checkbox(
-                        value: dontShowAgain,
-                        onChanged: (value) {
-                          setState(() {
-                            dontShowAgain = value ?? false;
-                          });
-                        },
+                      if (_isHtml(content))
+                        // HTML内容：用WebView渲染
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 400,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: _HtmlContentView(htmlContent: content),
+                          ),
+                        )
+                      else
+                        // 纯文本内容
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            content,
+                            style: const TextStyle(fontSize: 15, height: 1.6),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: dontShowAgain,
+                            onChanged: (value) {
+                              setState(() {
+                                dontShowAgain = value ?? false;
+                              });
+                            },
+                          ),
+                          const Text('不再提示此公告'),
+                        ],
                       ),
-                      const Text('不再提示此公告'),
                     ],
                   ),
-                ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    // 存储当前版本号（即使勾选了也存储，下次版本不同仍会提示）
                     GStorage.putSetting(SettingsKeys.announcementVersion, version);
                     KazumiDialog.dismiss();
                   },
@@ -101,6 +127,92 @@ class AnnouncementService {
           },
         );
       },
+    );
+  }
+}
+
+/// HTML内容渲染组件
+class _HtmlContentView extends StatefulWidget {
+  const _HtmlContentView({required this.htmlContent});
+
+  final String htmlContent;
+
+  @override
+  State<_HtmlContentView> createState() => _HtmlContentViewState();
+}
+
+class _HtmlContentViewState extends State<_HtmlContentView> {
+  late final WebViewController _controller;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.transparent)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (_) {
+            if (mounted) setState(() => _loading = true);
+          },
+          onPageFinished: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        ),
+      )
+      ..loadHtmlString(_buildHtml(widget.htmlContent));
+  }
+
+  String _buildHtml(String body) {
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #333;
+      padding: 12px;
+      background: transparent;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+    a { color: #1976D2; text-decoration: none; }
+    p { margin-bottom: 8px; }
+    h1, h2, h3 { margin: 12px 0 8px; }
+    ul, ol { padding-left: 20px; margin-bottom: 8px; }
+    blockquote {
+      border-left: 3px solid #1976D2;
+      padding-left: 12px;
+      margin: 8px 0;
+      color: #666;
+    }
+  </style>
+</head>
+<body>$body</body>
+</html>
+''';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        WebViewWidget(controller: _controller),
+        if (_loading)
+          const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+      ],
     );
   }
 }
