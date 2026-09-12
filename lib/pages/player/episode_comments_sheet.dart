@@ -36,6 +36,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   bool _loading = true;
   bool _error = false;
   int _episode = 0;
+  bool _sortByNewest = true; // true=最新优先, false=最早优先
 
   @override
   void initState() {
@@ -111,6 +112,12 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       }
 
       if (!mounted) return;
+      // 排序
+      if (_sortByNewest) {
+        merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else {
+        merged.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
       setState(() {
         _comments = merged;
         _loading = false;
@@ -215,7 +222,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 顶部信息：当前集数 + 切换按钮
+          // 顶部信息：当前集数 + 手动切换
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 8, 4),
             child: Row(
@@ -241,8 +248,64 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
               ],
             ),
           ),
+          // 评论数 + 排序 + 刷新
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
+            child: Row(
+              children: [
+                Text(
+                  '评论 ${_comments.length}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                // 排序按钮
+                GestureDetector(
+                  onTap: () => setState(() => _sortByNewest = !_sortByNewest),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _sortByNewest ? Icons.schedule_rounded : Icons.history_rounded,
+                          size: 14,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _sortByNewest ? '最新优先' : '最早优先',
+                          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 刷新按钮
+                GestureDetector(
+                  onTap: _loadComments,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.refresh_rounded, size: 16, color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const Divider(height: 1),
-          // 评论列表（樱花动漫评论）
+          // 评论列表
           Expanded(
             child: _loading
                 ? const Center(
@@ -264,8 +327,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('评论加载失败',
-                                style: TextStyle(color: cs.outline)),
+                            Text('评论加载失败', style: TextStyle(color: cs.outline)),
                             const SizedBox(height: 8),
                             TextButton.icon(
                               onPressed: _loadComments,
@@ -293,12 +355,11 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                             ),
                           ),
           ),
-          // 底部评论输入框（自动匹配当前集）
+          // 底部评论输入框
           CommentEditor(
             subjectId: videoPageController.bangumiItem.id,
             episode: _episode == 0 ? widget.episode : _episode,
             onSubmitted: (res) {
-              // 立即插入新评论到列表
               if (res != null && res['success'] == true) {
                 setState(() {
                   _comments.insert(0, EpisodeComment(
@@ -314,7 +375,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                   ));
                 });
               }
-              // 后台刷新服务器数据
               _loadComments();
             },
           ),
