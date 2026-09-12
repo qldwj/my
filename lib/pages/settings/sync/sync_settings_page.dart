@@ -1,19 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
-
-enum _SyncStatus {
-  unconfigured('未配置', Icons.settings_outlined),
-  enabled('已开启', Icons.check_circle_outline_rounded),
-  disabled('已关闭', Icons.pause_circle_outline_rounded);
-
-  const _SyncStatus(this.label, this.icon);
-  final String label;
-  final IconData icon;
-}
 
 class SyncSettingsPage extends StatefulWidget {
   const SyncSettingsPage({super.key});
@@ -23,184 +12,141 @@ class SyncSettingsPage extends StatefulWidget {
 }
 
 class _SyncSettingsPageState extends State<SyncSettingsPage> {
-  Future<void> _open(String route) async {
-    await context.pushNamed(route);
-    if (mounted) setState(() {});
-  }
+  bool get _bangumiHasToken => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+  bool get _bangumiEnabled => GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+  bool get _webdavHasConfig => GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty;
+  bool get _webdavEnabled => GStorage.getSetting(SettingsKeys.webDavEnable);
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final hasToken = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
-    final bangumiEnabled = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-    final hasServer = GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty;
-    final webDavEnabled = GStorage.getSetting(SettingsKeys.webDavEnable);
-    final hasSyncContent = GStorage.getSetting(SettingsKeys.webDavEnableHistory) ||
-        GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-
-    final cards = [
-      _SyncServiceCard(
-        title: '追番同步',
-        service: 'Bangumi',
-        description: '与 Bangumi 保持相同的追番状态。',
-        content: '想看 · 在看 · 看过 · 搁置 · 抛弃',
-        icon: Icons.bookmarks_rounded,
-        color: colors.secondaryContainer,
-        onColor: colors.onSecondaryContainer,
-        status: !hasToken
-            ? _SyncStatus.unconfigured
-            : bangumiEnabled
-                ? _SyncStatus.enabled
-                : _SyncStatus.disabled,
-        action: hasToken ? '管理追番同步' : '连接 Bangumi',
-        onPressed: () => _open('/settings/bangumi/'),
-      ),
-      _SyncServiceCard(
-        title: '多设备同步',
-        service: 'WebDAV',
-        description: '通过自己的云盘，在其他设备接着看。',
-        content: '观看记录 · 收藏',
-        icon: Icons.devices_rounded,
-        color: colors.tertiaryContainer,
-        onColor: colors.onTertiaryContainer,
-        status: !hasServer
-            ? _SyncStatus.unconfigured
-            : webDavEnabled
-                ? hasSyncContent
-                    ? _SyncStatus.enabled
-                    : _SyncStatus.disabled
-                : _SyncStatus.disabled,
-        action: hasServer ? '管理多设备同步' : '设置 WebDAV',
-        onPressed: () => _open('/settings/webdav/'),
-      ),
-    ];
+    final text = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('同步设置')),
-      body: SyncPageBody(
-        children: [
-          const SyncPageIntro(
-            icon: Icons.sync_rounded,
-            title: '让追番保持同步',
-            description: '选择需要的服务，也可以同时使用。',
+      appBar: SysAppBar(
+        toolbarHeight: 72,
+        title: Text('同步设置', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+        needTopOffset: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('选择需要的服务', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text('也可以同时使用多个服务来同步数据', style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+                  const SizedBox(height: 16),
+
+                  _SyncServiceTile(
+                    icon: Icons.brightness_6_rounded,
+                    title: 'Bangumi 追番同步',
+                    subtitle: '与Bangumi保持相同的追番状态',
+                    status: _bangumiHasToken ? (_bangumiEnabled ? '已开启' : '已配置') : '未配置',
+                    statusColor: _bangumiHasToken ? Colors.green : colors.outline,
+                    iconBg: colors.primaryContainer,
+                    iconFg: colors.onPrimaryContainer,
+                    onTap: () async {
+                      await context.pushNamed('/settings/sync/bangumi');
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SyncServiceTile(
+                    icon: Icons.cloud_sync_rounded,
+                    title: 'WebDAV 多端同步',
+                    subtitle: '通过自己的网盘与其他设备接着看',
+                    status: _webdavHasConfig ? (_webdavEnabled ? '已开启' : '已配置') : '未配置',
+                    statusColor: _webdavHasConfig ? Colors.green : colors.outline,
+                    iconBg: colors.tertiaryContainer,
+                    iconFg: colors.onTertiaryContainer,
+                    onTap: () async {
+                      await context.pushNamed('/settings/webdav/');
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SyncServiceTile(
+                    icon: Icons.wb_twilight_rounded,
+                    title: '樱花动漫',
+                    subtitle: '云端同步你的追番数据',
+                    status: AuthService.isLoggedIn ? '已登录' : '未登录',
+                    statusColor: AuthService.isLoggedIn ? Colors.green : colors.outline,
+                    iconBg: colors.secondaryContainer,
+                    iconFg: colors.onSecondaryContainer,
+                    onTap: () {
+                      if (!AuthService.isLoggedIn) {
+                        context.pushNamed('/my/login');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final largeText = MediaQuery.textScalerOf(context).scale(16) > 22;
-              if (constraints.maxWidth >= 680 && !largeText) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: cards[0]),
-                    const SizedBox(width: 16),
-                    Expanded(child: cards[1]),
-                  ],
-                );
-              }
-              return Column(spacing: 16, children: cards);
-            },
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _SyncServiceCard extends StatelessWidget {
-  const _SyncServiceCard({
-    required this.title,
-    required this.service,
-    required this.description,
-    required this.content,
-    required this.icon,
-    required this.color,
-    required this.onColor,
-    required this.status,
-    required this.action,
-    required this.onPressed,
+class _SyncServiceTile extends StatelessWidget {
+  const _SyncServiceTile({
+    required this.icon, required this.title, required this.subtitle,
+    required this.status, required this.statusColor,
+    required this.iconBg, required this.iconFg, required this.onTap,
   });
 
-  final String title;
-  final String service;
-  final String description;
-  final String content;
   final IconData icon;
-  final Color color;
-  final Color onColor;
-  final _SyncStatus status;
-  final String action;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              StateIconBadge(
-                icon: icon,
-                size: 56,
-                iconSize: 26,
-                backgroundColor: color,
-                foregroundColor: onColor,
-              ),
-              const Spacer(),
-              _SyncStatusChip(status: status),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(service, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary)),
-          const SizedBox(height: 6),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(description, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 16),
-          Text(content, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 24),
-          StateActionButton.tonal(
-            onPressed: onPressed,
-            text: action,
-            icon: Icons.arrow_forward_rounded,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SyncStatusChip extends StatelessWidget {
-  const _SyncStatusChip({required this.status});
-  final _SyncStatus status;
+  final String title, subtitle, status;
+  final Color statusColor, iconBg, iconFg;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final (background, foreground) = switch (status) {
-      _SyncStatus.enabled => (colors.primaryContainer, colors.onPrimaryContainer),
-      _ => (colors.surfaceContainerHighest, colors.onSurfaceVariant),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(status.icon, size: 16, color: foreground),
-          const SizedBox(width: 6),
-          Text(status.label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground)),
-        ],
+    return Material(
+      color: colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(16)),
+                child: Icon(icon, color: iconFg, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Icon(Icons.circle, size: 8, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(status, style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600)),
+                    ]),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: colors.outline),
+            ],
+          ),
+        ),
       ),
     );
   }

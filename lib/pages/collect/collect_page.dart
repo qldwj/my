@@ -10,6 +10,7 @@ import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 enum _SortMode { recent, name, rating, airDate }
@@ -85,16 +86,133 @@ class _CollectPageState extends State<CollectPage> {
   }
 
   Future<void> _syncAll() async {
-    if (_syncing) return;
-    setState(() => _syncing = true);
-    try {
-      await ctrl.syncCollectibles(showSuccessToast: false);
-      if (mounted) KazumiDialog.showToast(message: '同步完成');
-    } catch (e) {
-      if (mounted) KazumiDialog.showToast(message: '同步失败: $e');
-    } finally {
-      if (mounted) setState(() => _syncing = false);
+    _showSyncDialog();
+  }
+
+  void _showSyncDialog() {
+    final services = <_SyncStep>[];
+    if (GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty) {
+      services.add(_SyncStep('Bangumi', Icons.brightness_6_rounded));
     }
+    if (GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty) {
+      services.add(_SyncStep('WebDAV', Icons.cloud_sync_rounded));
+    }
+    if (AuthService.isLoggedIn) {
+      services.add(_SyncStep('樱花动漫', Icons.wb_twilight_rounded));
+    }
+
+    if (services.isEmpty) {
+      KazumiDialog.showToast(message: '请先在同步设置中配置服务');
+      return;
+    }
+
+    int conflictMode = 0;
+    bool syncing = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('同步收藏', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text('当前能同步 ${services.length} 个服务', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 16),
+                for (var i = 0; i < services.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(services[i].icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(services[i].name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('第${i + 1}步', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Text('冲突方式', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<int>(
+                        title: const Text('本地优先', style: TextStyle(fontSize: 13)),
+                        subtitle: const Text('先上传再下载', style: TextStyle(fontSize: 11)),
+                        value: 0, groupValue: conflictMode,
+                        onChanged: (v) => setSheetState(() => conflictMode = v ?? 0),
+                        dense: true, contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<int>(
+                        title: const Text('服务器优先', style: TextStyle(fontSize: 13)),
+                        subtitle: const Text('先下载再上传', style: TextStyle(fontSize: 11)),
+                        value: 1, groupValue: conflictMode,
+                        onChanged: (v) => setSheetState(() => conflictMode = v ?? 0),
+                        dense: true, contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: syncing ? null : () async {
+                      setSheetState(() => syncing = true);
+                      try {
+                        for (final step in services) {
+                          if (step.name == 'WebDAV') {
+                            await ctrl.syncCollectibles(showSuccessToast: false);
+                          }
+                        }
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(message: '同步完成');
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) KazumiDialog.showToast(message: '同步失败: $e');
+                      } finally {
+                        if (mounted) setSheetState(() => syncing = false);
+                      }
+                    },
+                    icon: syncing
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.sync_rounded),
+                    label: Text(syncing ? '同步中...' : '开始同步'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -505,4 +623,10 @@ class _CollectFolderPlaceholder extends StatelessWidget {
     appBar: AppBar(title: const Text('文件夹')),
     body: const Center(child: Text('文件夹功能')),
   );
+}
+
+class _SyncStep {
+  final String name;
+  final IconData icon;
+  _SyncStep(this.name, this.icon);
 }
