@@ -162,8 +162,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     }
     KazumiDialog.showToast(message: '正在测试连接...');
     try {
-      final testPath = _pathControllers['subject']?.text.trim() ?? '/v0/subjects/1';
-      final url = '$domain${testPath.replaceAll('{id}', '1')}';
+      // 测试首页播放推送接口
+      final url = '$domain/kazumi/v1/popular/subjects?limit=1';
       final uri = Uri.parse(url);
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 10);
@@ -241,6 +241,27 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                     subtitle: const Text('开启后将通过自定义镜像域名请求数据'),
                     value: _proxyEnabled,
                     onChanged: (v) => setState(() => _proxyEnabled = v),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text('Bangumi 镜像'),
+                    subtitle: const Text('同步Bangumi时使用镜像'),
+                    value: GStorage.getSetting(SettingsKeys.enableBangumiProxy),
+                    onChanged: (v) {
+                      GStorage.putSetting(SettingsKeys.enableBangumiProxy, v);
+                      setState(() {});
+                    },
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  SwitchListTile(
+                    title: const Text('规则仓库镜像'),
+                    subtitle: const Text('获取规则列表时使用镜像'),
+                    value: GStorage.getSetting(SettingsKeys.enableGitProxy),
+                    onChanged: (v) {
+                      GStorage.putSetting(SettingsKeys.enableGitProxy, v);
+                      setState(() {});
+                    },
                     contentPadding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 8),
