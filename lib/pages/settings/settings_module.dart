@@ -20,6 +20,7 @@ import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/webview_embed_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
+import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 final settingsModule = createModule(
@@ -29,54 +30,25 @@ final settingsModule = createModule(
       ..route('/', child: (context, state) => const SettingsPage())
       ..route('/theme', child: (context, state) => const ThemeSettingsPage())
       ..route('/webview', child: (context, state) => const WebviewEmbedPage())
-      ..route(
-        '/theme/display',
-        child: (context, state) => const SetDisplayMode(),
-      )
-      ..route(
-        '/keyboard',
-        child: (context, state) => const KeyboardSettingsPage(),
-      )
+      ..route('/theme/display', child: (context, state) => const SetDisplayMode())
+      ..route('/keyboard', child: (context, state) => const KeyboardSettingsPage())
       ..route('/player', child: (context, state) => const PlayerSettingsPage())
-      ..route(
-        '/player/decoder',
-        child: (context, state) => const DecoderSettings(),
-      )
-      ..route(
-        '/player/renderer',
-        child: (context, state) => const RendererSettings(),
-      )
-      ..route(
-        '/interface',
-        child: (context, state) => const InterfaceSettingsPage(),
-      )
+      ..route('/player/decoder', child: (context, state) => const DecoderSettings())
+      ..route('/player/renderer', child: (context, state) => const RendererSettings())
+      ..route('/interface', child: (context, state) => const InterfaceSettingsPage())
       ..module(proxyModule)
-      ..route(
-        '/player/super',
-        child: (context, state) => const SuperResolutionSettings(),
-      )
+      ..route('/player/super', child: (context, state) => const SuperResolutionSettings())
       ..module(webDavModule)
       ..module(aboutModule)
       ..module(pluginModule)
       ..module(historyModule)
       ..module(danmakuModule)
       ..module(downloadModule)
-      ..route(
-        '/download-settings',
-        child: (context, state) => const DownloadSettingsPage(),
-      )
-      ..route(
-        '/notification',
-        child: (context, state) => const NotificationSettingsPage(),
-      )
-      ..route(
-        '/desktop',
-        child: (context, state) => const DesktopSettingsPage(),
-      )
-      ..route(
-        '/sync',
-        child: (context, state) => const SyncSettingsPage(),
-      )
+      ..route('/download-settings', child: (context, state) => const DownloadSettingsPage())
+      ..route('/notification', child: (context, state) => const NotificationSettingsPage())
+      ..route('/desktop', child: (context, state) => const DesktopSettingsPage())
+      ..route('/sync', child: (context, state) => const SyncSettingsPage())
+      ..route('/sync/bangumi', child: (context, state) => const BangumiSyncPage())
       ..module(bangumiModule);
   },
 );
