@@ -681,7 +681,17 @@ class _MyPageState extends State<MyPage> {
             ),
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: '显示登录二维码',
+              tooltip: '扫码登录其他设备',
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 22),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
+                );
+              },
+            ),
+          if (!AuthService.isLoggedIn)
+            IconButton(
+              tooltip: '扫码登录',
               icon: const Icon(Icons.qr_code_2_rounded, size: 22),
               onPressed: () {
                 Navigator.of(context).push(
