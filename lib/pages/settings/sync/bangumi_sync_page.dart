@@ -186,7 +186,6 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                     color: colors.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(28),
                     child: SwitchListTile(
-                      borderRadius: BorderRadius.circular(28),
                       title: const Text('自动同步'),
                       subtitle: const Text('修改追番状态时自动同步到 Bangumi'),
                       value: _syncEnabled,
