@@ -1202,74 +1202,147 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get menuBar {
+    final roadName = visibleRoad >= 0 &&
+            visibleRoad < videoPageController.roadList.length
+        ? videoPageController.roadList[visibleRoad].name
+        : '播放线路${visibleRoad + 1}';
+    final roadData = visibleRoad >= 0 &&
+            visibleRoad < videoPageController.roadList.length
+        ? videoPageController.roadList[visibleRoad].data
+        : <String>[];
+    final totalCount = roadData.length;
+    final currentEp = videoPageController.selectedEpisode.episode;
+
     return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(' 合集 '),
-          Expanded(
-            child: Text(
-              videoPageController.title,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          MenuAnchor(
-            consumeOutsideTap: true,
-            builder: (_, MenuController controller, __) {
-              return SizedBox(
-                height: 34,
-                child: TextButton(
-                  style: ButtonStyle(
-                    padding: WidgetStateProperty.all(EdgeInsets.zero),
-                  ),
-                  onPressed: () {
-                    if (controller.isOpen) {
-                      controller.close();
-                    } else {
-                      controller.open();
-                    }
-                  },
+          // 动漫名字（点击伸缩）
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {},
+            child: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    visibleRoad >= 0 &&
-                            visibleRoad < videoPageController.roadList.length
-                        ? '${videoPageController.roadList[visibleRoad].name} '
-                        : '播放线路${visibleRoad + 1} ',
-                    style: const TextStyle(fontSize: 13),
+                    videoPageController.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
-              );
-            },
-            menuChildren: List<MenuItemButton>.generate(
-              videoPageController.roadList.length,
-              (int i) => MenuItemButton(
-                onPressed: () {
-                  setState(() {
-                    visibleRoad = i;
-                  });
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 播放线路 + 集数 + 定位/下载按钮
+          Row(
+            children: [
+              // 播放线路选择
+              MenuAnchor(
+                consumeOutsideTap: true,
+                builder: (_, MenuController controller, __) {
+                  return GestureDetector(
+                    onTap: () {
+                      if (controller.isOpen) {
+                        controller.close();
+                      } else {
+                        controller.open();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            roadName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(Icons.arrow_drop_down, size: 18, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                        ],
+                      ),
+                    ),
+                  );
                 },
-                child: Container(
-                  height: 48,
-                  constraints: BoxConstraints(minWidth: 112),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      videoPageController.roadList[i].name,
-                      style: TextStyle(
-                        color: i == visibleRoad
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
+                menuChildren: List<MenuItemButton>.generate(
+                  videoPageController.roadList.length,
+                  (int i) => MenuItemButton(
+                    onPressed: () {
+                      setState(() {
+                        visibleRoad = i;
+                      });
+                    },
+                    child: Container(
+                      height: 40,
+                      constraints: const BoxConstraints(minWidth: 120),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          videoPageController.roadList[i].name,
+                          style: TextStyle(
+                            color: i == visibleRoad
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              // 集数信息
+              Text(
+                '$currentEp/$totalCount集',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              // 定位按钮
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                iconSize: 18,
+                icon: const Icon(Icons.my_location_rounded),
+                tooltip: '定位当前集',
+                onPressed: () {
+                  menuJumpToCurrentEpisode();
+                },
+              ),
+              // 下载按钮
+              if (!videoPageController.isOfflineMode)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  icon: const Icon(Icons.download_rounded),
+                  tooltip: '下载当前集',
+                  onPressed: () {
+                    showAdaptiveBottomSheet<void>(
+                      context: context,
+                      builder: (context) => DownloadEpisodeSheet(
+                        road: visibleRoad,
+                        videoPageController: videoPageController,
+                      ),
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),
@@ -1468,53 +1541,6 @@ class _VideoPageState extends State<VideoPage>
                     Tab(text: '评论'),
                   ],
                 ),
-                if (MediaQuery.sizeOf(context).width <=
-                    MediaQuery.sizeOf(context).height) ...[
-                  const Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: danmakuOn
-                            ? Theme.of(context).hintColor
-                            : Theme.of(context).disabledColor,
-                        width: 0.5,
-                      ),
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (danmakuOn && !videoPageController.loading) {
-                          showMobileDanmakuInput();
-                        } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
-                        } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            danmakuOn ? '  点我发弹幕  ' : '  已关闭弹幕  ',
-                            softWrap: false,
-                            overflow: TextOverflow.clip,
-                            style: TextStyle(
-                              color: danmakuOn
-                                  ? Theme.of(context).hintColor
-                                  : Theme.of(context).disabledColor,
-                            ),
-                          ),
-                          if (danmakuOn)
-                            Icon(
-                              Icons.send_rounded,
-                              size: 20,
-                              color: Theme.of(context).hintColor,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
                 const SizedBox(width: 8),
               ],
             ),
@@ -1584,23 +1610,6 @@ class _VideoPageState extends State<VideoPage>
                           ],
                         ),
                       ),
-                      if (!videoPageController.isOfflineMode)
-                        Positioned(
-                          right: 16,
-                          bottom: 16,
-                          child: FloatingActionButton(
-                            child: const Icon(Icons.download_rounded),
-                            onPressed: () {
-                              showAdaptiveBottomSheet<void>(
-                                context: context,
-                                builder: (context) => DownloadEpisodeSheet(
-                                  road: visibleRoad,
-                                  videoPageController: videoPageController,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
                     ],
                   ),
                   EpisodeCommentsSheet(
