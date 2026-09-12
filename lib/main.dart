@@ -287,15 +287,17 @@ Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
       }
     }
     if (item == null) {
-      _openServerSite('未找到该番剧');
+      _showToast('未找到该番剧（ID: $id）');
       return;
     }
-    if (rootNavigatorKey.currentContext == null) {
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null) {
+      _showToast('打开详情失败，请重试');
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        Navigator.of(rootNavigatorKey.currentContext!).pushNamed(
+        Navigator.of(ctx).pushNamed(
           '/info/',
           arguments: item,
         );
