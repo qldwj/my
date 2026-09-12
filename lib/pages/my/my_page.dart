@@ -21,6 +21,7 @@ import 'package:kazumi/pages/my/friends_page.dart';
 import 'package:kazumi/pages/my/chat_list_page.dart';
 import 'package:kazumi/pages/my/privacy_settings_page.dart';
 import 'package:kazumi/pages/my/security_center_page.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -61,6 +62,41 @@ class _MyPageState extends State<MyPage> {
     _loadGoal();
     _loadBangumiUser();
     _loadSocialProfile();
+    // 首次进入检查是否已添加规则
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTimeRule();
+    });
+  }
+
+  /// 首次进入：未添加规则时提示
+  void _checkFirstTimeRule() {
+    try {
+      final controller = inject<PluginsController>();
+      if (controller.pluginList.isEmpty && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            icon: Icon(Icons.extension_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
+            title: const Text('欢迎使用樱花动漫'),
+            content: const Text('你还没有添加规则，需要先添加规则才能正常使用。\n\n是否继续添加规则？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('返回'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.pushNamed('/settings/plugin/');
+                },
+                child: const Text('继续'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   /// 加载樱花动漫社交资料（uid/昵称/头像），并取消未完成的账号销毁
