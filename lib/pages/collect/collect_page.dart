@@ -443,12 +443,12 @@ class _CollectTileState extends State<_CollectTile> {
       color: colors.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        onTap: () => context.pushNamed('/info/', arguments: bangumi),
-        child: Column(
-          children: [
-            // 主行：封面 + 名称 + 状态
-            Padding(
+      child: Column(
+        children: [
+          // 主行：点击跳转详情
+          InkWell(
+            onTap: () => context.pushNamed('/info/', arguments: bangumi),
+            child: Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
@@ -485,9 +485,7 @@ class _CollectTileState extends State<_CollectTile> {
                       ],
                     ),
                   ),
-                  // 状态标签 + 展开
-                  Column(
-                    children: [
+                  // 状态标签
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -503,26 +501,29 @@ class _CollectTileState extends State<_CollectTile> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => setState(() => _expanded = !_expanded),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: colors.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _expanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        size: 24,
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                    ],
-                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 展开按钮：独立区域，点击展开/折叠状态切换
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                border: Border(top: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.3), width: 0.5)),
+              ),
+              child: Icon(
+                _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                size: 24,
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
                 ],
               ),
             ),
