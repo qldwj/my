@@ -1,4 +1,5 @@
 import 'dart:async';
+import "package:kazumi/pages/plugin_editor/mcp_server_dialog.dart";
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -827,9 +828,9 @@ class _PluginViewPageState extends State<PluginViewPage>
               ),
             ] else ...[
               IconButton(
-                onPressed: _handleHealthCheck,
-                tooltip: '健康检测',
-                icon: const Icon(Icons.monitor_heart),
+                onPressed: () => showMcpServerDialog(context),
+                tooltip: 'AI规则生成器',
+                icon: const Icon(Icons.smart_toy_rounded),
               ),
               IconButton(
                 onPressed: () => Navigator.of(context).push(
