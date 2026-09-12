@@ -85,7 +85,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     iconFg: colors.onSecondaryContainer,
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+                        MaterialPageRoute(builder: (_) => KazumiLoginPage()),
                       );
                     },
                   ),
