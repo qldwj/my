@@ -214,7 +214,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         return;
       }
       KazumiDialog.showToast(message: '正在确认登录...');
-      final result = await QrLoginService.scan(code: code);
+      final result = await QrLoginService.confirmLogin(code, AuthService.getLocalToken() ?? '');
       if (result['success'] == true) {
         KazumiDialog.showToast(message: '登录成功 🎉');
         if (mounted) Navigator.of(context).pop(true);
