@@ -849,9 +849,6 @@ class _MyPageState extends State<MyPage> {
         GestureDetector(
           onTap: AuthService.isLoggedIn
               ? () {
-                  // 点击头像进入管理页面
-                  final navContext = rootNavigatorKey.currentContext;
-                  if (navContext == null || !navContext.mounted) return;
                   // 跳转到安全中心
                   final navContext = rootNavigatorKey.currentContext;
                   if (navContext == null || !navContext.mounted) return;
