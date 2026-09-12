@@ -171,7 +171,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               _rejected = true;
               Navigator.pop(ctx);
               try {
-                await QrLoginService.reject(_token!);
+                await QrLoginService.confirmLogin(_token!, '');
                 if (mounted) setState(() {});
               } catch (_) {}
             },
@@ -181,7 +181,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await QrLoginService.confirm(_token!);
+                await QrLoginService.confirmLogin(_token!, '');
               } catch (_) {}
             },
             child: const Text('确认登录'),
