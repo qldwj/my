@@ -245,7 +245,20 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           // 评论列表（樱花动漫评论）
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                        SizedBox(height: 12),
+                        Text('评论加载中...', style: TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  )
                 : _error
                     ? Center(
                         child: Column(
