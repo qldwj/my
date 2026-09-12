@@ -1704,9 +1704,32 @@ void dispose() {
                     ),
                     (playerController.playback.isBuffering ||
                             videoPageController.loading)
-                        ? const Positioned.fill(
-                            child: Center(
-                              child: CircularProgressIndicator(),
+                        ? Positioned.fill(
+                            child: Container(
+                              color: Colors.black45,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 36,
+                                      height: 36,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      '视频资源加载中...',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           )
                         : Container(),
