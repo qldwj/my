@@ -524,43 +524,40 @@ class _CollectTileState extends State<_CollectTile> {
               ),
             ),
           ),
+
+          // 展开区域：快速切换状态
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildTypeButton(1, '在看', currentType),
+                      _buildTypeButton(2, '想看', currentType),
+                      _buildTypeButton(4, '看过', currentType),
+                      _buildTypeButton(3, '搁置', currentType),
+                      _buildTypeButton(5, '抛弃', currentType),
+                      _buildDeleteButton(),
+                    ],
+                  ),
                 ],
               ),
             ),
-
-            // 展开区域：快速切换状态
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Container(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Divider(height: 1),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildTypeButton(1, '在看', currentType),
-                        _buildTypeButton(2, '想看', currentType),
-                        _buildTypeButton(4, '看过', currentType),
-                        _buildTypeButton(3, '搁置', currentType),
-                        _buildTypeButton(5, '抛弃', currentType),
-                        _buildDeleteButton(),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              crossFadeState: _expanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 250),
-            ),
-          ],
-        ),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+          ),
+        ],
       ),
+    );
     );
   }
 
