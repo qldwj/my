@@ -100,8 +100,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   SettingsEntryTile(
                     icon: Icons.cloud,
                     title: '同步设置',
-                    description: '设置同步参数',
-                    onTap: () => context.pushNamed('/settings/webdav/'),
+                    description: 'Bangumi / WebDAV / 樱花动漫',
+                    onTap: () => context.pushNamed('/settings/sync'),
                   ),
 
                 ],
