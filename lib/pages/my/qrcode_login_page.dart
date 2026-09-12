@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/auth_service.dart';
@@ -8,7 +9,10 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
-/// 扫码登录页 - 生成 yhdm://login 协议二维码，供另一台设备扫描登录
+/// 扫码登录页
+///
+/// - 已登录用户 → 打开摄像头扫码（手机端扫码登录其他设备）
+/// - 未登录用户 → 显示二维码让别人扫（电脑端显示二维码）
 class QrcodeLoginPage extends StatefulWidget {
   const QrcodeLoginPage({super.key});
 
@@ -17,6 +21,7 @@ class QrcodeLoginPage extends StatefulWidget {
 }
 
 class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
+  // ── 显示二维码模式（未登录）──
   String? _qrcodeUrl;
   String? _token;
   String? _scannerIp;
@@ -29,21 +34,36 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   bool _loading = true;
   bool _confirmDialogShown = false;
 
+  // ── 扫码模式（已登录）──
+  MobileScannerController? _scannerController;
+  bool _scanMode = false;
+  bool _scanProcessing = false;
+
+  bool get _isLoggedIn => AuthService.isLoggedIn;
+
   @override
   void initState() {
     super.initState();
-    _createQrcode();
+    if (_isLoggedIn) {
+      _scanMode = true;
+      _scannerController = MobileScannerController();
+      _loading = false;
+    } else {
+      _createQrcode();
+    }
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _scannerController?.dispose();
     super.dispose();
   }
 
+  // ── 显示二维码模式 ──
+
   Future<void> _createQrcode() async {
     try {
-      // 上送机主 token，后端据此区分"机主确认"与"扫码者请求"
       final data = await QrLoginService.createQr(
         userToken: AuthService.getLocalToken() ?? '',
       );
@@ -66,28 +86,18 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
   void _startPolling() {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      if (_token == null) return;
-      // 🔧 已拒绝登录：停止一切轮询动作（防止重复弹确认框）
-      if (_rejected) return;
+      if (_token == null || _rejected) return;
       try {
         final data = await QrLoginService.check(_token!);
-        
-        // ⭐ 打印日志便于调试
-        KazumiLogger().d('轮询结果: $data');
-
-        // ⭐ 更新扫码者信息
         if (data['scanner_ip'] != null) {
           setState(() {
             _scannerIp = data['scanner_ip'] as String? ?? _scannerIp;
             _scannerLocation = data['scanner_location'] as String? ?? _scannerLocation;
           });
         }
-
-        // ⭐ 先检查 status
         final status = data['status'] as String?;
-
         if (status == 'success') {
-          if (_confirmed) return; // 已在确认对话框里处理过，避免重复弹出/跳转
+          if (_confirmed) return;
           _pollTimer?.cancel();
           final userToken = data['token'] as String?;
           if (userToken != null && userToken.isNotEmpty) {
@@ -96,35 +106,24 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
           }
           if (mounted) {
             setState(() => _confirmed = true);
-            KazumiDialog.showToast(message: '扫码登录成功 🎉');
+            KazumiDialog.showToast(message: '登录成功 🎉');
             await Future.delayed(const Duration(milliseconds: 800));
-            if (mounted) {
-              Navigator.of(context).pop(true);
-            }
+            if (mounted) Navigator.of(context).pop(true);
           }
         } else if (status == 'scanned') {
-          // ⭐ 更新扫码者信息
           if (mounted) {
             setState(() {
               _scannerIp = data['scanner_ip'] as String? ?? _scannerIp;
               _scannerLocation = data['scanner_location'] as String? ?? _scannerLocation;
               _scanned = true;
             });
-            // ⭐ 展示确认对话框
             _showConfirmDialog();
           }
         } else if (status == 'expired') {
           _pollTimer?.cancel();
           if (mounted) setState(() => _expired = true);
         } else if (status == 'pending') {
-          // ⭐ pending 状态：等待扫码，什么都不做
-          // 如果之前显示过 scanned 状态但又被重置了，重置标志
-          if (_scanned && mounted) {
-            setState(() => _scanned = false);
-          }
-        } else if (status == null && data['error'] != null) {
-          // ⭐ 轮询网络异常：保留当前状态，下次继续轮询
-          KazumiLogger().w('轮询失败: ${data['error']}');
+          if (_scanned && mounted) setState(() => _scanned = false);
         }
       } catch (e) {
         KazumiLogger().e('轮询错误', error: e);
@@ -135,7 +134,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   void _showConfirmDialog() {
     if (_confirmDialogShown) return;
     _confirmDialogShown = true;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -156,61 +154,35 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.devices, size: 18, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('请求登录的设备：', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.language, size: 16, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text('IP: ${_scannerIp ?? '获取中...'}'),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text('位置: ${(_scannerLocation == null || _scannerLocation!.isEmpty) ? '未知' : _scannerLocation}'),
-                    ],
-                  ),
+                  if (_scannerLocation != null)
+                    Text('📍 位置: $_scannerLocation', style: const TextStyle(fontWeight: FontWeight.w500)),
+                  if (_scannerIp != null)
+                    Text('🌐 IP: $_scannerIp', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '如果这不是您的操作，请点击"拒绝"',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
+            const SizedBox(height: 8),
+            const Text('确认后该设备将获得您的登录权限。'),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // 🔧 拒绝后永久取消：停止轮询 + 标记拒绝，不再重复弹确认框
-              _confirmDialogShown = true;
+            onPressed: () async {
               _rejected = true;
-              _pollTimer?.cancel();
-              Navigator.of(ctx).pop(false);
-              if (mounted) {
-                setState(() {
-                  _scanned = false;
-                  _rejected = true;
-                });
-              }
-              KazumiDialog.showToast(message: '已拒绝登录，二维码已作废');
+              Navigator.pop(ctx);
+              try {
+                await QrLoginService.reject(_token!);
+                if (mounted) setState(() {});
+              } catch (_) {}
             },
             child: const Text('拒绝', style: TextStyle(color: Colors.red)),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.of(ctx).pop(true);
-              await _confirmLogin();
+              Navigator.pop(ctx);
+              try {
+                await QrLoginService.confirm(_token!);
+              } catch (_) {}
             },
             child: const Text('确认登录'),
           ),
@@ -219,258 +191,260 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
     );
   }
 
-  Future<void> _confirmLogin() async {
-    if (_token == null || _confirmed) return;
+  // ── 扫码模式 ──
+
+  void _onScanResult(BarcodeCapture capture) {
+    if (_scanProcessing) return;
+    final barcode = capture.barcodes.firstOrNull;
+    if (barcode == null || barcode.rawValue == null) return;
+    final url = barcode.rawValue!;
+    if (!url.contains('yhdm://login')) return;
+    _scanProcessing = true;
+    _handleScannedUrl(url);
+  }
+
+  Future<void> _handleScannedUrl(String url) async {
     try {
-      KazumiDialog.showLoading(msg: '确认登录中...');
-
-      // 与扫码端统一走 /api/qr/confirm.php（内部已带超时），
-      // 避免之前直连 /api/login?action=qrcode_login 无超时导致卡死。
-      final result = await QrLoginService.confirmLogin(
-        _token!,
-        AuthService.getLocalToken() ?? '',
-      );
-
-      KazumiDialog.dismiss();
-
-      final confirmed = result['success'] == true ||
-          result['status'] == 'confirmed' ||
-          result['status'] == 'success';
-
-      if (confirmed) {
-        final rawToken = result['token'];
-        final userToken = rawToken is String && rawToken.isNotEmpty
-            ? rawToken
-            : null;
-        if (userToken != null) {
-          AuthService.saveLocalToken(userToken);
-          await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
-        }
-        _pollTimer?.cancel();
-        if (mounted) {
-          setState(() => _confirmed = true);
-          KazumiDialog.showToast(message: '扫码登录成功 🎉');
-          await Future.delayed(const Duration(milliseconds: 800));
-          if (mounted) {
-            Navigator.of(context).pop(true);
-          }
-        }
+      // 从URL中提取token
+      final uri = Uri.parse(url);
+      final code = uri.queryParameters['code'] ?? uri.pathSegments.lastOrNull ?? '';
+      if (code.isEmpty) {
+        KazumiDialog.showToast(message: '无效的登录二维码');
+        _scanProcessing = false;
+        return;
+      }
+      KazumiDialog.showToast(message: '正在确认登录...');
+      final result = await QrLoginService.scan(code: code);
+      if (result['success'] == true) {
+        KazumiDialog.showToast(message: '登录成功 🎉');
+        if (mounted) Navigator.of(context).pop(true);
       } else {
-        final err = result['error'] ?? result['msg'] ?? '确认失败，请重试';
-        KazumiDialog.showToast(message: err.toString());
-        // ⭐ 失败后重置状态，允许重新尝试
-        if (mounted) {
-          setState(() {
-            _scanned = false;
-            _confirmDialogShown = false;
-          });
-        }
+        KazumiDialog.showToast(message: result['error'] ?? '登录失败');
+        _scanProcessing = false;
       }
     } catch (e) {
-      KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '确认失败: $e');
-      if (mounted) {
-        setState(() {
-          _scanned = false;
-          _confirmDialogShown = false;
-        });
-      }
+      KazumiDialog.showToast(message: '登录失败: $e');
+      _scanProcessing = false;
     }
   }
+
+  // ── UI ──
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: SysAppBar(title: const Text('扫码登录')),
-      body: Center(
-        child: _loading
-            ? const CircularProgressIndicator()
-            : _confirmed
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle, size: 80, color: Colors.green),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '登录成功',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text('另一台设备已登录您的账号'),
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('完成'),
-                      ),
-                    ],
-                  )
-                : _expired
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.timer_off, size: 80, color: colorScheme.error),
-                          const SizedBox(height: 16),
-                          const Text(
-                            '二维码已过期',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '请重新生成二维码',
-                            style: TextStyle(color: colorScheme.onSurfaceVariant),
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton(
-                            onPressed: () {
-                              setState(() {
-                                _expired = false;
-                                _loading = true;
-                                _confirmDialogShown = false;
-                                _confirmed = false;
-                                _scanned = false;
-                                _scannerIp = null;
-                                _scannerLocation = null;
-                              });
-                              _createQrcode();
-                            },
-                            child: const Text('重新生成'),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_rejected) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.block,
-                                      color: Colors.red, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '已拒绝登录请求，二维码已作废',
-                                    style: TextStyle(color: Colors.red.shade800),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (_scanned) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade100,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.pending, color: Colors.orange, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '已被扫描，等待确认...',
-                                    style: TextStyle(color: Colors.orange.shade800),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          Container(
-                            width: 220,
-                            height: 220,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant,
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(16),
-                            child: _qrcodeUrl != null
-                                ? Image.network(
-                                    'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_qrcodeUrl!)}',
-                                    errorBuilder: (_, __, ___) => Icon(
-                                      Icons.qr_code,
-                                      size: 180,
-                                      color: colorScheme.primary,
-                                    ),
-                                    loadingBuilder: (_, child, progress) {
-                                      if (progress == null) return child;
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: progress.expectedTotalBytes != null
-                                              ? progress.cumulativeBytesLoaded /
-                                                  progress.expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : const SizedBox(),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _qrcodeUrl ?? '',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: colorScheme.outline,
-                                fontFamily: 'monospace',
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '请使用另一台设备的 App 扫码功能、微信或QQ扫描',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '二维码有效期 5 分钟',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
+      appBar: SysAppBar(
+        title: Text(_isLoggedIn ? '扫码登录其他设备' : '扫码登录'),
+        actions: [
+          if (_isLoggedIn && _scannerController != null)
+            IconButton(
+              icon: Icon(
+                _scannerController!.torchEnabled
+                    ? Icons.flash_on_rounded
+                    : Icons.flash_off_rounded,
+              ),
+              onPressed: () => _scannerController!.toggleTorch(),
+            ),
+        ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _isLoggedIn
+              ? _buildScannerMode(colorScheme)
+              : _buildQrcodeMode(colorScheme),
+    );
+  }
+
+  // ── 扫码模式UI（已登录用户）──
+  Widget _buildScannerMode(ColorScheme colorScheme) {
+    return Column(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Stack(
+            children: [
+              MobileScanner(
+                controller: _scannerController!,
+                onDetect: _onScanResult,
+              ),
+              // 扫描框
+              Center(
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 3),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              if (_scanProcessing)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            color: colorScheme.surface,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.qr_code_scanner_rounded, size: 32, color: colorScheme.primary),
+                const SizedBox(height: 12),
+                Text(
+                  '将另一台设备的二维码放入框内',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '扫描后自动登录另一台设备',
+                  style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 显示二维码模式UI（未登录用户）──
+  Widget _buildQrcodeMode(ColorScheme colorScheme) {
+    return Center(
+      child: _confirmed
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, size: 80, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text('登录成功', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text('另一台设备已登录您的账号'),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('完成'),
+                ),
+              ],
+            )
+          : _expired
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.timer_off, size: 80, color: colorScheme.error),
+                    const SizedBox(height: 16),
+                    const Text('二维码已过期', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _expired = false;
+                          _loading = true;
+                          _confirmDialogShown = false;
+                          _confirmed = false;
+                          _scanned = false;
+                          _scannerIp = null;
+                          _scannerLocation = null;
+                        });
+                        _createQrcode();
+                      },
+                      child: const Text('重新生成'),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_rejected)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.block, color: Colors.red, size: 18),
+                            const SizedBox(width: 8),
+                            Text('已拒绝登录请求', style: TextStyle(color: Colors.red.shade800)),
+                          ],
+                        ),
+                      ),
+                    if (_rejected) const SizedBox(height: 16),
+                    if (_scanned)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.pending, color: Colors.orange, size: 18),
+                            const SizedBox(width: 8),
+                            Text('已被扫描，等待确认...', style: TextStyle(color: Colors.orange.shade800)),
+                          ],
+                        ),
+                      ),
+                    if (_scanned) const SizedBox(height: 16),
+                    Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: _qrcodeUrl != null
+                          ? Image.network(
+                              'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_qrcodeUrl!)}',
+                              errorBuilder: (_, __, ___) => Icon(Icons.qr_code, size: 180, color: colorScheme.primary),
+                            )
+                          : const SizedBox(),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _qrcodeUrl ?? '',
+                        style: TextStyle(fontSize: 11, color: colorScheme.outline, fontFamily: 'monospace'),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '请使用已登录的设备 App 扫码登录',
+                      style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '二维码有效期 5 分钟',
+                      style: TextStyle(fontSize: 12, color: colorScheme.outline),
+                    ),
+                  ],
+                ),
     );
   }
 }
