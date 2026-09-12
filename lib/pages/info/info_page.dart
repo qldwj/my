@@ -690,13 +690,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       child: FilledButton.icon(
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          // 延迟执行，等底部弹窗关闭后再分享
                           Future.delayed(const Duration(milliseconds: 300), () async {
                             try {
                               await Share.share(shareText);
                             } catch (e) {
-                              KazumiLogger().e('Share: 系统分享失败', error: e);
-                              KazumiDialog.showToast(message: '系统分享不可用，请复制链接后手动分享');
+                              // 系统分享失败，直接复制深链
+                              await Clipboard.setData(ClipboardData(text: deepLink));
+                              KazumiDialog.showToast(message: '已复制链接');
                             }
                           });
                         },
