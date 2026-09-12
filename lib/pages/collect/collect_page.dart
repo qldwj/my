@@ -558,7 +558,6 @@ class _CollectTileState extends State<_CollectTile> {
         ],
       ),
     );
-    );
   }
 
   Widget _buildTypeButton(int type, String label, int currentType) {
