@@ -155,10 +155,14 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                         await GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
                                         try {
                                           await _bangumi.init();
-                                          setState(() {});
+                                          // 验证成功后自动开启同步
+                                          setState(() {
+                                            _syncEnabled = true;
+                                          });
+                                          await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('连接成功')),
+                                              const SnackBar(content: Text('连接成功，已自动开启同步')),
                                             );
                                           }
                                         } catch (e) {
