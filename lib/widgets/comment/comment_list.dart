@@ -64,45 +64,46 @@ class _CommentListPageState extends State<CommentListPage> {
             ? Theme.of(context).colorScheme.surface
             : Colors.grey.shade50,
         child: Column(
-        children: [
-          // 集数选择
-          Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _episodeChip('条目', 0),
-                for (int i = 1; i <= 24; i++) _episodeChip('第$i集', i),
-              ],
+          children: [
+            // 集数选择
+            Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _episodeChip('条目', 0),
+                  for (int i = 1; i <= 24; i++) _episodeChip('第$i集', i),
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          // 评论列表
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _comments.isEmpty
-                    ? const Center(child: Text('暂无评论', style: TextStyle(color: Colors.grey)))
-                    : RefreshIndicator(
-                        onRefresh: _loadComments,
-                        child: ListView.builder(
-                          itemCount: _comments.length,
-                          itemBuilder: (ctx, i) => CommentItemWidget(
-                            comment: _comments[i],
-                            subjectId: widget.subjectId,
-                            onRefresh: _loadComments,
+            const Divider(height: 1),
+            // 评论列表
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _comments.isEmpty
+                      ? const Center(child: Text('暂无评论', style: TextStyle(color: Colors.grey)))
+                      : RefreshIndicator(
+                          onRefresh: _loadComments,
+                          child: ListView.builder(
+                            itemCount: _comments.length,
+                            itemBuilder: (ctx, i) => CommentItemWidget(
+                              comment: _comments[i],
+                              subjectId: widget.subjectId,
+                              onRefresh: _loadComments,
+                            ),
                           ),
                         ),
-                      ),
-          ),
-          // 评论输入框
-          CommentEditor(
-            subjectId: widget.subjectId,
-            episode: _selectedEpisode,
-            onSubmitted: (_) => _loadComments(),
-          ),
-        ],
+            ),
+            // 评论输入框
+            CommentEditor(
+              subjectId: widget.subjectId,
+              episode: _selectedEpisode,
+              onSubmitted: (_) => _loadComments(),
+            ),
+          ],
+        ),
       ),
     );
   }

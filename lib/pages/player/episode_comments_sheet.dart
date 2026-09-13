@@ -364,26 +364,27 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                 ? Theme.of(context).colorScheme.surface
                 : Colors.white,
             child: CommentEditor(
-            subjectId: videoPageController.bangumiItem.id,
-            episode: _episode == 0 ? widget.episode : _episode,
-            onSubmitted: (res) {
-              if (res != null && res['success'] == true) {
-                setState(() {
-                  _comments.insert(0, EpisodeComment(
-                    id: res['id'] ?? 0,
-                    subjectId: videoPageController.bangumiItem.id,
-                    episode: _episode == 0 ? widget.episode : _episode,
-                    content: res['content'] ?? '',
-                    sender: res['sender'] ?? '匿名',
-                    uid: res['uid'] ?? '',
-                    avatar: res['avatar'] ?? '',
-                    source: 'sakura',
-                    createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-                  ));
-                });
-              }
-              _loadComments();
-            },
+              subjectId: videoPageController.bangumiItem.id,
+              episode: _episode == 0 ? widget.episode : _episode,
+              onSubmitted: (res) {
+                if (res != null && res['success'] == true) {
+                  setState(() {
+                    _comments.insert(0, EpisodeComment(
+                      id: res['id'] ?? 0,
+                      subjectId: videoPageController.bangumiItem.id,
+                      episode: _episode == 0 ? widget.episode : _episode,
+                      content: res['content'] ?? '',
+                      sender: res['sender'] ?? '匿名',
+                      uid: res['uid'] ?? '',
+                      avatar: res['avatar'] ?? '',
+                      source: 'sakura',
+                      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                    ));
+                  });
+                }
+                _loadComments();
+              },
+            ),
           ),
         ],
       ),
