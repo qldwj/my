@@ -50,18 +50,18 @@ class McpServer {
   "search": {
     "mode": "api",
     "request": {"method": "GET", "url": "https://api.example.com/search?keyword={keyword}"},
-    "listPath": "$.data[*]",
-    "namePath": "$.name",
-    "sourcePath": "$.url"
+    "listPath": "\$.data[*]",
+    "namePath": "\$.name",
+    "sourcePath": "\$.url"
   },
   "chapter": {
     "request": {"method": "GET", "url": "https://api.example.com/episodes/{id}"},
     "format": "nested",
-    "roadsPath": "$.data.roads[*]",
-    "roadNamePath": "$.name",
-    "episodesPath": "$.episodes[*]",
-    "episodeNamePath": "$.name",
-    "episodeUrlPath": "$.url"
+    "roadsPath": "\$.data.roads[*]",
+    "roadNamePath": "\$.name",
+    "episodesPath": "\$.episodes[*]",
+    "episodeNamePath": "\$.name",
+    "episodeUrlPath": "\$.url"
   }
 }
 
