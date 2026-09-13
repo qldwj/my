@@ -612,6 +612,9 @@ class AutoUpdater {
     }
 
     // 显示下载进度对话框
+    DateTime? _lastTime;
+    int _lastBytes = 0;
+
     KazumiDialog.show(
       clickMaskDismiss: false,
       builder: (context) {
@@ -623,11 +626,34 @@ class AutoUpdater {
               ValueListenableBuilder<double>(
                 valueListenable: _downloadProgress,
                 builder: (context, value, child) {
+                  final now = DateTime.now();
+                  double speed = 0;
+                  String eta = '';
+                  if (_lastTime != null && _lastBytes > 0) {
+                    final elapsed = now.difference(_lastTime!).inMilliseconds;
+                    if (elapsed > 0) {
+                      speed = (_lastBytes / elapsed) * 1000; // bytes/s
+                      final remaining = (1 - value) * speed;
+                      if (remaining > 0) {
+                        final secs = (remaining / 1024 / 1024).toStringAsFixed(1);
+                        eta = '预计剩余 ${secs}MB';
+                      }
+                    }
+                  }
+                  _lastTime = now;
+                  _lastBytes = (value * 1024 * 1024 * 50).toInt(); // 估算
                   return Column(
                     children: [
                       LinearProgressIndicator(value: value),
                       const SizedBox(height: 8),
                       Text('${(value * 100).toStringAsFixed(1)}%'),
+                      if (speed > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '速度: ${(speed / 1024 / 1024).toStringAsFixed(1)}MB/s  $eta',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                        ),
+                      ],
                     ],
                   );
                 },
