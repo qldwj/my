@@ -185,39 +185,36 @@ class _CollectPageState extends State<CollectPage> {
                   child: FilledButton.icon(
                     onPressed: syncing ? null : () async {
                       setSheetState(() => syncing = true);
-                      int completed = 0;
-                      final results = <String, bool>{};
-                      // 同时执行所有服务
-                      final futures = <Future>[];
-                      for (final step in services) {
-                        futures.add((() async {
-                          try {
-                            if (step.name == 'WebDAV') {
-                              await ctrl.syncCollectibles(showSuccessToast: false);
-                            } else if (step.name == 'Bangumi') {
-                              await ctrl.syncCollectiblesBangumi(
-                                showSuccessToast: false,
-                                onProgress: (msg, cur, total) {},
-                              );
+                      try {
+                        final results = <String, bool>{};
+                        final futures = <Future>[];
+                        for (final step in services) {
+                          futures.add((() async {
+                            try {
+                              if (step.name == 'WebDAV') {
+                                await ctrl.syncCollectibles(showSuccessToast: false);
+                              } else if (step.name == 'Bangumi') {
+                                await ctrl.syncCollectiblesBangumi(
+                                  showSuccessToast: false,
+                                  onProgress: (msg, cur, total) {},
+                                );
+                              }
+                              results[step.name] = true;
+                            } catch (e) {
+                              results[step.name] = false;
                             }
-                            results[step.name] = true;
-                          } catch (e) {
-                            results[step.name] = false;
-                          }
-                          completed++;
-                          if (ctx.mounted) setSheetState(() {});
-                        })());
-                      }
-                      await Future.wait(futures);
-                      // 显示结果
-                      if (ctx.mounted) {
-                        final successCount = results.values.where((v) => v).length;
-                        final failCount = results.values.where((v) => !v).length;
-                        Navigator.pop(ctx);
-                        KazumiDialog.showToast(
-                          message: '同步完成: $successCount成功${failCount > 0 ? ', $failCount失败' : ''}',
-                        );
-                      }
+                            if (ctx.mounted) setSheetState(() {});
+                          })());
+                        }
+                        await Future.wait(futures);
+                        if (ctx.mounted) {
+                          final successCount = results.values.where((v) => v).length;
+                          final failCount = results.values.where((v) => !v).length;
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(
+                            message: '同步完成: $successCount成功${failCount > 0 ? ', $failCount失败' : ''}',
+                          );
+                        }
                       } catch (e) {
                         if (ctx.mounted) KazumiDialog.showToast(message: '同步失败: $e');
                       } finally {
