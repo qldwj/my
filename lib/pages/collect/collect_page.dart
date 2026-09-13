@@ -12,6 +12,8 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 
 enum _SortMode { recent, name, rating, airDate }
 
@@ -197,6 +199,10 @@ class _CollectPageState extends State<CollectPage> {
                                 if (now - last < 5 * 60 * 1000) {
                                   results[step.name] = true;
                                   continue;
+                                }
+                                // 确保WebDAV已初始化
+                                if (!WebDav().initialized) {
+                                  try { await WebDav().init(); } catch (_) {}
                                 }
                                 await ctrl.syncCollectibles(showSuccessToast: false);
                                 GStorage.putSetting(SettingsKeys.lastSyncWebDav, now);
