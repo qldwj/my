@@ -265,13 +265,9 @@ class AutoUpdater {
     return _latestRelease();
   }
 
-  /// ============================================================
-  /// 🔧 修复：自动检查更新（只在启用自动更新时）
-  /// 改动：加 3 秒延迟确保 UI 和网络就绪 + 健壮的 bool 判断
-  /// ============================================================
+  /// 自动检查更新（只在启用自动更新时）
   Future<void> autoCheckForUpdates() async {
     try {
-      // 等待足够时间确保 UI、网络、DownloadHttpClient 完全就绪
       await Future.delayed(const Duration(seconds: 3));
 
       final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
@@ -283,14 +279,102 @@ class AutoUpdater {
       KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {
-        _showUpdateDialog(updateInfo, isAutoCheck: true);
+        final silentDownload = GStorage.getSetting(SettingsKeys.silentDownload);
+        if (silentDownload == true && Platform.isAndroid) {
+          // 静默下载模式：后台下载APK，下次打开时提示安装
+          _silentDownloadApk(updateInfo);
+        } else {
+          _showUpdateDialog(updateInfo, isAutoCheck: true);
+        }
       } else {
         KazumiLogger().i('Update: already up to date');
       }
     } catch (e) {
-      // 自动检查失败时不显示错误，只打日志
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
+  }
+
+  /// 静默下载APK（后台下载，不弹窗）
+  Future<void> _silentDownloadApk(UpdateInfo updateInfo) async {
+    try {
+      final asset = getUpdateAssetForType(updateInfo.assets, InstallationType.androidApk);
+      final downloadUrl = getUpdateDownloadUrlFromAsset(asset);
+      if (downloadUrl.isEmpty) return;
+
+      final fileName = 'Kazumi-${updateInfo.version}.apk';
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/$fileName';
+      final file = File(filePath);
+
+      if (await file.exists()) {
+        KazumiLogger().i('Update: APK already downloaded: $filePath');
+        return;
+      }
+
+      KazumiLogger().i('Update: silent download started: $downloadUrl');
+      await _downloadClient.download(downloadUrl, filePath);
+      KazumiLogger().i('Update: silent download completed: $filePath');
+
+      await GStorage.putSetting(SettingsKeys.pendingUpdateVersion, updateInfo.version);
+      await GStorage.putSetting(SettingsKeys.pendingUpdatePath, filePath);
+    } catch (e) {
+      KazumiLogger().w('Update: silent download failed', error: e);
+    }
+  }
+
+  /// 启动时检查是否有待安装的更新
+  Future<void> checkPendingUpdate() async {
+    try {
+      final pendingVersion = GStorage.getSetting(SettingsKeys.pendingUpdateVersion);
+      final pendingPath = GStorage.getSetting(SettingsKeys.pendingUpdatePath);
+      if (pendingVersion == null || pendingVersion.isEmpty) return;
+      if (pendingPath == null || pendingPath.isEmpty) return;
+
+      final file = File(pendingPath);
+      if (!await file.exists()) {
+        GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+        GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+        return;
+      }
+
+      final currentVersion = ApiEndpoints.version;
+      if (needUpdate(currentVersion, pendingVersion)) {
+        _showPendingUpdateDialog(pendingVersion, pendingPath);
+      } else {
+        // 版本相同，清理
+        GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+        GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+      }
+    } catch (e) {
+      KazumiLogger().w('Update: check pending update failed', error: e);
+    }
+  }
+
+  /// 显示待安装更新对话框
+  void _showPendingUpdateDialog(String version, String filePath) {
+    KazumiDialog.show(
+      builder: (context) => AlertDialog(
+        title: Text('新版本 $version 已下载完成'),
+        content: const Text('是否立即安装？'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+              GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+              KazumiDialog.dismiss();
+            },
+            child: const Text('稍后安装'),
+          ),
+          FilledButton(
+            onPressed: () {
+              KazumiDialog.dismiss();
+              _installUpdate(filePath, InstallationType.androidApk);
+            },
+            child: const Text('立即安装'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 手动检查更新

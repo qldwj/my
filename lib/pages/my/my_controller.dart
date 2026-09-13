@@ -73,7 +73,9 @@ abstract class _MyController with Store {
       } else {
         // 自动检查更新
         await autoUpdater.autoCheckForUpdates();
-        // 🆕 自动检查公告（仅在自动检查时触发）
+        // 检查是否有待安装的更新（静默下载的）
+        await autoUpdater.checkPendingUpdate();
+        // 自动检查公告（仅在自动检查时触发）
         await AnnouncementService.checkAnnouncement();
       }
 
