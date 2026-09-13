@@ -32,6 +32,7 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultThemeColor;
   late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
+  late bool silentDownload;
   late bool checkPluginUpdateOnStartup;
   // 🔥 新增：更新渠道变量
   late String updateChannel;
@@ -43,6 +44,7 @@ class _AboutPageState extends State<AboutPage> {
   void initState() {
     super.initState();
     autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
+    silentDownload = GStorage.getSetting(SettingsKeys.silentDownload);
     checkPluginUpdateOnStartup =
         GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
     
@@ -405,7 +407,22 @@ class _AboutPageState extends State<AboutPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
-                // 🔥 新增：更新渠道行
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    final silent = value ?? !silentDownload;
+                    await GStorage.putSetting(
+                        SettingsKeys.silentDownload, silent);
+                    setState(() {});
+                  },
+                  title: Text('静默下载更新',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(
+                    '开启后后台自动下载新版本，下次打开时提示安装',
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
+                  initialValue: silentDownload,
+                ),
+                // 更新渠道行
                 SettingsTile.navigation(
                   onPressed: (_) => _showUpdateChannelDialog(),
                   title: Text('更新渠道', style: TextStyle(fontFamily: fontFamily)),

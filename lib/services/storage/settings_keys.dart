@@ -52,6 +52,18 @@ class SettingsKeys {
     'lastSyncYhdmgz',
     0,
   );
+  static const silentDownload = SettingKey<bool>(
+    'silentDownload',
+    false,
+  );
+  static const pendingUpdateVersion = SettingKey<String>(
+    'pendingUpdateVersion',
+    '',
+  );
+  static const pendingUpdatePath = SettingKey<String>(
+    'pendingUpdatePath',
+    '',
+  );
 
   static const hAenable = SettingKey<bool>(
     _SettingBoxKey.hAenable,
