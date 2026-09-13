@@ -325,7 +325,6 @@ class _CollectPageState extends State<CollectPage>
   }
 
   final List<Tab> tabs = const <Tab>[
-    Tab(text: '全部'),
     Tab(text: '在看'),
     Tab(text: '想看'),
     Tab(text: '搁置'),
@@ -336,13 +335,8 @@ class _CollectPageState extends State<CollectPage>
   /// 官方 v2.3.0 新增：各标签页的收藏数量（type-1 对应 tabs 顺序）
   List<int> get _collectibleCounts {
     final List<int> counts = List<int>.filled(tabs.length, 0);
-    // 全部计数
-    counts[0] = collectController.collectibles.length;
-    // 各状态计数（type从1开始，tabs从0开始，偏移1）
     for (final element in collectController.collectibles) {
-      if (element.type - 1 < counts.length - 1) {
-        counts[element.type]++; // type=1→index=1(在看), type=2→index=2(想看)...
-      }
+      counts[element.type - 1]++;
     }
     return counts;
   }
@@ -564,7 +558,7 @@ class _CollectPageState extends State<CollectPage>
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }
-    int crossCount = 1;
+    int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
     }
