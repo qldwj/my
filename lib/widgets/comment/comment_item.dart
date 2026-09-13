@@ -25,7 +25,10 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      color: cs.surface, // 🆕 不透明背景，避免透出粉色背景看不清文字
+      color: Theme.of(context).brightness == Brightness.dark
+          ? cs.surfaceContainerHighest
+          : Colors.white,
+      elevation: 0.5,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
