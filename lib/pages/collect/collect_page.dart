@@ -192,41 +192,42 @@ class _CollectPageState extends State<CollectPage> {
                         final futures = <Future>[];
                         for (final step in services) {
                           futures.add((() async {
-                            try {
+                          try {
                               final now = DateTime.now().millisecondsSinceEpoch;
                               if (step.name == 'WebDAV') {
                                 final last = GStorage.getSetting(SettingsKeys.lastSyncWebDav) ?? 0;
                                 if (now - last < 5 * 60 * 1000) {
                                   results[step.name] = true;
-                                  continue;
+                                } else {
+                                  if (!WebDav().initialized) {
+                                    try { await WebDav().init(); } catch (_) {}
+                                  }
+                                  await ctrl.syncCollectibles(showSuccessToast: false);
+                                  GStorage.putSetting(SettingsKeys.lastSyncWebDav, now);
+                                  results[step.name] = true;
                                 }
-                                // 确保WebDAV已初始化
-                                if (!WebDav().initialized) {
-                                  try { await WebDav().init(); } catch (_) {}
-                                }
-                                await ctrl.syncCollectibles(showSuccessToast: false);
-                                GStorage.putSetting(SettingsKeys.lastSyncWebDav, now);
                               } else if (step.name == 'Bangumi') {
                                 final last = GStorage.getSetting(SettingsKeys.lastSyncBangumi) ?? 0;
                                 if (now - last < 5 * 60 * 1000) {
                                   results[step.name] = true;
-                                  continue;
+                                } else {
+                                  await ctrl.syncCollectiblesBangumi(
+                                    showSuccessToast: false,
+                                    onProgress: (msg, cur, total) {},
+                                  );
+                                  GStorage.putSetting(SettingsKeys.lastSyncBangumi, now);
+                                  results[step.name] = true;
                                 }
-                                await ctrl.syncCollectiblesBangumi(
-                                  showSuccessToast: false,
-                                  onProgress: (msg, cur, total) {},
-                                );
-                                GStorage.putSetting(SettingsKeys.lastSyncBangumi, now);
                               } else if (step.name == '樱花动漫') {
                                 final last = GStorage.getSetting(SettingsKeys.lastSyncYhdmgz) ?? 0;
                                 if (now - last < 5 * 60 * 1000) {
                                   results[step.name] = true;
-                                  continue;
+                                } else {
+                                  await KazumiSyncService.syncCollect();
+                                  GStorage.putSetting(SettingsKeys.lastSyncYhdmgz, now);
+                                  results[step.name] = true;
                                 }
-                                await KazumiSyncService.syncCollect();
-                                GStorage.putSetting(SettingsKeys.lastSyncYhdmgz, now);
                               }
-                              results[step.name] = true;
                             } catch (e) {
                               results[step.name] = false;
                             }
