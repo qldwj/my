@@ -409,9 +409,9 @@ class _AboutPageState extends State<AboutPage> {
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
-                    final silent = value ?? !silentDownload;
+                    silentDownload = value ?? !silentDownload;
                     await GStorage.putSetting(
-                        SettingsKeys.silentDownload, silent);
+                        SettingsKeys.silentDownload, silentDownload);
                     setState(() {});
                   },
                   title: Text('静默下载更新',
