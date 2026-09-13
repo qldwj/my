@@ -359,7 +359,7 @@ class SettingsKeys {
   );
   static const webDavEnableCollect = SettingKey<bool>(
     _SettingBoxKey.webDavEnableCollect,
-    false,
+    true,
     group: SettingGroup.webdav,
   );
   static const webDavURL = SettingKey<String>(
