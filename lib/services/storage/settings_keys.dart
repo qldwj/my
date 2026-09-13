@@ -43,26 +43,32 @@ class SettingsKeys {
   static const lastSyncBangumi = SettingKey<int>(
     'lastSyncBangumi',
     0,
+    group: SettingGroup.proxy,
   );
   static const lastSyncWebDav = SettingKey<int>(
     'lastSyncWebDav',
     0,
+    group: SettingGroup.proxy,
   );
   static const lastSyncYhdmgz = SettingKey<int>(
     'lastSyncYhdmgz',
     0,
+    group: SettingGroup.proxy,
   );
   static const silentDownload = SettingKey<bool>(
     'silentDownload',
     false,
+    group: SettingGroup.proxy,
   );
   static const pendingUpdateVersion = SettingKey<String>(
     'pendingUpdateVersion',
     '',
+    group: SettingGroup.proxy,
   );
   static const pendingUpdatePath = SettingKey<String>(
     'pendingUpdatePath',
     '',
+    group: SettingGroup.proxy,
   );
 
   static const hAenable = SettingKey<bool>(
