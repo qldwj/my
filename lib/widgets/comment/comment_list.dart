@@ -59,7 +59,11 @@ class _CommentListPageState extends State<CommentListPage> {
           ),
         ],
       ),
-      body: Column(
+      body: ColoredBox(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surface
+            : Colors.grey.shade50,
+        child: Column(
         children: [
           // 集数选择
           Container(

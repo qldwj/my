@@ -42,7 +42,9 @@ class _CommentEditorState extends State<CommentEditor> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? cs.surface
+            : Colors.white,
         border: Border(top: BorderSide(color: cs.outline.withOpacity(0.2))),
       ),
       child: Column(

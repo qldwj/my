@@ -219,6 +219,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.surface
+          : Colors.grey.shade50,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -356,7 +359,11 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                           ),
           ),
           // 底部评论输入框
-          CommentEditor(
+          ColoredBox(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.surface
+                : Colors.white,
+            child: CommentEditor(
             subjectId: videoPageController.bangumiItem.id,
             episode: _episode == 0 ? widget.episode : _episode,
             onSubmitted: (res) {
