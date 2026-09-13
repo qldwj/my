@@ -7,8 +7,10 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 enum _SortMode { recent, name, rating, airDate }
@@ -84,16 +86,153 @@ class _CollectPageState extends State<CollectPage> {
   }
 
   Future<void> _syncAll() async {
-    if (_syncing) return;
-    setState(() => _syncing = true);
-    try {
-      await ctrl.syncCollectibles(showSuccessToast: false);
-      if (mounted) KazumiDialog.showToast(message: '同步完成');
-    } catch (e) {
-      if (mounted) KazumiDialog.showToast(message: '同步失败: $e');
-    } finally {
-      if (mounted) setState(() => _syncing = false);
+    _showSyncDialog();
+  }
+
+  void _showSyncDialog() {
+    final services = <_SyncStep>[];
+    if (GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty) {
+      services.add(_SyncStep('Bangumi', Icons.brightness_6_rounded));
     }
+    if (GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty) {
+      services.add(_SyncStep('WebDAV', Icons.cloud_sync_rounded));
+    }
+    if (AuthService.isLoggedIn) {
+      services.add(_SyncStep('樱花动漫', Icons.wb_twilight_rounded));
+    }
+
+    if (services.isEmpty) {
+      KazumiDialog.showToast(message: '请先在同步设置中配置服务');
+      return;
+    }
+
+    int conflictMode = 0;
+    bool syncing = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('同步收藏', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text('当前能同步 ${services.length} 个服务', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 16),
+                for (var i = 0; i < services.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(services[i].icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(services[i].name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('第${i + 1}步', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Text('冲突方式', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<int>(
+                        title: const Text('本地优先', style: TextStyle(fontSize: 13)),
+                        subtitle: const Text('先上传再下载', style: TextStyle(fontSize: 11)),
+                        value: 0, groupValue: conflictMode,
+                        onChanged: (v) => setSheetState(() => conflictMode = v ?? 0),
+                        dense: true, contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<int>(
+                        title: const Text('服务器优先', style: TextStyle(fontSize: 13)),
+                        subtitle: const Text('先下载再上传', style: TextStyle(fontSize: 11)),
+                        value: 1, groupValue: conflictMode,
+                        onChanged: (v) => setSheetState(() => conflictMode = v ?? 0),
+                        dense: true, contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: syncing ? null : () async {
+                      setSheetState(() => syncing = true);
+                      try {
+                        final results = <String, bool>{};
+                        final futures = <Future>[];
+                        for (final step in services) {
+                          futures.add((() async {
+                            try {
+                              if (step.name == 'WebDAV') {
+                                await ctrl.syncCollectibles(showSuccessToast: false);
+                              } else if (step.name == 'Bangumi') {
+                                await ctrl.syncCollectiblesBangumi(
+                                  showSuccessToast: false,
+                                  onProgress: (msg, cur, total) {},
+                                );
+                              }
+                              results[step.name] = true;
+                            } catch (e) {
+                              results[step.name] = false;
+                            }
+                            if (ctx.mounted) setSheetState(() {});
+                          })());
+                        }
+                        await Future.wait(futures);
+                        if (ctx.mounted) {
+                          final successCount = results.values.where((v) => v).length;
+                          final failCount = results.values.where((v) => !v).length;
+                          Navigator.pop(ctx);
+                          KazumiDialog.showToast(
+                            message: '同步完成: $successCount成功${failCount > 0 ? ', $failCount失败' : ''}',
+                          );
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) KazumiDialog.showToast(message: '同步失败: $e');
+                      } finally {
+                        if (mounted) setSheetState(() => syncing = false);
+                      }
+                    },
+                    icon: syncing
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.sync_rounded),
+                    label: Text(syncing ? '同步中...' : '开始同步'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -324,12 +463,12 @@ class _CollectTileState extends State<_CollectTile> {
       color: colors.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        onTap: () => context.pushNamed('/info/', arguments: bangumi),
-        child: Column(
-          children: [
-            // 主行：封面 + 名称 + 状态
-            Padding(
+      child: Column(
+        children: [
+          // 主行：点击跳转详情
+          InkWell(
+            onTap: () => context.pushNamed('/info/', arguments: bangumi),
+            child: Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
@@ -366,73 +505,77 @@ class _CollectTileState extends State<_CollectTile> {
                       ],
                     ),
                   ),
-                  // 状态标签 + 展开
-                  Column(
+                  // 状态标签
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _typeColor(currentType, colors).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _typeName(currentType),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _typeColor(currentType, colors),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 展开按钮：独立区域，点击展开/折叠状态切换
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                border: Border(top: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.3), width: 0.5)),
+              ),
+              child: Icon(
+                _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                size: 24,
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+
+          // 展开区域：快速切换状态
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _typeColor(currentType, colors).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _typeName(currentType),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _typeColor(currentType, colors),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: () => setState(() => _expanded = !_expanded),
-                        child: Icon(
-                          _expanded
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
+                      _buildTypeButton(1, '在看', currentType),
+                      _buildTypeButton(2, '想看', currentType),
+                      _buildTypeButton(4, '看过', currentType),
+                      _buildTypeButton(3, '搁置', currentType),
+                      _buildTypeButton(5, '抛弃', currentType),
+                      _buildDeleteButton(),
                     ],
                   ),
                 ],
               ),
             ),
-
-            // 展开区域：快速切换状态
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Container(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Divider(height: 1),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildTypeButton(1, '在看', currentType),
-                        _buildTypeButton(2, '想看', currentType),
-                        _buildTypeButton(4, '看过', currentType),
-                        _buildTypeButton(3, '搁置', currentType),
-                        _buildTypeButton(5, '抛弃', currentType),
-                        _buildDeleteButton(),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              crossFadeState: _expanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 250),
-            ),
-          ],
-        ),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+          ),
+        ],
       ),
     );
   }
@@ -443,7 +586,7 @@ class _CollectTileState extends State<_CollectTile> {
     return GestureDetector(
       onTap: selected ? null : () => widget.onTypeChanged(type),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected
               ? colors.surfaceContainerHighest
@@ -457,12 +600,12 @@ class _CollectTileState extends State<_CollectTile> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: selected ? colors.onSurface : colors.onSurfaceVariant,
             )),
             if (selected) ...[
               const SizedBox(width: 4),
-              Icon(Icons.check_rounded, size: 14, color: colors.onSurface),
+              Icon(Icons.check_rounded, size: 16, color: colors.onSurface),
             ],
           ],
         ),
@@ -475,13 +618,13 @@ class _CollectTileState extends State<_CollectTile> {
     return GestureDetector(
       onTap: widget.onDelete,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: colors.errorContainer,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text('取消收藏',
-            style: TextStyle(fontSize: 13, color: colors.onErrorContainer)),
+            style: TextStyle(fontSize: 14, color: colors.onErrorContainer)),
       ),
     );
   }
@@ -504,4 +647,10 @@ class _CollectFolderPlaceholder extends StatelessWidget {
     appBar: AppBar(title: const Text('文件夹')),
     body: const Center(child: Text('文件夹功能')),
   );
+}
+
+class _SyncStep {
+  final String name;
+  final IconData icon;
+  _SyncStep(this.name, this.icon);
 }
