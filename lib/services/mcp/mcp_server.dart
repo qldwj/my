@@ -74,7 +74,9 @@ class McpServer {
 
 ## 输出格式
 将规则JSON进行base64编码，在前面加上：
-yhdmgz://rule/import?data=
+yhdmgz://
+
+例如：yhdmgz://eyJuYW1lIjoiVGVzdCIs...
 
 最终输出完整链接，用户可直接复制导入。
 ''';
@@ -125,7 +127,7 @@ yhdmgz://rule/import?data=
           break;
         case 'tools/list':
           _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'tools': [
-            {'name': 'generate_rule', 'description': '分析网站生成Kazumi规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}}
+            {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}}
           ]}});
           break;
         case 'tools/call':
