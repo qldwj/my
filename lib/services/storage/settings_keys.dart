@@ -39,6 +39,20 @@ class SettingKey<T> {
 }
 
 class SettingsKeys {
+  // 同步时间戳缓存
+  static const lastSyncBangumi = SettingKey<int>(
+    'lastSyncBangumi',
+    0,
+  );
+  static const lastSyncWebDav = SettingKey<int>(
+    'lastSyncWebDav',
+    0,
+  );
+  static const lastSyncYhdmgz = SettingKey<int>(
+    'lastSyncYhdmgz',
+    0,
+  );
+
   static const hAenable = SettingKey<bool>(
     _SettingBoxKey.hAenable,
     true,
