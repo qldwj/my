@@ -380,6 +380,26 @@ class SettingsKeys {
     true,
     group: SettingGroup.webdav,
   );
+  static const webDavEnableDanmakuShield = SettingKey<bool>(
+    'webDavEnableDanmakuShield',
+    false,
+    group: SettingGroup.webdav,
+  );
+  static const danmakuShieldSyncDeviceId = SettingKey<String>(
+    'danmakuShieldSyncDeviceId',
+    '',
+    group: SettingGroup.sync,
+  );
+  static const danmakuShieldSyncState = SettingKey<String>(
+    'danmakuShieldSyncState',
+    '',
+    group: SettingGroup.sync,
+  );
+  static const danmakuShieldSyncCorruptState = SettingKey<String>(
+    'danmakuShieldSyncCorruptState',
+    '',
+    group: SettingGroup.sync,
+  );
   static const webDavURL = SettingKey<String>(
     _SettingBoxKey.webDavURL,
     '',
@@ -748,6 +768,13 @@ class SettingsKeys {
     group: SettingGroup.player,
   );
 
+  // Null preserves the legacy lowMemoryMode choice until a policy is selected.
+  static const lowMemoryPolicy = SettingKey<String?>(
+    'lowMemoryPolicy',
+    null,
+    group: SettingGroup.player,
+  );
+
   // 🆕 下载完成通知
   static const downloadCompleteNotify = SettingKey<bool>(
     _SettingBoxKey.downloadCompleteNotify,
@@ -905,10 +932,15 @@ class SettingsKeys {
     webDavEnable,
     webDavEnableHistory,
     webDavEnableCollect,
+    webDavEnableDanmakuShield,
+    danmakuShieldSyncDeviceId,
+    danmakuShieldSyncState,
+    danmakuShieldSyncCorruptState,
     webDavURL,
     webDavUsername,
     webDavPassword,
     lowMemoryMode,
+    lowMemoryPolicy,
     showWindowButton,
     useDynamicColor,
     exitBehavior,

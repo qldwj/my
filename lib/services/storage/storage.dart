@@ -375,5 +375,10 @@ class GStorage {
     await resetSettings(SettingsKeys.byGroup(SettingGroup.danmaku));
   }
 
+  static Stream<void> watchSettings(Iterable<SettingKey<Object?>> keys) {
+    final names = keys.map((key) => key.name).toSet();
+    return _setting.watch().where((event) => names.contains(event.key)).map((_) {});
+  }
+
   GStorage._();
 }
