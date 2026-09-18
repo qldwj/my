@@ -206,7 +206,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
           airDate: '', airWeekday: 0, rank: 0, images: {}, tags: [], alias: [],
           ratingScore: 0.0, votes: 0, votesCount: [], info: '',
         );
-        Modular.to.pushNamed('/info/', arguments: bangumiItem);
+        unawaited(rootNavigatorKey.currentContext!
+            .pushNamed('/info/', arguments: bangumiItem));
       }
     } else if (type == 'rule' && refId.isNotEmpty) {
       try {

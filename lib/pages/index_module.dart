@@ -48,7 +48,8 @@ final tabModule = createModule(
       ..addSingleton<TimelineController>(TimelineController.new)
       ..route(
         '/',
-        child: (context, state) => IndexPage(location: state.location),
+        // flutter_modular v7 的 RouteState 不再有 location，用完整 URI 的 path。
+        child: (context, state) => IndexPage(location: state.uri.path),
         transition: _tabTransition,
         children: (sub) {
           sub
