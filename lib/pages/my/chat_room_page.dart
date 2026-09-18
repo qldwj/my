@@ -13,7 +13,7 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/encoding.dart';
-import 'package:flutter_modular/flutter_modular.dart' show inject;
+import 'package:flutter_modular/flutter_modular.dart';
 
 class ChatRoomPage extends StatefulWidget {
   const ChatRoomPage({super.key});
