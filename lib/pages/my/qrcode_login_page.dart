@@ -198,7 +198,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
     final url = barcode.rawValue!;
-    if (!url.contains('yhdm://login')) return;
+    // 兼容 yhdmgz://login 和 yhdm://login 两种格式
+    if (!url.contains('yhdmgz://login') && !url.contains('yhdm://login')) return;
     _scanProcessing = true;
     _handleScannedUrl(url);
   }
@@ -236,9 +237,9 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
     return Scaffold(
       appBar: SysAppBar(
-        title: Text(_isLoggedIn ? '扫码登录其他设备' : '扫码登录'),
+        title: Text(_isLoggedIn ? '分享登录给其他设备' : '扫码登录'),
         actions: [
-          if (_isLoggedIn && _scannerController != null)
+          if (!_isLoggedIn && _scannerController != null)
             IconButton(
               icon: Icon(
                 _scannerController!.torchEnabled
@@ -252,8 +253,35 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _isLoggedIn
-              ? _buildScannerMode(colorScheme)
-              : _buildQrcodeMode(colorScheme),
+              ? _buildQrcodeMode(colorScheme)
+              : _scanMode
+                  ? _buildScannerMode(colorScheme)
+                  : _buildDesktopNotSupported(colorScheme),
+    );
+  }
+
+  // ── 桌面端未登录不支持扫码提示 ──
+  Widget _buildDesktopNotSupported(ColorScheme colorScheme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.no_photography, size: 80, color: colorScheme.outline),
+          const SizedBox(height: 16),
+          const Text('桌面端暂不支持扫码登录', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Text(
+            '请使用手机端APP扫码，或先在手机上登录后同步账号',
+            style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('返回'),
+          ),
+        ],
+      ),
     );
   }
 
