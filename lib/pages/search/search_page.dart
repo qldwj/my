@@ -31,6 +31,9 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
 
+  // Preserve the input subtree when the header moves in or out of the scroll view.
+  final _searchHeaderKey = GlobalKey();
+
   SearchPageController get searchPageController => widget.controller;
   final ScrollController scrollController = ScrollController();
 
@@ -242,6 +245,7 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Padding(
+            key: _searchHeaderKey,
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: FocusScope(
               descendantsAreFocusable: false,
