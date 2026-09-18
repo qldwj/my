@@ -1064,12 +1064,12 @@ abstract class _VideoPageController with Store implements Disposable {
 
   void enterFullScreen() {
     isFullscreen = true;
-    DisplayModeService.enterFullScreen(lockOrientation: false);
+    DisplayModeService.applyVideoFullscreen(true);
   }
 
   void exitFullScreen() {
     isFullscreen = false;
-    DisplayModeService.exitFullScreen();
+    DisplayModeService.applyVideoFullscreen(false);
   }
 
   void isDesktopFullscreen() async {

@@ -26,3 +26,21 @@ Future<Map<String, double>> getScreenInfo() async {
 bool isDesktop() {
   return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 }
+
+/// 判断是否是平板
+bool isTablet() {
+  final mediaQuery = MediaQueryData.fromView(
+    WidgetsBinding.instance.platformDispatcher.views.first,
+  );
+  final shortestSide = mediaQuery.size.shortestSide;
+  return shortestSide >= 600;
+}
+
+/// 判断是否是紧凑布局（小屏手机）
+bool isCompact() {
+  final mediaQuery = MediaQueryData.fromView(
+    WidgetsBinding.instance.platformDispatcher.views.first,
+  );
+  final shortestSide = mediaQuery.size.shortestSide;
+  return shortestSide < 600;
+}
