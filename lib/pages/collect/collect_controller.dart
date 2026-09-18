@@ -289,8 +289,15 @@ abstract class _CollectController with Store {
       return false;
     }
     if (!WebDav().initialized) {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
-      return false;
+      // 可能本次会话才开启同步（或启动时初始化被跳过），这里补一次初始化，
+      // 否则会直接提示“未开启”并放弃同步，表现为压根不同步。
+      try {
+        await WebDav().init();
+      } catch (e) {
+        KazumiLogger().e('WebDav: initialization failed', error: e);
+        KazumiDialog.showToast(message: 'WebDav初始化失败: $e');
+        return false;
+      }
     }
     bool flag = true;
     try {
@@ -327,8 +334,15 @@ abstract class _CollectController with Store {
       return false;
     }
     if (!WebDav().initialized) {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
-      return false;
+      // 可能本次会话才开启同步（或启动时初始化被跳过），这里补一次初始化，
+      // 否则会直接提示“未开启”并放弃同步，表现为压根不同步。
+      try {
+        await WebDav().init();
+      } catch (e) {
+        KazumiLogger().e('WebDav: initialization failed', error: e);
+        KazumiDialog.showToast(message: 'WebDav初始化失败: $e');
+        return false;
+      }
     }
     bool flag = true;
     try {
