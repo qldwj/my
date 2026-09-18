@@ -648,7 +648,7 @@ class SettingsKeys {
   );
   static const updateChannel = SettingKey<String>(
     'updateChannel',
-    'stable',
+    'beta',
     group: SettingGroup.update,
   );
   static const animekoRuleLastCheck = SettingKey<int>(

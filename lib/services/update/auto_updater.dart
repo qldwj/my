@@ -217,7 +217,8 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// 获取最新测试版（从版本列表中找第一个可用的）
+  /// 获取最新预览版（所有版本都有：正式版 + 测试版）
+  /// 取版本列表第一个（最新发布的），不管是不是prerelease
   /// 优先从镜像获取，失败则回退到 GitHub API
   Future<Map<String, dynamic>> _latestBetaRelease() async {
     // 优先从镜像获取
@@ -225,13 +226,7 @@ class AutoUpdater {
       final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleasesMirror);
       final list = json.decode(raw);
       if (list is List && list.isNotEmpty) {
-        // 优先找 prerelease: true 的项
-        for (final item in list) {
-          if (item is Map && item['prerelease'] == true) {
-            return Map<String, dynamic>.from(item);
-          }
-        }
-        // 如果没有 prerelease，取第一个有 assets 的
+        // 预览版：所有版本都有，取第一个有 assets 的（最新发布的）
         for (final item in list) {
           if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
             return Map<String, dynamic>.from(item);
@@ -249,13 +244,7 @@ class AutoUpdater {
     if (list is! List || list.isEmpty) {
       throw Exception('没有可用的版本');
     }
-    // 优先找 prerelease: true 的项
-    for (final item in list) {
-      if (item is Map && item['prerelease'] == true) {
-        return Map<String, dynamic>.from(item);
-      }
-    }
-    // 如果没有 prerelease，取第一个有 assets 的
+    // 预览版：所有版本都有，取第一个有 assets 的（最新发布的）
     for (final item in list) {
       if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
         return Map<String, dynamic>.from(item);
