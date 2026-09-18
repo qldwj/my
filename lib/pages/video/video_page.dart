@@ -352,7 +352,7 @@ class _VideoPageState extends State<VideoPage>
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
-    DisplayModeService.unlockScreenRotation();
+    // DisplayModeService.unlockScreenRotation(); // 已合并到 applyVideoFullscreen
     keyboardFocus.dispose();
     tabController.dispose();
     TimedShutdownService().cancel();
@@ -580,13 +580,13 @@ class _VideoPageState extends State<VideoPage>
     }
     if (videoPageController.isFullscreen && !isTablet()) {
       menuJumpToCurrentEpisode();
-      await DisplayModeService.exitFullScreen();
+      await DisplayModeService.applyVideoFullscreen(false);
       _hideTabBodyImmediately();
       videoPageController.isFullscreen = false;
       return;
     }
     if (videoPageController.isFullscreen) {
-      await DisplayModeService.exitFullScreen();
+      await DisplayModeService.applyVideoFullscreen(false);
       videoPageController.isFullscreen = false;
     }
     if (_isClosing) {
