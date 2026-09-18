@@ -92,9 +92,26 @@ class DeepLinkService {
     });
   }
 
-  /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm://）
+  /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm:// 或 https App Links）
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
+
+    // 0️⃣ App Links：https://qlyyz.xyz/open/xxx → 转成 yhdmgz:// 内部协议
+    if (url.startsWith('https://qlyyz.xyz/')) {
+      try {
+        final uri = Uri.parse(url);
+        // 分享番剧：/open/anime?id=123 → yhdmgz://share/anime?id=123
+        if (uri.pathSegments.contains('open') && uri.pathSegments.contains('anime')) {
+          final id = uri.queryParameters['id'];
+          if (id != null && id.isNotEmpty) {
+            url = 'yhdmgz://share/anime?id=$id';
+          }
+        }
+        // 其他路径可以继续扩展...
+      } catch (e) {
+        KazumiLogger().w('DeepLink: App Links 解析失败', error: e);
+      }
+    }
 
     // 1️⃣ Bangumi OAuth 登录回调 (yhdm://bangumi-auth)
     if (url.startsWith('yhdm://bangumi-auth')) {
