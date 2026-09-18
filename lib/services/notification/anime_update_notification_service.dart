@@ -384,7 +384,7 @@ class AnimeUpdateNotificationService {
       if (item == null) return;
       final context = rootNavigatorKey.currentContext;
       if (context == null || !context.mounted) return;
-      Navigator.of(context).pushNamed('/info/', arguments: item);
+      Modular.to.pushNamed('/info/', arguments: item);
     } catch (e) {
       KazumiLogger().e(
           'AnimeUpdateNotificationService: open detail failed',
