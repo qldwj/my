@@ -245,11 +245,13 @@ class DeepLinkService {
         _showToast('无法打开番剧详情');
         return;
       }
-      // ⭐ 用 Modular.to.pushNamed 而不是 Navigator.pushNamed，
+      // ⭐ 用 context.pushNamed 而不是 Navigator.pushNamed，
       //    因为项目用 flutter_modular 路由，Navigator 找不到模块化路由
       WidgetsBinding.instance.addPostFrameCallback((_) {
         try {
-          Modular.to.pushNamed(
+          final navContext = rootNavigatorKey.currentContext;
+          if (navContext == null || !navContext.mounted) return;
+          navContext.pushNamed(
             '/info/',
             arguments: item,
           );
