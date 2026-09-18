@@ -6,7 +6,9 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
 
 class ScaffoldMenu extends StatefulWidget {
-  const ScaffoldMenu({super.key});
+  const ScaffoldMenu({super.key, required this.location});
+
+  final String location;
 
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
@@ -15,15 +17,25 @@ class ScaffoldMenu extends StatefulWidget {
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final _outletKey = GlobalKey<RouterOutletState>();
   DateTime? _lastExitPromptAt;
+  late int _selectedIndex = menu.indexForPath(widget.location);
+
+  @override
+  void didUpdateWidget(covariant ScaffoldMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      _selectedIndex = menu.indexForPath(widget.location);
+    }
+  }
 
   void _selectDestination(int index) {
     _lastExitPromptAt = null;
-    final currentIndex =
-        menu.indexForPath(context.routeState(listen: false).uri.path);
-    if (index == currentIndex) {
+    if (index == _selectedIndex) {
       return;
     }
-    _outletKey.currentState?.navigate('/tab${menu.getPath(index)}/');
+    final outlet = _outletKey.currentState;
+    if (outlet == null) return;
+    outlet.navigate('/tab${menu.getPath(index)}/');
+    setState(() => _selectedIndex = index);
   }
 
   void _handleSystemBack(BuildContext context) {
@@ -32,9 +44,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
       return;
     }
 
-    final currentIndex =
-        menu.indexForPath(context.routeState(listen: false).uri.path);
-    if (currentIndex != 0) {
+    if (_selectedIndex != 0) {
       _selectDestination(0);
       return;
     }
@@ -54,7 +64,6 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = menu.indexForPath(context.routeState().uri.path);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -65,8 +74,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
       child: OrientationBuilder(
         builder: (context, orientation) {
           return orientation == Orientation.portrait
-              ? _bottomMenu(context, selectedIndex)
-              : _sideMenu(context, selectedIndex);
+              ? _bottomMenu(context, _selectedIndex)
+              : _sideMenu(context, _selectedIndex);
         },
       ),
     );
