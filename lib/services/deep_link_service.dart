@@ -228,11 +228,11 @@ class DeepLinkService {
         _showToast('无法打开番剧详情');
         return;
       }
-      // ⭐ 与聊天室跳转一致：Navigator.of(root).pushNamed 走全局路由解析，
-      //    不会因为 modular 作用域/时机问题报"没路由"
+      // ⭐ 用 Modular.to.pushNamed 而不是 Navigator.pushNamed，
+      //    因为项目用 flutter_modular 路由，Navigator 找不到模块化路由
       WidgetsBinding.instance.addPostFrameCallback((_) {
         try {
-          Navigator.of(rootNavigatorKey.currentContext!).pushNamed(
+          Modular.to.pushNamed(
             '/info/',
             arguments: item,
           );
