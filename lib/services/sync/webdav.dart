@@ -131,8 +131,19 @@ class WebDav {
     }
   }
 
-  Future<T> _runWebDavExclusive<T>(Future<T> Function() action) {
+  Future<void> _runWebDavExclusive<T>(Future<T> Function() action) {
     return _webDavOperationQueue.run(action);
+  }
+
+  /// 确保连接可用。
+  ///
+  /// 只在启动时初始化过一次，若用户是「本次会话才打开同步开关」，
+  /// 或者启动时的自动初始化失败/被跳过，initialized 会一直是 false，
+  /// 之前的实现直接 return / 抛 LateInitializationError，表现为「压根不同步」。
+  Future<void> _ensureInitialized() async {
+    if (!initialized) {
+      await init();
+    }
   }
 
   Future<void> _updateBox(String boxName) async {
@@ -154,7 +165,10 @@ class WebDav {
   Future<void> syncHistory() {
     return _historySyncSingleFlight.run(() async {
       try {
-        await _runWebDavExclusive(_syncHistory);
+        await _runWebDavExclusive(() async {
+          await _ensureInitialized();
+          await _syncHistory();
+        });
       } catch (e) {
         KazumiLogger().e('WebDav: history sync failed', error: e);
         rethrow;
@@ -165,6 +179,7 @@ class WebDav {
   Future<void> updateCollectibles() async {
     try {
       await _runWebDavExclusive(() async {
+        await _ensureInitialized();
         await _updateBox('collectibles');
         if (GStorage.collectChanges.isNotEmpty) {
           await _updateBox('collectchanges');
@@ -186,7 +201,10 @@ class WebDav {
   }
 
   Future<void> syncCollectibles() async {
-    return _runWebDavExclusive(_syncCollectibles);
+    return _runWebDavExclusive(() async {
+      await _ensureInitialized();
+      await _syncCollectibles();
+    });
   }
 
   Future<void> _syncCollectibles() async {

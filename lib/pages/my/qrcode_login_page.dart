@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -8,6 +9,7 @@ import 'package:kazumi/services/qr_login_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/device.dart';
 
 /// 扫码登录页
 ///
@@ -45,13 +47,19 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   void initState() {
     super.initState();
     if (_isLoggedIn) {
-      _scanMode = true;
-      _scannerController = MobileScannerController();
+      // 只有带摄像头的平台才能扫码（Windows/Linux 桌面端 mobile_scanner 不可用）
+      _scanMode = _cameraAvailable;
+      if (_scanMode) {
+        _scannerController = MobileScannerController();
+      }
       _loading = false;
     } else {
       _createQrcode();
     }
   }
+
+  /// 当前平台是否可能提供摄像头
+  bool get _cameraAvailable => !isDesktop() || Platform.isMacOS;
 
   @override
   void dispose() {
@@ -239,7 +247,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       appBar: SysAppBar(
         title: Text(_isLoggedIn ? '分享登录给其他设备' : '扫码登录'),
         actions: [
-          if (!_isLoggedIn && _scannerController != null)
+          if (_scanMode && _scannerController != null)
             IconButton(
               icon: Icon(
                 _scannerController!.torchEnabled
@@ -252,8 +260,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _isLoggedIn
+          // 未登录：显示二维码，让已登录的设备扫码把登录分享给本机
+          : !_isLoggedIn
               ? _buildQrcodeMode(colorScheme)
+              // 已登录：打开相机扫别人的二维码（桌面端无摄像头时给出提示）
               : _scanMode
                   ? _buildScannerMode(colorScheme)
                   : _buildDesktopNotSupported(colorScheme),

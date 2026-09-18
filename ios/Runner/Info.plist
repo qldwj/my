@@ -75,6 +75,8 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>需要使用摄像头扫描二维码登录账号</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

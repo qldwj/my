@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -35,6 +36,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/services/player/skip_segments_service.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/video_share_codec.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
@@ -474,6 +476,21 @@ class _VideoPageState extends State<VideoPage>
               ? videoPageController.selectedEpisode.episode - 1
               : videoPageController.selectedEpisode.episode);
     });
+  }
+
+  /// 🆕 分享当前播放的视频
+  ///
+  /// 取当前播放地址 → gzdeflate(9) + Base32 加密 →
+  /// 复制 `https://qlyyz.xyz/video?url=<密文>` 到剪贴板。
+  Future<void> shareCurrentVideoLink() async {
+    final videoUrl = playerController.videoUrl;
+    if (videoUrl.isEmpty) {
+      KazumiDialog.showToast(message: '当前没有可分享的视频地址');
+      return;
+    }
+    final link = VideoShareCodec.buildShareLink(videoUrl);
+    await Clipboard.setData(ClipboardData(text: link));
+    KazumiDialog.showToast(message: '分享链接已复制，可发送给好友观看');
   }
 
   bool get _isSideTabLayout =>
@@ -1331,6 +1348,16 @@ class _VideoPageState extends State<VideoPage>
                 ),
               ),
               const Spacer(),
+              // 🆕 分享按钮：取当前播放地址 → gzdeflate+Base32 加密 → 复制分享链接
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                iconSize: 18,
+                icon: const Icon(Icons.share_rounded),
+                tooltip: '分享当前视频',
+                onPressed: () {
+                  shareCurrentVideoLink();
+                },
+              ),
               // 定位按钮
               IconButton(
                 visualDensity: VisualDensity.compact,

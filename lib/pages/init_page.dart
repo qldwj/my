@@ -66,8 +66,8 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _initializeApp() async {
-    // 🆕 弹幕屏蔽同步（暂时注释，WebDav接口未适配）
-    // widget.danmakuShieldSync.start();
+    // 🆕 弹幕屏蔽同步（WebDav 接口已适配：isDanmakuShieldSyncEnabled / syncDanmakuShield）
+    widget.danmakuShieldSync.start();
     _migrateStorage();
     _loadShaders();
     // unawaited(myController.loadShieldList());
