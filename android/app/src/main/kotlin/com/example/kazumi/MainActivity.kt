@@ -29,6 +29,9 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioService
 import com.ryanheise.audioservice.AudioServiceActivity
+// 该文件的包名（com.example.kazumi）与 app 的 namespace（com.predidit.YHDM）不同，
+// R 类只会在 namespace 下生成，必须显式导入，否则 Unresolved reference 'R'。
+import com.predidit.YHDM.R
 
 class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
