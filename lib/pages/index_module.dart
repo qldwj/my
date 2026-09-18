@@ -18,6 +18,7 @@ import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -78,6 +79,7 @@ final indexModule = createModule(
           shaderAssetService: inject<ShaderAssetService>(),
           myController: inject<MyController>(),
           downloadController: inject<DownloadController>(),
+          danmakuShieldSync: inject<DanmakuShieldSyncService>(),
         ),
         transition: TransitionType.none,
       )
