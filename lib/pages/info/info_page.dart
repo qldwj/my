@@ -694,9 +694,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                             try {
                               await Share.share(shareText);
                             } catch (e) {
-                              // 系统分享失败，直接复制深链
-                              await Clipboard.setData(ClipboardData(text: deepLink));
-                              KazumiDialog.showToast(message: '已复制链接');
+                              // 系统分享失败，直接复制邀请文案
+                              await Clipboard.setData(ClipboardData(text: shareText));
+                              KazumiDialog.showToast(message: '已复制邀请文案');
                             }
                           });
                         },
@@ -770,26 +770,40 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     );
   }
 
-  /// 生成分享文案
+  /// 分享小情话（按番剧 ID 固定挑一句，避免每次分享都不一样）
+  static const List<String> _shareSweetWords = [
+    '今天也想和你一起看番呀～',
+    '一个人看番会有点寂寞，所以来找你啦',
+    '把喜欢的番分享给喜欢的人，刚好就是你',
+    '这部番我追了好久，想和你一起看',
+    '悄悄说一句：和你一起看番最开心了',
+  ];
+
+  /// 生成分享文案（邀请好友下载 App 并凭番剧 ID 直接打开）
+  ///
+  /// 格式：
+  /// ```
+  /// {昵称} 邀请你到樱花动漫观看《{番剧名}》按以下步骤
+  /// 1. 下载樱花动漫 https://qlyyz.xyz
+  /// 2. 复制下面数字
+  /// {番剧ID}
+  /// 3. 打开樱花动漫APP
+  /// ```
   String _buildShareText(BangumiItem item, String name) {
-    final sb = StringBuffer();
-    sb.writeln('【$name】');
-    if (item.ratingScore > 0) {
-      sb.writeln('评分：${item.ratingScore.toStringAsFixed(1)}');
-    }
-    // ⭐ 带上观看进度（上次看到第几集）
-    final lastEp = _lastWatchEpisodeFor(item);
-    if (lastEp > 0) {
-      sb.writeln('看到第 $lastEp 集');
-    }
-    if (item.summary.isNotEmpty) {
-      final summary = item.summary.replaceAll('\n', ' ').trim();
-      sb.writeln(
-        summary.length > 80 ? '${summary.substring(0, 80)}...' : summary,
-      );
-    }
-    sb.writeln('https://bangumi.tv/subject/${item.id}');
-    return sb.toString();
+    // 昵称取本地缓存（同步方法，弹分享面板时不会卡）
+    final nickname =
+        (SocialService.restoreLocalProfile()?.nickname ?? '').trim();
+    final who = nickname.isEmpty ? '' : '$nickname ';
+    final sweet =
+        _shareSweetWords[item.id.abs() % _shareSweetWords.length];
+
+    return '$who邀请你到樱花动漫观看《$name》按以下步骤\n'
+        '1. 下载樱花动漫 https://qlyyz.xyz\n'
+        '2. 复制下面数字\n'
+        '${item.id}\n'
+        '3. 打开樱花动漫APP\n'
+        '\n'
+        '$sweet';
   }
 
   /// 该番上次看到的集数（来自历史记录）
