@@ -164,7 +164,7 @@ class GStorage {
   }
 
   /// Open a Hive box with automatic recovery on corruption.
-  /// If the box is corrupted, delete it and create a new empty one.
+  /// If the box is corrupted, salvage readable records, then delete and recreate.
   static Future<Box<T>> _openBoxSafe<T>(String boxName) async {
     try {
       return await Hive.openBox<T>(boxName);
@@ -173,20 +173,60 @@ class GStorage {
           'GStorage: Box "$boxName" corrupted, attempting recovery',
           error: e);
 
+      // 🆕 先抢救能读出的记录：一条坏记录不再让整箱数据陪葬
+      final salvaged = await _salvageBox<T>(boxName);
+
       // Delete the corrupted box files
       await _deleteBoxFiles(boxName);
 
       // Try to open again (will create a new empty box)
       try {
         final box = await Hive.openBox<T>(boxName);
-        KazumiLogger()
-            .i('GStorage: Box "$boxName" recovered successfully (data lost)');
+        if (salvaged != null && salvaged.isNotEmpty) {
+          await box.putAll(salvaged);
+          KazumiLogger().i(
+              'GStorage: Box "$boxName" recovered, salvaged ${salvaged.length} record(s)');
+        } else {
+          KazumiLogger()
+              .i('GStorage: Box "$boxName" recovered successfully (data lost)');
+        }
         return box;
       } catch (e2) {
         KazumiLogger()
             .e('GStorage: Failed to recover box "$boxName"', error: e2);
         rethrow;
       }
+    }
+  }
+
+  /// 🆕 抢救损坏箱子中仍能读出的记录（按 key 逐条 try，坏记录跳过）
+  static Future<Map<dynamic, dynamic>?> _salvageBox<T>(String boxName) async {
+    if (_hivePath == null) return null;
+    final boxFile = File('$_hivePath/$boxName.hive');
+    if (!await boxFile.exists()) return null;
+    try {
+      final bytes = await boxFile.readAsBytes();
+      final temp = await Hive.openBox<T>('${boxName}_salvage_tmp',
+          bytes: bytes);
+      final result = <dynamic, dynamic>{};
+      var skipped = 0;
+      for (final key in temp.keys) {
+        try {
+          final value = temp.get(key);
+          if (value != null) result[key] = value;
+        } catch (_) {
+          skipped++;
+        }
+      }
+      await temp.close();
+      if (skipped > 0) {
+        KazumiLogger().w(
+            'GStorage: salvaged box "$boxName", skipped $skipped corrupt record(s)');
+      }
+      return result;
+    } catch (e) {
+      KazumiLogger().w('GStorage: salvage failed for "$boxName"', error: e);
+      return null;
     }
   }
 
