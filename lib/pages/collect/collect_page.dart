@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -38,6 +39,10 @@ class _CollectPageState extends State<CollectPage>
   TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
+
+  /// 🆕 批量管理模式
+  bool _batchMode = false;
+  final Set<int> _batchSelected = {};
 
   /// 当前分组筛选（null = 全部）
   String? _activeFolder;
@@ -395,8 +400,25 @@ class _CollectPageState extends State<CollectPage>
             },
           ),
         ),
-        title: const Text('追番'),
-        actions: [
+        title: _batchMode
+            ? Text('已选 ${_batchSelected.length} 项')
+            : const Text('追番'),
+        actions: _batchMode
+            ? [
+                IconButton(
+                  tooltip: '批量操作',
+                  icon: const Icon(Icons.playlist_add_check_rounded),
+                  onPressed: _batchSelected.isEmpty
+                      ? null
+                      : _showBatchActionSheet,
+                ),
+                IconButton(
+                  tooltip: '退出批量',
+                  icon: const Icon(Icons.close),
+                  onPressed: _exitBatchMode,
+                ),
+              ]
+            : [
           IconButton(
             tooltip: '追番日历',
             onPressed: () {
@@ -421,6 +443,17 @@ class _CollectPageState extends State<CollectPage>
             icon: const Icon(Icons.folder_outlined),
           ),
           IconButton(
+            tooltip: '批量管理',
+            onPressed: () {
+              setState(() {
+                showDelete = false;
+                _batchMode = true;
+                _batchSelected.clear();
+              });
+            },
+            icon: const Icon(Icons.checklist_rounded),
+          ),
+          IconButton(
               onPressed: () {
                 setState(() {
                   showDelete = !showDelete;
@@ -433,6 +466,10 @@ class _CollectPageState extends State<CollectPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          if (_batchMode) {
+            KazumiDialog.showToast(message: '批量模式下无法同步');
+            return;
+          }
           bool webDavenable =
               await GStorage.getSetting(SettingsKeys.webDavEnable);
           bool webDavCollectEnable =
@@ -538,6 +575,94 @@ class _CollectPageState extends State<CollectPage>
     );
   }
 
+  // ─────────── 🆕 批量管理 ───────────
+
+  void _toggleBatchSelect(int id) {
+    setState(() {
+      if (!_batchSelected.add(id)) _batchSelected.remove(id);
+    });
+  }
+
+  void _exitBatchMode() {
+    setState(() {
+      _batchMode = false;
+      _batchSelected.clear();
+    });
+  }
+
+  /// 批量操作面板：设为某种状态 / 移除收藏
+  void _showBatchActionSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: [
+            for (final type in CollectType.values)
+              if (type != CollectType.none)
+                ListTile(
+                  leading: Icon(_typeIcon(type)),
+                  title: Text('设为「${type.label}」'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    unawaited(_applyBatchType(type));
+                  },
+                ),
+            const Divider(height: 8),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('移除收藏',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                unawaited(_applyBatchType(CollectType.none));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _typeIcon(CollectType type) => switch (type) {
+        CollectType.watching => Icons.play_circle_outline,
+        CollectType.planToWatch => Icons.bookmark_border,
+        CollectType.onHold => Icons.pause_circle_outline,
+        CollectType.watched => Icons.check_circle_outline,
+        CollectType.abandoned => Icons.cancel_outlined,
+        CollectType.none => Icons.delete_outline,
+      };
+
+  /// 批量应用状态（none=移除），完成后退出批量模式
+  Future<void> _applyBatchType(CollectType type) async {
+    final ids = _batchSelected.toList();
+    final items = <BangumiItem>[];
+    for (final id in ids) {
+      for (final e in collectController.collectibles) {
+        if (e.bangumiItem.id == id) {
+          items.add(e.bangumiItem);
+          break;
+        }
+      }
+    }
+    if (items.isEmpty) return;
+    if (type == CollectType.none) {
+      await collectController.batchRemoveCollectibles(items);
+    } else {
+      for (final item in items) {
+        await collectController.addCollect(item, type: type.value);
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _batchMode = false;
+      _batchSelected.clear();
+    });
+    collectController.loadCollectibles();
+    KazumiDialog.showToast(message: '已处理 ${items.length} 项');
+  }
+
   List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
     // ⭐ 分组筛选：选中某个分组时只显示该分组内的番剧
     if (_activeFolder != null) {
@@ -587,15 +712,61 @@ class _CollectPageState extends State<CollectPage>
                     return collectedBangumiRenderItem.isNotEmpty
                         ? Stack(
                             children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
-                                onLongPress: () => _showShortcutMenu(
-                                    collectedBangumiRenderItem[index]
-                                        .bangumiItem),
+                              // 🆕 批量模式：点卡片切换选中，不进入详情
+                              GestureDetector(
+                                onTap: _batchMode
+                                    ? () => _toggleBatchSelect(
+                                        collectedBangumiRenderItem[index]
+                                            .bangumiItem
+                                            .id)
+                                    : null,
+                                child: BangumiCardV(
+                                  bangumiItem:
+                                      collectedBangumiRenderItem[index]
+                                          .bangumiItem,
+                                  canTap: !showDelete && !_batchMode,
+                                  onLongPress: _batchMode
+                                      ? null
+                                      : () => _showShortcutMenu(
+                                          collectedBangumiRenderItem[index]
+                                              .bangumiItem),
+                                ),
                               ),
-                              Positioned(
+                              // 🆕 批量模式选中标记
+                              if (_batchMode)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.45),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      _batchSelected.contains(
+                                              collectedBangumiRenderItem[
+                                                      index]
+                                                  .bangumiItem
+                                                  .id)
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color: _batchSelected.contains(
+                                              collectedBangumiRenderItem[
+                                                      index]
+                                                  .bangumiItem
+                                                  .id)
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : Colors.white,
+                                      size: 22,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Positioned(
                                 right: 5,
                                 bottom: 5,
                                 child: showDelete
