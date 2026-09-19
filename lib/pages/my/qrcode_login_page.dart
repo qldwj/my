@@ -117,8 +117,9 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
             if (mounted) Navigator.of(context).pop(true);
           }
         } else if (status == 'scanned') {
-          // ⭐ 确认由「扫码设备（已登录）」完成，这里只提示等待，不再弹确认框，
-          // 避免两端同时 confirmLogin 导致「已被扫码/登录失败」。
+          // ⭐ 后端已记录本次扫码。确认由「扫码设备（已登录）」直接完成，
+          // 这里只提示"正在登录"，不再弹确认框，也不调用 confirmLogin，
+          // 避免两端同时 confirm 导致「已被扫码/登录失败」。
           if (mounted) {
             setState(() {
               _scannerIp = data['scanner_ip'] as String? ?? _scannerIp;
@@ -127,6 +128,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
             });
           }
         } else if (status == 'expired') {
+          _pollTimer?.cancel();
+          if (mounted) setState(() => _expired = true);
+        } else if (status == 'error') {
+          // 会话不存在（可能已被服务端清理/过期），按过期处理，避免无限轮询
           _pollTimer?.cancel();
           if (mounted) setState(() => _expired = true);
         } else if (status == 'pending') {
@@ -170,8 +175,16 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       if (ok) {
         KazumiDialog.showToast(message: '登录成功 🎉');
         if (mounted) Navigator.of(context).pop(true);
+      } else if (result['status'] == 'scanned') {
+        // 理论上已登录设备扫码会直接确认成功；若后端返回 scanned
+        // （例如会话创建端绑定了机主 token 的老流程），提示等待而非报错。
+        KazumiDialog.showToast(
+          message: result['msg']?.toString() ?? '已扫码，等待对方确认...',
+          duration: const Duration(seconds: 3),
+        );
+        _scanProcessing = false;
       } else {
-        KazumiDialog.showToast(message: result['error'] ?? '登录失败');
+        KazumiDialog.showToast(message: result['error'] ?? result['msg'] ?? '登录失败，请重试');
         _scanProcessing = false;
       }
     } catch (e) {
@@ -354,7 +367,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                           children: [
                             const Icon(Icons.pending, color: Colors.orange, size: 18),
                             const SizedBox(width: 8),
-                            Text('已被扫描，等待确认...', style: TextStyle(color: Colors.orange.shade800)),
+                            Text('已扫码，正在登录...', style: TextStyle(color: Colors.orange.shade800)),
                           ],
                         ),
                       ),
