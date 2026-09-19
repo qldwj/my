@@ -22,7 +22,8 @@ class DownloadRecordAdapter extends TypeAdapter<DownloadRecord> {
       fields[2] as String,
       fields[3] as String,
       (fields[4] as Map).cast<int, DownloadEpisode>(),
-      fields[5] as DateTime,
+      // ⚠️ 兼容旧数据：createdAt 缺失时退化为 epoch，避免整箱被判定损坏清空
+      fields[5] as DateTime? ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 
