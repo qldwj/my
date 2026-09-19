@@ -200,7 +200,7 @@ class GStorage {
   }
 
   /// 🆕 抢救损坏箱子中仍能读出的记录（按 key 逐条 try，坏记录跳过）
-  static Future<Map<dynamic, dynamic>?> _salvageBox<T>(String boxName) async {
+  static Future<Map<dynamic, T>?> _salvageBox<T>(String boxName) async {
     if (_hivePath == null) return null;
     final boxFile = File('$_hivePath/$boxName.hive');
     if (!await boxFile.exists()) return null;
@@ -208,7 +208,7 @@ class GStorage {
       final bytes = await boxFile.readAsBytes();
       final temp = await Hive.openBox<T>('${boxName}_salvage_tmp',
           bytes: bytes);
-      final result = <dynamic, dynamic>{};
+      final result = <dynamic, T>{};
       var skipped = 0;
       for (final key in temp.keys) {
         try {
