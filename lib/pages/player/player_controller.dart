@@ -205,6 +205,7 @@ class PlayerController implements Disposable {
         canInstall: () => initialization.isActive,
         offset: params.offset,
         videoSourceFormat: params.videoSourceFormat,
+        isLocalPlayback: params.isLocalPlayback,
       );
     } catch (e) {
       if (initialization.isStale) {

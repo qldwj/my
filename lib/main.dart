@@ -30,6 +30,7 @@ import 'package:kazumi/services/update/auto_updater.dart';
 import 'package:app_links/app_links.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/metered_network_service.dart';
 // ✅ 新增导入：签名校验
 import 'package:kazumi/services/signature/signature_service.dart';
 import 'package:kazumi/pages/signature/signature_error_page.dart';
@@ -112,6 +113,9 @@ void main() async {
     SystemProxyService.init();
   }
   ProxyManager.applyProxy();
+
+  // ⭐ 官方 2.3.2：网络感知低内存模式需要知道当前是不是移动数据
+  await MeteredNetworkService.refresh();
 
   // 🆕 注册全局快捷键（Ctrl+Alt+K 显示/隐藏窗口，桌面端）
   if (isDesktop()) {

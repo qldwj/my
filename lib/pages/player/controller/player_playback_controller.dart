@@ -13,9 +13,11 @@ import 'package:kazumi/utils/constants.dart';
 import 'dart:async';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/network/system_proxy_service.dart';
 import 'package:kazumi/services/player/player_screenshot_service.dart';
+import 'package:kazumi/services/player/low_memory_mode.dart';
 import 'package:kazumi/services/player/player_error_mapper.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/async_serial_queue.dart';
@@ -278,6 +280,7 @@ abstract class _PlayerPlaybackController with Store {
     required bool Function() canInstall,
     int offset = 0,
     VideoSourceFormat videoSourceFormat = VideoSourceFormat.auto,
+    bool isLocalPlayback = false,
   }) async {
     startOffset = offset;
     superResolutionMode = SuperResolutionMode.fromStorageValue(
@@ -288,7 +291,12 @@ abstract class _PlayerPlaybackController with Store {
         GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
     hardwareDecoder = GStorage.getSetting(SettingsKeys.hardwareDecoder);
     autoPlay = GStorage.getSetting(SettingsKeys.autoPlay);
-    lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
+    // ⭐ 官方 2.3.2：网络感知的低内存模式（跟随网络 / 始终开启 / 始终关闭）。
+    // 之前只读旧的布尔开关，导致设置页里那三档选项对播放完全无效。
+    lowMemoryMode = LowMemoryMode.current.isEnabled(
+      isMetered: MeteredNetworkService.isMetered,
+      isLocalPlayback: isLocalPlayback,
+    );
     playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
     if (!canInstall()) {
@@ -485,6 +493,15 @@ abstract class _PlayerPlaybackController with Store {
       );
       if (!isCurrentPlayer(player)) {
         return await _discardIfNotCurrent(candidate);
+      }
+
+      // ⭐ 官方 2.3.2：移动数据下自动开启低内存模式时提示一次，
+      // 让用户知道缓存变小了、以及去哪里改成「始终关闭」
+      if (!isLocalPlayback &&
+          LowMemoryMode.current == LowMemoryMode.auto &&
+          MeteredNetworkService.isMetered) {
+        KazumiDialog.showToast(
+            message: '移动数据下已自动开启低内存模式，可在播放设置中改为始终关闭');
       }
 
       return player;
