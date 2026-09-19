@@ -185,6 +185,11 @@ class AutoUpdater {
       final currentVersion = ApiEndpoints.version;
 
       if (needUpdate(currentVersion, remoteVersion)) {
+        // 🆕 被用户「忽略该版本」的版本不再提示（可在「关于 → 应用更新」恢复）
+        final ignored = GStorage.getSetting(SettingsKeys.ignoredUpdateVersion);
+        if (remoteVersion == ignored) {
+          return null;
+        }
         final availableTypes = await _detectAvailableInstallationTypes();
         final isPrerelease = data['prerelease'] == true;
 
@@ -252,6 +257,16 @@ class AutoUpdater {
     }
     // 最后回退到正式版
     return _latestRelease();
+  }
+
+  /// 🆕 忽略指定版本：之后检查更新不再提示它
+  void ignoreVersion(String version) {
+    GStorage.putSetting(SettingsKeys.ignoredUpdateVersion, version);
+  }
+
+  /// 🆕 清除已忽略的版本，恢复更新提醒
+  void clearIgnoredVersion() {
+    GStorage.putSetting(SettingsKeys.ignoredUpdateVersion, '');
   }
 
   /// 自动检查更新（只在启用自动更新时）
@@ -496,6 +511,19 @@ class AutoUpdater {
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
                 '稍后提醒',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+                GStorage.putSetting(
+                    SettingsKeys.ignoredUpdateVersion, updateInfo.version);
+                KazumiDialog.showToast(
+                    message: '已忽略该版本，可在「关于」中恢复提醒');
+              },
+              child: Text(
+                '忽略该版本',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
