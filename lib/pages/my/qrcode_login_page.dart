@@ -31,10 +31,8 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   bool _expired = false;
   bool _confirmed = false;
   bool _scanned = false;
-  bool _rejected = false;
   Timer? _pollTimer;
   bool _loading = true;
-  bool _confirmDialogShown = false;
 
   // ── 扫码模式（已登录）──
   MobileScannerController? _scannerController;
@@ -94,7 +92,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
 
   void _startPolling() {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      if (_token == null || _rejected) return;
+      if (_token == null) return;
       try {
         final data = await QrLoginService.check(_token!);
         if (data['scanner_ip'] != null) {
@@ -119,13 +117,14 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
             if (mounted) Navigator.of(context).pop(true);
           }
         } else if (status == 'scanned') {
+          // ⭐ 确认由「扫码设备（已登录）」完成，这里只提示等待，不再弹确认框，
+          // 避免两端同时 confirmLogin 导致「已被扫码/登录失败」。
           if (mounted) {
             setState(() {
               _scannerIp = data['scanner_ip'] as String? ?? _scannerIp;
               _scannerLocation = data['scanner_location'] as String? ?? _scannerLocation;
               _scanned = true;
             });
-            _showConfirmDialog();
           }
         } else if (status == 'expired') {
           _pollTimer?.cancel();
@@ -139,65 +138,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
     });
   }
 
-  void _showConfirmDialog() {
-    if (_confirmDialogShown) return;
-    _confirmDialogShown = true;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('扫码登录确认'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('⚠️ 另一台设备请求登录您的账号：'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_scannerLocation != null)
-                    Text('📍 位置: $_scannerLocation', style: const TextStyle(fontWeight: FontWeight.w500)),
-                  if (_scannerIp != null)
-                    Text('🌐 IP: $_scannerIp', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text('确认后该设备将获得您的登录权限。'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              _rejected = true;
-              Navigator.pop(ctx);
-              try {
-                await QrLoginService.confirmLogin(_token!, '');
-                if (mounted) setState(() {});
-              } catch (_) {}
-            },
-            child: const Text('拒绝', style: TextStyle(color: Colors.red)),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await QrLoginService.confirmLogin(_token!, '');
-              } catch (_) {}
-            },
-            child: const Text('确认登录'),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── 扫码模式 ──
 
@@ -224,7 +164,10 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
       }
       KazumiDialog.showToast(message: '正在确认登录...');
       final result = await QrLoginService.confirmLogin(code, AuthService.getLocalToken() ?? '');
-      if (result['success'] == true) {
+      final ok = result['success'] == true ||
+          result['status'] == 'confirmed' ||
+          result['status'] == 'success';
+      if (ok) {
         KazumiDialog.showToast(message: '登录成功 🎉');
         if (mounted) Navigator.of(context).pop(true);
       } else {
@@ -385,7 +328,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                         setState(() {
                           _expired = false;
                           _loading = true;
-                          _confirmDialogShown = false;
                           _confirmed = false;
                           _scanned = false;
                           _scannerIp = null;
@@ -400,23 +342,6 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_rejected)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.block, color: Colors.red, size: 18),
-                            const SizedBox(width: 8),
-                            Text('已拒绝登录请求', style: TextStyle(color: Colors.red.shade800)),
-                          ],
-                        ),
-                      ),
-                    if (_rejected) const SizedBox(height: 16),
                     if (_scanned)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
