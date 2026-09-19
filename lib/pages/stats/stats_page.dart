@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/watch_heatmap.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -47,11 +48,35 @@ class _StatsPageState extends State<StatsPage> {
   String _weekTopAnime = '';
   String _weekActiveDay = '';
 
+  /// 🆕 观看热力图数据（key=当天 0 点，value=当天观看集数）
+  Map<DateTime, int> _dailyCounts = {};
+
   @override
   void initState() {
     super.initState();
     _calculateStats();
     _calculateWeeklyReport();
+    _calculateHeatmap();
+  }
+
+  /// 🆕 统计近一年每天观看的集数（用于热力图）
+  void _calculateHeatmap() {
+    try {
+      final historyRepo = HistoryRepository();
+      final histories = historyRepo.getAllHistories();
+      final daily = <DateTime, int>{};
+      for (final history in histories) {
+        for (final prog in history.progresses.values) {
+          final t = prog.effectiveUpdatedAtMs(history.lastWatchTime);
+          final d = DateTime.fromMillisecondsSinceEpoch(t);
+          final day = DateTime(d.year, d.month, d.day);
+          daily[day] = (daily[day] ?? 0) + 1;
+        }
+      }
+      _dailyCounts = daily;
+    } catch (_) {
+      _dailyCounts = {};
+    }
   }
 
   /// ⭐ 统计本周（周一到今天）观看数据
@@ -400,6 +425,17 @@ class _StatsPageState extends State<StatsPage> {
                 _buildSectionTitle(theme, '详细统计'),
                 const SizedBox(height: 8),
                 _buildDetailCard(theme),
+
+                const SizedBox(height: 16),
+                // 🆕 观看热力图
+                _buildSectionTitle(theme, '观看热力图'),
+                const SizedBox(height: 8),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: WatchHeatmap(dailyCounts: _dailyCounts),
+                  ),
+                ),
 
                 const SizedBox(height: 16),
                 // 趣味数据
