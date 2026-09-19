@@ -376,9 +376,31 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                       ),
                       padding: const EdgeInsets.all(16),
                       child: _qrcodeUrl != null
-                          ? Image.network(
-                              'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_qrcodeUrl!)}',
-                              errorBuilder: (_, __, ___) => Icon(Icons.qr_code, size: 180, color: colorScheme.primary),
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Image.network(
+                                  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_qrcodeUrl!)}',
+                                  errorBuilder: (_, __, ___) => Icon(Icons.qr_code, size: 180, color: colorScheme.primary),
+                                ),
+                                // 🆕 二维码中心加樱花动漫 LOGO（白底圆角，中心覆盖不影响扫码）
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Image.asset(
+                                    'assets/images/logo/logo_android.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) =>
+                                        const Icon(Icons.play_arrow, size: 24),
+                                  ),
+                                ),
+                              ],
                             )
                           : const SizedBox(),
                     ),
