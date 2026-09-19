@@ -18,7 +18,6 @@ import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -48,8 +47,7 @@ final tabModule = createModule(
       ..addSingleton<TimelineController>(TimelineController.new)
       ..route(
         '/',
-        // flutter_modular v7 的 RouteState 不再有 location，用完整 URI 的 path。
-        child: (context, state) => IndexPage(location: state.uri.path),
+        child: (context, state) => const IndexPage(),
         transition: _tabTransition,
         children: (sub) {
           sub
@@ -80,7 +78,6 @@ final indexModule = createModule(
           shaderAssetService: inject<ShaderAssetService>(),
           myController: inject<MyController>(),
           downloadController: inject<DownloadController>(),
-          danmakuShieldSync: inject<DanmakuShieldSyncService>(),
         ),
         transition: TransitionType.none,
       )
