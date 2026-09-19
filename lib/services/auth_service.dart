@@ -6,6 +6,39 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
 
+/// 已保存的樱花动漫账号（账号快速切换用，持久化存于设置）
+class SavedAccount {
+  const SavedAccount({
+    required this.token,
+    required this.nickname,
+    required this.avatar,
+    required this.uid,
+    required this.updatedAt,
+  });
+
+  final String token;
+  final String nickname;
+  final String avatar;
+  final String uid;
+  final int updatedAt;
+
+  factory SavedAccount.fromJson(Map<String, dynamic> json) => SavedAccount(
+        token: json['token']?.toString() ?? '',
+        nickname: json['nickname']?.toString() ?? '',
+        avatar: json['avatar']?.toString() ?? '',
+        uid: json['uid']?.toString() ?? '',
+        updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
+      );
+
+  Map<String, Object> toJson() => {
+        'token': token,
+        'nickname': nickname,
+        'avatar': avatar,
+        'uid': uid,
+        'updatedAt': updatedAt,
+      };
+}
+
 /// 自定义登录/注册服务
 ///
 /// 原有接口路径保持不变（qlyyz.xyz/api/login）；
@@ -328,6 +361,68 @@ class AuthService {
 
   static void clearLocalToken() {
     GStorage.putSetting(SettingsKeys.kazumiToken, '');
+  }
+
+  // ==================== 🆕 账号快速切换（持久保存） ====================
+
+  /// 读取已保存的樱花动漫账号列表（JSON 存在设置里，重开 App 不丢）
+  static List<SavedAccount> getSavedAccounts() {
+    final raw = GStorage.getSetting(SettingsKeys.savedAccounts);
+    if (raw.isEmpty) return const [];
+    try {
+      final list = jsonDecode(raw) as List;
+      return list
+          .whereType<Map>()
+          .map((e) => SavedAccount.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<void> _saveAccounts(List<SavedAccount> accounts) =>
+      GStorage.putSetting(
+          SettingsKeys.savedAccounts,
+          jsonEncode([for (final a in accounts) a.toJson()]));
+
+  /// 把「当前登录账号」保存进切换列表（登录成功 / 资料加载后调用）。
+  /// 已存在的账号会更新到最前面，最多保留 10 个。
+  static Future<void> upsertCurrentAccount({
+    String? nickname,
+    String? avatar,
+    String? uid,
+  }) async {
+    final token = getLocalToken();
+    if (token == null) return;
+    final accounts =
+        getSavedAccounts().where((a) => a.token != token).toList();
+    accounts.insert(
+      0,
+      SavedAccount(
+        token: token,
+        nickname: (nickname ?? '').trim(),
+        avatar: avatar ?? '',
+        uid: uid ?? '',
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    if (accounts.length > 10) {
+      accounts.removeRange(10, accounts.length);
+    }
+    await _saveAccounts(accounts);
+  }
+
+  /// 从切换列表移除某个账号（退出登录时可选择保留或移除）
+  static Future<void> removeSavedAccount(String token) async {
+    final accounts =
+        getSavedAccounts().where((a) => a.token != token).toList();
+    await _saveAccounts(accounts);
+  }
+
+  /// 切换到已保存的账号（只切换 token；资料由调用方重新加载）
+  static Future<void> switchAccount(String token) async {
+    if (token == getLocalToken()) return;
+    saveLocalToken(token);
   }
 
   static bool get isLoggedIn => getLocalToken() != null;
