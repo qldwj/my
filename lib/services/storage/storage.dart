@@ -309,29 +309,13 @@ class GStorage {
     final backupContent = await backupFile.readAsBytes();
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
-    // ⚠️ 不能用 toMap()：它会一次性解码全部记录，一条坏记录会让整份同步失败。
-    // 这里按 key 逐条取（get 时才解码），坏记录跳过、其余照常合并。
-    final keys = tempBox.keys.toList();
+    final tempBoxItems = tempBox.toMap().entries;
     KazumiLogger().i(
-        'WebDav: get collectibles from file. tempCollectiblesBox length ${keys.length}');
+        'WebDav: get collectibles from file. tempCollectiblesBox length ${tempBoxItems.length}');
 
     final List<CollectedBangumi> collectibles = [];
-    var skipped = 0;
-    for (final key in keys) {
-      try {
-        final value = tempBox.get(key);
-        if (value is CollectedBangumi) {
-          collectibles.add(value);
-        } else {
-          skipped++;
-        }
-      } catch (e) {
-        skipped++;
-      }
-    }
-    if (skipped > 0) {
-      KazumiLogger()
-          .w('WebDav: skipped $skipped invalid collectible record(s)');
+    for (var tempBoxItem in tempBoxItems) {
+      collectibles.add(tempBoxItem.value);
     }
     await tempBox.close();
     return collectibles;
@@ -343,28 +327,13 @@ class GStorage {
     final backupContent = await backupFile.readAsBytes();
     final tempBox =
         await Hive.openBox('tempCollectChangesBox', bytes: backupContent);
-    final keys = tempBox.keys.toList();
+    final tempBoxItems = tempBox.toMap().entries;
     KazumiLogger().i(
-        'WebDav: get collectChanges from file. tempCollectChangesBox length ${keys.length}');
+        'WebDav: get collectChanges from file. tempCollectChangesBox length ${tempBoxItems.length}');
 
-    // ⚠️ 同上：逐条容错，坏记录跳过而不是整份失败
     final List<CollectedBangumiChange> collectChanges = [];
-    var skipped = 0;
-    for (final key in keys) {
-      try {
-        final value = tempBox.get(key);
-        if (value is CollectedBangumiChange) {
-          collectChanges.add(value);
-        } else {
-          skipped++;
-        }
-      } catch (e) {
-        skipped++;
-      }
-    }
-    if (skipped > 0) {
-      KazumiLogger()
-          .w('WebDav: skipped $skipped invalid collect change record(s)');
+    for (var tempBoxItem in tempBoxItems) {
+      collectChanges.add(tempBoxItem.value);
     }
     await tempBox.close();
     return collectChanges;
