@@ -125,6 +125,17 @@ abstract class _VideoPageController with Store implements Disposable {
         DateTime.now().millisecondsSinceEpoch + seconds * 1000;
   }
 
+  /// 预加载被主播放解析抢占（换集/重新解析）后，3 秒自动补一次
+  Timer? _preloadRetryTimer;
+
+  void _schedulePreloadRetry(int episode, int road) {
+    _preloadRetryTimer?.cancel();
+    _preloadRetryTimer = Timer(const Duration(seconds: 3), () {
+      _preloadRetryTimer = null;
+      _triggerPreloadForEpisode(episode, road);
+    });
+  }
+
 
   /// ⭐ 主动预加载指定集数（手动点击下一集时触发）
   void _triggerPreloadForEpisode(int episode, int road) {
@@ -160,8 +171,16 @@ abstract class _VideoPageController with Store implements Disposable {
         _preloadedVideoUrls[resolved.listIndex] = source.url;
         KazumiLogger().i('✅ 预加载完成: 第${resolved.listIndex}集');
       }
-    }).catchError((e) {
-      // 🔧 失败进入冷却，避免反复重试触发限流
+    }).catchError((Object e) {
+      // ⭐ 被主播放解析接管（换集/重新解析）不算真失败：
+      // 不进 60s 冷却，3 秒后自动补一次，确保下一集能提前解析好。
+      if (e is VideoSourceCancelledException) {
+        _schedulePreloadRetry(episode, road);
+        KazumiLogger()
+            .i('⏳ 预加载被主解析接管，稍后自动重试: 第${resolved.listIndex}集');
+        return;
+      }
+      // 🔧 真失败（超时等）进入冷却，避免反复请求触发限流
       _markPreloadCooldown(resolved.listIndex);
       KazumiLogger().w('⚠️ 预加载失败(已进入冷却): 第${resolved.listIndex}集', error: e);
     }).whenComplete(() {
@@ -196,7 +215,16 @@ abstract class _VideoPageController with Store implements Disposable {
             'VideoPageController: 预加载下一集 ${resolved.listIndex} 完成');
       }
     } catch (e) {
-      KazumiLogger().w('VideoPageController: 预加载下一集失败', error: e);
+      // ⭐ 被主播放解析抢占时 3 秒后自动补一次，不算失败不冷却
+      if (e is VideoSourceCancelledException) {
+        _schedulePreloadRetry(next, current.road);
+        KazumiLogger()
+            .i('VideoPageController: 预加载被主解析接管，稍后自动重试 第$next集');
+      } else {
+        _markPreloadCooldown(resolved.listIndex);
+        KazumiLogger()
+            .w('VideoPageController: 预加载下一集失败(已进入冷却)', error: e);
+      }
     } finally {
       _preloadInFlight = false;
     }
@@ -1053,6 +1081,8 @@ abstract class _VideoPageController with Store implements Disposable {
   /// Called by Modular when the '/video' route scope is disposed.
   @override
   void dispose() {
+    _preloadRetryTimer?.cancel();
+    _preloadRetryTimer = null;
     _playbackSessions.cancel();
     _danmakuSessions.cancel();
     _commentSessions.cancel();

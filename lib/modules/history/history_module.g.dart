@@ -20,7 +20,8 @@ class HistoryAdapter extends TypeAdapter<History> {
       fields[3] as BangumiItem,
       (fields[1] as num).toInt(),
       fields[2] as String,
-      fields[4] as DateTime,
+      // ⚠️ 兼容旧数据：lastWatchTime 缺失时退化为 epoch，避免整箱被清空
+      fields[4] as DateTime? ?? DateTime.fromMillisecondsSinceEpoch(0),
       fields[5] as String,
       fields[6] == null ? '' : fields[6] as String,
       entryKind: fields[7] == null ? 'online' : fields[7] as String,
