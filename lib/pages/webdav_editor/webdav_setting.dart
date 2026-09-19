@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
@@ -21,8 +18,6 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
   bool _webDavEnable = false;
   bool _enableHistory = true;
   bool _enableCollect = true;
-  bool _enableDanmakuShield = false;
-  bool _syncingDanmakuShield = false;
   bool _testing = false;
   bool _passwordVisible = false;
 
@@ -32,37 +27,9 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
     _webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     _enableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     _enableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-    _enableDanmakuShield =
-        GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
     _urlController.text = GStorage.getSetting(SettingsKeys.webDavURL);
     _userController.text = GStorage.getSetting(SettingsKeys.webDavUsername);
     _passController.text = GStorage.getSetting(SettingsKeys.webDavPassword);
-  }
-
-  /// 开关弹幕屏蔽词同步；打开时立刻同步一次，让用户马上看到效果
-  Future<void> _toggleDanmakuShield(bool enabled) async {
-    setState(() => _enableDanmakuShield = enabled);
-    await GStorage.putSetting(
-        SettingsKeys.webDavEnableDanmakuShield, enabled);
-    if (!enabled) return;
-    setState(() => _syncingDanmakuShield = true);
-    try {
-      await inject<DanmakuShieldSyncService>().sync();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('弹幕屏蔽词已同步')),
-        );
-      }
-    } catch (e) {
-      KazumiLogger().w('WebDav: danmaku shield sync failed', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('弹幕屏蔽词同步失败: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _syncingDanmakuShield = false);
-    }
   }
 
   @override
@@ -245,17 +212,6 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                             setState(() => _enableCollect = v);
                             GStorage.putSetting(SettingsKeys.webDavEnableCollect, v);
                           },
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        SwitchListTile(
-                          title: const Text('弹幕屏蔽词'),
-                          subtitle: Text(_syncingDanmakuShield
-                              ? '正在同步…'
-                              : '同步关键词与正则屏蔽规则'),
-                          value: _enableDanmakuShield,
-                          onChanged: _webDavEnable && !_syncingDanmakuShield
-                              ? _toggleDanmakuShield
-                              : null,
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
