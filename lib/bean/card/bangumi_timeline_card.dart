@@ -166,11 +166,11 @@ class BangumiTimelineCard extends StatelessWidget {
       color: colorScheme.onSurface,
       fontWeight: FontWeight.w600,
     );
-    final showScore = showRating ? bangumiItem.ratingScore > 0 : true;
-    final showRank = showRating ? bangumiItem.rank > 0 : true;
-    final showVotes = showRating ? bangumiItem.votes > 0 : true;
-    final rankText = showRating ? '#${bangumiItem.rank}' : '#***';
-    final votesText = showRating ? bangumiItem.votes.toString() : '***';
+    // ⭐ 官方 2.3.2 (#2545)：关闭「显示评分」后，追番页不应再渲染
+    // 评分/排名/投票（原来是 `showRating ? x : true`，导致关掉后仍然显示）
+    final showScore = showRating && bangumiItem.ratingScore > 0;
+    final showRank = showRating && bangumiItem.rank > 0;
+    final showVotes = showRating && bangumiItem.votes > 0;
 
     return Wrap(
       spacing: 8,
@@ -181,8 +181,7 @@ class BangumiTimelineCard extends StatelessWidget {
             context,
             icon: Icons.star_rounded,
             iconColor: colorScheme.primary,
-            label:
-                showRating ? bangumiItem.ratingScore.toStringAsFixed(1) : '***',
+            label: bangumiItem.ratingScore.toStringAsFixed(1),
             textStyle: metricStyle,
           ),
         if (showRank)
@@ -190,7 +189,7 @@ class BangumiTimelineCard extends StatelessWidget {
             context,
             icon: Icons.leaderboard_outlined,
             iconColor: colorScheme.secondary,
-            label: rankText,
+            label: '#${bangumiItem.rank}',
             textStyle: metricStyle,
           ),
         if (showVotes)
@@ -198,7 +197,7 @@ class BangumiTimelineCard extends StatelessWidget {
             context,
             icon: Icons.how_to_vote_outlined,
             iconColor: colorScheme.onSurfaceVariant,
-            label: votesText,
+            label: bangumiItem.votes.toString(),
             textStyle: metricStyle,
           ),
       ],

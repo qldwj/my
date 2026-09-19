@@ -398,7 +398,7 @@ class _VideoPageState extends State<VideoPage>
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
-    if (!mounted) {
+    if (!mounted || _isClosing) {
       return;
     }
     clearWebviewLog();
@@ -609,7 +609,10 @@ class _VideoPageState extends State<VideoPage>
     if (_isClosing) {
       return;
     }
-    _isClosing = true;
+    // ⭐ 官方 2.3.2 修复：退出时先把主体换成空视图并重建，
+    // 否则 beginShutdown() 会把 loading 重新置为 true，
+    // 加载指示器会在路由还没消失时“一闪而过”。
+    setState(() => _isClosing = true);
     playerController.beginShutdown();
     if (!context.mounted) {
       return;
@@ -785,7 +788,11 @@ class _VideoPageState extends State<VideoPage>
                             child: Focus(
                               focusNode: keyboardFocus,
                               autofocus: true,
-                              child: playerBody,
+                              // ⭐ 退出中：清理流程会重置 loading，
+                              // 这里直接渲染空视图，避免加载指示器闪现
+                              child: _isClosing
+                                  ? const SizedBox.expand()
+                                  : playerBody,
                             ),
                           ),
                         ),
