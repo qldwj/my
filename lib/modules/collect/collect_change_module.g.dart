@@ -18,11 +18,12 @@ class CollectedBangumiChangeAdapter
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return CollectedBangumiChange(
-      (fields[0] as num).toInt(),
-      (fields[1] as num).toInt(),
-      (fields[2] as num).toInt(),
-      (fields[3] as num).toInt(),
-      (fields[4] as num).toInt(),
+      // ⚠️ 同上：旧备份里字段可能缺失，缺字段按 0 处理，避免整个同步失败
+      (fields[0] as num?)?.toInt() ?? 0,
+      (fields[1] as num?)?.toInt() ?? 0,
+      (fields[2] as num?)?.toInt() ?? 0,
+      (fields[3] as num?)?.toInt() ?? 0,
+      (fields[4] as num?)?.toInt() ?? 0,
     );
   }
 

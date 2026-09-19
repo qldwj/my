@@ -18,8 +18,13 @@ class CollectedBangumiAdapter extends TypeAdapter<CollectedBangumi> {
     };
     return CollectedBangumi(
       fields[0] as BangumiItem,
-      fields[1] as DateTime,
-      (fields[2] as num).toInt(),
+      // ⚠️ 兼容旧版本 / 其他端上传的备份：个别记录的 time 缺失（null）。
+      // 原本直接 `as DateTime` 会抛
+      // “type 'Null' is not a subtype of type 'DateTime' in type cast”，
+      // 导致整份收藏同步直接失败（日志：WebDav: get collectibles failed）。
+      // 这里退化为 epoch，保证记录仍能被读出并参与合并。
+      fields[1] as DateTime? ?? DateTime.fromMillisecondsSinceEpoch(0),
+      (fields[2] as num?)?.toInt() ?? 0,
     );
   }
 

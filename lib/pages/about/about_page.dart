@@ -281,6 +281,14 @@ class _AboutPageState extends State<AboutPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
+                    launchUrl(Uri.parse('https://open.juhedenglu.cn/'),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('登录接口', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('聚合登录', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
