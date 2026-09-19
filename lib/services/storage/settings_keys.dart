@@ -666,6 +666,14 @@ class SettingsKeys {
     '',
     group: SettingGroup.sync,
   );
+
+  /// 🆕 已保存的樱花动漫账号（账号快速切换用，JSON 数组字符串）。
+  /// 持久保存：重开 App 不会丢，卸载应用才会清空，与其它动漫数据一致。
+  static const savedAccounts = SettingKey<String>(
+    'savedAccounts',
+    '',
+    group: SettingGroup.sync,
+  );
   static const kazumiSyncEnable = SettingKey<bool>(
     'kazumiSyncEnable',
     true,
@@ -984,6 +992,7 @@ class SettingsKeys {
     defaultVolume,
     playerMuted,
     announcementVersion, // 新增
+    savedAccounts, // 🆕 账号快速切换
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {

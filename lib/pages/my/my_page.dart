@@ -107,6 +107,14 @@ class _MyPageState extends State<MyPage> {
     if (profile != null && mounted) {
       setState(() => _socialProfile = profile);
     }
+    // 🆕 把当前账号同步进「切换账号」列表（昵称/头像/uid，持久保存）
+    if (profile != null && AuthService.isLoggedIn) {
+      AuthService.upsertCurrentAccount(
+        nickname: profile.nickname,
+        avatar: profile.avatar,
+        uid: profile.uid,
+      );
+    }
     // 🆕 登录即取消销毁（7 天冷静期规则）
     final status = await SocialService.deleteStatus();
     if (status?.pending == true) {
@@ -914,7 +922,142 @@ class _MyPageState extends State<MyPage> {
             ).then((_) => _loadSocialProfile());
           },
         ),
+        // 🆕 切换账号（多账号快速切换，账号列表持久保存，重开 App 不丢）
+        _buildAccountAction(
+          colorScheme: colorScheme,
+          icon: Icons.switch_account_rounded,
+          title: '换号',
+          color: colorScheme.primary,
+          onTap: () => _showAccountSwitcher(),
+        ),
       ],
+    );
+  }
+
+  /// 🆕 账号快速切换面板
+  void _showAccountSwitcher() {
+    final currentToken = AuthService.getLocalToken();
+    final saved = AuthService.getSavedAccounts();
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.switch_account_rounded,
+                      color: theme.colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Text('切换账号',
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (AuthService.isLoggedIn)
+                ListTile(
+                  leading:
+                      const CircleAvatar(child: Icon(Icons.person_rounded)),
+                  title: Text(_socialProfile?.nickname?.isNotEmpty == true
+                      ? _socialProfile!.nickname
+                      : '当前账号'),
+                  subtitle: const Text('当前使用中'),
+                  trailing: const Icon(Icons.check_circle_rounded,
+                      color: Colors.green),
+                ),
+              if (saved.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text('已保存的账号',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey)),
+                ),
+              for (final acc in saved.where((a) => a.token != currentToken)) ...[
+                ListTile(
+                  leading: CircleAvatar(
+                    child: Text(acc.nickname.isNotEmpty
+                        ? String.fromCharCode(acc.nickname.runes.first)
+                        : '?'),
+                  ),
+                  title: Text(acc.nickname.isNotEmpty ? acc.nickname : '未命名账号'),
+                  subtitle: Text(acc.uid.isNotEmpty ? 'UID ${acc.uid}' : '登录过的账号'),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (v) async {
+                      if (v == 'remove') {
+                        await AuthService.removeSavedAccount(acc.token);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _loadSocialProfile();
+                        if (mounted) setState(() {});
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'remove', child: Text('从列表移除')),
+                    ],
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await AuthService.switchAccount(acc.token);
+                    await _loadSocialProfile();
+                    if (mounted) {
+                      KazumiDialog.showToast(
+                          message: '已切换到${acc.nickname.isNotEmpty ? acc.nickname : '该账号'}');
+                    }
+                  },
+                ),
+              ],
+              const Divider(height: 24),
+              ListTile(
+                leading: const Icon(Icons.person_add_alt_1_rounded),
+                title: const Text('登录新账号'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final navContext = rootNavigatorKey.currentContext;
+                  if (navContext == null || !navContext.mounted) return;
+                  Navigator.of(navContext)
+                      .push(MaterialPageRoute(
+                          builder: (_) => const KazumiLoginPage()))
+                      .then((_) => _loadSocialProfile());
+                },
+              ),
+              if (AuthService.isLoggedIn)
+                ListTile(
+                  leading: const Icon(Icons.logout_rounded),
+                  title: const Text('退出当前账号'),
+                  subtitle: const Text('账号会保留在列表中，可随时切回'),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (dctx) => AlertDialog(
+                        title: const Text('退出登录'),
+                        content: const Text(
+                            '退出后账号仍会保留在「切换账号」列表中，可随时切换回来。'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(dctx, false),
+                              child: const Text('取消')),
+                          FilledButton(
+                              onPressed: () => Navigator.pop(dctx, true),
+                              child: const Text('退出')),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) return;
+                    AuthService.clearLocalToken();
+                    SocialService.clearProfileCache();
+                    await _loadSocialProfile();
+                    if (mounted) setState(() {});
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

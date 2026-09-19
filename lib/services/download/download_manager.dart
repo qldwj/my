@@ -151,6 +151,10 @@ class DownloadManager implements IDownloadManager {
   int maxParallelSegments = 3;
   int _runningCount = 0;
 
+  /// 🆕 下载失败自动重试（瞬时网络抖动），最多重试次数；0 = 关闭
+  static const int maxAutoRetries = 3;
+  final Map<String, int> _episodeAutoRetries = {};
+
   @override
   ProgressCallback? onProgress;
 
@@ -631,6 +635,7 @@ class DownloadManager implements IDownloadManager {
       final finalVideoBytes = await calculateM3u8VideoBytes(episodeDir);
 
       episode.status = DownloadStatus.completed;
+      _episodeAutoRetries.remove(key);
       episode.localM3u8Path = m3u8Path;
       episode.progressPercent = 1.0;
       episode.completedAt = DateTime.now();
@@ -659,17 +664,36 @@ class DownloadManager implements IDownloadManager {
       if (e.type == NetworkExceptionType.cancel) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          _notifyProgress(task.recordKey, task.episodeNumber, episode);
         }
+        _episodeAutoRetries.remove(key);
       } else {
-        episode.status = DownloadStatus.failed;
-        episode.errorMessage = e.message;
+        // 🆕 网络类失败自动重试，而不是直接标记失败等用户手动重试
+        _handleDownloadFailure(
+          task: task,
+          episode: episode,
+          bangumiId: bangumiId,
+          pluginName: pluginName,
+          sourceUrl: m3u8Url,
+          httpHeaders: httpHeaders,
+          adBlockerEnabled: adBlockerEnabled,
+          message: e.message,
+          error: e,
+        );
       }
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
     } catch (e) {
-      episode.status = DownloadStatus.failed;
-      episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
-      KazumiLogger().e('DownloadManager: episode download failed', error: e);
+      // 🆕 其它异常（超时/连接重置等）也先走自动重试
+      _handleDownloadFailure(
+        task: task,
+        episode: episode,
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        sourceUrl: m3u8Url,
+        httpHeaders: httpHeaders,
+        adBlockerEnabled: adBlockerEnabled,
+        message: e.toString(),
+        error: e,
+      );
     } finally {
       _onTaskComplete(key);
     }
@@ -778,6 +802,7 @@ class DownloadManager implements IDownloadManager {
       await File(tmpPath).rename(filePath);
 
       episode.status = DownloadStatus.completed;
+      _episodeAutoRetries.remove(key);
       episode.localM3u8Path = filePath;
       episode.downloadedSegments = 1;
       episode.progressPercent = 1.0;
@@ -806,19 +831,92 @@ class DownloadManager implements IDownloadManager {
       if (e.type == NetworkExceptionType.cancel) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          _notifyProgress(task.recordKey, task.episodeNumber, episode);
         }
+        _episodeAutoRetries.remove(key);
       } else {
-        episode.status = DownloadStatus.failed;
-        episode.errorMessage = e.message;
+        // 🆕 网络类失败自动重试（直链下载分支）
+        _handleDownloadFailure(
+          task: task,
+          episode: episode,
+          bangumiId: bangumiId,
+          pluginName: pluginName,
+          sourceUrl: videoUrl,
+          httpHeaders: httpHeaders,
+          adBlockerEnabled: adBlockerEnabled,
+          message: e.message,
+          error: e,
+        );
       }
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
     } catch (e) {
-      episode.status = DownloadStatus.failed;
-      episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
-      KazumiLogger()
-          .e('DownloadManager: direct file download failed', error: e);
+      // 🆕 其它异常也先走自动重试（直链下载分支）
+      _handleDownloadFailure(
+        task: task,
+        episode: episode,
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        sourceUrl: videoUrl,
+        httpHeaders: httpHeaders,
+        adBlockerEnabled: adBlockerEnabled,
+        message: e.toString(),
+        error: e,
+      );
     }
+  }
+
+  /// 🆕 下载失败自动重试。
+  ///
+  /// 瞬时网络抖动（超时、连接重置、5xx 等）直接标记失败需要用户手动重试，
+  /// 这里最多自动重试 [maxAutoRetries] 次（指数退避后重新入队）。
+  /// 用户主动暂停 / 取消不重试；重试机会耗尽才真正标记失败。
+  void _handleDownloadFailure({
+    required DownloadTask task,
+    required DownloadEpisode episode,
+    required int bangumiId,
+    required String pluginName,
+    required String sourceUrl,
+    required Map<String, String> httpHeaders,
+    required bool adBlockerEnabled,
+    required String message,
+    required Object error,
+  }) {
+    final key = _taskKey(task.recordKey, task.episodeNumber);
+    final attempt = (_episodeAutoRetries[key] ?? 0) + 1;
+
+    if (!task.isPaused &&
+        !task.cancelToken.isCancelled &&
+        attempt <= maxAutoRetries) {
+      _episodeAutoRetries[key] = attempt;
+      episode.status = DownloadStatus.pending;
+      episode.errorMessage = '网络异常，自动重试 $attempt/$maxAutoRetries';
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      KazumiLogger().w(
+          'DownloadManager: auto retry $attempt/$maxAutoRetries: $message');
+
+      Future<void>.delayed(Duration(seconds: 2 * attempt), () {
+        if (task.isPaused || task.cancelToken.isCancelled) return;
+        // _onTaskComplete 已把任务移出 _activeTasks，这里重新挂上再入队
+        _activeTasks[key] = task;
+        _queue.add(DownloadRequest(
+          recordKey: task.recordKey,
+          bangumiId: bangumiId,
+          pluginName: pluginName,
+          episodeNumber: task.episodeNumber,
+          m3u8Url: sourceUrl,
+          httpHeaders: httpHeaders,
+          adBlockerEnabled: adBlockerEnabled,
+          episode: episode,
+        ));
+        _processQueue();
+      });
+      return;
+    }
+
+    _episodeAutoRetries.remove(key);
+    episode.status = DownloadStatus.failed;
+    episode.errorMessage = message;
+    _notifyProgress(task.recordKey, task.episodeNumber, episode);
+    KazumiLogger().e('DownloadManager: episode download failed', error: error);
   }
 
   void _onTaskComplete(String key) {

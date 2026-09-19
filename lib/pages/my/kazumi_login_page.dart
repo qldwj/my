@@ -74,6 +74,12 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         AuthService.saveLocalToken(res['token']);
         GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
         await SocialService.ensureProfileAfterLogin();
+        // 🆕 登录后把当前账号保存进「切换账号」列表（持久化）
+        await AuthService.upsertCurrentAccount(
+          nickname: SocialService.myProfile?.nickname,
+          avatar: SocialService.myProfile?.avatar,
+          uid: SocialService.myProfile?.uid,
+        );
         if (res['user'] is Map && res['user']['email'] != null) {
           await AuthService.saveUserEmail(res['user']['email'].toString());
         }
@@ -567,6 +573,12 @@ class _EmailLoginPageState extends State<_EmailLoginPage> {
         AuthService.saveLocalToken(res['token']);
         GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true); // 🆕 登录后自动开启同步
         await SocialService.ensureProfileAfterLogin();
+        // 🆕 登录后把当前账号保存进「切换账号」列表（持久化）
+        await AuthService.upsertCurrentAccount(
+          nickname: SocialService.myProfile?.nickname,
+          avatar: SocialService.myProfile?.avatar,
+          uid: SocialService.myProfile?.uid,
+        );
         if (res['user'] is Map && res['user']['email'] != null) {
           await AuthService.saveUserEmail(res['user']['email'].toString());
         }
