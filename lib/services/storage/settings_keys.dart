@@ -887,6 +887,14 @@ class SettingsKeys {
     group: SettingGroup.misc,
   );
 
+  // 🆕 我的页「偏好设置」使用次数 JSON（{"theme":3,"player":5,"danmaku":2}），
+  // 点击对应入口 +1，面板按使用次数降序排列（用得越多的排越前）。
+  static const prefUsageCount = SettingKey<String>(
+    _SettingBoxKey.prefUsageCount,
+    '{}',
+    group: SettingGroup.misc,
+  );
+
   static final List<SettingKey<Object?>> all = [
     hAenable,
     autoSwitchSource,
@@ -1001,6 +1009,7 @@ class SettingsKeys {
     announcementVersion, // 新增
     savedAccounts, // 🆕 账号快速切换
     ignoredUpdateVersion, // 🆕 更新弹窗忽略的版本
+    prefUsageCount, // 🆕 偏好设置使用次数（点击排序）
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {
@@ -1146,5 +1155,6 @@ class _SettingBoxKey {
       pendingThirdpartyLogin = 'pendingThirdpartyLogin',
       githubCloudToken = 'githubCloudToken',
       githubCloudRepo = 'githubCloudRepo',
-      githubCloudLastSync = 'githubCloudLastSync';
+      githubCloudLastSync = 'githubCloudLastSync',
+      prefUsageCount = 'prefUsageCount';
 }

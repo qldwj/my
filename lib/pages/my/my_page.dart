@@ -1275,7 +1275,21 @@ class _MyPageState extends State<MyPage> {
   }
 
   // ── 偏好设置面板（全宽一行）──
+  // 🆕 使用次数排序：点击入口使用次数 +1，次数越多的排越靠前（相同次数保持默认顺序）。
   Widget _buildPreferencesPanel(ColorScheme colorScheme, TextTheme textTheme) {
+    final counts = _readPreferenceUsage();
+    final entries = [
+      ('theme', Icons.palette_rounded, '外观', '/settings/theme'),
+      ('player', Icons.play_circle_rounded, '播放', '/settings/player'),
+      ('danmaku', Icons.subtitles_rounded, '弹幕', '/settings/danmaku/'),
+    ];
+    // 按使用次数降序排列，次数相同保持默认顺序（稳定排序）
+    final sorted = [...entries]..sort((a, b) {
+        final diff = (counts[b.$1] ?? 0).compareTo(counts[a.$1] ?? 0);
+        if (diff != 0) return diff;
+        return entries.indexOf(a).compareTo(entries.indexOf(b));
+      });
+
     return Material(
       color: colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(28),
@@ -1289,11 +1303,18 @@ class _MyPageState extends State<MyPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildPrefButton(colorScheme, Icons.palette_rounded, '外观', () => context.pushNamed('/settings/theme'))),
-                const SizedBox(width: 8),
-                Expanded(child: _buildPrefButton(colorScheme, Icons.play_circle_rounded, '播放', () => context.pushNamed('/settings/player'))),
-                const SizedBox(width: 8),
-                Expanded(child: _buildPrefButton(colorScheme, Icons.subtitles_rounded, '弹幕', () => context.pushNamed('/settings/danmaku/'))),
+                for (var i = 0; i < sorted.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildPrefButton(
+                      colorScheme,
+                      sorted[i].$2,
+                      sorted[i].$3,
+                      counts[sorted[i].$1] ?? 0,
+                      () => _openPreference(sorted[i].$1, sorted[i].$4),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -1302,7 +1323,38 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  Widget _buildPrefButton(ColorScheme colorScheme, IconData icon, String label, VoidCallback onTap) {
+  /// 读取各偏好入口的使用次数（JSON: {"theme":3,"player":5,"danmaku":2}）
+  Map<String, int> _readPreferenceUsage() {
+    final result = <String, int>{};
+    try {
+      final raw = GStorage.getSetting(SettingsKeys.prefUsageCount);
+      if (raw.isNotEmpty) {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        for (final e in map.entries) {
+          result[e.key] = (e.value as num?)?.toInt() ?? 0;
+        }
+      }
+    } catch (_) {}
+    return result;
+  }
+
+  /// 点击偏好入口：使用次数 +1 并保存，然后跳转对应设置页
+  Future<void> _openPreference(String id, String route) async {
+    try {
+      final counts = _readPreferenceUsage();
+      counts[id] = (counts[id] ?? 0) + 1;
+      await GStorage.putSetting(
+        SettingsKeys.prefUsageCount,
+        jsonEncode(counts),
+      );
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {});
+    context.pushNamed(route);
+  }
+
+  Widget _buildPrefButton(ColorScheme colorScheme, IconData icon, String label,
+      int count, VoidCallback onTap) {
     return Material(
       color: colorScheme.secondaryContainer,
       borderRadius: BorderRadius.circular(24),
@@ -1313,7 +1365,33 @@ class _MyPageState extends State<MyPage> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             children: [
-              Icon(icon, size: 28, color: colorScheme.onSecondaryContainer),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(icon, size: 28, color: colorScheme.onSecondaryContainer),
+                  // 使用次数角标（0 次不显示）
+                  if (count > 0)
+                    Positioned(
+                      right: -16,
+                      top: -12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 8),
               Text(label,
                   style: TextStyle(
