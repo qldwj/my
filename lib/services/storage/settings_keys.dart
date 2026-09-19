@@ -57,7 +57,7 @@ class SettingsKeys {
   );
   static const silentDownload = SettingKey<bool>(
     'silentDownload',
-    false,
+    true, // 🆕 静默下载更新默认开启
     group: SettingGroup.proxy,
   );
   static const pendingUpdateVersion = SettingKey<String>(
