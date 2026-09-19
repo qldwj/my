@@ -448,6 +448,7 @@ class DownloadManager implements IDownloadManager {
           pluginName: pluginName,
           videoUrl: m3u8Url,
           httpHeaders: httpHeaders,
+          adBlockerEnabled: adBlockerEnabled,
           episode: episode,
         );
         return;
@@ -705,6 +706,7 @@ class DownloadManager implements IDownloadManager {
     required String pluginName,
     required String videoUrl,
     required Map<String, String> httpHeaders,
+    required bool adBlockerEnabled,
     required DownloadEpisode episode,
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
