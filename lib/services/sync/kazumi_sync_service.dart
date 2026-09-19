@@ -189,6 +189,9 @@ class KazumiSyncService {
           info: '',
         );
         final type = item['type'] as int? ?? 1;
+        // ⚠️ 云端 type 可能是 0 或 >5（旧数据/其他端异常），
+        // 直接入库会导致追番页 `type-1` 数组越界白屏，这里钳制到 1..5。
+        final safeType = (type >= 1 && type <= 5) ? type : 1;
         final timeStr = item['time']?.toString() ?? '';
         DateTime time;
         try {
@@ -197,7 +200,7 @@ class KazumiSyncService {
           time = DateTime.now();
         }
         await GStorage.putCollectible(
-          CollectedBangumi(bangumiItem, time, type),
+          CollectedBangumi(bangumiItem, time, safeType),
         );
         collectCount++;
       }
@@ -389,12 +392,13 @@ class KazumiSyncService {
           votesCount: const [],
           info: '',
         );
+        // ⚠️ 云端 type 可能是 0 或 >5（旧数据/其他端异常），
+        // 直接入库会导致追番页 `type-1` 数组越界白屏，这里钳制到 1..5。
+        final rawType = item['type'];
+        final safeType =
+            rawType is int && rawType >= 1 && rawType <= 5 ? rawType : 1;
         await GStorage.putCollectible(
-          CollectedBangumi(
-            bangumiItem,
-            DateTime.now(),
-            item['type'] is int ? item['type'] as int : 1,
-          ),
+          CollectedBangumi(bangumiItem, DateTime.now(), safeType),
         );
         downloadCount++;
       }

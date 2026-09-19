@@ -333,10 +333,13 @@ class _CollectPageState extends State<CollectPage>
   ];
 
   /// 官方 v2.3.0 新增：各标签页的收藏数量（type-1 对应 tabs 顺序）
+  /// ⚠️ 防御：type 不在 1..5 时跳过，避免数组越界白屏
   List<int> get _collectibleCounts {
     final List<int> counts = List<int>.filled(tabs.length, 0);
     for (final element in collectController.collectibles) {
-      counts[element.type - 1]++;
+      if (element.type >= 1 && element.type <= tabs.length) {
+        counts[element.type - 1]++;
+      }
     }
     return counts;
   }
@@ -552,6 +555,8 @@ class _CollectPageState extends State<CollectPage>
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
         List.generate(tabs.length, (_) => <CollectedBangumi>[]);
     for (CollectedBangumi element in collectedBangumiList) {
+      // ⚠️ 防御：type 不在 1..5 时跳过，避免按 type-1 索引越界白屏
+      if (element.type < 1 || element.type > tabs.length) continue;
       collectedBangumiRenderItemList[element.type - 1].add(element);
     }
     for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
