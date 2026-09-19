@@ -128,6 +128,15 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
+  /// 🆕 批量移除收藏（本地删除 + 记录变更，不逐条弹 Bangumi 删除确认）
+  @action
+  Future<void> batchRemoveCollectibles(List<BangumiItem> items) async {
+    for (final bangumiItem in items) {
+      await _deleteCollectLocally(bangumiItem);
+    }
+    await _syncKazumiCollectIfEnabled();
+  }
+
   Future<_BangumiDeleteSyncAction?> _resolveBangumiDeleteSyncAction(
       BangumiItem bangumiItem) async {
     final bool syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
