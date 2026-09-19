@@ -7,6 +7,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/services/update/auto_updater.dart';
 import 'package:kazumi/utils/dandan_credentials.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,6 +37,8 @@ class _AboutPageState extends State<AboutPage> {
   late bool checkPluginUpdateOnStartup;
   // 🔥 新增：更新渠道变量
   late String updateChannel;
+  /// 🆕 被忽略的更新版本
+  late String ignoredUpdateVersion;
   double _cacheSizeMB = -1;
   MyController get myController => widget.controller;
   final MenuController menuController = MenuController();
@@ -55,6 +58,9 @@ class _AboutPageState extends State<AboutPage> {
       GStorage.putSetting(SettingsKeys.updateChannel, 'beta');
     }
     updateChannel = rawChannel;
+    // 🆕 读取被忽略的更新版本（用于「恢复提醒」入口）
+    ignoredUpdateVersion =
+        GStorage.getSetting(SettingsKeys.ignoredUpdateVersion);
     
     _getCacheSize();
   }
@@ -430,6 +436,21 @@ class _AboutPageState extends State<AboutPage> {
                   ),
                   initialValue: silentDownload,
                 ),
+                // 🆕 已忽略的版本（点了「忽略该版本」后出现，点击可恢复提醒）
+                if (ignoredUpdateVersion.isNotEmpty)
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      AutoUpdater().clearIgnoredVersion();
+                      setState(() => ignoredUpdateVersion = '');
+                      KazumiDialog.showToast(message: '已恢复该版本的更新提醒');
+                    },
+                    title:
+                        Text('已忽略版本', style: TextStyle(fontFamily: fontFamily)),
+                    value: Text(
+                      '$ignoredUpdateVersion · 点击恢复',
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                  ),
                 // 更新渠道行
                 SettingsTile.navigation(
                   onPressed: (_) => _showUpdateChannelDialog(),
