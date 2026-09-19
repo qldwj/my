@@ -457,9 +457,12 @@ abstract class _PlayerPlaybackController with Store {
                       '加载失败, 请尝试更换其他视频来源',
                   showActionButton: true);
             }
-          } else {
+          } else if (!PlayerErrorMapper.isNetworkIssue(event)) {
+            // ⭐ 只有真正的内部错误才提示。
+            // 网络抖动 / 源端波动（超时、连接重置、HTTP 4xx-5xx 等）静默处理：
+            // 播放器会自行重连并继续缓冲，弹一大串「内部错误」只会打扰用户。
             KazumiDialog.showToast(
-                message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
+                message: PlayerErrorMapper.internalErrorMessage(event),
                 duration: const Duration(seconds: 5),
                 showActionButton: true);
           }

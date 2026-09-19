@@ -15,6 +15,7 @@ import 'package:kazumi/services/video_source/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/player/player_error_mapper.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
@@ -972,7 +973,12 @@ abstract class _VideoPageController with Store implements Disposable {
       if (session.isStale) {
         return;
       }
-      _failLoading('视频解析失败：${e.toString()}');
+      // 网络抖动时只给一句简短提示，不再把整段异常文本丢给用户
+      if (PlayerErrorMapper.isNetworkIssue(e)) {
+        _failLoading('网络异常，视频加载失败，请重试');
+      } else {
+        _failLoading('视频解析失败：${e.toString()}');
+      }
     }
   }
 
