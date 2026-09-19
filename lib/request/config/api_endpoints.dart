@@ -16,11 +16,11 @@ class ApiEndpoints {
   /// 图标作者
   static const String iconUrl = "https://www.pixiv.net/users/127095445";
 
-  /// 规则仓库（改用官方 Kazumi 规则仓库）
+  /// 规则仓库
   static const String pluginShop =
-      'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
+      'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/';
 
-  /// 规则仓库镜像（仍走自建代理，请确保服务端代理的是官方 KazumiRules）
+  /// 规则仓库镜像
   static const String pluginShopMirror =
       'https://qlyyz.xyz/api/rules/';
 
