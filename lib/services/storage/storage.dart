@@ -353,6 +353,12 @@ class GStorage {
       // Update local storage
       await collectibles.clear();
       for (var collect in mergeResult.collectibles) {
+        // ⚠️ 防御：WebDAV 远端盒子里的 type 可能是 0 或 >5（其他端/旧版本写入），
+        // 直接入库会导致追番页 `type-1` 数组越界白屏，这里钳制到 1..5。
+        final t = collect.type;
+        if (t < 1 || t > 5) {
+          collect = CollectedBangumi(collect.bangumiItem, collect.time, 1);
+        }
         await collectibles.put(collect.bangumiItem.id, collect);
       }
       await collectibles.flush();

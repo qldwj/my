@@ -43,7 +43,21 @@ abstract class _CollectController with Store {
 
   void loadCollectibles() {
     collectibles.clear();
-    collectibles.addAll(_collectCrudRepository.getAllCollectibles());
+    // ⭐ 防御性过滤：type 必须在 1..5（在看/想看/搁置/看过/抛弃），
+    // 否则追番页按 `type - 1` 索引 Tab 列表会数组越界（RangeError）→ 整页白屏。
+    // 脏数据来源：旧版本缺 type 字段（Hive 适配器默认 0）、云端/WebDAV 同步
+    // 下来的异常 type（0 或 >5）。这里统一拦截，保证追番页永远能正常渲染。
+    collectibles.addAll(
+      _collectCrudRepository
+          .getAllCollectibles()
+          .where(_isRenderableCollectible),
+    );
+  }
+
+  /// 追番页可正常渲染的收藏：type 在 1..5 之间
+  static bool _isRenderableCollectible(CollectedBangumi c) {
+    final t = c.type;
+    return t >= 1 && t <= 5;
   }
 
   int getCollectType(BangumiItem bangumiItem) {

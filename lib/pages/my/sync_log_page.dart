@@ -126,8 +126,16 @@ class _SyncLogPageState extends State<SyncLogPage> {
                   info: '',
                 );
                 await GStorage.putCollectible(
-                  CollectedBangumi(bangumiItem, DateTime.now(),
-                    item['type'] is int ? item['type'] as int : 1),
+                  CollectedBangumi(
+                    bangumiItem,
+                    DateTime.now(),
+                    // ⚠️ 钳制到 1..5，防止 type=0/越界导致追番页白屏
+                    (item['type'] is int &&
+                            (item['type'] as int) >= 1 &&
+                            (item['type'] as int) <= 5)
+                        ? item['type'] as int
+                        : 1,
+                  ),
                 );
                 downloadCount++;
                 _addLog('download', '↓ 下载: ${item['name']} (id=$remoteId)');

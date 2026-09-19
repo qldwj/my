@@ -25,6 +25,8 @@ migrate_working_dir/
 
 # Flutter/Dart/Pub related
 **/doc/api/
+# 扫码登录后端运行时生成的 SQLite 数据库
+api/qr/data/*.db
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins
