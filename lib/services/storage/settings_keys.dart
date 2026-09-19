@@ -651,6 +651,13 @@ class SettingsKeys {
     'beta',
     group: SettingGroup.update,
   );
+
+  /// 🆕 被用户「忽略」的更新版本（更新弹窗点「忽略该版本」后记住，不再提示）
+  static const ignoredUpdateVersion = SettingKey<String>(
+    'ignoredUpdateVersion',
+    '',
+    group: SettingGroup.update,
+  );
   static const animekoRuleLastCheck = SettingKey<int>(
     'animekoRuleLastCheck',
     0,
@@ -993,6 +1000,7 @@ class SettingsKeys {
     playerMuted,
     announcementVersion, // 新增
     savedAccounts, // 🆕 账号快速切换
+    ignoredUpdateVersion, // 🆕 更新弹窗忽略的版本
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {
