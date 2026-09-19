@@ -52,7 +52,7 @@ class _AboutPageState extends State<AboutPage> {
         GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
     
     // 🔥 新增：读取更新渠道，默认 'stable'，并兼容旧的 'preview'
-    String rawChannel = GStorage.getSetting(SettingsKeys.updateChannel) ?? 'stable';
+    String rawChannel = GStorage.getSetting(SettingsKeys.updateChannel) ?? 'beta';
     if (rawChannel == 'preview') {
       rawChannel = 'beta';
       GStorage.putSetting(SettingsKeys.updateChannel, 'beta');
