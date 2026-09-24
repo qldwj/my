@@ -18,6 +18,7 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
   bool _webDavEnable = false;
   bool _enableHistory = true;
   bool _enableCollect = true;
+  bool _enableDanmakuShield = true;
   bool _testing = false;
   bool _passwordVisible = false;
 
@@ -27,6 +28,8 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
     _webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     _enableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     _enableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    _enableDanmakuShield =
+        GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
     _urlController.text = GStorage.getSetting(SettingsKeys.webDavURL);
     _userController.text = GStorage.getSetting(SettingsKeys.webDavUsername);
     _passController.text = GStorage.getSetting(SettingsKeys.webDavPassword);
@@ -211,6 +214,16 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                           onChanged: (v) {
                             setState(() => _enableCollect = v);
                             GStorage.putSetting(SettingsKeys.webDavEnableCollect, v);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        SwitchListTile(
+                          title: const Text('弹幕屏蔽词'),
+                          subtitle: const Text('多端同步屏蔽关键词（关键词云端同步）'),
+                          value: _enableDanmakuShield,
+                          onChanged: (v) {
+                            setState(() => _enableDanmakuShield = v);
+                            GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, v);
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
