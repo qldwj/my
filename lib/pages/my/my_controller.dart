@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
@@ -5,14 +6,23 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/update/auto_updater.dart';
 // 引入公告服务
 import 'package:kazumi/services/announcement/announcement_service.dart';
+// 🆕 弹幕屏蔽词云端同步（恢复官方 2.3.3）
+import 'package:kazumi/modules/danmaku/danmaku_shield_rule.dart';
+import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 
 part 'my_controller.g.dart';
 
 class MyController = _MyController with _$MyController;
 
 abstract class _MyController with Store {
+  _MyController(this._shieldRepository);
+
+  final IDanmakuShieldRepository _shieldRepository;
+
   @observable
   ObservableList<String> shieldList = ObservableList.of([]);
+
+  StreamSubscription<DanmakuShieldChange>? _shieldSubscription;
 
   bool isDanmakuBlocked(String? danmaku) {
     if (danmaku == null || danmaku.isEmpty) return false;
@@ -35,33 +45,57 @@ abstract class _MyController with Store {
     return false;
   }
 
-  void loadShieldList() {
-    shieldList.clear();
-    shieldList.addAll(GStorage.shieldList.values.toList());
+  /// 🆕 云端同步版：监听仓库变更 + 初始化同步状态
+  Future<void> loadShieldList() async {
+    // Keep this subscription alive during playback.
+    _shieldSubscription ??=
+        _shieldRepository.changes.listen((_) => _refreshShieldList());
+    _refreshShieldList();
+    try {
+      await _shieldRepository.initialize();
+    } catch (e) {
+      KazumiLogger()
+          .e('Danmaku: failed to initialize shield sync state', error: e);
+    }
   }
 
-  void addShieldList(String item) {
-    if (item.isEmpty) {
-      KazumiDialog.showToast(message: '请输入关键词');
-      return;
-    }
-    if (item.length > 64) {
-      KazumiDialog.showToast(message: '关键词过长');
-      return;
-    }
-    if (shieldList.contains(item)) {
-      KazumiDialog.showToast(message: '已存在该关键词');
-      return;
-    }
-    shieldList.add(item);
-    GStorage.shieldList.put(item, item);
-    GStorage.shieldList.flush();
+  void _refreshShieldList() {
+    runInAction(() {
+      shieldList
+        ..clear()
+        ..addAll(_shieldRepository.getRules());
+    });
   }
 
-  void removeShieldList(String item) {
-    shieldList.remove(item);
-    GStorage.shieldList.delete(item);
-    GStorage.shieldList.flush();
+  Future<bool> addShieldList(String item) async {
+    final error = DanmakuShieldRule.validate(item);
+    if (error != null) {
+      KazumiDialog.showToast(
+          message: switch (error) {
+        DanmakuShieldRuleError.empty => '请输入关键词',
+        DanmakuShieldRuleError.tooLong => '关键词过长',
+      });
+      return false;
+    }
+    return _saveShieldRule(item, deleted: false);
+  }
+
+  Future<bool> removeShieldList(String item) =>
+      _saveShieldRule(item, deleted: true);
+
+  Future<bool> _saveShieldRule(String item, {required bool deleted}) async {
+    try {
+      final changed = await _shieldRepository.setRule(item, deleted: deleted);
+      if (!changed && !deleted) {
+        KazumiDialog.showToast(message: '已存在该关键词');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      KazumiLogger().e('Danmaku: failed to save shield rule', error: e);
+      KazumiDialog.showToast(message: '屏蔽规则保存失败，请重试');
+      return false;
+    }
   }
 
   Future<bool> checkUpdate({String type = 'manual'}) async {
