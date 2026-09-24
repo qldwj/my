@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -768,8 +769,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                        child: LoadingIndicator(
+                          size: 16,
                           color: theme.colorScheme.onPrimary,
                         ),
                       )
