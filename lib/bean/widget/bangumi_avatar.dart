@@ -28,7 +28,7 @@ class BangumiAvatar extends StatelessWidget {
         : url!;
     // 头像始终走图片代理（enabled: true，不受镜像开关影响）
     return NetworkImgLayer(
-      src: BangumiImageUrlRewriter.rewrite(src, enabled: true),
+      src: BangumiImageUrlRewriter.rewriteString(src, enabled: true),
       width: size,
       height: size,
       type: 'avatar',
