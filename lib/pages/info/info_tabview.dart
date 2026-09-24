@@ -6,7 +6,6 @@ import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
-import 'package:kazumi/bean/widget/recommendation_section.dart';
 import 'package:kazumi/bean/widget/related_anime_section.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/widget/related_search_section.dart';
@@ -794,12 +793,6 @@ class _InfoTabViewState extends State<InfoTabView>
                     top: false,
                     bottom: false,
                     child: widget.isLoading ? infoBodyBone : infoBody,
-                  ),
-                ),
-                // 关联推荐
-                SliverToBoxAdapter(
-                  child: RecommendationSection(
-                    currentBangumi: widget.bangumiItem,
                   ),
                 ),
                 // 续集/关联作品
