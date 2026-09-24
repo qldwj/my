@@ -48,10 +48,11 @@ abstract final class BangumiImageUrlRewriter {
   }
 
   /// 重写 Bangumi 图片地址（String 版，兼容旧调用）
+  /// 注意：Dart 不支持重载，故命名为 [rewriteString]（官方 Uri 版保留 [rewrite]）
   ///
   /// [url]：原始图片地址
   /// [enabled]：是否走图片代理（镜像开关）
-  static String rewrite(String url, {required bool enabled}) {
+  static String rewriteString(String url, {required bool enabled}) {
     // 协议相对地址补全
     var normalized = url;
     if (normalized.startsWith('//')) {
