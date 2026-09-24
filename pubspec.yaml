@@ -23,6 +23,8 @@ dependencies:
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
+  ech_http: ^0.1.2
+  material_new_shapes: ^1.0.0
   image: ^4.8.0
   card_settings_ui: ^2.0.1
   file_picker: ^10.3.7
@@ -194,6 +196,7 @@ flutter:
     - assets/images/icons/
     - assets/bgm_stickers/
     - assets/statements/
+    - licenses/ech_http/
   fonts:
     - family: MI_Sans_Regular
       fonts:

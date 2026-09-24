@@ -75,11 +75,12 @@ abstract class _SearchPageController with Store {
       bool privateMode = _collectRepository.getPrivateMode();
       if (!privateMode) {
         // 检查是否已满，删除最旧的记录
+        // ⭐ 先删除重复记录再判断是否满（官方 2.3.6 顺序修复：
+        // 否则重复搜索时先删旧记录会导致误删、历史不完整）
+        await _searchHistoryRepository.deleteDuplicates(input);
         if (_searchHistoryRepository.isHistoryFull(10)) {
           await _searchHistoryRepository.deleteOldest();
         }
-        // 删除重复的历史记录
-        await _searchHistoryRepository.deleteDuplicates(input);
         // 保存新的搜索历史
         await _searchHistoryRepository.saveHistory(input);
         // 重新加载历史记录
