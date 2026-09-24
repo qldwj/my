@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -303,7 +304,7 @@ class _ImageViewerState extends State<ImageViewer> {
               ? PhotoViewHeroAttributes(tag: widget.heroTag!)
               : null,
           loadingBuilder: (context, event) => const Center(
-            child: CircularProgressIndicator(),
+            child: LoadingIndicator(),
           ),
           errorBuilder: (context, error, stackTrace) =>
               _buildErrorWidget(context),
@@ -323,7 +324,7 @@ class _ImageViewerState extends State<ImageViewer> {
           onPageChanged: (index) => setState(() => _currentIndex = index),
           backgroundDecoration: const BoxDecoration(color: Colors.black),
           loadingBuilder: (context, event) => const Center(
-            child: CircularProgressIndicator(),
+            child: LoadingIndicator(),
           ),
           builder: (context, index) {
             final imageUrl = widget.imageUrls[index];

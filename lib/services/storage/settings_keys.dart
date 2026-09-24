@@ -336,6 +336,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.proxy,
   );
+  // 🆕 图片加速模式（官方 2.3.6）：direct 直连 / ech ECH 加速 / mirror 镜像
+  static const imageAcceleration = SettingKey<String>(
+    'imageAcceleration',
+    'ech',
+    group: SettingGroup.proxy,
+  );
   static const bangumiProxyDomain = SettingKey<String>(
     _SettingBoxKey.bangumiProxyDomain,
     'https://api.qlyyz.top',
@@ -949,6 +955,7 @@ class SettingsKeys {
     displayMode,
     enableGitProxy,
     enableBangumiProxy,
+    imageAcceleration,
     enableSystemProxy,
     defaultStartupPage,
     isWideScreen,

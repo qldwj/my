@@ -34,10 +34,13 @@ import 'package:kazumi/services/network/metered_network_service.dart';
 // ✅ 新增导入：签名校验
 import 'package:kazumi/services/signature/signature_service.dart';
 import 'package:kazumi/pages/signature/signature_error_page.dart';
+import 'package:kazumi/services/network/ech_http_licenses.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // ✅ ECH 图片加速依赖的第三方许可证注册（官方 2.3.6）
+  registerEchHttpLicenses();
   // ✅ 签名校验：在一切业务初始化之前执行。
   // 未开启校验、或校验通过 → 进入正常主程序。
   // 校验失败 → 仅渲染独立错误页，主应用任何内容都不会加载。

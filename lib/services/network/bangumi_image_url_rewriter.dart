@@ -4,9 +4,15 @@ import 'package:kazumi/request/config/api_endpoints.dart';
 ///
 /// 职责：
 /// 1. 归一化：协议相对地址（//lain.bgm.tv/...）补全 https、http 强制转 https
-/// 2. 镜像开启时，把 lain.bgm.tv 图片地址重写为图片代理地址
-class BangumiImageUrlRewriter {
+/// 2. 镜像开启时，把 Bangumi 图片地址重写为图片代理地址（wsrv.nl）
+///
+/// 官方 2.3.6 适配：新增 Uri 版 rewrite / isBangumiImage，供新的
+/// 图片加速管线（ECH/镜像/直连）使用；旧的 String 版 rewrite 保留，
+/// 兼容 bangumi_avatar 等现有调用。
+abstract final class BangumiImageUrlRewriter {
   BangumiImageUrlRewriter._();
+
+  static const _apiImageKinds = {'subjects', 'characters', 'persons'};
 
   /// Bangumi 相关图片 host（lain.bgm.tv / bgm.tv / next.bgm.tv / kazumi.fyi）
   static bool _isBangumiHost(String host) {
@@ -15,7 +21,33 @@ class BangumiImageUrlRewriter {
         host.endsWith('.kazumi.fyi');
   }
 
-  /// 重写 Bangumi 图片地址
+  static bool _isHttp(Uri uri) => uri.scheme == 'http' || uri.scheme == 'https';
+
+  /// 是否为 Bangumi 图片地址（ECH 加速 / 镜像只处理这些地址）
+  static bool isBangumiImage(Uri uri) =>
+      _isHttp(uri) && (uri.host == 'lain.bgm.tv' || _isApiImage(uri));
+
+  static bool _isApiImage(Uri uri) {
+    if (uri.host != 'api.bgm.tv') return false;
+    final segments = uri.pathSegments;
+    if (segments.isEmpty) return false;
+    return _apiImageKinds.contains(segments.first);
+  }
+
+  /// 镜像重写（Uri 版，给新的图片缓存管线使用）
+  static Uri rewrite(Uri uri) {
+    if (!isBangumiImage(uri)) return uri;
+
+    final secureUrl = 'https://' +
+        uri.host +
+        uri.path +
+        (uri.hasQuery ? '?${uri.query}' : '');
+
+    return Uri.parse(
+        '${ApiEndpoints.bangumiImageProxyBase}${Uri.encodeComponent(secureUrl)}');
+  }
+
+  /// 重写 Bangumi 图片地址（String 版，兼容旧调用）
   ///
   /// [url]：原始图片地址
   /// [enabled]：是否走图片代理（镜像开关）
