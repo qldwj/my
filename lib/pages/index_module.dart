@@ -22,6 +22,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
 
 final _tabTransition = CustomTransition(
@@ -78,6 +79,7 @@ final indexModule = createModule(
           shaderAssetService: inject<ShaderAssetService>(),
           myController: inject<MyController>(),
           downloadController: inject<DownloadController>(),
+          danmakuShieldSync: inject<DanmakuShieldSyncService>(),
         ),
         transition: TransitionType.none,
       )

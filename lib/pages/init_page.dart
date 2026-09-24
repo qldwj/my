@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -37,6 +38,7 @@ class InitPage extends StatefulWidget {
     required this.shaderAssetService,
     required this.myController,
     required this.downloadController,
+    required this.danmakuShieldSync,
   });
 
   final PluginsController pluginsController;
@@ -44,6 +46,7 @@ class InitPage extends StatefulWidget {
   final ShaderAssetService shaderAssetService;
   final MyController myController;
   final DownloadController downloadController;
+  final DanmakuShieldSyncService danmakuShieldSync;
 
   @override
   State<InitPage> createState() => _InitPageState();
@@ -222,7 +225,9 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _loadDanmakuShield() async {
-    myController.loadShieldList();
+    await myController.loadShieldList();
+    // 🆕 启动弹幕屏蔽词云端同步（监听本地编辑 → WebDAV 双向合并）
+    widget.danmakuShieldSync.start();
   }
 
   Future<void> _webDavInit() async {
