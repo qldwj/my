@@ -58,6 +58,17 @@ class _MyPageState extends State<MyPage> {
   @override
   void initState() {
     super.initState();
+    // ⭐ 全局登录失效回调：本地 token 失效（如重装被系统备份恢复但服务器已过期）
+    // 时自动清除 token、刷新为未登录并提示重新登录，避免全部接口报「登录已过期」。
+    AuthService.onAuthFailed = () {
+      if (mounted) {
+        setState(() {});
+        KazumiDialog.showToast(
+          message: '登录已过期，请重新登录',
+          duration: const Duration(seconds: 3),
+        );
+      }
+    };
     _loadRecentHistories();
     _loadGoal();
     _loadBangumiUser();

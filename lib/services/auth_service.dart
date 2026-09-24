@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
@@ -50,6 +51,39 @@ class AuthService {
   static String get _appId => bangumiMirrorCredentials['id'] ?? '';
   static String get _appKey => bangumiMirrorCredentials['value'] ?? '';
 
+  /// ⭐ 全局登录失效回调（App 层挂载：清 token 后刷新 UI 并提示重新登录）
+  /// 触发场景：本地 token 还在（如卸载重装被系统备份恢复）但服务器端已失效，
+  /// 接口返回「登录已过期 / 未登录 / 请重新登录」或 HTTP 401/403。
+  static void Function()? onAuthFailed;
+
+  /// 检测到登录失效：清除本地 token + 通知 App 层
+  static void handleAuthFailure() {
+    clearLocalToken();
+    // 全局兜底提示（不依赖回调挂载；UI 刷新由 onAuthFailed 负责）
+    try {
+      KazumiDialog.showToast(
+        message: '登录已过期，请重新登录',
+        duration: const Duration(seconds: 3),
+      );
+    } catch (_) {}
+    try {
+      onAuthFailed?.call();
+    } catch (_) {}
+  }
+
+  /// 判断响应是否表示登录失效（兼容服务器返回 401/403 或中文错误文本）
+  static bool isAuthFailure(String error, {int statusCode = 200}) {
+    if (statusCode == 401 || statusCode == 403) return true;
+    final e = error.toLowerCase();
+    return e.contains('登录已过期') ||
+        e.contains('未登录') ||
+        e.contains('请重新登录') ||
+        e.contains('登录失效') ||
+        e.contains('登录过期') ||
+        (e.contains('token') && e.contains('无效')) ||
+        e.contains('unauthorized');
+  }
+
   static String _sign(String body, int timestamp) {
     final data = utf8.encode('$_appId$timestamp$body$_appKey');
     final digest = sha256.convert(data);
@@ -88,9 +122,21 @@ class AuthService {
       if (response.statusCode != 200) {
         try {
           final errData = jsonDecode(responseBody) as Map<String, dynamic>;
-          return {'error': errData['error'] ?? 'HTTP ${response.statusCode}'};
+          final err = errData['error'] ?? 'HTTP ${response.statusCode}';
+          // ⭐ 自动登出：带 token 的请求遇登录失效（401/403 或「登录已过期」等），
+          // 清除本地 token 并通知 UI 重新登录，避免重装恢复的旧 token 卡死所有接口。
+          if (authToken != null && isAuthFailure(err, statusCode: response.statusCode)) {
+            handleAuthFailure();
+            return {'error': err, 'auth_failed': true};
+          }
+          return {'error': err};
         } catch (_) {
-          return {'error': 'HTTP ${response.statusCode}: $responseBody'};
+          final err = 'HTTP ${response.statusCode}: $responseBody';
+          if (authToken != null && (response.statusCode == 401 || response.statusCode == 403)) {
+            handleAuthFailure();
+            return {'error': err, 'auth_failed': true};
+          }
+          return {'error': err};
         }
       }
       return jsonDecode(responseBody) as Map<String, dynamic>;
@@ -314,6 +360,23 @@ class AuthService {
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
       client.close();
+      if (response.statusCode != 200) {
+        // ⭐ 登录失效自动登出
+        try {
+          final errData = jsonDecode(body) as Map<String, dynamic>;
+          final err = errData['error'] ?? 'HTTP ${response.statusCode}';
+          if (isAuthFailure(err, statusCode: response.statusCode)) {
+            handleAuthFailure();
+            return {...errData, 'auth_failed': true};
+          }
+          return errData;
+        } catch (_) {
+          if (response.statusCode == 401 || response.statusCode == 403) {
+            handleAuthFailure();
+          }
+          return {'error': 'HTTP ${response.statusCode}'};
+        }
+      }
       return jsonDecode(body) as Map<String, dynamic>;
     } catch (e) {
       KazumiLogger().e('AuthService: 获取用户失败', error: e);

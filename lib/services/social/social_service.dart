@@ -214,6 +214,24 @@ class SocialService {
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();
       client.close();
+      if (response.statusCode != 200) {
+        // ⭐ 登录失效自动登出（社交接口同样会返回「登录已过期/未登录」）
+        try {
+          final errData = jsonDecode(resp) as Map<String, dynamic>;
+          final err = errData['error'] ?? 'HTTP ${response.statusCode}';
+          if (AuthService.isAuthFailure(err,
+              statusCode: response.statusCode)) {
+            AuthService.handleAuthFailure();
+            return {...errData, 'auth_failed': true};
+          }
+          return errData;
+        } catch (_) {
+          if (response.statusCode == 401 || response.statusCode == 403) {
+            AuthService.handleAuthFailure();
+          }
+          return {'success': false, 'error': 'HTTP ${response.statusCode}'};
+        }
+      }
       return jsonDecode(resp) as Map<String, dynamic>;
     } catch (e) {
       KazumiLogger().e('Social: 请求失败 action=$action', error: e);
