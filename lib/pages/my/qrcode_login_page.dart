@@ -167,6 +167,80 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         _scanProcessing = false;
         return;
       }
+
+      // ⭐ 扫码确认弹窗（App 本地，类似 QQ 授权确认）：
+      // 先查会话信息拿到「被扫码设备」的 IP/位置，弹窗让机主确认/拒绝，
+      // 确认后才真正 confirmLogin，拒绝则本次扫码作废可重扫。
+      Map<String, dynamic> session = {};
+      try {
+        session = await QrLoginService.check(code);
+      } catch (_) {}
+      final ownerIp = (session['owner_ip']?.toString() ?? '').trim();
+      final ownerLocation =
+          (session['owner_location']?.toString() ?? '').trim();
+
+      final confirmed = await KazumiDialog.show<bool>(
+        clickMaskDismiss: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('确认登录'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.devices_rounded, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('另一台设备请求登录您的账号',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(Icons.language, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text('IP：${ownerIp.isEmpty ? '未知' : ownerIp}'),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text('位置：${ownerLocation.isEmpty ? '未知' : ownerLocation}'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '如果不是您本人操作，请点击「拒绝」',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('拒绝', style: TextStyle(color: Colors.red)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('确认登录'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) {
+        // 拒绝：取消本次扫码，允许重新扫
+        if (mounted) setState(() {});
+        _scanProcessing = false;
+        KazumiDialog.showToast(message: '已拒绝登录');
+        return;
+      }
+
       KazumiDialog.showToast(message: '正在确认登录...');
       final result = await QrLoginService.confirmLogin(code, AuthService.getLocalToken() ?? '');
       final ok = result['success'] == true ||
