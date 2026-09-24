@@ -1355,6 +1355,21 @@ class _VideoPageState extends State<VideoPage>
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
+              // 🆕 清晰度：当前实际播放分辨率（解析到才有值）
+              const SizedBox(width: 6),
+              Observer(builder: (context) {
+                final w = playerController.debug.playerWidth;
+                final h = playerController.debug.playerHeight;
+                if (w <= 0 || h <= 0) return const SizedBox.shrink();
+                return Text(
+                  '${w}×${h}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              }),
               const Spacer(),
               // 🆕 分享按钮：取当前播放地址 → gzdeflate+Base32 加密 → 复制分享链接
               IconButton(

@@ -104,7 +104,7 @@ class BangumiApi {
       "sort": "rank",
       "filter": {
         "type": [2],
-        "tag": ["日本"],
+        "tags": ["日本"],
         "air_date": [">=${dateRange[0]}", "<${dateRange[1]}"],
         "rank": [">0", "<=99999"],
         "nsfw": true
@@ -193,7 +193,7 @@ class BangumiApi {
         'sort': 'rank',
         "filter": {
           "type": [2],
-          "tag": ["日本"],
+          "tags": ["日本"],
           "rank": [">$rank", "<=1050"],
           "nsfw": false
         },
@@ -204,7 +204,7 @@ class BangumiApi {
         'sort': 'rank',
         "filter": {
           "type": [2],
-          "tag": [tag],
+          "tags": [tag],
           "rank": [">$rank", "<=99999"],
           "nsfw": false
         },
@@ -321,7 +321,7 @@ class BangumiApi {
 
     final filter = <String, dynamic>{
       "type": [2],
-      "tag": tags,
+      "tags": tags,
       "rank": rankFilter,
       "nsfw": false
     };
