@@ -251,10 +251,6 @@ class _CollectPageState extends State<CollectPage>
     super.initState();
     collectController.loadCollectibles();
     tabController = TabController(vsync: this, length: tabs.length);
-    // 监听收藏文件夹变化
-    CollectFolderService.addListener(() {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
