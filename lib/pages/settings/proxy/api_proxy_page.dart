@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/network/image_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// API 镜像代理设置页面
+/// 镜像代理设置页面
 class ApiProxyPage extends StatefulWidget {
   const ApiProxyPage({super.key});
 
@@ -180,6 +181,41 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     }
   }
 
+  /// 🆕 图片加速模式选择（直连 / ECH / 镜像）
+  Future<void> _selectImageAcceleration() async {
+    final current = ImageAcceleration.fromSetting(
+      GStorage.getSetting(SettingsKeys.imageAcceleration),
+    );
+    final selected = await KazumiDialog.show<ImageAcceleration>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('图片加速'),
+        children: [
+          RadioGroup<ImageAcceleration>(
+            groupValue: current,
+            onChanged: (value) => Navigator.of(ctx).pop(value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final mode in ImageAcceleration.values)
+                  RadioListTile<ImageAcceleration>(
+                    value: mode,
+                    title: Text(mode.label),
+                    subtitle: Text(mode.description),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (mounted && selected != null && selected != current) {
+      await GStorage.putSetting(SettingsKeys.imageAcceleration, selected.name);
+      ProxyManager.applyProxy();
+      setState(() {});
+    }
+  }
+
   void _showDomainPicker() {
     showModalBottomSheet(
       context: context,
@@ -217,7 +253,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('API 镜像代理')),
+      appBar: const SysAppBar(title: Text('镜像代理')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -263,6 +299,27 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                       setState(() {});
                     },
                     contentPadding: EdgeInsets.zero,
+                  ),
+                  const Divider(),
+                  // 🆕 图片加速（直连 / ECH / 镜像 三选一）
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.image_rounded),
+                    title: const Text('图片加速'),
+                    subtitle: const Text('加速 Bangumi 封面与头像加载'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          ImageAcceleration.fromSetting(
+                            GStorage.getSetting(SettingsKeys.imageAcceleration),
+                          ).label,
+                          style: TextStyle(color: cs.primary),
+                        ),
+                        const Icon(Icons.chevron_right_rounded),
+                      ],
+                    ),
+                    onTap: () => _selectImageAcceleration(),
                   ),
                   const SizedBox(height: 8),
                   Row(
