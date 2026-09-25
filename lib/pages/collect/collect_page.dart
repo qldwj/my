@@ -247,10 +247,18 @@ class _CollectPageState extends State<CollectPage>
   @override
   void initState() {
     super.initState();
+    collectController.loadCollectibles();
+    tabController = TabController(vsync: this, length: tabs.length);
     // 监听收藏文件夹变化
     CollectFolderService.addListener(() {
       if (mounted) setState(() {});
     });
+  }
+
+  @override
+  void dispose() {
+    tabController?.dispose();
+    super.dispose();
   }
 
   // 🆕 弹出单项同步选择对话框
@@ -322,7 +330,7 @@ class _CollectPageState extends State<CollectPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
                       Text('收藏'),
-                      Text('收藏同步到 WebDav', style: TextStyle(fontSize: 12, color: Colors.grey),
+                      Text('收藏同步到 WebDav', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ],
                   onTap: () {
@@ -354,7 +362,7 @@ class _CollectPageState extends State<CollectPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
                       Text('弹幕规则'),
-                      Text('弹幕屏蔽词云端同步', style: TextStyle(fontSize: 12, color: Colors.grey),
+                      Text('弹幕屏蔽词云端同步', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                   onTap: () {
@@ -370,7 +378,7 @@ class _CollectPageState extends State<CollectPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
                       Text('追番目标'),
-                      Text('Bangumi 追番状态同步', style: TextStyle(fontSize: 12, color: Colors.grey),
+                      Text('Bangumi 追番状态同步', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                   onTap: () {
@@ -541,19 +549,6 @@ class _CollectPageState extends State<CollectPage>
         kazumiSynced: kazumiSynced,
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    collectController.loadCollectibles();
-    tabController = TabController(vsync: this, length: tabs.length);
-  }
-
-  @override
-  void dispose() {
-    tabController?.dispose();
-    super.dispose();
   }
 
   final List<Tab> tabs = const <Tab>[
