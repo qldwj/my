@@ -57,7 +57,13 @@ class BangumiClient {
       // 开启代理后，搜索接口切换到自己的PHP代理
       if (enableBangumiProxy && path == '/v0/search/subjects') {
         isSearchTarget = true;
-        targetUrl = customSearchProxyUrl;
+        // 🆕 修复（搜标签滑不动/只有20条）：原实现直接替换成镜像URL，把 App 带在
+        // 官方URL上的 ?limit=xx&offset=xx 查询参数全丢了，PHP 永远收到 offset=0，
+        // 每次返回第一页 → App 去重后始终只有第一页（20条）且翻不动。
+        // 现在保留原URL的查询串，limit/offset 正常透传给 PHP。
+        final originalUri = Uri.parse(url);
+        targetUrl = customSearchProxyUrl +
+            (originalUri.hasQuery ? '?${originalUri.query}' : '');
       }
 
       final response = await DioFactory.apiDio.post(
