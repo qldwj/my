@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/sync/kazumi_sync_service.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class SyncSettingsPage extends StatefulWidget {
@@ -13,13 +17,98 @@ class SyncSettingsPage extends StatefulWidget {
 }
 
 class _SyncSettingsPageState extends State<SyncSettingsPage> {
-  bool get _bangumiHasToken => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
-  bool get _bangumiEnabled => GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-  bool get _webdavHasConfig => GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty;
+  bool get _bangumiHasToken =>
+      GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+  bool get _bangumiEnabled =>
+      GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+  bool get _webdavHasConfig =>
+      GStorage.getSetting(SettingsKeys.webDavURL).trim().isNotEmpty;
   bool get _webdavEnabled => GStorage.getSetting(SettingsKeys.webDavEnable);
 
-  // 同步缓存：上次同步时间戳
-  int _lastSyncTime = 0;
+  // ── 单向同步 ──
+  bool _oneWayExpanded = false;
+  bool _busy = false;
+
+  // 4 个可开关的单项（默认全部参与）
+  bool _incHistory = true;
+  bool _incCollect = true;
+  bool _incDanmaku = true;
+  bool _incGoal = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _incGoal = GStorage.getSetting(SettingsKeys.oneWaySyncGoal);
+    _incDanmaku = GStorage.getSetting(SettingsKeys.oneWaySyncDanmaku);
+    _incHistory = GStorage.getSetting(SettingsKeys.oneWaySyncHistory);
+    _incCollect = GStorage.getSetting(SettingsKeys.oneWaySyncCollect);
+  }
+
+  /// 一键同步（按开关选择，把本地数据推到云端）
+  Future<void> _oneWaySync() async {
+    if (_busy) return;
+    if (!_webdavHasConfig) {
+      KazumiDialog.showToast(message: '请先配置 WebDAV');
+      return;
+    }
+    setState(() => _busy = true);
+    final done = <String>[];
+    final failed = <String>[];
+    try {
+      final webDav = WebDav();
+      await webDav.init();
+
+      if (_incHistory) {
+        try {
+          await webDav.uploadHistory();
+          done.add('历史');
+        } catch (_) {
+          failed.add('历史');
+        }
+      }
+      if (_incCollect) {
+        try {
+          await webDav.uploadCollectibles();
+          done.add('收藏');
+        } catch (_) {
+          failed.add('收藏');
+        }
+      }
+      if (_incDanmaku) {
+        try {
+          final repo = inject<IDanmakuShieldRepository>();
+          final deviceId = await repo.getDeviceId();
+          final state = await repo.buildLocalState();
+          await webDav.uploadDanmakuShieldState(deviceId, state.encode());
+          done.add('弹幕规则');
+        } catch (_) {
+          failed.add('弹幕规则');
+        }
+      }
+      if (_incGoal) {
+        try {
+          await KazumiSyncService.syncSettings();
+          done.add('追番目标');
+        } catch (_) {
+          failed.add('追番目标');
+        }
+      }
+    } catch (e) {
+      failed.add('初始化失败');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    if (mounted) {
+      final msg = StringBuffer();
+      if (done.isNotEmpty) msg.write('✅ 已同步：${done.join('、')}');
+      if (failed.isNotEmpty) {
+        if (msg.isNotEmpty) msg.write('\n');
+        msg.write('❌ 失败：${failed.join('、')}');
+      }
+      if (msg.isEmpty) msg.write('未选择任何同步项');
+      KazumiDialog.showToast(message: msg.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +118,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     return Scaffold(
       appBar: SysAppBar(
         toolbarHeight: 72,
-        title: Text('同步设置', style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+        title: Text('同步设置',
+            style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         needTopOffset: false,
       ),
       body: SafeArea(
@@ -41,17 +131,24 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('选择需要的服务', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text('选择需要的服务',
+                      style: text.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text('也可以同时使用多个服务来同步数据', style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+                  Text('也可以同时使用多个服务来同步数据',
+                      style: text.bodyMedium
+                          ?.copyWith(color: colors.onSurfaceVariant)),
                   const SizedBox(height: 16),
 
                   _SyncServiceTile(
                     icon: Icons.brightness_6_rounded,
                     title: 'Bangumi 追番同步',
                     subtitle: '与Bangumi保持相同的追番状态',
-                    status: _bangumiHasToken ? (_bangumiEnabled ? '已开启' : '已配置') : '未配置',
-                    statusColor: _bangumiHasToken ? Colors.green : colors.outline,
+                    status: _bangumiHasToken
+                        ? (_bangumiEnabled ? '已开启' : '已配置')
+                        : '未配置',
+                    statusColor:
+                        _bangumiHasToken ? Colors.green : colors.outline,
                     iconBg: colors.primaryContainer,
                     iconFg: colors.onPrimaryContainer,
                     onTap: () async {
@@ -65,8 +162,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     icon: Icons.cloud_sync_rounded,
                     title: 'WebDAV 多端同步',
                     subtitle: '通过自己的网盘与其他设备接着看',
-                    status: _webdavHasConfig ? (_webdavEnabled ? '已开启' : '已配置') : '未配置',
-                    statusColor: _webdavHasConfig ? Colors.green : colors.outline,
+                    status: _webdavHasConfig
+                        ? (_webdavEnabled ? '已开启' : '已配置')
+                        : '未配置',
+                    statusColor:
+                        _webdavHasConfig ? Colors.green : colors.outline,
                     iconBg: colors.tertiaryContainer,
                     iconFg: colors.onTertiaryContainer,
                     onTap: () async {
@@ -81,7 +181,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                     title: '樱花动漫',
                     subtitle: '云端同步你的追番数据',
                     status: AuthService.isLoggedIn ? '已登录' : '未登录',
-                    statusColor: AuthService.isLoggedIn ? Colors.green : colors.outline,
+                    statusColor:
+                        AuthService.isLoggedIn ? Colors.green : colors.outline,
                     iconBg: colors.secondaryContainer,
                     iconFg: colors.onSecondaryContainer,
                     onTap: () {
@@ -90,12 +191,151 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                       );
                     },
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // ══════════ 单向同步 ══════════
+                  Material(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(28),
+                    child: Column(
+                      children: [
+                        // 标题行：一键同步按钮 + 右侧展开箭头
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(Icons.swap_vert_rounded,
+                                    color: colors.primary, size: 24),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('单向同步',
+                                        style: text.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 2),
+                                    Text('把本机数据上传到云端（覆盖）',
+                                        style: text.bodySmall?.copyWith(
+                                            color: colors.onSurfaceVariant)),
+                                  ],
+                                ),
+                              ),
+                              // 一键同步按钮
+                              FilledButton.tonal(
+                                onPressed: _busy ? null : _oneWaySync,
+                                child: _busy
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2))
+                                    : const Text('同步'),
+                              ),
+                              // 展开箭头
+                              IconButton(
+                                icon: Icon(
+                                  _oneWayExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                                onPressed: () => setState(
+                                    () => _oneWayExpanded = !_oneWayExpanded),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 展开区：4 个开关
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox.shrink(),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                            child: Column(
+                              children: [
+                                const Divider(height: 1),
+                                _switchTile(
+                                  title: '观看记录',
+                                  subtitle: '上传观看进度与历史',
+                                  value: _incHistory,
+                                  onChanged: (v) {
+                                    setState(() => _incHistory = v);
+                                    GStorage.putSetting(
+                                        SettingsKeys.oneWaySyncHistory, v);
+                                  },
+                                ),
+                                _switchTile(
+                                  title: '收藏',
+                                  subtitle: '上传所有追番分类',
+                                  value: _incCollect,
+                                  onChanged: (v) {
+                                    setState(() => _incCollect = v);
+                                    GStorage.putSetting(
+                                        SettingsKeys.oneWaySyncCollect, v);
+                                  },
+                                ),
+                                _switchTile(
+                                  title: '弹幕规则',
+                                  subtitle: '上传弹幕屏蔽词',
+                                  value: _incDanmaku,
+                                  onChanged: (v) {
+                                    setState(() => _incDanmaku = v);
+                                    GStorage.putSetting(
+                                        SettingsKeys.oneWaySyncDanmaku, v);
+                                  },
+                                ),
+                                _switchTile(
+                                  title: '追番目标',
+                                  subtitle: '上传本周观看目标',
+                                  value: _incGoal,
+                                  onChanged: (v) {
+                                    setState(() => _incGoal = v);
+                                    GStorage.putSetting(
+                                        SettingsKeys.oneWaySyncGoal, v);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          crossFadeState: _oneWayExpanded
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 200),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _switchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(title),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      value: value,
+      onChanged: onChanged,
     );
   }
 }
