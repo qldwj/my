@@ -165,7 +165,6 @@ class BgmRichText extends StatelessWidget {
           src: url,
           width: 220,
           height: 220,
-          fit: BoxFit.cover,
         ),
       ),
     );
