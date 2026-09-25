@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/danmaku/danmaku_shield_sync.dart';
+import 'package:kazumi/repositories/danmaku_shield_repository.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 
@@ -21,6 +25,8 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
   bool _enableDanmakuShield = true;
   bool _testing = false;
   bool _passwordVisible = false;
+  bool _uploading = false;
+  bool _downloading = false;
 
   @override
   void initState() {
@@ -72,6 +78,131 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
       }
     } finally {
       if (mounted) setState(() => _testing = false);
+    }
+  }
+
+  /// 🆕 手动上传弹幕规则（仅推送本设备，不拉远端）
+  Future<void> _uploadDanmakuRules() async {
+    if (!mounted) return;
+    if (_urlController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先配置并测试WebDAV连接')),
+      );
+      return;
+    }
+    setState(() => _uploading = true);
+    try {
+      await GStorage.putSetting(SettingsKeys.webDavURL, _urlController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavUsername, _userController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavPassword, _passController.text.trim());
+
+      final webDav = WebDav();
+      await webDav.init();
+
+      final repo = inject<IDanmakuShieldRepository>();
+      final deviceId = await repo.getDeviceId();
+      if (deviceId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('未获取到设备ID，请重试')),
+          );
+        }
+        return;
+      }
+
+      // 构造当前设备规则状态（用已有的 GStorage state 兜底，保持 deleted 状态）
+      var state = DanmakuShieldSyncState();
+      final saved = GStorage.getSetting(SettingsKeys.danmakuShieldSyncState);
+      if (saved.isNotEmpty) {
+        try {
+          state = DanmakuShieldSyncState.decode(saved);
+        } catch (_) {}
+      }
+      // 把本地当前 rules 合并进来（新规则会进，删除的状态保持）
+      final localEntries = <DanmakuShieldSyncEntry>[];
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      for (final rule in repo.getRules()) {
+        localEntries.add(DanmakuShieldSyncEntry(
+          rule: rule,
+          updatedAt: now,
+          deviceId: deviceId,
+          deleted: false,
+        ));
+      }
+      if (localEntries.isNotEmpty) {
+        state = state.merge(DanmakuShieldSyncState(localEntries));
+      }
+      if (state.entries.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('本地没有弹幕规则可上传')),
+          );
+        }
+        return;
+      }
+
+      await webDav.uploadDanmakuShieldState(deviceId, state.encode());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('弹幕规则上传成功')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('上传失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  /// 🆕 手动下载弹幕规则（从云端拉取所有设备合并后覆盖本地）
+  Future<void> _downloadDanmakuRules() async {
+    if (!mounted) return;
+    if (_urlController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先配置并测试WebDAV连接')),
+      );
+      return;
+    }
+    setState(() => _downloading = true);
+    try {
+      await GStorage.putSetting(SettingsKeys.webDavURL, _urlController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavUsername, _userController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavPassword, _passController.text.trim());
+
+      final webDav = WebDav();
+      await webDav.init();
+
+      final remote = await webDav.downloadDanmakuShieldState();
+      if (remote == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('云端没有弹幕规则文件，请先从其他设备上传')),
+          );
+        }
+        return;
+      }
+
+      final repo = inject<IDanmakuShieldRepository>();
+      await repo.mergeSyncState(remote);
+      final rules = repo.getRules();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('成功同步 ${rules.length} 条弹幕规则')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('下载失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -226,6 +357,63 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                             GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, v);
                           },
                           contentPadding: EdgeInsets.zero,
+                        ),
+
+                        // 🆕 弹幕规则手动上传/下载（切换设备时使用）
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _uploading
+                                    ? null
+                                    : _uploadDanmakuRules,
+                                icon: _uploading
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child:
+                                            CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.upload_file_rounded),
+                                label: Text(_uploading
+                                    ? '上传中...'
+                                    : '一键上传弹幕规则'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _downloading
+                                    ? null
+                                    : _downloadDanmakuRules,
+                                icon: _downloading
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child:
+                                            CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.download_rounded),
+                                label: Text(_downloading
+                                    ? '下载中...'
+                                    : '一键下载弹幕规则'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '在设备间切换时手动同步，覆盖本地规则',
+                          style: text.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant),
                         ),
                       ],
                     ),
