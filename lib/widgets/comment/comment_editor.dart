@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/utils/bgm_sticker.dart';
+import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
 class CommentEditor extends StatefulWidget {
   final int subjectId;
@@ -51,7 +52,7 @@ class _CommentEditorState extends State<CommentEditor> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 集数选择 + 预览切换
+          // 左上「选择」集数 + 右上「预览」切换
           Row(children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -94,8 +95,8 @@ class _CommentEditorState extends State<CommentEditor> {
           else
             TextField(
               controller: _controller,
-              maxLines: 4,
-              minLines: 2,
+              maxLines: 3,
+              minLines: 1,
               maxLength: 1000,
               decoration: InputDecoration(
                 hintText: '写评论... 支持 BBCode',
@@ -128,30 +129,34 @@ class _CommentEditorState extends State<CommentEditor> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Wrap(
-        spacing: 4,
+        spacing: 8,
         runSpacing: 4,
         children: [
-          _toolBtn('B', () => _insert('[b]', '[/b]'), FontWeight.bold, cs),
-          _toolBtn('I', () => _insert('[i]', '[/i]'), FontWeight.normal, cs, FontStyle.italic),
-          _toolBtn('U', () => _insert('[u]', '[/u]'), FontWeight.normal, cs),
-          _toolBtn('S', () => _insert('[s]', '[/s]'), FontWeight.normal, cs),
-          _toolBtn('颜色', () => _insert('[color=red]', '[/color]'), null, cs),
-          _toolBtn('大小', () => _insert('[size=14]', '[/size]'), null, cs),
-          _toolBtn('链接', () => _insert('[url]', '[/url]'), null, cs),
-          _toolBtn('图片', () => _insert('[img]', '[/img]'), null, cs),
-          _toolBtn('马赛克', () => _insert('[mask]', '[/mask]'), null, cs),
-          // 表情按钮
-          GestureDetector(
-            onTap: _showStickerPicker,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4)),
-              child: const Text('😀', style: TextStyle(fontSize: 16)),
-            ),
-          ),
+          // ① 链接
+          _toolChip(Icons.link_rounded, '链接', () => _insert('[url]', '[/url]'), cs),
+          // ② 图片
+          _toolChip(Icons.image_rounded, '图片', () => _insert('[img]', '[/img]'), cs),
+          // ③ 表情（保留，不删除）
+          _toolChip(Icons.emoji_emotions_rounded, '表情', _showStickerPicker, cs),
         ],
+      ),
+    );
+  }
+
+  Widget _toolChip(IconData icon, String label, VoidCallback onTap, ColorScheme cs) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 16, color: cs.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        ]),
       ),
     );
   }
@@ -218,6 +223,46 @@ class _CommentEditorState extends State<CommentEditor> {
   }
 
   Widget _renderPreview() {
+    final text = _controller.text;
+    if (text.isEmpty) {
+      return Text('暂无内容', style: TextStyle(color: Theme.of(context).colorScheme.outline));
+    }
+    // 🆕 预览直接用 BgmRichText：链接可点、图片/GIF 直接显示、表情保留
+    return BgmRichText(
+      _stripBBCodeTags(text),
+      style: TextStyle(
+        fontSize: 14,
+        height: 1.5,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+
+  /// 去掉简单的 BBCode 标记（[b][/b] 等），保留 [url]/[img] 里的地址供 BgmRichText 识别
+  String _stripBBCodeTags(String text) {
+    var out = text;
+    // [url=xxx]yyy[/url] → xxx（或 yyy）
+    out = out.replaceAllMapped(
+      RegExp(r'\[url=([^\]]+)\](.*?)\[/url\]', dotAll: true),
+      (m) => (m.group(1) ?? '').trim(),
+    );
+    // [url]xxx[/url] → xxx
+    out = out.replaceAllMapped(
+      RegExp(r'\[url\](.*?)\[/url\]', dotAll: true),
+      (m) => (m.group(1) ?? '').trim(),
+    );
+    // [img]xxx[/img] → xxx
+    out = out.replaceAllMapped(
+      RegExp(r'\[img\](.*?)\[/img\]', dotAll: true),
+      (m) => (m.group(1) ?? '').trim(),
+    );
+    // 其余标记直接去掉
+    out = out.replaceAll(RegExp(r'\[/?(b|i|u|s|mask|color|size)(=[^\]]*)?\]'), '');
+    return out;
+  }
+
+  // ignore: unused_element
+  Widget _renderPreviewLegacy() {
     final text = _controller.text;
     if (text.isEmpty) {
       return Text('暂无内容', style: TextStyle(color: Theme.of(context).colorScheme.outline));

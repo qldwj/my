@@ -65,7 +65,7 @@ class AnnouncementService {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            height: 400,
+                            constraints: const BoxConstraints(maxHeight: 460),
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(8),
@@ -161,7 +161,9 @@ class _HtmlContentViewState extends State<_HtmlContentView> {
           },
         ),
       )
-      ..loadHtmlString(_buildHtml(widget.htmlContent));
+      // 🆕 加 baseUrl：否则部分 Android WebView 下图片/相对资源加载失败
+      ..loadHtmlString(_buildHtml(widget.htmlContent),
+          baseUrl: 'https://qlyyz.xyz/');
   }
 
   String _buildHtml(String body) {

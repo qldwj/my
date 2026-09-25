@@ -25,9 +25,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      color: Theme.of(context).brightness == Brightness.dark
-          ? cs.surfaceContainerHighest
-          : Colors.white,
+      color: cs.surfaceContainerLow,
       elevation: 0.5,
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -92,7 +90,12 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
             ]),
             const SizedBox(height: 8),
             // 评论内容
-            BgmRichText(c.content, style: const TextStyle(fontSize: 14, height: 1.5)),
+            BgmRichText(c.content,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: cs.onSurface,
+                )),
             // 表情回应
             if (c.reactions.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -185,7 +188,8 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                       Text(r.timeAgo, style: TextStyle(fontSize: 10, color: cs.outline)),
                     ]),
                     const SizedBox(height: 4),
-                    BgmRichText(r.content, style: const TextStyle(fontSize: 13)),
+                    BgmRichText(r.content,
+                        style: TextStyle(fontSize: 13, color: cs.onSurface)),
                   ],
                 ),
               )),

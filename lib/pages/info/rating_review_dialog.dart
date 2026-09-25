@@ -387,13 +387,14 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   }
 
   Widget _buildMainContent(ThemeData theme) {
+    // 🆕 评分区放在最前，保证星星一定在可视范围内（此前输入框太高把评分挤出去）
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCommentSection(theme),
-        const SizedBox(height: 16),
         _buildScoreSection(theme),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        _buildCommentSection(theme),
+        const SizedBox(height: 12),
         _buildTagSummarySection(theme),
       ],
     );
@@ -404,8 +405,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     return TextField(
       controller: commentController,
       enabled: !_isSubmitting,
-      minLines: 5,
-      maxLines: 9,
+      minLines: 3,
+      maxLines: 5,
       decoration: InputDecoration(
         hintText: '写下你对这部番剧的看法',
         filled: true,
@@ -463,7 +464,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               maxRating: 5,
               allowHalfRating: true,
               itemCount: 5,
-              itemSize: 36,
+              itemSize: 34,
               glow: false,
               ignoreGestures: _isSubmitting,
               ratingWidget: RatingWidget(
