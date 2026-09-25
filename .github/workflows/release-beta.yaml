@@ -1,0 +1,210 @@
+name: "build-beta"
+
+# 测试版构建（模仿正式版 release.yaml）
+# 与正式版的区别：
+#   - tag 带 -beta 后缀（v2.3.9-beta），与正式版 v2.3.9 互不覆盖
+#   - 发布时加 --prerelease（正式通道看不到，只有测试通道能收到）
+#   - 不推 GitCode、不发 TG 通知
+#
+# 用法：
+#   1. GitHub → Actions → build-beta → Run workflow
+#   2. 填「下一个版本号」（如 2.3.9）+ 是否开签名校验
+#   3. 构建完自动在 qldwj/Kazumikfc 创建 pre-release（tag 形如 v2.3.9-beta）
+#   4. 用户 App 里把「更新通道」切到「测试版」即可收到；正式版用户不受影响
+#
+# 版本号规则：填 2.3.9 → 测试版 tag 自动加 -beta 后缀（v2.3.9-beta），
+#           正式版发布时才用 v2.3.9，两者互不覆盖。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '测试版版本号（如 2.3.9，会自动加 -beta 后缀）'
+        required: true
+        default: '2.3.9'
+      beta_suffix:
+        description: '测试版后缀（如 beta / beta2 / rc1，默认 beta）'
+        required: true
+        default: 'beta'
+      sign_check:
+        description: '签名校验 (0=不开启, 1=开启)'
+        required: true
+        default: '0'
+
+env:
+  DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
+  DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+  KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
+  KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
+
+jobs:
+  build-and-sign:
+    name: "构建测试版并签名"
+    runs-on: "ubuntu-latest"
+    permissions: write-all
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set version
+        # 测试版 tag：2.3.9 + beta → v2.3.9-beta
+        run: |
+          echo "tag=${{ github.event.inputs.version }}-${{ github.event.inputs.beta_suffix }}" >> $GITHUB_ENV
+          echo "raw_version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Sync version to api_endpoints.dart + pubspec.yaml
+        # App 内显示仍是纯版本号（2.3.9），但构建号用 9 结尾区分测试版
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          FIRST=$(echo $VERSION | awk -F. '{print $1}')
+          SECOND=$(echo $VERSION | awk -F. '{print $2}')
+          THIRD=$(echo $VERSION | awk -F. '{print $3}')
+          BUILD_CODE="${FIRST}0${SECOND}0${THIRD}9"
+          sed -i "s/static const String version = '[^']*'/static const String version = '$VERSION'/" lib/request/config/api_endpoints.dart
+          sed -i "s/^version: .*/version: $VERSION+$BUILD_CODE/" pubspec.yaml
+          echo "✅ 测试版版本号已同步: $VERSION (构建号: $BUILD_CODE)"
+        shell: bash
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev libasound2-dev
+        shell: bash
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.16.0
+        id: flutter-action
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+
+      - name: Clean and get Flutter dependencies
+        run: |
+          flutter clean
+          flutter pub cache repair
+          rm -f pubspec.lock
+          flutter pub get
+        shell: bash
+
+      - name: Generate app icons
+        run: flutter pub run flutter_launcher_icons
+        shell: bash
+
+      - name: Remove build id
+        run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}/hosted/pub.dev/jni-*/src/CMakeLists.txt
+
+      # ========== keystore 解码（签名必用） ==========
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
+          if [ ! -s yhdm.jks ]; then
+            echo "❌ Keystore 解码失败，请检查 KEYSTORE_BASE64"
+            exit 1
+          fi
+          echo "✅ Keystore 解码成功"
+        shell: bash
+
+      - name: Validate keystore (optional)
+        run: |
+          keytool -list -keystore yhdm.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" > /dev/null 2>&1 || {
+            echo "⚠️ Keystore 验证失败，但签名可能仍会成功，继续..."
+          }
+        shell: bash
+
+      # ========== 签名指纹 16 段注入 ==========
+      - name: Set signature fingerprint (hardcoded)
+        if: ${{ github.event.inputs.sign_check == '1' }}
+        run: |
+          echo "SIG_P1=8e40a" >> $GITHUB_ENV
+          echo "SIG_P2=b9c9" >> $GITHUB_ENV
+          echo "SIG_P3=e59ef" >> $GITHUB_ENV
+          echo "SIG_P4=da3b" >> $GITHUB_ENV
+          echo "SIG_P5=7f7d" >> $GITHUB_ENV
+          echo "SIG_P6=bd6a" >> $GITHUB_ENV
+          echo "SIG_P7=fe6d" >> $GITHUB_ENV
+          echo "SIG_P8=c2c1" >> $GITHUB_ENV
+          echo "SIG_P9=0821" >> $GITHUB_ENV
+          echo "SIG_P10=6e6" >> $GITHUB_ENV
+          echo "SIG_P11=2964" >> $GITHUB_ENV
+          echo "SIG_P12=1d1" >> $GITHUB_ENV
+          echo "SIG_P13=6aa7" >> $GITHUB_ENV
+          echo "SIG_P14=3a576" >> $GITHUB_ENV
+          echo "SIG_P15=9ba" >> $GITHUB_ENV
+          echo "SIG_P16=ee62" >> $GITHUB_ENV
+          echo "🔑 签名指纹已拆分为 16 段不等长注入"
+        shell: bash
+
+      - name: Build Flutter for Android
+        run: >
+          flutter build apk --split-per-abi
+          --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+          --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+          --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+          --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+          ${{ github.event.inputs.sign_check == '1' && '--dart-define=SIGNATURE_CHECK=true --dart-define=SIG_P1=$SIG_P1 --dart-define=SIG_P2=$SIG_P2 --dart-define=SIG_P3=$SIG_P3 --dart-define=SIG_P4=$SIG_P4 --dart-define=SIG_P5=$SIG_P5 --dart-define=SIG_P6=$SIG_P6 --dart-define=SIG_P7=$SIG_P7 --dart-define=SIG_P8=$SIG_P8 --dart-define=SIG_P9=$SIG_P9 --dart-define=SIG_P10=$SIG_P10 --dart-define=SIG_P11=$SIG_P11 --dart-define=SIG_P12=$SIG_P12 --dart-define=SIG_P13=$SIG_P13 --dart-define=SIG_P14=$SIG_P14 --dart-define=SIG_P15=$SIG_P15 --dart-define=SIG_P16=$SIG_P16' || '' }}
+        shell: bash
+
+      - name: Sign APK
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER sign \
+            --ks yhdm.jks \
+            --ks-pass pass:"$KEYSTORE_PASS" \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --key-pass pass:"$KEY_PASS" \
+            --out YHDM_beta_${{ env.tag }}.apk \
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+        shell: bash
+
+      - name: Verify signature
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
+          $APKSIGNER verify YHDM_beta_${{ env.tag }}.apk
+        shell: bash
+
+      # ========== 发布到 App 读取的正式仓库（Kazumikfc），但标记为 pre-release ==========
+      #
+      # 为什么发到 Kazumikfc：App 的更新源写死为 qldwj/Kazumikfc
+      #   - 正式版通道（stable）读 /releases/latest  → 只会拿到「非 prerelease」的正式版 ✅
+      #   - 测试版通道（beta） 读 /releases?per_page=10 → 取第一个有 apk 的 → 能拿到测试版 ✅
+      # 所以用 --prerelease 发布即可：正式用户不受影响，测试用户能收到。
+      # tag 用 v2.3.9-beta，与正式版 v2.3.9 完全区分，互不覆盖。
+      - name: Release beta to Kazumikfc as pre-release
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          TAG="${{ env.tag }}"
+          REPO="qldwj/Kazumikfc"
+
+          # 覆盖同名 beta tag
+          if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+            echo "Tag $TAG 已存在，删除重建..."
+            gh release delete "$TAG" --repo "$REPO" -y
+            git push --delete https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git "$TAG" 2>/dev/null || true
+            sleep 2
+          fi
+
+          # --prerelease：正式通道（latest）不会返回它，只有 beta 通道能看到
+          gh release create "$TAG" \
+            --repo "$REPO" \
+            --title "v$TAG （测试版）" \
+            --notes "🧪 樱花动漫 测试版 v$TAG
+
+          这是**测试版**，仅供尝鲜，可能不稳定。
+          在 App 内把「更新通道」切到「测试版/预览版」即可收到。
+          正式版发布后建议切回「正式版」通道。
+
+          ⚠️ 若更新后出现异常，请卸载重装正式版。" \
+            --prerelease \
+            YHDM_beta_$TAG.apk
+        shell: bash
