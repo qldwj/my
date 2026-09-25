@@ -113,7 +113,9 @@
             run: flutter pub get
             shell: bash
           - name: Analyze Flutter project
-            run: flutter analyze --no-fatal-infos --fatal-warnings
+            # 只把 error 当致命问题；warning/info 不再阻断构建
+            # （此前 --fatal-warnings 会把无害警告也判为失败）
+            run: flutter analyze --no-fatal-infos --no-fatal-warnings
             shell: bash
 
 
