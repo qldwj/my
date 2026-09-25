@@ -259,7 +259,40 @@ class _CollectPageState extends State<CollectPage>
     super.dispose();
   }
 
-  // 🆕 弹出单项同步选择对话框
+  // 🆕 点击 FAB 直接执行全量同步（不弹选择框）
+  Future<void> _doFullSyncNow() async {
+    if (showDelete) {
+      KazumiDialog.showToast(message: '编辑模式无法执行同步');
+      return;
+    }
+    if (syncCollectiblesing) return;
+
+    final webDavEnable = await GStorage.getSetting(SettingsKeys.webDavEnable);
+    final webDavCollectEnable =
+        GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    final bangumiEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final kazumiEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
+
+    final plan = CollectSyncPlan(
+      webDavEnabled: webDavEnable,
+      webDavCollectiblesEnabled: webDavCollectEnable,
+      bangumiEnabled: bangumiEnable,
+      kazumiSyncEnabled: kazumiEnable,
+    );
+    if (!plan.canSync) {
+      KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+      return;
+    }
+
+    setState(() => syncCollectiblesing = true);
+    try {
+      await _runFullSync(plan: plan);
+    } finally {
+      if (mounted) setState(() => syncCollectiblesing = false);
+    }
+  }
+
+  // 🆕 弹出单项同步选择对话框（已改由「我的→同步」页承担，此处保留备用）
   void _showSyncOptionDialog() async {
     if (showDelete) {
       KazumiDialog.showToast(message: '编辑模式无法执行同步');
@@ -665,8 +698,8 @@ class _CollectPageState extends State<CollectPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 🆕 弹出单项同步选择对话框（替代直接全量同步）
-          _showSyncOptionDialog();
+          // 🆕 点击直接执行「全量同步」（四个单项同步已移到「我的→同步」页）
+          _doFullSyncNow();
         },
         child: syncCollectiblesing
             ? const SizedBox(
