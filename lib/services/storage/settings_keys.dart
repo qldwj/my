@@ -406,6 +406,31 @@ class SettingsKeys {
     '',
     group: SettingGroup.sync,
   );
+
+  // 🆕 单向同步：一键同步时，是否包含「追番目标/本周目标」
+  static const oneWaySyncGoal = SettingKey<bool>(
+    'oneWaySyncGoal',
+    true,
+    group: SettingGroup.sync,
+  );
+  // 🆕 单向同步：一键同步时，是否包含「弹幕规则」
+  static const oneWaySyncDanmaku = SettingKey<bool>(
+    'oneWaySyncDanmaku',
+    true,
+    group: SettingGroup.sync,
+  );
+  // 🆕 单向同步：一键同步时，是否包含「观看记录」
+  static const oneWaySyncHistory = SettingKey<bool>(
+    'oneWaySyncHistory',
+    true,
+    group: SettingGroup.sync,
+  );
+  // 🆕 单向同步：一键同步时，是否包含「收藏」
+  static const oneWaySyncCollect = SettingKey<bool>(
+    'oneWaySyncCollect',
+    true,
+    group: SettingGroup.sync,
+  );
   static const webDavURL = SettingKey<String>(
     _SettingBoxKey.webDavURL,
     '',
@@ -966,6 +991,10 @@ class SettingsKeys {
     danmakuShieldSyncDeviceId,
     danmakuShieldSyncState,
     danmakuShieldSyncCorruptState,
+    oneWaySyncGoal,
+    oneWaySyncDanmaku,
+    oneWaySyncHistory,
+    oneWaySyncCollect,
     webDavURL,
     webDavUsername,
     webDavPassword,
