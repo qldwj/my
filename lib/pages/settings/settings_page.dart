@@ -233,8 +233,8 @@ const List<_SettingsGroup> _settingsGroups = [
       ),
       SettingsEntrySpec(
         icon: Icons.vpn_key_rounded,
-        title: 'API 镜像代理',
-        description: '配置 Bangumi API 镜像域名和端点路径',
+        title: '镜像代理',
+        description: '配置镜像域名、端点路径与图片加速',
         page: ApiProxyPage(),
       ),
     ],
@@ -244,12 +244,6 @@ const List<_SettingsGroup> _settingsGroups = [
   _SettingsGroup(
     title: '数据与统计',
     entries: [
-      SettingsEntrySpec(
-        icon: Icons.playlist_play_rounded,
-        title: '播放列表',
-        description: '管理你的自定义播放列表',
-        path: '/playlist/',
-      ),
       SettingsEntrySpec(
         icon: Icons.cloud,
         title: '同步设置',
