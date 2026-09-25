@@ -330,7 +330,7 @@ class _CollectPageState extends State<CollectPage>
                       Text('收藏'),
                       Text('收藏同步到 WebDav', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
-                  ],
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _doSingleSync('collect');
