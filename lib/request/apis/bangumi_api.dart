@@ -366,6 +366,8 @@ class BangumiApi {
     );
 
     try {
+      // 🆕 关键修复：limit/offset 放在 URL 查询参数里（镜像 PHP 端读 URL 参数优先）。
+      // 官方 api.bgm.tv 搜索接口：POST /v0/search/subjects?limit={0}&offset={1}
       final jsonData = await _client.post(
         ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
