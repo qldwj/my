@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
@@ -21,6 +24,7 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
   bool _enableDanmakuShield = true;
   bool _testing = false;
   bool _passwordVisible = false;
+  bool _singleBusy = false;
 
   @override
   void initState() {
@@ -249,94 +253,36 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
                         const SizedBox(height: 4),
                         Text('手动上传或下载，适合切换设备时同步', style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
                         const SizedBox(height: 16),
-                        // 历史
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(Icons.history_rounded, size: 16, color: colors.onSurfaceVariant),
-                                  const SizedBox(width: 8),
-                                  Text('历史', style: text.titleSmall),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.upload_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('历史', colors, text, () => _syncHistory(true)),
-                                  tooltip: '上传历史',
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.download_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('历史', colors, text, () => _syncHistory(false)),
-                                  tooltip: '下载历史',
-                                ),
-                              ],
-                            ),
-                          ],
+                        _singleTile(
+                          icon: Icons.history_rounded,
+                          label: '历史',
+                          colors: colors,
+                          text: text,
+                          onTap: () => _showSyncDialog('历史', colors, text, (upload) => _syncHistory(upload)),
                         ),
-                        const Divider(height: 12),
-                        // 收藏
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(Icons.star_rounded, size: 16, color: colors.onSurfaceVariant),
-                                  const SizedBox(width: 8),
-                                  Text('收藏', style: text.titleSmall),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.upload_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('收藏', colors, text, () => _syncCollect(true)),
-                                  tooltip: '上传收藏',
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.download_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('收藏', colors, text, () => _syncCollect(false)),
-                                  tooltip: '下载收藏',
-                                ),
-                              ],
-                            ),
-                          ],
+                        const Divider(height: 1),
+                        _singleTile(
+                          icon: Icons.star_rounded,
+                          label: '收藏',
+                          colors: colors,
+                          text: text,
+                          onTap: () => _showSyncDialog('收藏', colors, text, (upload) => _syncCollect(upload)),
                         ),
-                        const Divider(height: 12),
-                        // 弹幕规则
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(Icons.block_rounded, size: 16, color: colors.onSurfaceVariant),
-                                  const SizedBox(width: 8),
-                                  Text('弹幕规则', style: text.titleSmall),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.upload_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('弹幕规则', colors, text, () => _syncDanmakuShield(true)),
-                                  tooltip: '上传弹幕规则',
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.download_rounded, size: 20),
-                                  onPressed: () => _showSyncDialog('弹幕规则', colors, text, () => _syncDanmakuShield(false)),
-                                  tooltip: '下载弹幕规则',
-                                ),
-                              ],
-                            ),
-                          ],
+                        const Divider(height: 1),
+                        _singleTile(
+                          icon: Icons.block_rounded,
+                          label: '弹幕规则',
+                          colors: colors,
+                          text: text,
+                          onTap: () => _showSyncDialog('弹幕规则', colors, text, (upload) => _syncDanmakuShield(upload)),
+                        ),
+                        const Divider(height: 1),
+                        _singleTile(
+                          icon: Icons.account_balance_rounded,
+                          label: '追番目标',
+                          colors: colors,
+                          text: text,
+                          onTap: () => _showSyncDialog('追番目标', colors, text, (upload) => _syncGoal(upload)),
                         ),
                       ],
                     ),
@@ -367,165 +313,149 @@ class _WebDavSettingsPageState extends State<WebDavSettingsPage> {
     );
   }
 
-  // 🆕 单项同步：点击后弹出确认框（上传/下载）
-  void _showSyncDialog(String type, ColorScheme colors, TextTheme text, Future<void> Function() action) {
-    showDialog(context: context, builder: (ctx) {
-      final isUpload = action.runtimeType.toString().contains('upload') || true;
-      return AlertDialog(
+  // 🆕 历史 单项同步（true=上传, false=下载）
+  Future<void> _syncHistory(bool upload) async {
+    await _runSingle('历史', upload, (webDav) async {
+      if (upload) {
+        await webDav.uploadHistory();
+      } else {
+        await webDav.downloadHistory();
+      }
+    });
+  }
+
+  // 🆕 收藏 单项同步（true=上传, false=下载）
+  Future<void> _syncCollect(bool upload) async {
+    await _runSingle('收藏', upload, (webDav) async {
+      if (upload) {
+        await webDav.uploadCollectibles();
+      } else {
+        await webDav.downloadCollectibles();
+      }
+    });
+  }
+
+  // 🆕 弹幕规则 单项同步（true=上传, false=下载）
+  Future<void> _syncDanmakuShield(bool upload) async {
+    await _runSingle('弹幕规则', upload, (webDav) async {
+      final repo = inject<IDanmakuShieldRepository>();
+      if (upload) {
+        final deviceId = await repo.getDeviceId();
+        final state = await repo.buildLocalState();
+        await webDav.uploadDanmakuShieldState(deviceId, state.encode());
+      } else {
+        final remote = await webDav.downloadDanmakuShieldState();
+        if (remote == null) {
+          throw Exception('云端暂无弹幕规则，请先在其它设备上传');
+        }
+        await repo.mergeSyncState(remote);
+      }
+    });
+  }
+
+  /// 统一封装：初始化 WebDAV + 执行 + 提示
+  Future<void> _runSingle(
+    String label,
+    bool upload,
+    Future<void> Function(WebDav webDav) action,
+  ) async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先配置并测试WebDAV连接')),
+      );
+      return;
+    }
+    setState(() => _singleBusy = true);
+    try {
+      await GStorage.putSetting(SettingsKeys.webDavURL, url);
+      await GStorage.putSetting(SettingsKeys.webDavUsername, _userController.text.trim());
+      await GStorage.putSetting(SettingsKeys.webDavPassword, _passController.text.trim());
+
+      final webDav = WebDav();
+      await webDav.init();
+      await action(webDav);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$label${upload ? '上传' : '下载'}完成')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$label${upload ? '上传' : '下载'}失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _singleBusy = false);
+    }
+  }
+
+  /// 单项同步条目（点击弹出上传/下载选择）
+  Widget _singleTile({
+    required IconData icon,
+    required String label,
+    required ColorScheme colors,
+    required TextTheme text,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      leading: Icon(icon, size: 20, color: colors.onSurfaceVariant),
+      title: Text(label, style: text.titleSmall),
+      trailing: Icon(Icons.sync_rounded, size: 18, color: colors.primary),
+      onTap: _singleBusy ? null : onTap,
+    );
+  }
+
+  /// 追番目标（Bangumi 本周目标/追番状态）单项同步
+  Future<void> _syncGoal(bool upload) async {
+    await _runSingle('追番目标', upload, (webDav) async {
+      // 追番目标走樱花云同步服务（KazumiSyncService.syncSettings）
+      await KazumiSyncService.syncSettings();
+    });
+  }
+
+  // 🆕 单项同步：弹出确认框，内含「上传」「下载」两个按钮
+  void _showSyncDialog(
+    String type,
+    ColorScheme colors,
+    TextTheme text,
+    void Function(bool upload) onPicked,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
         title: Text('单项同步 · $type'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('确认将 $type 同步到 WebDAV？', style: text.bodyMedium),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      action();
-                    },
-                    icon: const Icon(Icons.upload_rounded, size: 16),
-                    label: const Text('上传'),
-                  ),
-                ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showSyncDialog(type, colors, text, _getOpposite(action));
-                    },
-                    icon: const Icon(Icons.download_rounded, size: 16),
-                    label: const Text('下载'),
-                  ),
-                ),
-              ],
-            ),
+            Text('选择同步方向（会覆盖目标端数据）', style: text.bodyMedium),
+            const SizedBox(height: 8),
+            Text('上传：本机 → 云端', style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+            Text('下载：云端 → 本机', style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              onPicked(true);
+            },
+            child: const Text('上传'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onPicked(false);
+            },
+            child: const Text('下载'),
           ),
         ],
-      );
-    });
-  }
-
-  // 获取相反方向的操作
-  Future<void> Function() _getOpposite(Future<void> Function() action) {
-    return () async {
-      // 如果当前是上传就下载，反之亦然
-      await action();
-    };
-  }
-
-  // 🆕 历史 单项同步（true=上传, false=下载）
-  Future<void> _syncHistory(bool upload) async {
-    try {
-      final webDav = WebDav();
-      await webDav.init();
-      if (upload) {
-        // 上传：拉取本地历史，推到云端
-        await webDav.syncHistory();
-      } else {
-        // 下载：拉取云端历史，合并到本地
-        await webDav.downloadHistory();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('历史${upload ? '上传' : '下载'}完成')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('历史${upload ? '上传' : '下载'}失败: $e')),
-        );
-      }
-    }
-  }
-
-  // 🆕 收藏 单项同步（true=上传, false=下载）
-  Future<void> _syncCollect(bool upload) async {
-    try {
-      final webDav = WebDav();
-      await webDav.init();
-      if (upload) {
-        await webDav.syncCollect();
-      } else {
-        await webDav.downloadCollect();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('收藏${upload ? '上传' : '下载'}完成')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('收藏${upload ? '上传' : '下载'}失败: $e')),
-        );
-      }
-    }
-  }
-
-  // 🆕 弹幕规则 单项同步（true=上传, false=下载）
-  Future<void> _syncDanmakuShield(bool upload) async {
-    try {
-      final webDav = WebDav();
-      await webDav.init();
-      if (upload) {
-        await webDav.uploadDanmakuShieldState(
-          await _getDeviceId(),
-          _getCurrentShieldState(),
-        );
-      } else {
-        final remote = await webDav.downloadDanmakuShieldState();
-        if (remote != null) {
-          await _applyShieldState(remote);
-        }
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('弹幕规则${upload ? '上传' : '下载'}完成')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('弹幕规则${upload ? '上传' : '下载'}失败: $e')),
-        );
-      }
-    }
-  }
-
-  // helpers
-  Future<String> _getDeviceId() async {
-    return GStorage.getSetting(SettingsKeys.danmakuShieldSyncDeviceId);
-  }
-
-  String _getCurrentShieldState() {
-    // 构造当前规则的 sync state JSON
-    final saved = GStorage.getSetting(SettingsKeys.danmakuShieldSyncState);
-    return saved;
-  }
-
-  Future<void> _applyShieldState(dynamic remoteState) async {
-    final stateJson = remoteState.encode();
-    await GStorage.putSetting(SettingsKeys.danmakuShieldSyncState, stateJson);
-    final decoded = DanmakuShieldSyncState.decode(stateJson);
-    // 更新本地 shieldList
-    final repo = _getDanmakuShieldRepo();
-    await repo.mergeSyncState(decoded);
-  }
-
-  // 延迟获取 repository
-  dynamic _getDanmakuShieldRepo() {
-    // 使用注入获取
-    return null; // fallback
+      ),
+    );
   }
 }

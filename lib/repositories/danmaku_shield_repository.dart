@@ -19,6 +19,11 @@ abstract class IDanmakuShieldRepository {
   Future<bool> setRule(String rule, {required bool deleted});
   Future<String> getDeviceId();
   Future<DanmakuShieldSyncState> mergeSyncState(DanmakuShieldSyncState remote);
+
+  /// 🆕 构造「本设备当前规则」的同步状态，供手动上传使用：
+  /// 保留云端记录过的删除标记，同时把本地现存规则的最新编辑时间刷新为现在，
+  /// 保证上传后其它设备合并时能覆盖旧的同名规则。
+  Future<DanmakuShieldSyncState> buildLocalState();
 }
 
 class DanmakuShieldRepository implements IDanmakuShieldRepository {
@@ -109,6 +114,29 @@ class DanmakuShieldRepository implements IDanmakuShieldRepository {
         final merged = (await _read()).merge(remote);
         await _save(merged, DanmakuShieldChange.restore);
         return merged;
+      });
+
+  @override
+  Future<DanmakuShieldSyncState> buildLocalState() => _writes.run(() async {
+        final base = await _read();
+        final deviceId = await _getDeviceId();
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final entries = <DanmakuShieldSyncEntry>[];
+        // 本地现存规则：刷新编辑时间，确保上传后能覆盖云端旧值
+        var stamp = max(now, base.latestTimestamp + 1);
+        for (final rule in getRules()) {
+          entries.add(DanmakuShieldSyncEntry(
+            rule: rule,
+            updatedAt: stamp++,
+            deviceId: deviceId,
+            deleted: false,
+          ));
+        }
+        // 云端记录过的删除标记原样保留（避免复活已删除的词）
+        for (final entry in base.entries.values) {
+          if (entry.deleted) entries.add(entry);
+        }
+        return DanmakuShieldSyncState(entries);
       });
 
   Future<void> _save(

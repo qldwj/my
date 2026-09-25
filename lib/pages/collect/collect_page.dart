@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -22,6 +23,7 @@ import 'package:kazumi/services/shortcut_service.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -441,7 +443,11 @@ class _CollectPageState extends State<CollectPage>
           KazumiLogger().i('WebDav: history sync done');
           break;
         case 'danmaku':
-          await webDav.syncDanmakuShield();
+          // 弹幕规则：构造本机状态 → 上传（覆盖云端）
+          final repo = inject<IDanmakuShieldRepository>();
+          final deviceId = await repo.getDeviceId();
+          final state = await repo.buildLocalState();
+          await webDav.uploadDanmakuShieldState(deviceId, state.encode());
           KazumiLogger().i('WebDav: danmaku sync done');
           break;
         case 'bangumi':
@@ -481,7 +487,7 @@ class _CollectPageState extends State<CollectPage>
     });
   }
 
-
+  Future<void> _runFullSync({
     required CollectSyncPlan plan,
   }) async {
     final progressDialogKey = GlobalKey<_FullSyncProgressDialogState>();
