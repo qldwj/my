@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/sync/kazumi_sync_service.dart';
@@ -44,13 +45,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     _incCollect = GStorage.getSetting(SettingsKeys.oneWaySyncCollect);
   }
 
-  /// 一键同步（按开关选择，把本地数据推到云端）
-  Future<void> _oneWaySync() async {
+  /// 一键同步：upload=true 本机→云端（覆盖云端）；false 云端→本机（覆盖本机）
+  Future<void> _oneWaySync({required bool upload}) async {
     if (_busy) return;
     if (!_webdavHasConfig) {
       KazumiDialog.showToast(message: '请先配置 WebDAV');
       return;
     }
+    final dirLabel = upload ? '上传' : '下载';
     setState(() => _busy = true);
     final done = <String>[];
     final failed = <String>[];
@@ -60,7 +62,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
       if (_incHistory) {
         try {
-          await webDav.uploadHistory();
+          if (upload) {
+            await webDav.uploadHistory();
+          } else {
+            await webDav.downloadHistory();
+          }
           done.add('历史');
         } catch (_) {
           failed.add('历史');
@@ -68,7 +74,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       }
       if (_incCollect) {
         try {
-          await webDav.uploadCollectibles();
+          if (upload) {
+            await webDav.uploadCollectibles();
+          } else {
+            await webDav.downloadCollectibles();
+          }
           done.add('收藏');
         } catch (_) {
           failed.add('收藏');
@@ -77,9 +87,17 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       if (_incDanmaku) {
         try {
           final repo = inject<IDanmakuShieldRepository>();
-          final deviceId = await repo.getDeviceId();
-          final state = await repo.buildLocalState();
-          await webDav.uploadDanmakuShieldState(deviceId, state.encode());
+          if (upload) {
+            final deviceId = await repo.getDeviceId();
+            final state = await repo.buildLocalState();
+            await webDav.uploadDanmakuShieldState(deviceId, state.encode());
+          } else {
+            final remote = await webDav.downloadDanmakuShieldState();
+            if (remote == null) {
+              throw Exception('云端暂无弹幕规则');
+            }
+            await repo.mergeSyncState(remote);
+          }
           done.add('弹幕规则');
         } catch (_) {
           failed.add('弹幕规则');
@@ -87,11 +105,22 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       }
       if (_incGoal) {
         try {
-          await KazumiSyncService.syncSettings();
+          // 追番目标走樱花云（上传 / 下载）
+          if (upload) {
+            await KazumiSyncService.syncSettings();
+          } else {
+            await KazumiSyncService.downloadSettings();
+          }
           done.add('追番目标');
         } catch (_) {
           failed.add('追番目标');
         }
+      }
+      // 下载完成后刷新本地列表
+      if (!upload && mounted) {
+        try {
+          inject<CollectController>().loadCollectibles();
+        } catch (_) {}
       }
     } catch (e) {
       failed.add('初始化失败');
@@ -100,7 +129,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     }
     if (mounted) {
       final msg = StringBuffer();
-      if (done.isNotEmpty) msg.write('✅ 已同步：${done.join('、')}');
+      if (done.isNotEmpty) msg.write('✅ 已$dirLabel：${done.join('、')}');
       if (failed.isNotEmpty) {
         if (msg.isNotEmpty) msg.write('\n');
         msg.write('❌ 失败：${failed.join('、')}');
@@ -224,22 +253,27 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                         style: text.titleMedium?.copyWith(
                                             fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 2),
-                                    Text('把本机数据上传到云端（覆盖）',
+                                    Text('上传：本机→云端；下载：云端→本机（均覆盖）',
                                         style: text.bodySmall?.copyWith(
                                             color: colors.onSurfaceVariant)),
                                   ],
                                 ),
                               ),
-                              // 一键同步按钮
-                              FilledButton.tonal(
-                                onPressed: _busy ? null : _oneWaySync,
-                                child: _busy
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2))
-                                    : const Text('同步'),
+                              // 上传 / 下载 两个按钮
+                              FilledButton.tonalIcon(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _oneWaySync(upload: true),
+                                icon: const Icon(Icons.upload_rounded, size: 16),
+                                label: const Text('上传'),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.tonalIcon(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _oneWaySync(upload: false),
+                                icon: const Icon(Icons.download_rounded, size: 16),
+                                label: const Text('下载'),
                               ),
                               // 展开箭头
                               IconButton(
@@ -265,7 +299,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 const Divider(height: 1),
                                 _switchTile(
                                   title: '观看记录',
-                                  subtitle: '上传观看进度与历史',
+                                  subtitle: '观看进度与历史',
                                   value: _incHistory,
                                   onChanged: (v) {
                                     setState(() => _incHistory = v);
@@ -275,7 +309,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 ),
                                 _switchTile(
                                   title: '收藏',
-                                  subtitle: '上传所有追番分类',
+                                  subtitle: '所有追番分类',
                                   value: _incCollect,
                                   onChanged: (v) {
                                     setState(() => _incCollect = v);
@@ -285,7 +319,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 ),
                                 _switchTile(
                                   title: '弹幕规则',
-                                  subtitle: '上传弹幕屏蔽词',
+                                  subtitle: '弹幕屏蔽词',
                                   value: _incDanmaku,
                                   onChanged: (v) {
                                     setState(() => _incDanmaku = v);
@@ -295,7 +329,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 ),
                                 _switchTile(
                                   title: '追番目标',
-                                  subtitle: '上传本周观看目标',
+                                  subtitle: '本周观看目标',
                                   value: _incGoal,
                                   onChanged: (v) {
                                     setState(() => _incGoal = v);
