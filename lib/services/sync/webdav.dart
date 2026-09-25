@@ -227,6 +227,83 @@ class WebDav {
     });
   }
 
+  /// 🆕 单项同步：只下载历史（不上传本地变更）
+  Future<void> downloadHistory() {
+    return _historySyncSingleFlight.run(() async {
+      await _runWebDavExclusive(() async {
+        // 只拉取远端 snapshot，合并到本地，不上传 localBatch
+        await _ensureHistoryStorage();
+        final historySync = HistorySyncService();
+        final deviceId = await historySync.getDeviceId();
+        final runDirectory = await _createHistorySyncRunDirectory();
+        try {
+          final downloads = await _downloadHistorySyncFiles(
+            runDirectory: runDirectory,
+            deviceId: deviceId,
+          );
+          final snapshotReadResult = await _readRemoteHistorySnapshot(
+            historySync,
+            downloads.snapshotFile,
+          );
+          var remoteSnapshot = snapshotReadResult.snapshot;
+          if (_isEmptyHistorySnapshot(remoteSnapshot) &&
+              downloads.eventFiles.isEmpty) {
+            return;
+          }
+          final mergedRemoteSnapshot = await _mergeRemoteHistoryEventFiles(
+            historySync: historySync,
+            snapshot: remoteSnapshot,
+            eventFiles: downloads.eventFiles,
+          );
+          await historySync.reconcileAndApplySnapshot(mergedRemoteSnapshot);
+        } finally {
+          try {
+            await runDirectory.delete(recursive: true);
+          } catch (_) {}
+        }
+      });
+    });
+  }
+
+  /// 🆕 单项同步：只上传历史（不拉取远端）
+  Future<void> uploadHistory() {
+    return _historySyncSingleFlight.run(() async {
+      await _runWebDavExclusive(() async {
+        await _ensureHistoryStorage();
+        final historySync = HistorySyncService();
+        final deviceId = await historySync.getDeviceId();
+        final runDirectory = await _createHistorySyncRunDirectory();
+        try {
+          final localBatch = await historySync.prepareLocalLogs(
+            runDirectory: runDirectory,
+            forceCheckpoint: true,
+          );
+          if (localBatch.shouldCheckpoint) {
+            final snapshotFile = File(
+              '${runDirectory.path}${Platform.pathSeparator}snapshot.json',
+            );
+            final snapshot = await historySync.buildSnapshotFromLocal();
+            await historySync.writeSnapshotFile(snapshot, snapshotFile);
+            await _publishHistorySnapshot(
+              snapshotFile: snapshotFile,
+              deviceId: deviceId,
+            );
+            await historySync.completeCheckpoint(localBatch);
+            await _removeDeviceHistoryChanges(deviceId);
+            await GStorage.putSetting(
+              SettingsKeys.historySyncSnapshotInitialized,
+              true,
+            );
+          }
+        } finally {
+          try {
+            await runDirectory.delete(recursive: true);
+          } catch (_) {}
+        }
+      });
+    });
+  }
+
   Future<void> updateCollectibles() async {
     try {
       await _runWebDavExclusive(() async {
@@ -237,6 +314,57 @@ class WebDav {
       });
     } catch (e) {
       KazumiLogger().e('WebDav: update collectibles failed', error: e);
+      rethrow;
+    }
+  }
+
+  /// 🆕 单项同步：只下载收藏（从远端拉取合并到本地，不上传本地变更）
+  Future<void> downloadCollectibles() async {
+    try {
+      await _runWebDavExclusive(() async {
+        List<CollectedBangumi> remoteCollectibles = [];
+        List<CollectedBangumiChange> remoteChanges = [];
+
+        final files = await client.readDir(_syncRootPath);
+        final collectiblesExists =
+            files.any((file) => file.name == 'collectibles.tmp');
+        final changesExists =
+            files.any((file) => file.name == 'collectchanges.tmp');
+
+        if (collectiblesExists) {
+          await _downloadBox('collectibles');
+          remoteCollectibles =
+              await GStorage.getCollectiblesFromFile(
+                  '${webDavLocalTempDirectory.path}/collectibles.tmp');
+        }
+        if (changesExists) {
+          await _downloadBox('collectchanges');
+          remoteChanges =
+              await GStorage.getCollectChangesFromFile(
+                  '${webDavLocalTempDirectory.path}/collectchanges.tmp');
+        }
+
+        if (remoteCollectibles.isNotEmpty || remoteChanges.isNotEmpty) {
+          await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
+        }
+      });
+    } catch (e) {
+      KazumiLogger().e('WebDav: download collectibles failed', error: e);
+      rethrow;
+    }
+  }
+
+  /// 🆕 单项同步：只上传收藏（把本地推送到远端，不拉取远端）
+  Future<void> uploadCollectibles() async {
+    try {
+      await _runWebDavExclusive(() async {
+        await _updateBox('collectibles');
+        if (GStorage.collectChanges.isNotEmpty) {
+          await _updateBox('collectchanges');
+        }
+      });
+    } catch (e) {
+      KazumiLogger().e('WebDav: upload collectibles failed', error: e);
       rethrow;
     }
   }
