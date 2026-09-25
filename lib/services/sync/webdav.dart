@@ -78,6 +78,75 @@ class WebDav {
   bool get isDanmakuShieldSyncEnabled =>
       GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
 
+  /// 🆕 只上传：把本设备的弹幕屏蔽词文件推到云端（不拉取远端，不改本地规则）
+  Future<void> uploadDanmakuShieldState(String deviceId, String content) {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      await _ensureRemoteDirectory(_danmakuShieldPath);
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('danmaku-shield-upload-');
+      try {
+        final localFile = File('${runDirectory.path}/local.json');
+        await localFile.writeAsString(content, flush: true);
+        final destination = '$_danmakuShieldPath/$deviceId.json';
+        await _publishRemoteFile(
+          sourceFilePath: localFile.path,
+          destinationPath: destination,
+          temporaryPath: '$destination.cache',
+        );
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean danmaku shield upload files',
+                  error: e);
+        }
+      }
+    });
+  }
+
+  /// 🆕 只下载：拉取云端所有设备的弹幕屏蔽词文件并合并返回（不动本地规则）
+  Future<DanmakuShieldSyncState?> downloadDanmakuShieldState() {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      await _ensureRemoteDirectory(_danmakuShieldPath);
+      final runDirectory = await webDavLocalTempDirectory
+          .createTemp('danmaku-shield-download-');
+      try {
+        var remote = DanmakuShieldSyncState();
+        var found = false;
+        final entries = await client.readDir(_danmakuShieldPath);
+        var index = 0;
+        for (final entry in entries) {
+          final name = entry.name ?? '';
+          if (entry.isDir == true ||
+              !RegExp(r'^[0-9a-f]{32}\.json$').hasMatch(name)) {
+            continue;
+          }
+          final file = File('${runDirectory.path}/remote-${index++}.json');
+          await client.read2File('$_danmakuShieldPath/$name', file.path);
+          remote = remote.merge(
+            DanmakuShieldSyncState.decode(await file.readAsString()),
+          );
+          found = true;
+        }
+        if (!found) return null;
+        return remote;
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean danmaku shield download files',
+                  error: e);
+        }
+      }
+    });
+  }
+
   /// 🆕 弹幕屏蔽词（关键词）云端同步（恢复官方 2.3.3）
   /// 按设备分文件上传（每设备一个 32 位 id .json），多设备并行编辑不互相覆盖。
   Future<void> syncDanmakuShield({
