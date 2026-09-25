@@ -580,6 +580,31 @@ class KazumiSyncService {
     }
   }
 
+  /// 🆕 只下载设置（纯单向，直接用云端覆盖本地，不上传）
+  static Future<String> downloadSettings() async {
+    final token = AuthService.getLocalToken();
+    if (token == null || token.isEmpty) {
+      return '❌ 未登录';
+    }
+    try {
+      final remoteRes = await AuthService.getRemoteSync();
+      if (remoteRes['error'] != null) {
+        return '❌ 拉取云端失败: ${remoteRes['error']}';
+      }
+      final settings = remoteRes['settings'];
+      if (settings is Map) {
+        final remoteGoal = settings['weeklyWatchGoal'];
+        if (remoteGoal is int && remoteGoal > 0) {
+          await GStorage.putSetting(SettingsKeys.weeklyWatchGoal, remoteGoal);
+        }
+      }
+      return '✅ 设置下载完成';
+    } catch (e, st) {
+      KazumiLogger().e('设置下载失败', error: e, stackTrace: st);
+      return '❌ 设置下载失败: $e';
+    }
+  }
+
   /// 收藏 + 历史 + 设置 全量同步（合并模式）。返回结果消息列表。
   static Future<List<String>> syncAll() async {
     final results = <String>[];
