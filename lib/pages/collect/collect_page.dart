@@ -19,6 +19,9 @@ import 'package:kazumi/pages/collect/collect_calendar_page.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/services/shortcut_service.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({
@@ -241,7 +244,236 @@ class _CollectPageState extends State<CollectPage>
     );
   }
 
-  Future<void> _runFullSync({
+  @override
+  void initState() {
+    super.initState();
+    // 监听收藏文件夹变化
+    CollectFolderService.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  // 🆕 弹出单项同步选择对话框
+  void _showSyncOptionDialog() async {
+    if (showDelete) {
+      KazumiDialog.showToast(message: '编辑模式无法执行同步');
+      return;
+    }
+    bool webDavEnable = await GStorage.getSetting(SettingsKeys.webDavEnable);
+    bool webDavCollectEnable = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    bool webDavHistoryEnable = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
+    bool webDavDanmakuEnable = GStorage.getSetting(SettingsKeys.webDavEnableDanmakuShield);
+    bool bgmSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    bool kazumiSyncEnable = GStorage.getSetting(SettingsKeys.kazumiSyncEnable);
+    final syncPlan = CollectSyncPlan(
+      webDavEnabled: webDavEnable,
+      webDavCollectiblesEnabled: webDavCollectEnable,
+      bangumiEnabled: bgmSyncEnable,
+      kazumiSyncEnabled: kazumiSyncEnable,
+    );
+    final canWebDav = webDavEnable && (webDavCollectEnable || webDavHistoryEnable || webDavDanmakuEnable);
+    if (!syncPlan.canSync && !canWebDav) {
+      KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 16, bottom: 4),
+                  width: 32, height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Text('单项同步', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                ),
+                // 全量同步（原来的行为）
+                ListTile(
+                  leading: Icon(Icons.sync_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: const Text('全量同步'),
+                  subtitle: const Text('同步追番、收藏、历史记录到 WebDav'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _doFullSync(syncPlan);
+                  },
+                ),
+                const Divider(height: 1),
+                // 单项：收藏
+                ListTile(
+                  leading: Icon(Icons.favorite_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('收藏'),
+                      Text('收藏同步到 WebDav', style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ],
+                  ],
+                  onTap: () {
+                    Navigator.pop(context);
+                    _doSingleSync('collect');
+                  },
+                ),
+                const Divider(height: 1),
+                // 单项：历史
+                ListTile(
+                  leading: Icon(Icons.history_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('观看记录'),
+                      Text('历史记录同步到 WebDav', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _doSingleSync('history');
+                  },
+                ),
+                const Divider(height: 1),
+                // 单项：弹幕规则
+                ListTile(
+                  leading: Icon(Icons.block_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('弹幕规则'),
+                      Text('弹幕屏蔽词云端同步', style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _doSingleSync('danmaku');
+                  },
+                ),
+                const Divider(height: 1),
+                // 单项：Bangumi 追番
+                ListTile(
+                  leading: Icon(Icons.account_balance_rounded, color: Theme.of(context).colorScheme.primary),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('追番目标'),
+                      Text('Bangumi 追番状态同步', style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _doSingleSync('bangumi');
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 执行全量同步
+  Future<void> _doFullSync(CollectSyncPlan syncPlan) async {
+    if (!syncPlan.canSync) {
+      KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+      return;
+    }
+    bool webDavenable = await GStorage.getSetting(SettingsKeys.webDavEnable);
+    bool webDavCollectEnable = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    final syncPlan2 = CollectSyncPlan(
+      webDavEnabled: webDavenable,
+      webDavCollectiblesEnabled: webDavCollectEnable,
+      bangumiEnabled: await GStorage.getSetting(SettingsKeys.bangumiSyncEnable),
+      kazumiSyncEnabled: GStorage.getSetting(SettingsKeys.kazumiSyncEnable),
+    );
+    setState(() {
+      syncCollectiblesing = true;
+    });
+    try {
+      await _runFullSync(plan: syncPlan2);
+    } finally {
+      if (mounted) {
+        setState(() {
+          syncCollectiblesing = false;
+        });
+      }
+    }
+  }
+
+  // 执行单项同步
+  Future<void> _doSingleSync(String type) async {
+    setState(() {
+      syncCollectiblesing = true;
+    });
+    try {
+      final webDav = WebDav();
+      await webDav.init();
+      switch (type) {
+        case 'collect':
+          await webDav.syncCollectibles();
+          KazumiLogger().i('WebDav: collect sync done');
+          break;
+        case 'history':
+          await webDav.syncHistory();
+          KazumiLogger().i('WebDav: history sync done');
+          break;
+        case 'danmaku':
+          await webDav.syncDanmakuShield();
+          KazumiLogger().i('WebDav: danmaku sync done');
+          break;
+        case 'bangumi':
+          await _syncBangumi();
+          KazumiLogger().i('Bangumi: collect sync done');
+          break;
+      }
+      if (mounted) {
+        KazumiDialog.showToast(message: '✓ ${type == 'collect' ? '收藏' : type == 'history' ? '历史' : type == 'danmaku' ? '弹幕规则' : '追番'} 同步完成');
+      }
+      // 刷新列表
+      collectController.loadCollectibles();
+    } catch (e) {
+      if (mounted) {
+        KazumiDialog.showToast(message: '✗ 同步失败: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          syncCollectiblesing = false;
+        });
+      }
+    }
+  }
+
+  // 同步 Bangumi
+  Future<void> _syncBangumi() async {
+    final kazumiToken = GStorage.getSetting(SettingsKeys.bangumiAccessToken);
+    if (kazumiToken.isEmpty) {
+      KazumiDialog.showToast(message: 'Bangumi 未登录');
+      return;
+    }
+    final bangumiSyncService = BangumiSyncService();
+    await bangumiSyncService.syncCollectibles();
+    setState(() {
+      collectController.loadCollectibles();
+    });
+  }
+
+
     required CollectSyncPlan plan,
   }) async {
     final progressDialogKey = GlobalKey<_FullSyncProgressDialogState>();
@@ -435,44 +667,9 @@ class _CollectPageState extends State<CollectPage>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          bool webDavenable =
-              await GStorage.getSetting(SettingsKeys.webDavEnable);
-          bool webDavCollectEnable =
-              GStorage.getSetting(SettingsKeys.webDavEnableCollect);
-          bool bgmSyncEnable =
-              GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-          final syncPlan = CollectSyncPlan(
-            webDavEnabled: webDavenable,
-            webDavCollectiblesEnabled: webDavCollectEnable,
-            bangumiEnabled: bgmSyncEnable,
-            kazumiSyncEnabled: GStorage.getSetting(SettingsKeys.kazumiSyncEnable),
-          );
-          if (!syncPlan.canSync) {
-            KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
-            return;
-          }
-          if (showDelete) {
-            KazumiDialog.showToast(message: '编辑模式无法执行同步');
-            return;
-          }
-          if (syncCollectiblesing) {
-            return;
-          }
-          setState(() {
-            syncCollectiblesing = true;
-          });
-          try {
-            await _runFullSync(
-              plan: syncPlan,
-            );
-          } finally {
-            if (mounted) {
-              setState(() {
-                syncCollectiblesing = false;
-              });
-            }
-          }
+        onPressed: () {
+          // 🆕 弹出单项同步选择对话框（替代直接全量同步）
+          _showSyncOptionDialog();
         },
         child: syncCollectiblesing
             ? const SizedBox(
