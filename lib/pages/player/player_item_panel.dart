@@ -12,6 +12,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/services/player/skip_segments_service.dart';
+import 'package:kazumi/services/player/auto_skip_service.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -746,7 +747,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Observer(builder: (context) {
-                return ProgressBar(
+                final progressBar = ProgressBar(
                   thumbRadius: 8,
                   thumbGlowRadius: 18,
                   timeLabelLocation: isTablet()
@@ -766,6 +767,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   onDragStart: (_) => widget.handleProgressBarDragStart(),
                   onDragUpdate: (details) => playerController.seeking
                       .updateInteractiveSeek(details.timeStamp),
+                );
+                // 🆕 进度条上叠加 OP/ED 白点标记（拖动靠近时浮出 OP/ED 文字）
+                return _SkipMarkersOverlay(
+                  bangumiId: videoPageController.bangumiItem.id,
+                  position: playerController.playback.currentPosition,
+                  duration: playerController.playback.duration,
+                  child: progressBar,
                 );
               }),
             ),
@@ -1263,6 +1271,43 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           ),
                         ),
                       ),
+                      // 🆕 自动跳过开关（到点自动跳片头/片尾）
+                      MenuItemButton(
+                        onPressed: () async {
+                          final next = !AutoSkipService.enabled;
+                          await GStorage.putSetting(
+                              SettingsKeys.autoSkipOpEdEnabled, next);
+                          setState(() {});
+                          KazumiDialog.showToast(
+                              message: next ? '已开启自动跳过片头/片尾' : '已关闭自动跳过');
+                        },
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 160),
+                          child: Row(
+                            children: [
+                              Text(
+                                "自动跳过",
+                                style: TextStyle(
+                                  color: AutoSkipService.enabled
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                AutoSkipService.enabled
+                                    ? Icons.check_rounded
+                                    : Icons.close_rounded,
+                                size: 18,
+                                color: AutoSkipService.enabled
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.outline,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                     child: Container(
                       height: 48,
@@ -1475,6 +1520,121 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           const Spacer(),
         ],
       ),
+    );
+  }
+}
+/// 🆕 进度条上的 OP/ED 标记层
+///
+/// - 在进度条对应位置画**白色圆点**（片头结束点 = OP，片尾起点 = ED）
+/// - **拖动/播放靠近**某个点时，在该点上方浮出 `OP` / `ED` 文字
+/// - 数据来自 [SkipSegmentsService]（按番记忆的片头/片尾时长）
+class _SkipMarkersOverlay extends StatelessWidget {
+  const _SkipMarkersOverlay({
+    required this.bangumiId,
+    required this.position,
+    required this.duration,
+    required this.child,
+  });
+
+  final int bangumiId;
+  final Duration position;
+  final Duration duration;
+  final Widget child;
+
+  /// 距离标记点多近时显示文字（进度条宽度的百分比）
+  static const double _labelThreshold = 0.06;
+
+  @override
+  Widget build(BuildContext context) {
+    if (duration <= Duration.zero) return child;
+
+    final opSeconds = SkipSegmentsService.opSeconds(bangumiId);
+    final edSeconds = SkipSegmentsService.edSeconds(bangumiId);
+    if (opSeconds <= 0 && edSeconds <= 0) return child;
+
+    final totalMs = duration.inMilliseconds.toDouble();
+    if (totalMs <= 0) return child;
+
+    // 标记点（0..1）
+    final opRatio = opSeconds > 0 ? (opSeconds * 1000 / totalMs) : null;
+    final edRatio =
+        edSeconds > 0 ? ((duration.inMilliseconds - edSeconds * 1000) / totalMs) : null;
+
+    final posRatio = (position.inMilliseconds / totalMs).clamp(0.0, 1.0);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        // 进度条实际可绘制宽度（两端各留 thumb 半径，避免点被裁掉）
+        const pad = 8.0;
+        final innerW = (w - pad * 2).clamp(0.0, w);
+
+        Widget marker(double ratio, String label, bool isOp) {
+          final x = pad + innerW * ratio;
+          final near = (posRatio - ratio).abs() < _labelThreshold;
+          return Positioned(
+            left: x - 5,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 拖动/播放靠近时浮出文字
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: near ? 1 : 0,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // 白点
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            child,
+            if (opRatio != null && opRatio > 0 && opRatio < 1)
+              marker(opRatio, 'OP', true),
+            if (edRatio != null && edRatio > 0 && edRatio < 1)
+              marker(edRatio, 'ED', false),
+          ],
+        );
+      },
     );
   }
 }
