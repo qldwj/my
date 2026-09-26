@@ -7,6 +7,7 @@ import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/danmaku_cache_service.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/danmaku.dart';
 
@@ -179,12 +180,38 @@ abstract class _PlayerDanmakuController with Store {
     if (merged.isNotEmpty) {
       KazumiLogger().i(
           'PlayerController: 双源合并 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
+      // 🆕 缓存到本地库（下次源挂了也能看）
+      unawaited(DanmakuCacheService.save(
+        bangumiId: bangumiId,
+        episode: episode,
+        danmakus: merged.map((e) => e.toJson()).toList(),
+      ));
       return DanmakuLoadResult.success(
         danmakus: merged,
         bangumiID: mergedBangumiId,
       );
     }
-    // 两个源都没有弹幕：返回失败（由上层提示）
+
+    // 🆕 两个源都没弹幕 → 尝试本地缓存兜底
+    final cached = await DanmakuCacheService.load(
+      bangumiId: bangumiId,
+      episode: episode,
+    );
+    if (cached != null && cached.isNotEmpty) {
+      final entries = cached
+          .whereType<Map>()
+          .map((e) => DanmakuEntry.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      if (entries.isNotEmpty) {
+        KazumiLogger().i('PlayerController: 使用本地缓存弹幕 ${entries.length} 条');
+        return DanmakuLoadResult.success(
+          danmakus: entries,
+          bangumiID: bangumiId,
+        );
+      }
+    }
+
+    // 都没有：返回失败（由上层提示）
     return results.isNotEmpty
         ? results.first
         : DanmakuLoadResult.failed(bangumiID: bangumiId);

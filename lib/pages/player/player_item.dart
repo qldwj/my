@@ -33,6 +33,7 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/services/player/skip_segments_service.dart';
 import 'package:kazumi/services/player/auto_skip_service.dart';
+import 'package:kazumi/services/player/playback_recovery_service.dart';
 import 'package:kazumi/services/player/time_saved_service.dart';
 import 'package:kazumi/services/player/play_speed_memory_service.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -634,6 +635,23 @@ class _PlayerItemState extends State<PlayerItem>
     _restartPlayerTimer();
   }
 
+  int _lastRecoverySaveSec = 0;
+
+  /// 🆕 每 5 秒保存一次播放恢复点（崩溃后能回到这里）
+  void _saveRecoveryPointIfNeeded() {
+    final pos = playerController.playback.playerPosition;
+    if (pos.inSeconds - _lastRecoverySaveSec < 5) return;
+    _lastRecoverySaveSec = pos.inSeconds;
+    final item = videoPageController.bangumiItem;
+    PlaybackRecoveryService.save(
+      bangumiId: item.id,
+      bangumiName: item.nameCn.isNotEmpty ? item.nameCn : item.name,
+      episode: videoPageController.playbackEpisode.episode,
+      positionMs: pos.inMilliseconds,
+      durationMs: playerController.playback.playerDuration.inMilliseconds,
+    );
+  }
+
   void _restartPlayerTimer() {
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
@@ -1042,6 +1060,9 @@ class _PlayerItemState extends State<PlayerItem>
           playerController.panel.brightness = value;
         });
       }
+      // 🆕 播放崩溃恢复：每 5 秒记录一次播放位置
+      _saveRecoveryPointIfNeeded();
+
       final historyIdentity = videoPageController.currentHistoryIdentity;
       // 🆕 倍速记忆：首次播放时应用该番记忆的倍速
       if (!_appliedPlaybackSpeedMemory &&
@@ -1610,6 +1631,8 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
 void dispose() {
+    // 🆕 正常退出播放页 → 清除崩溃恢复点（避免下次误提示恢复）
+    PlaybackRecoveryService.clear();
     // Playback lifetime is owned by the route-scoped PlayerController.
     // This widget only detaches UI listeners and timers.
     _fullscreenListener();
