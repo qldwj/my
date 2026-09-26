@@ -162,14 +162,14 @@ jobs:
             --ks-pass pass:"$KEYSTORE_PASS" \
             --ks-key-alias ${{ secrets.KEY_ALIAS }} \
             --key-pass pass:"$KEY_PASS" \
-            --out YHDM_beta_${{ env.tag }}.apk \
+            --out YHDM_android_${{ env.tag }}.apk \
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
         shell: bash
 
       - name: Verify signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
-          $APKSIGNER verify YHDM_beta_${{ env.tag }}.apk
+          $APKSIGNER verify YHDM_android_${{ env.tag }}.apk
         shell: bash
 
       # ========== 发布到 App 读取的正式仓库（Kazumikfc），但标记为 pre-release ==========
@@ -206,5 +206,5 @@ jobs:
 
           ⚠️ 若更新后出现异常，请卸载重装正式版。" \
             --prerelease \
-            YHDM_beta_$TAG.apk
+            YHDM_android_$TAG.apk
         shell: bash

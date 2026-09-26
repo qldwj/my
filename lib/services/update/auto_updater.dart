@@ -101,7 +101,9 @@ List<String> getUpdateFilePatterns(InstallationType installationType) {
     case InstallationType.macosDmg:
       return ['macos', '.dmg'];
     case InstallationType.androidApk:
-      return ['android', '.apk'];
+      // 🆕 只要求 .apk 结尾：兼容正式版（YHDM_android_x.apk）
+      // 和测试版（YHDM_beta_x.apk / 其它命名），避免因文件名不含 "android" 而匹配不到
+      return ['.apk'];
     case InstallationType.linuxDeb:
     case InstallationType.linuxTar:
     case InstallationType.ios:
