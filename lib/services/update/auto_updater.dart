@@ -642,35 +642,50 @@ class AutoUpdater {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ValueListenableBuilder<double>(
-                valueListenable: _downloadProgress,
-                builder: (context, value, child) {
+              ValueListenableBuilder<(int, int)>(
+                valueListenable: _downloadBytes,
+                builder: (context, bytes, child) {
+                  final received = bytes.$1;
+                  final total = bytes.$2;
+                  final value = total > 0 ? received / total : 0.0;
+
+                  // 🆕 用真实字节数计算速度与剩余时间（不再用百分比×50MB 估算）
                   final now = DateTime.now();
-                  double speed = 0;
-                  String eta = '';
-                  if (_lastTime != null && _lastBytes > 0) {
-                    final elapsed = now.difference(_lastTime!).inMilliseconds;
-                    if (elapsed > 0) {
-                      speed = (_lastBytes / elapsed) * 1000; // bytes/s
-                      final remaining = (1 - value) * speed;
-                      if (remaining > 0) {
-                        final secs = (remaining / 1024 / 1024).toStringAsFixed(1);
-                        eta = '预计剩余 ${secs}MB';
+                  double speed = 0; // bytes/s
+                  Duration? eta;
+                  if (_lastTime != null) {
+                    final elapsedMs =
+                        now.difference(_lastTime!).inMilliseconds;
+                    final deltaBytes = received - _lastBytes;
+                    // 至少 300ms 采样一次，避免抖动导致速度虚高
+                    if (elapsedMs >= 300 && deltaBytes >= 0) {
+                      speed = deltaBytes / (elapsedMs / 1000);
+                      if (speed > 1024 && total > received) {
+                        eta = Duration(
+                            seconds: ((total - received) / speed).round());
                       }
+                      _lastTime = now;
+                      _lastBytes = received;
                     }
+                  } else {
+                    _lastTime = now;
+                    _lastBytes = received;
                   }
-                  _lastTime = now;
-                  _lastBytes = (value * 1024 * 1024 * 50).toInt(); // 估算
+
                   return Column(
                     children: [
                       LinearProgressIndicator(value: value),
                       const SizedBox(height: 8),
-                      Text('${(value * 100).toStringAsFixed(1)}%'),
+                      Text('${(value * 100).toStringAsFixed(1)}%'
+                          '${total > 0 ? '  (${_fmtSize(received)} / ${_fmtSize(total)})' : ''}'),
                       if (speed > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '速度: ${(speed / 1024 / 1024).toStringAsFixed(1)}MB/s  $eta',
-                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                          '速度: ${_fmtSpeed(speed)}'
+                          '${eta != null ? '   剩余: ${_fmtEta(eta)}' : ''}',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.outline),
                         ),
                       ],
                     ],
@@ -753,6 +768,36 @@ class AutoUpdater {
   }
 
   final ValueNotifier<double> _downloadProgress = ValueNotifier(0.0);
+  /// 🆕 真实下载字节进度（received, total），用于准确计算速度/剩余时间
+  final ValueNotifier<(int, int)> _downloadBytes = ValueNotifier((0, 0));
+
+  /// 字节 → 人类可读（KB/MB/GB）
+  static String _fmtSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / 1024 / 1024).toStringAsFixed(1)}MB';
+    }
+    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)}GB';
+  }
+
+  /// 速度 → 人类可读（KB/s、MB/s）
+  static String _fmtSpeed(double bytesPerSec) {
+    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)}B/s';
+    if (bytesPerSec < 1024 * 1024) {
+      return '${(bytesPerSec / 1024).toStringAsFixed(0)}KB/s';
+    }
+    return '${(bytesPerSec / 1024 / 1024).toStringAsFixed(1)}MB/s';
+  }
+
+  /// 剩余时间 → 「1分23秒」/「12秒」
+  static String _fmtEta(Duration d) {
+    if (d.inSeconds < 60) return '${d.inSeconds}秒';
+    if (d.inMinutes < 60) {
+      return '${d.inMinutes}分${d.inSeconds.remainder(60)}秒';
+    }
+    return '${d.inHours}时${d.inMinutes.remainder(60)}分';
+  }
   CancelToken? _cancelToken;
 
   void _cancelDownload() {
@@ -935,6 +980,7 @@ class AutoUpdater {
       onReceiveProgress: (received, total) {
         if (total > 0) {
           _downloadProgress.value = received / total;
+          _downloadBytes.value = (received, total);
         }
       },
     );
