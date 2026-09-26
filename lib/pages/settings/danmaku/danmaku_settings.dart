@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/danmaku_cache_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -158,6 +159,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     });
   }
 
+  /// 字节 → 人类可读
+  String _fmtSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(1)}MB';
+  }
+
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
@@ -231,6 +239,53 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   },
                   title:
                       Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('本地弹幕库', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    final size = await DanmakuCacheService.totalSize();
+                    if (!context.mounted) return;
+                    final ok = await KazumiDialog.show<bool>(
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('清空本地弹幕库'),
+                        content: Text(
+                            '将删除所有已缓存的弹幕（约 ${_fmtSize(size)}）。\n\n'
+                            '清空后，弹幕源不可用时就无法离线观看弹幕了。'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('取消'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('清空'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok == true) {
+                      await DanmakuCacheService.clearAll();
+                      if (context.mounted) {
+                        KazumiDialog.showToast(message: '已清空本地弹幕库');
+                        setState(() {});
+                      }
+                    }
+                  },
+                  title: Text('清空本地弹幕库',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('弹幕会自动缓存到本地，弹幕源不可用时也能看',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: FutureBuilder<int>(
+                    future: DanmakuCacheService.totalSize(),
+                    builder: (ctx, snap) => Text(
+                      _fmtSize(snap.data ?? 0),
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                  ),
                 ),
               ],
             ),

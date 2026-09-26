@@ -482,6 +482,12 @@ class SettingsKeys {
     '127.0.0.1:8999',
     group: SettingGroup.player,
   );
+  /// 🆕 播放崩溃恢复点（JSON：番剧id/集数/位置/时间戳）
+  static const playbackRecoveryPoint = SettingKey<String>(
+    'playbackRecoveryPoint',
+    '',
+    group: SettingGroup.player,
+  );
   static const androidEnableOpenSLES = SettingKey<bool>(
     _SettingBoxKey.androidEnableOpenSLES,
     true,
@@ -1012,6 +1018,7 @@ class SettingsKeys {
     exitBehavior,
     playerDebugMode,
     syncPlayEndPoint,
+    playbackRecoveryPoint,
     androidEnableOpenSLES,
     androidVideoRenderer,
     androidAutoEnterPIP,
@@ -1135,6 +1142,7 @@ class _SettingBoxKey {
       exitBehavior = 'exitBehavior',
       playerDebugMode = 'playerDebugMode',
       syncPlayEndPoint = 'syncPlayEndPoint',
+      playbackRecoveryPoint = 'playbackRecoveryPoint',
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       androidVideoRenderer = 'androidVideoRenderer',
       androidAutoEnterPIP = 'androidAutoEnterPIP',
