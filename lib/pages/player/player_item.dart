@@ -2001,7 +2001,7 @@ void dispose() {
   }
 }
 
-/// 跳过片头/片尾（自动跳过 + 手动按钮，对齐 Animeko）
+/// 跳过片头/片尾（自动跳过 + 手动按钮）
 class SkipChipsOverlay extends StatefulWidget {
   const SkipChipsOverlay({
     super.key,
@@ -2018,50 +2018,61 @@ class SkipChipsOverlay extends StatefulWidget {
 
 class _SkipChipsOverlayState extends State<SkipChipsOverlay> {
   Timer? _timer;
-  int? _lastEpisode;
+  String? _lastKey; // "bangumiId_episode"，切集时才重置自动跳过状态
 
   @override
   void initState() {
     super.initState();
-    // 每 500ms 刷新：显隐 + 自动跳过检测（只重建本组件，不影响播放器/弹幕）
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    // 每 400ms 检查一次：自动跳过 + 刷新 chip 显隐
+    _timer = Timer.periodic(const Duration(milliseconds: 400), (_) {
       if (!mounted) return;
       _autoSkipTick();
       setState(() {});
     });
   }
 
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
-  /// ⭐ 自动跳过检测（进入片头/片尾区间 → 直接跳过去）
+  /// 当前正在播放的集数（用 playbackEpisode，避免 selectedEpisode 未更新）
+  int get _episode =>
+      widget.videoPageController.playbackEpisode.episode;
+
+  /// ⭐ 自动跳过：进入片头/片尾区间 → 直接 seek 过去
+  ///
+  /// 注意：这里读的是 [playerPosition]/[playerDuration]（直读播放器实时状态），
+  /// 而不是 mobx 缓存的 currentPosition/duration——后者每秒才刷新一次，
+  /// 会和 400ms 的检查错拍，导致片头窗口被跳过、永远不触发。
   void _autoSkipTick() {
     final playback = widget.playerController.playback;
-    final pos = playback.currentPosition;
-    final dur = playback.duration;
+    final pos = playback.playerPosition;
+    final dur = playback.playerDuration;
     if (dur <= Duration.zero) return;
 
     final id = widget.videoPageController.bangumiItem.id;
-    final episode = widget.videoPageController.selectedEpisode.episode;
+    final ep = _episode;
+    final key = '${id}_$ep';
 
-    // 切集时重置自动跳过状态
-    if (_lastEpisode != episode) {
-      _lastEpisode = episode;
-      AutoSkipService.reset(id);
+    // 只在「换集」时重置（同一集内绝不重置，否则永远跳不了）
+    if (_lastKey != key) {
+      _lastKey = key;
+      AutoSkipService.reset(id, ep);
     }
 
     final target = AutoSkipService.target(
       bangumiId: id,
-      episode: episode,
+      episode: ep,
       position: pos,
       duration: dur,
       opSeconds: SkipSegmentsService.opSeconds(id),
       edSeconds: SkipSegmentsService.edSeconds(id),
     );
     if (target != null) {
-      widget.playerController.seek(target);
+      KazumiLogger().i('AutoSkip: 自动跳转 ${pos.inSeconds}s → ${target.inSeconds}s');
+      widget.playerController.seek(target, enableSync: false);
       final saved = (target - pos).inSeconds;
       if (saved > 0) TimeSavedService.add(saved);
     }
@@ -2074,59 +2085,40 @@ class _SkipChipsOverlayState extends State<SkipChipsOverlay> {
     if (dur <= Duration.zero) return const SizedBox.shrink();
 
     final id = widget.videoPageController.bangumiItem.id;
+    final ep = _episode;
     final op = SkipSegmentsService.opSeconds(id);
     final ed = SkipSegmentsService.edSeconds(id);
     final autoEnabled = AutoSkipService.enabled;
+    final cancelled = AutoSkipService.isCancelled(id, ep);
 
     final chips = <Widget>[];
 
-    // 片头：播放中且位于片头区间内
-    if (op > 0 &&
-        pos > const Duration(seconds: 3) &&
-        pos < Duration(seconds: op) &&
-        dur > Duration(seconds: op + 20)) {
-      if (autoEnabled) {
-        // 自动跳过已开启：显示"已自动跳过"，并提供撤销（拖回片头重看）
-        chips.add(_SkipChip(
-          label: '已自动跳过片头',
-          icon: Icons.fast_forward_rounded,
-          onTap: () {
-            AutoSkipService.cancel(id);
-            widget.playerController.seek(Duration.zero);
-          },
-        ));
-      } else {
+    // 片头未跳且已取消自动跳 → 提供手动按钮
+    if (!autoEnabled || cancelled) {
+      if (op > 0 &&
+          pos >= const Duration(seconds: 1) &&
+          pos < Duration(seconds: op) &&
+          Duration(seconds: op) < dur) {
         chips.add(_SkipChip(
           label: '跳过片头 $op 秒',
           icon: Icons.skip_next_rounded,
           onTap: () {
-            widget.playerController.seek(Duration(seconds: op));
+            widget.playerController.seek(Duration(seconds: op),
+                enableSync: false);
             TimeSavedService.add(op);
           },
         ));
       }
-    }
-
-    // 片尾：剩余时长进入片尾区间
-    final remaining = dur - pos;
-    if (ed > 0 &&
-        remaining > const Duration(seconds: 2) &&
-        remaining <= Duration(seconds: ed) &&
-        dur > Duration(seconds: ed + 20)) {
-      if (autoEnabled) {
-        chips.add(_SkipChip(
-          label: '已自动跳过片尾',
-          icon: Icons.fast_forward_rounded,
-          onTap: () {
-            AutoSkipService.cancel(id);
-          },
-        ));
-      } else {
+      final remaining = dur - pos;
+      if (ed > 0 &&
+          remaining > const Duration(seconds: 2) &&
+          remaining <= Duration(seconds: ed)) {
         chips.add(_SkipChip(
           label: '跳过片尾 $ed 秒',
           icon: Icons.skip_next_rounded,
           onTap: () {
-            widget.playerController.seek(dur - const Duration(seconds: 2));
+            widget.playerController
+                .seek(dur - const Duration(seconds: 2), enableSync: false);
             TimeSavedService.add(ed);
           },
         ));
