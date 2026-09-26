@@ -45,6 +45,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool autoSwitchSource;
   late int skipOpDefault;
   late int skipEdDefault;
+  late bool autoSkipOpEd;
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
   late bool showLastWatchCard;
@@ -106,6 +107,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<int>(SettingsKeys.skipOpDefaultSeconds);
     skipEdDefault =
         GStorage.getSetting<int>(SettingsKeys.skipEdDefaultSeconds);
+    autoSkipOpEd =
+        GStorage.getSetting<bool>(SettingsKeys.autoSkipOpEdEnabled);
     backgroundPlayback =
         GStorage.getSetting<bool>(SettingsKeys.backgroundPlayback);
     playerDisableAnimations =
@@ -559,6 +562,20 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             SettingsSection(
               title: Text('跳过与画中画', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
+                // 🆕 自动跳过开关（默认开启）
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    await GStorage.putSetting(
+                        SettingsKeys.autoSkipOpEdEnabled, value ?? !autoSkipOpEd);
+                    setState(() => autoSkipOpEd = value ?? !autoSkipOpEd);
+                  },
+                  title: Text('自动跳过片头片尾',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(
+                      '播放到片头/片尾时自动跳过（拖动进度条可看到 OP/ED 白点标记）',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: autoSkipOpEd,
+                ),
                 SettingsTile.navigation(
                   onPressed: (_) => _showDefaultSkipDialog(isOp: true),
                   title: Text('片头跳过默认时长', style: TextStyle(fontFamily: fontFamily)),
