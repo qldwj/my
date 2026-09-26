@@ -1,6 +1,8 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:canvas_danmaku/canvas_danmaku.dart' as canvas;
+import 'dart:async';
+
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
