@@ -54,16 +54,25 @@ jobs:
         shell: bash
 
       - name: Sync version to api_endpoints.dart + pubspec.yaml
-        # App 内显示仍是纯版本号（2.3.9），但构建号用 9 结尾区分测试版
+        # ⚠️ 关键：App 内部版本号必须带 -beta 后缀，否则会和远程 tag 判断错误：
+        #   本地 2.3.9（无后缀） vs 远程 2.3.9-beta（有后缀）
+        #   → version.dart 规则「本地正式版>远程测试版」判定为「不需要更新」
+        #   → 自己发的测试版永远检测不到，而且会抢占正式版 2.3.9 的版本号
+        # 带后缀后：
+        #   2.3.9-beta vs 2.3.9-beta → 相同（已最新，正确）
+        #   2.3.9-beta vs 2.3.9      → 本地有后缀、远程无后缀 → 能升级到正式版 ✅
+        #   2.3.8      vs 2.3.9-beta → 数字更大 → 正式版用户能收到测试版 ✅
         run: |
           VERSION="${{ github.event.inputs.version }}"
+          SUFFIX="${{ github.event.inputs.beta_suffix }}"
+          FULL_VERSION="${VERSION}-${SUFFIX}"
           FIRST=$(echo $VERSION | awk -F. '{print $1}')
           SECOND=$(echo $VERSION | awk -F. '{print $2}')
           THIRD=$(echo $VERSION | awk -F. '{print $3}')
           BUILD_CODE="${FIRST}0${SECOND}0${THIRD}9"
-          sed -i "s/static const String version = '[^']*'/static const String version = '$VERSION'/" lib/request/config/api_endpoints.dart
-          sed -i "s/^version: .*/version: $VERSION+$BUILD_CODE/" pubspec.yaml
-          echo "✅ 测试版版本号已同步: $VERSION (构建号: $BUILD_CODE)"
+          sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
+          sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
+          echo "✅ 测试版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
         shell: bash
 
       - name: Install dependencies
