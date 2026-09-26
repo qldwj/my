@@ -20,6 +20,7 @@ import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/services/update/startup_update_check.dart';
 import 'package:kazumi/services/update/animeko_rule_updater.dart';
 import 'package:kazumi/services/deep_link_service.dart';
+import 'package:kazumi/services/player/playback_recovery_service.dart';
 import 'package:kazumi/services/font_service.dart';
 import 'package:kazumi/services/notification/anime_update_notification_service.dart';
 import 'package:kazumi/services/social/chat_banner_service.dart';
@@ -65,6 +66,42 @@ class _InitPageState extends State<InitPage> {
     unawaited(_initializeApp());
   }
 
+  /// 🆕 播放崩溃恢复：检查是否有残留的播放记录，提示用户继续观看
+  Future<void> _checkPlaybackRecovery() async {
+    // 等 UI 就绪
+    await Future.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+    final point = PlaybackRecoveryService.read();
+    if (point == null) return;
+    // 清除记录（无论用户是否恢复，都只提示一次）
+    await PlaybackRecoveryService.clear();
+    if (!mounted) return;
+    final name = point.bangumiName.isNotEmpty
+        ? point.bangumiName
+        : '上次观看的番剧';
+    final go = await KazumiDialog.show<bool>(
+      builder: (context) => AlertDialog(
+        title: const Text('继续观看？'),
+        content: Text(
+            '检测到上次播放未正常结束：\n\n《$name》第 ${point.episode} 集\n'
+            '进度 ${point.positionText}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('不用了'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('继续观看'),
+          ),
+        ],
+      ),
+    );
+    if (go == true && mounted) {
+      await _openAnimeDetail(point.bangumiId);
+    }
+  }
+
   Future<void> _initializeApp() async {
     _migrateStorage();
     _loadShaders();
@@ -105,6 +142,9 @@ class _InitPageState extends State<InitPage> {
 
     // 🆕 好友聊天消息通知（前台每 30 秒轮询，登录时生效）
     ChatNotificationPoller.start();
+
+    // 🆕 播放崩溃恢复：上次异常退出时提示「继续观看」
+    unawaited(_checkPlaybackRecovery());
 
     if (!mounted) {
       return;
@@ -154,6 +194,29 @@ class _InitPageState extends State<InitPage> {
     } catch (e) {
       KazumiLogger().e('Shortcut: 打开番剧失败', error: e);
       KazumiDialog.showToast(message: '打开番剧失败');
+    }
+  }
+
+  /// 🆕 打开番剧详情页（供播放恢复使用）
+  Future<void> _openAnimeDetail(int bangumiId) async {
+    if (!mounted) return;
+    try {
+      final item = await BangumiApi.getBangumiInfoByID(bangumiId);
+      if (item == null) {
+        KazumiDialog.showToast(message: '未找到该番剧');
+        return;
+      }
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (rootNavigatorKey.currentContext != null) {
+          Navigator.of(rootNavigatorKey.currentContext!).pushNamed(
+            '/info/',
+            arguments: item,
+          );
+        }
+      });
+    } catch (e) {
+      KazumiLogger().e('PlaybackRecovery: 打开番剧失败', error: e);
     }
   }
 

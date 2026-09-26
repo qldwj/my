@@ -10,6 +10,8 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/web_auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
@@ -93,6 +95,127 @@ class DeepLinkService {
   }
 
   /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm:// 或 https App Links）
+  /// 🆕 网页版授权登录：弹确认框 → 申请 code → 跳回浏览器
+  Future<void> _handleWebAuth(WebAuthRequest req) async {
+    // 未登录 → 提示先登录
+    if (AuthService.getLocalToken() == null) {
+      _showToast('请先在 App 内登录樱花动漫账号');
+      // 跳回浏览器并带错误
+      final back = WebAuthService.buildErrorCallback(
+        redirect: req.redirect,
+        error: 'not_logged_in',
+        state: req.state,
+      );
+      await _launchBrowser(back);
+      return;
+    }
+
+    final appName = req.appName.isNotEmpty ? req.appName : '该网页';
+    final host = Uri.tryParse(req.redirect)?.host ?? req.redirect;
+
+    // 弹授权确认框
+    final agreed = await KazumiDialog.show<bool>(
+      builder: (context) => AlertDialog(
+        title: const Text('授权登录'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('「$appName」请求使用你的樱花动漫账号登录。'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.language, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(host,
+                          style: const TextStyle(fontSize: 13),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text('将共享：账号身份（不含密码）',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.outline)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('授权后该网页可代表你访问樱花动漫数据。',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.outline)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('拒绝'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('同意授权'),
+          ),
+        ],
+      ),
+    );
+
+    if (agreed != true) {
+      final back = WebAuthService.buildErrorCallback(
+        redirect: req.redirect,
+        error: 'denied',
+        state: req.state,
+      );
+      await _launchBrowser(back);
+      return;
+    }
+
+    // 申请一次性 code
+    final res = await WebAuthService.requestCode(
+      state: req.state,
+      appName: appName,
+    );
+    if (res['success'] == true && res['code'] != null) {
+      final back = WebAuthService.buildCallback(
+        redirect: req.redirect,
+        code: res['code'].toString(),
+        state: req.state,
+      );
+      _showToast('授权成功，正在返回浏览器…');
+      await _launchBrowser(back);
+    } else {
+      final back = WebAuthService.buildErrorCallback(
+        redirect: req.redirect,
+        error: res['error']?.toString() ?? 'unknown',
+        state: req.state,
+      );
+      _showToast('授权失败：${res['error'] ?? '未知错误'}');
+      await _launchBrowser(back);
+    }
+  }
+
+  /// 用外部浏览器打开回跳地址
+  Future<void> _launchBrowser(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      KazumiLogger().w('DeepLink: 打开浏览器失败', error: e);
+    }
+  }
+
   Future<void> _handleLink(String url) async {
     KazumiLogger().i('DeepLink: 收到链接: $url');
 
@@ -169,6 +292,17 @@ class DeepLinkService {
         KazumiLogger().e('DeepLink: OAuth 回调处理失败', error: e);
         _showToast('OAuth 登录失败：${e.toString()}');
       }
+      return;
+    }
+
+    // 🆕 网页版授权登录：yhdmgz://auth?redirect=xxx&state=yyy&app=zzz
+    if (url.startsWith('yhdmgz://auth')) {
+      final req = WebAuthService.parse(url);
+      if (req == null) {
+        _showToast('授权链接无效');
+        return;
+      }
+      await _handleWebAuth(req);
       return;
     }
 
