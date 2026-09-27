@@ -1,40 +1,147 @@
-name: "diagnose-releases"
+name: "upload-240-from-my-to-atomgit"
+
+# 从 qldwj/my 仓库里找到 2.4.0 的 APK，上传到 AtomGit。
+# 用于验证 API 上传链路。
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: '要上传的版本 tag'
+        required: true
+        default: '2.4.0'
 
 jobs:
-  diagnose:
+  upload:
+    name: "从 my 仓库上传 2.4.0 到 AtomGit"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: List releases in qldwj/Kazumikfc
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      - name: Checkout qldwj/my
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------- 1. 在仓库里找 APK ----------
+      - name: Find APK in repository
         run: |
-          echo "===== qldwj/Kazumikfc 的 Release 列表 ====="
-          gh release list --repo qldwj/Kazumikfc --limit 20 || echo "读取失败"
+          TAG="${{ github.event.inputs.tag }}"
+          echo "===== 搜索仓库内的 APK 文件 ====="
+          find . -name "*.apk" -not -path "./.git/*" -type f -exec ls -lh {} \; > /tmp/apk_list.txt
+          cat /tmp/apk_list.txt
+
+          COUNT=$(wc -l < /tmp/apk_list.txt)
+          echo "找到 $COUNT 个 APK 文件"
+          echo "APK_COUNT=$COUNT" >> $GITHUB_ENV
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "仓库里没有 APK 文件，尝试查看该 tag 下的文件："
+            git ls-tree -r "$TAG" --name-only | grep -i "\.apk" || echo "该 tag 下也没有 APK"
+            exit 1
+          fi
         shell: bash
 
-      - name: List releases in qldwj/my
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      # ---------- 2. 选定要上传的 APK ----------
+      - name: Select APK
         run: |
-          echo "===== qldwj/my 的 Release 列表 ====="
-          gh release list --repo qldwj/my --limit 20 || echo "读取失败"
+          TAG="${{ github.event.inputs.tag }}"
+          # 优先选文件名里含 tag 的，否则取第一个
+          SELECTED=$(grep -i "$TAG" /tmp/apk_list.txt | head -1 | awk '{print $NF}' || true)
+          if [ -z "$SELECTED" ]; then
+            SELECTED=$(head -1 /tmp/apk_list.txt | awk '{print $NF}')
+          fi
+          echo "选定 APK: $SELECTED"
+          echo "APK_PATH=$SELECTED" >> $GITHUB_ENV
         shell: bash
 
-      - name: List tags in qldwj/Kazumikfc
+      # ---------- 3. 创建 AtomGit Tag ----------
+      - name: Create AtomGit Tag
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.tag }}
         run: |
-          echo "===== qldwj/Kazumikfc 的 Tag 列表 ====="
-          gh api repos/qldwj/Kazumikfc/tags --jq '.[].name' || echo "读取失败"
+          echo "===== 创建 AtomGit Tag: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/tag.json -w "%{http_code}" -X POST \
+            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/tags" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"refs\":\"main\",\"tag_name\":\"$TAG\",\"tag_message\":\"Release $TAG\"}")
+          echo "HTTP 状态码: $HTTP_CODE"
+          cat /tmp/tag.json
         shell: bash
 
-      - name: List tags in qldwj/my
+      # ---------- 4. 创建 AtomGit Release（正式版） ----------
+      - name: Create AtomGit Release
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.tag }}
         run: |
-          echo "===== qldwj/my 的 Tag 列表 ====="
-          gh api repos/qldwj/my/tags --jq '.[].name' || echo "读取失败"
+          echo "===== 创建 AtomGit Release: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/release.json -w "%{http_code}" -X POST \
+            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"tag_name\":\"$TAG\",
+              \"name\":\"$TAG\",
+              \"body\":\"樱花动漫 正式版 $TAG\",
+              \"target_commitish\":\"main\",
+              \"release_status\":\"latest\"
+            }")
+          echo "HTTP 状态码: $HTTP_CODE"
+          cat /tmp/release.json
+        shell: bash
+
+      # ---------- 5. 上传 APK 到 AtomGit ----------
+      - name: Upload APK to AtomGit
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -e
+          APK_FILE="${{ env.APK_PATH }}"
+          FILE_NAME=$(basename "$APK_FILE")
+          echo "准备上传: $APK_FILE ($FILE_NAME)"
+          ls -lh "$APK_FILE"
+
+          # 获取 OBS 签名上传地址
+          curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/$TAG/upload_url?file_name=$FILE_NAME" \
+            -H "PRIVATE-TOKEN: $TOKEN" > /tmp/upload_url.json
+          echo "===== upload_url 响应 ====="
+          cat /tmp/upload_url.json
+          echo
+
+          UPLOAD_URL=$(python3 -c "import json;print(json.load(open('/tmp/upload_url.json')).get('url',''))")
+          CONTENT_TYPE=$(python3 -c "import json;d=json.load(open('/tmp/upload_url.json'));print(d.get('headers',{}).get('Content-Type','application/octet-stream'))")
+
+          if [ -z "$UPLOAD_URL" ]; then
+            echo "未获取到上传地址"
+            exit 1
+          fi
+
+          HTTP_CODE=$(curl -s -o /tmp/put_result.txt -w "%{http_code}" -X PUT \
+            "$UPLOAD_URL" \
+            -H "Content-Type: $CONTENT_TYPE" \
+            --data-binary @"$APK_FILE")
+
+          echo "PUT 状态码: $HTTP_CODE"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "APK 上传成功"
+          else
+            echo "APK 上传失败"
+            cat /tmp/put_result.txt
+            exit 1
+          fi
+        shell: bash
+
+      # ---------- 6. 确认结果 ----------
+      - name: Confirm AtomGit release
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          echo "===== 确认 AtomGit Release 状态 ====="
+          curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/tags/$TAG" \
+            -H "PRIVATE-TOKEN: $TOKEN" > /tmp/final.json
+          cat /tmp/final.json
         shell: bash
