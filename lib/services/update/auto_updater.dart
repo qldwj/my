@@ -159,27 +159,26 @@ class AutoUpdater {
   }
 
   /// 检查是否有新版本可用
-  /// [channel] 更新通道：'stable' 正式版, 'beta' 测试版, 'both' 都更新
+  /// [channel] 更新通道：'stable' 仅正式版；'beta'/'preview'/'both'/默认 → 全部版本（正式版+预览版）里挑最新
   Future<UpdateInfo?> checkForUpdates({String? channel}) async {
     try {
-      final updateChannel = channel ??
-          GStorage.getSetting(SettingsKeys.updateChannel);
+      // 渠道归一化：
+      //   - 只有显式 'stable' 才走「仅正式版」（/releases/latest）
+      //   - 'beta' 以及历史遗留值 'preview'、'both'、空值 一律走「全部版本挑最新」
+      //     （'preview' 是更早版本的前端值；'both' 的旧分支「先查正式版、失败才查预览版」
+      //       有个 bug：只要存在正式版就永远看不到更新的预览版，这里统一修正为 _latestBetaRelease）
+      final String updateChannel =
+          (channel ?? GStorage.getSetting(SettingsKeys.updateChannel) ?? 'beta')
+              .toString();
 
       Map<String, dynamic> data;
 
-      if (updateChannel == 'beta') {
-        // 测试版：从版本列表获取最新的（含 prerelease）
-        data = await _latestBetaRelease();
-      } else if (updateChannel == 'both') {
-        // 都更新：先试正式版，没有更新再试测试版
-        try {
-          data = await _latestRelease();
-        } catch (_) {
-          data = await _latestBetaRelease();
-        }
-      } else {
-        // 默认：仅正式版
+      if (updateChannel == 'stable') {
+        // 仅正式版
         data = await _latestRelease();
+      } else {
+        // 预览版/默认/兼容历史值：从全部版本（正式版 + 预览版）里挑版本号最高的
+        data = await _latestBetaRelease();
       }
 
       if (!data.containsKey('tag_name')) {
@@ -223,10 +222,23 @@ class AutoUpdater {
   }
 
   /// 获取最新预览版（所有版本都有：正式版 + 测试版）
-  /// 同时请求镜像与 GitHub，合并后挑选**版本号最高**的发布（不再只信镜像第一个，
+  /// 同时请求镜像与 GitHub，合并去重后挑选**版本号最高**的发布（不再只信镜像第一个，
   /// 避免镜像缓存滞后导致刚发布的测试版检测不到）。
   Future<Map<String, dynamic>> _latestBetaRelease() async {
     final List<Map<String, dynamic>> candidates = [];
+    // 按 tag 去重：镜像与 GitHub 是同一份数据源时只保留一份，避免重复项干扰排序
+    final Set<String> seenTags = {};
+
+    void addCandidate(dynamic item) {
+      if (item is! Map) return;
+      // 跳过草稿（未正式发布的 release）
+      if (item['draft'] == true) return;
+      if (item['assets'] is! List || (item['assets'] as List).isEmpty) return;
+      final tag = item['tag_name'] as String?;
+      if (tag == null || tag.isEmpty) return;
+      if (!seenTags.add(tag)) return;
+      candidates.add(Map<String, dynamic>.from(item));
+    }
 
     // 1) 镜像
     try {
@@ -234,11 +246,7 @@ class AutoUpdater {
       final list = json.decode(raw);
       if (list is List) {
         for (final item in list) {
-          if (item is Map &&
-              item['assets'] is List &&
-              (item['assets'] as List).isNotEmpty) {
-            candidates.add(Map<String, dynamic>.from(item));
-          }
+          addCandidate(item);
         }
       }
     } catch (e) {
@@ -252,11 +260,7 @@ class AutoUpdater {
       final list = json.decode(raw);
       if (list is List) {
         for (final item in list) {
-          if (item is Map &&
-              item['assets'] is List &&
-              (item['assets'] as List).isNotEmpty) {
-            candidates.add(Map<String, dynamic>.from(item));
-          }
+          addCandidate(item);
         }
       }
     } catch (e) {
@@ -268,7 +272,7 @@ class AutoUpdater {
       return _latestRelease();
     }
 
-    // 3) 挑出版本号最高的（needUpdate 是严格偏序：b 比 a 新 → 排前面）
+    // 3) 挑出版本号最高的（needUpdate：b 比 a 新 → b 排前面）
     candidates.sort((a, b) {
       final ta = (a['tag_name'] as String?) ?? '';
       final tb = (b['tag_name'] as String?) ?? '';
