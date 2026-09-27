@@ -1,3 +1,4 @@
+
 name: "build-beta" # 测试版构建
 
 # 与正式版的区别：
@@ -13,7 +14,9 @@ name: "build-beta" # 测试版构建
 #
 # 版本号规则：填 2.3.9 → 测试版 tag 自动加 -beta 后缀（v2.3.9-beta），
 # 正式版发布时才用 v2.3.9，两者互不覆盖。
-# 构建号规则：测试版末尾 00，正式版末尾 09。
+# 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位。
+# 测试版类型为 00，正式版为 09。
+# 例如 2.3.9 → 测试版 2030900，正式版 2030909。
 
 on:
   workflow_dispatch:
@@ -54,14 +57,14 @@ jobs:
         shell: bash
 
       - name: Sync version to api_endpoints.dart + pubspec.yaml
-        # ⚠️ 关键：App 内部版本号必须带 -beta 后缀，否则会和远程 tag 判断错误：
+        # 关键：App 内部版本号必须带 -beta 后缀，否则会和远程 tag 判断错误：
         # 本地 2.3.9（无后缀） vs 远程 2.3.9-beta（有后缀）
         # → version.dart 规则「本地正式版>远程测试版」判定为「不需要更新」
         # → 自己发的测试版永远检测不到，而且会抢占正式版 2.3.9 的版本号
         # 带后缀后：
         # 2.3.9-beta vs 2.3.9-beta → 相同（已最新，正确）
-        # 2.3.9-beta vs 2.3.9 → 本地有后缀、远程无后缀 → 能升级到正式版 ✅
-        # 2.3.8 vs 2.3.9-beta → 数字更大 → 正式版用户能收到测试版 ✅
+        # 2.3.9-beta vs 2.3.9 → 本地有后缀、远程无后缀 → 能升级到正式版
+        # 2.3.8 vs 2.3.9-beta → 数字更大 → 正式版用户能收到测试版
         #
         # 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
         # 测试版类型为 00，正式版为 09。
@@ -81,7 +84,7 @@ jobs:
           BUILD_CODE="${FIRST}${SECOND}${THIRD}00"
           sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
-          echo "✅ 测试版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
+          echo "测试版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
         shell: bash
 
       - name: Install dependencies
@@ -123,16 +126,16 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
           if [ ! -s yhdm.jks ]; then
-            echo "❌ Keystore 解码失败，请检查 KEYSTORE_BASE64"
+            echo "Keystore 解码失败，请检查 KEYSTORE_BASE64"
             exit 1
           fi
-          echo "✅ Keystore 解码成功"
+          echo "Keystore 解码成功"
         shell: bash
 
       - name: Validate keystore (optional)
         run: |
           keytool -list -keystore yhdm.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" > /dev/null 2>&1 || {
-            echo "⚠️ Keystore 验证失败，但签名可能仍会成功，继续..."
+            echo "Keystore 验证失败，但签名可能仍会成功，继续..."
           }
         shell: bash
 
@@ -193,16 +196,24 @@ jobs:
       # ========== 发布到 App 读取的正式仓库（Kazumikfc），但标记为 pre-release ==========
       #
       # 为什么发到 Kazumikfc：App 的更新源写死为 qldwj/Kazumikfc
-      # - 正式版通道（stable）读 /releases/latest → 只会拿到「非 prerelease」的正式版 ✅
-      # - 测试版通道（beta） 读 /releases?per_page=10 → 取第一个有 apk 的 → 能拿到测试版 ✅
+      # - 正式版通道（stable）读 /releases/latest → 只会拿到「非 prerelease」的正式版
+      # - 测试版通道（beta） 读 /releases?per_page=10 → 取第一个有 apk 的 → 能拿到测试版
       # 所以用 --prerelease 发布即可：正式用户不受影响，测试用户能收到。
       # tag 用 v2.3.9-beta，与正式版 v2.3.9 完全区分，互不覆盖。
+      #
+      # 公告内容：提示测试版不稳定，遇到闪退等问题请安装正式版，
+      # 并给出正式版下载地址 qlyyz.xyz。公告中不含任何 emoji。
       - name: Release beta to Kazumikfc as pre-release
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           TAG="${{ env.tag }}"
           REPO="qldwj/Kazumikfc"
+          NOTES="测试版 v$TAG
+
+          注意：这是测试版本，可能不稳定。
+          如果遇到闪退、卡顿或其他异常情况，请安装正式版本。
+          正式版下载地址：https://qlyyz.xyz "
           # 覆盖同名 beta tag
           if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
             echo "Tag $TAG 已存在，删除重建..."
@@ -213,8 +224,8 @@ jobs:
           # --prerelease：正式通道（latest）不会返回它，只有 beta 通道能看到
           gh release create "$TAG" \
             --repo "$REPO" \
-            --title "v$TAG （测试版）" \
-            --notes " 樱花动漫 测试版 v$TAG" \
+            --title "v$TAG 测试版" \
+            --notes "$NOTES" \
             --prerelease \
             YHDM_android_${{ env.tag }}.apk
         shell: bash
