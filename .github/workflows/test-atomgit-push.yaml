@@ -1,99 +1,172 @@
-name: "test-atomgit-api-release"
+name: "test-upload-240-to-atomgit"
+
+# 用途：把 GitHub Release v2.4.0 的 APK 通过 API 上传到 AtomGit。
+# 验证整条链路：下载 GitHub 资产 → 创建 AtomGit Tag → 创建 Release → 上传 APK。
+# 跑通后，正式版构建流程直接复用这套 API 步骤。
 
 on:
   workflow_dispatch:
+    inputs:
+      gh_repo:
+        description: 'GitHub 源仓库（owner/repo）'
+        required: true
+        default: 'qldwj/Kazumikfc'
+      gh_tag:
+        description: 'GitHub Release tag'
+        required: true
+        default: 'v2.4.0'
 
 jobs:
-  test-api-release:
-    name: "测试 AtomGit API 发布"
+  upload:
+    name: "下载 2.4.0 并上传到 AtomGit"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      GIT_TERMINAL_PROMPT: "0"
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create a dummy APK for testing
-        run: |
-          echo "This is a dummy APK file for API release test." > test-app.apk
-          ls -lh test-app.apk
-
-      - name: Create Tag via API
+      # ---------- 1. 列出并下载 GitHub Release 资产 ----------
+      - name: List GitHub release assets
         env:
-          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.event.inputs.gh_repo }}
+          TAG: ${{ github.event.inputs.gh_tag }}
         run: |
-          echo "===== 1. 创建 Tag ====="
-          TAG_NAME="v0.0.0-api-test-$(date +%s)"
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "===== GitHub Release $TAG 的资产 ====="
+          gh release view "$TAG" --repo "$REPO" --json assets \
+            -q '.assets[] | "\(.name)  \(.size) 字节"' || {
+              echo "无法读取 release，请检查 PAT_TOKEN 权限或 tag 是否存在"
+              exit 1
+            }
+        shell: bash
 
-          HTTP_CODE=$(curl -s -o /tmp/tag_response.json -w "%{http_code}" -X POST \
-            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/tags" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"refs\": \"main\",
-              \"tag_name\": \"$TAG_NAME\",
-              \"tag_message\": \"API test tag\"
-            }")
+      - name: Download APK from GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.event.inputs.gh_repo }}
+          TAG: ${{ github.event.inputs.gh_tag }}
+        run: |
+          mkdir -p release_assets
+          # 下载该 release 下所有 .apk 资产
+          gh release download "$TAG" --repo "$REPO" --pattern "*.apk" --dir release_assets
+          echo "===== 已下载文件 ====="
+          ls -lh release_assets/
+          echo "APK_COUNT=$(ls release_assets/*.apk 2>/dev/null | wc -l)" >> $GITHUB_ENV
+        shell: bash
 
-          echo "HTTP 状态码: $HTTP_CODE"
-          cat /tmp/tag_response.json
-
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "Tag 创建成功: $TAG_NAME"
-          else
-            echo "Tag 创建失败"
+      - name: Verify APK downloaded
+        run: |
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "没有下载到任何 APK，退出"
             exit 1
           fi
+          echo "共下载 $APK_COUNT 个 APK"
         shell: bash
 
-      - name: Upload File via API
+      # ---------- 2. 在 AtomGit 创建 Tag ----------
+      - name: Create AtomGit Tag
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.gh_tag }}
         run: |
-          echo "===== 2. 上传 APK 文件 ====="
-
-          HTTP_CODE=$(curl -s -o /tmp/upload_response.json -w "%{http_code}" -X POST \
-            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/file/upload?access_token=$TOKEN" \
-            -F "file=@test-app.apk")
-
+          echo "===== 创建 AtomGit Tag: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/tag.json -w "%{http_code}" -X POST \
+            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/tags" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"refs\":\"main\",\"tag_name\":\"$TAG\",\"tag_message\":\"Release $TAG\"}")
           echo "HTTP 状态码: $HTTP_CODE"
-          cat /tmp/upload_response.json
-
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "文件上传成功"
-          else
-            echo "文件上传失败（非阻塞，继续测试 Release）"
-          fi
+          cat /tmp/tag.json
+          # 已存在也继续（后续 release 会覆盖）
         shell: bash
 
-      - name: Create Release via API
+      # ---------- 3. 创建 AtomGit Release（latest 正式版） ----------
+      - name: Create AtomGit Release
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.gh_tag }}
         run: |
-          echo "===== 3. 创建 Release ====="
-          TAG_NAME="${{ env.TAG_NAME }}"
-
-          HTTP_CODE=$(curl -s -o /tmp/release_response.json -w "%{http_code}" -X POST \
+          echo "===== 创建 AtomGit Release: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/release.json -w "%{http_code}" -X POST \
             "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases" \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
             -H "Content-Type: application/json" \
             -d "{
-              \"tag_name\": \"$TAG_NAME\",
-              \"name\": \"API Test Release $TAG_NAME\",
-              \"body\": \"这是一个通过 GitHub Actions API 创建的测试 Release。\",
-              \"target_commitish\": \"main\",
-              \"release_status\": \"pre\"
+              \"tag_name\":\"$TAG\",
+              \"name\":\"$TAG\",
+              \"body\":\"樱花动漫 正式版 $TAG\",
+              \"target_commitish\":\"main\",
+              \"release_status\":\"latest\"
             }")
-
           echo "HTTP 状态码: $HTTP_CODE"
-          cat /tmp/release_response.json
-
+          cat /tmp/release.json
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "Release 创建成功"
           else
-            echo "Release 创建失败"
-            exit 1
+            echo "Release 创建失败（可能已存在）"
           fi
+        shell: bash
+
+      # ---------- 4. 逐个上传 APK 附件 ----------
+      - name: Upload each APK to AtomGit
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.gh_tag }}
+        run: |
+          set -e
+          shopt -s nullglob
+          for APK_FILE in release_assets/*.apk; do
+            FILE_NAME=$(basename "$APK_FILE")
+            echo "======================================"
+            echo "处理文件: $FILE_NAME"
+
+            # 4.1 获取 OBS 签名上传地址
+            curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/$TAG/upload_url?file_name=$FILE_NAME" \
+              -H "PRIVATE-TOKEN: $TOKEN" > /tmp/upload_url.json
+            echo "upload_url 响应:"
+            cat /tmp/upload_url.json
+            echo
+
+            UPLOAD_URL=$(python3 -c "import json;print(json.load(open('/tmp/upload_url.json')).get('url',''))")
+            CONTENT_TYPE=$(python3 -c "import json;d=json.load(open('/tmp/upload_url.json'));print(d.get('headers',{}).get('Content-Type','application/octet-stream'))")
+
+            if [ -z "$UPLOAD_URL" ]; then
+              echo "未获取到上传地址，跳过 $FILE_NAME"
+              continue
+            fi
+
+            # 4.2 PUT 到 OBS
+            HTTP_CODE=$(curl -s -o /tmp/put_result.txt -w "%{http_code}" -X PUT \
+              "$UPLOAD_URL" \
+              -H "Content-Type: $CONTENT_TYPE" \
+              --data-binary @"$APK_FILE")
+
+            echo "PUT 状态码: $HTTP_CODE"
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "$FILE_NAME 上传成功"
+            else
+              echo "$FILE_NAME 上传失败"
+              cat /tmp/put_result.txt
+            fi
+          done
+        shell: bash
+
+      # ---------- 5. 结果确认 ----------
+      - name: Confirm AtomGit release
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ github.event.inputs.gh_tag }}
+        run: |
+          echo "===== 确认 AtomGit Release 状态 ====="
+          curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/tags/$TAG" \
+            -H "PRIVATE-TOKEN: $TOKEN" > /tmp/final.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/final.json'))
+          print("名称:", d.get('name'))
+          print("状态:", d.get('release_status'))
+          print("附件:")
+          for a in d.get('assets', []) or []:
+              print("  -", a.get('name'), a.get('size'), "字节")
+          PY
         shell: bash
