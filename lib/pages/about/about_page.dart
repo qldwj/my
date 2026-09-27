@@ -48,9 +48,12 @@ class _AboutPageState extends State<AboutPage> {
     checkPluginUpdateOnStartup =
         GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
     
-    // 🔥 新增：读取更新渠道，默认 'stable'，并兼容旧的 'preview'
+    // 🔥 更新渠道读取：默认 'beta'（预览版），并兼容历史遗留值
+    //    'stable' 是用户显式选的「稳定版」→ 保留；
+    //    旧值 'preview'、'both'、空 → 统一归一为 'beta'（预览版）并持久化，
+    //    避免设置页显示「预览版」但检测逻辑却按「仅正式版」走。
     String rawChannel = GStorage.getSetting(SettingsKeys.updateChannel) ?? 'beta';
-    if (rawChannel == 'preview') {
+    if (rawChannel != 'stable' && rawChannel != 'beta') {
       rawChannel = 'beta';
       GStorage.putSetting(SettingsKeys.updateChannel, 'beta');
     }
