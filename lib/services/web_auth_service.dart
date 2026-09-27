@@ -58,17 +58,24 @@ class WebAuthService {
 
   /// 解析网页授权深链
   ///
-  /// `yhdmgz://auth?redirect=xxx&state=yyy&app=zzz`
+  /// `yhdmgz://auth?redirect=xxx&state=yyy&app=zzz&scope=email,keep,collect,comment`
   static WebAuthRequest? parse(String url) {
     try {
       final uri = Uri.parse(url.trim());
       if (uri.scheme != 'yhdmgz' || uri.host != 'auth') return null;
       final redirect = uri.queryParameters['redirect'];
       if (redirect == null || redirect.isEmpty) return null;
+      final scopeRaw = uri.queryParameters['scope'] ?? '';
+      final scopes = scopeRaw
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
       return WebAuthRequest(
         redirect: redirect,
         state: uri.queryParameters['state'] ?? '',
         appName: uri.queryParameters['app'] ?? '',
+        scopes: scopes,
       );
     } catch (_) {
       return null;
@@ -107,9 +114,13 @@ class WebAuthRequest {
     required this.redirect,
     this.state = '',
     this.appName = '',
+    this.scopes = const [],
   });
 
   final String redirect;
   final String state;
   final String appName;
+
+  /// 网页端主动申请的权限（如 email/keep/collect/comment），空 = 未申请
+  final List<String> scopes;
 }

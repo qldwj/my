@@ -56,6 +56,9 @@ class UpdateInfo {
     }
     return installationType ?? InstallationType.unknown;
   }
+
+  /// 是否为测试版：版本号带 `-` 后缀（如 2.4.0-beta）即测试版，无后缀为正式版
+  bool get isTestVersion => version.contains('-');
 }
 
 Map<String, dynamic>? getUpdateAssetForType(
@@ -187,11 +190,6 @@ class AutoUpdater {
       final currentVersion = ApiEndpoints.version;
 
       if (needUpdate(currentVersion, remoteVersion)) {
-        // 🆕 被用户「忽略该版本」的版本不再提示（可在「关于 → 应用更新」恢复）
-        final ignored = GStorage.getSetting(SettingsKeys.ignoredUpdateVersion);
-        if (remoteVersion == ignored) {
-          return null;
-        }
         final availableTypes = await _detectAvailableInstallationTypes();
         final isPrerelease = data['prerelease'] == true;
 
@@ -225,18 +223,21 @@ class AutoUpdater {
   }
 
   /// 获取最新预览版（所有版本都有：正式版 + 测试版）
-  /// 取版本列表第一个（最新发布的），不管是不是prerelease
-  /// 优先从镜像获取，失败则回退到 GitHub API
+  /// 同时请求镜像与 GitHub，合并后挑选**版本号最高**的发布（不再只信镜像第一个，
+  /// 避免镜像缓存滞后导致刚发布的测试版检测不到）。
   Future<Map<String, dynamic>> _latestBetaRelease() async {
-    // 优先从镜像获取
+    final List<Map<String, dynamic>> candidates = [];
+
+    // 1) 镜像
     try {
       final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleasesMirror);
       final list = json.decode(raw);
-      if (list is List && list.isNotEmpty) {
-        // 预览版：所有版本都有，取第一个有 assets 的（最新发布的）
+      if (list is List) {
         for (final item in list) {
-          if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
-            return Map<String, dynamic>.from(item);
+          if (item is Map &&
+              item['assets'] is List &&
+              (item['assets'] as List).isNotEmpty) {
+            candidates.add(Map<String, dynamic>.from(item));
           }
         }
       }
@@ -245,30 +246,37 @@ class AutoUpdater {
       KazumiLogger().w('Update: mirror for beta releases failed, fallback to GitHub', error: e);
     }
 
-    // 回退到官方 GitHub API
-    final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
-    final list = json.decode(raw);
-    if (list is! List || list.isEmpty) {
-      throw Exception('没有可用的版本');
-    }
-    // 预览版：所有版本都有，取第一个有 assets 的（最新发布的）
-    for (final item in list) {
-      if (item is Map && item['assets'] is List && (item['assets'] as List).isNotEmpty) {
-        return Map<String, dynamic>.from(item);
+    // 2) GitHub（权威数据源，发布即同步）
+    try {
+      final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
+      final list = json.decode(raw);
+      if (list is List) {
+        for (final item in list) {
+          if (item is Map &&
+              item['assets'] is List &&
+              (item['assets'] as List).isNotEmpty) {
+            candidates.add(Map<String, dynamic>.from(item));
+          }
+        }
       }
+    } catch (e) {
+      KazumiLogger().w('Update: github releases for beta failed', error: e);
     }
-    // 最后回退到正式版
-    return _latestRelease();
-  }
 
-  /// 🆕 忽略指定版本：之后检查更新不再提示它
-  void ignoreVersion(String version) {
-    GStorage.putSetting(SettingsKeys.ignoredUpdateVersion, version);
-  }
+    if (candidates.isEmpty) {
+      // 全部失败 → 回退到正式版
+      return _latestRelease();
+    }
 
-  /// 🆕 清除已忽略的版本，恢复更新提醒
-  void clearIgnoredVersion() {
-    GStorage.putSetting(SettingsKeys.ignoredUpdateVersion, '');
+    // 3) 挑出版本号最高的（needUpdate 是严格偏序：b 比 a 新 → 排前面）
+    candidates.sort((a, b) {
+      final ta = (a['tag_name'] as String?) ?? '';
+      final tb = (b['tag_name'] as String?) ?? '';
+      if (needUpdate(ta, tb)) return 1; // tb 比 ta 新 → b 在前
+      if (needUpdate(tb, ta)) return -1; // ta 比 tb 新 → a 在前
+      return 0;
+    });
+    return candidates.first;
   }
 
   /// 自动检查更新（只在启用自动更新时）
@@ -402,7 +410,35 @@ class AutoUpdater {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: Text('发现新版本 ${updateInfo.version}'),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text('发现新版本 ${updateInfo.version}'),
+              ),
+              const SizedBox(width: 8),
+              // 右上角角标：正式版 / 测试版（按版本号是否带 -后缀判断）
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: updateInfo.isTestVersion
+                      ? const Color(0xFFFFF3E0)
+                      : const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  updateInfo.isTestVersion ? '🧪 测试版' : '正式版',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: updateInfo.isTestVersion
+                        ? const Color(0xFFE65100)
+                        : const Color(0xFF2E7D32),
+                  ),
+                ),
+              ),
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -513,19 +549,6 @@ class AutoUpdater {
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
                 '稍后提醒',
-                style: TextStyle(color: Theme.of(context).colorScheme.outline),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                KazumiDialog.dismiss();
-                GStorage.putSetting(
-                    SettingsKeys.ignoredUpdateVersion, updateInfo.version);
-                KazumiDialog.showToast(
-                    message: '已忽略该版本，可在「关于」中恢复提醒');
-              },
-              child: Text(
-                '忽略该版本',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
