@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/pages/webauth/webauth_page.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -95,7 +96,7 @@ class DeepLinkService {
   }
 
   /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm:// 或 https App Links）
-  /// 🆕 网页版授权登录：弹确认框 → 申请 code → 跳回浏览器
+  /// 🆕 网页版授权登录：整页确认授权 → 申请 code → 跳回浏览器（不再用弹窗）
   Future<void> _handleWebAuth(WebAuthRequest req) async {
     // 未登录 → 提示先登录
     if (AuthService.getLocalToken() == null) {
@@ -111,66 +112,21 @@ class DeepLinkService {
     }
 
     final appName = req.appName.isNotEmpty ? req.appName : '该网页';
-    final host = Uri.tryParse(req.redirect)?.host ?? req.redirect;
 
-    // 弹授权确认框
-    final agreed = await KazumiDialog.show<bool>(
-      builder: (context) => AlertDialog(
-        title: const Text('授权登录'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('「$appName」请求使用你的樱花动漫账号登录。'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    const Icon(Icons.language, size: 16),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(host,
-                          style: const TextStyle(fontSize: 13),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ]),
-                  const SizedBox(height: 6),
-                  Text('将共享：账号身份（不含密码）',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.outline)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('授权后该网页可代表你访问樱花动漫数据。',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.outline)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('拒绝'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('同意授权'),
-          ),
-        ],
-      ),
-    );
+    // 整页确认授权（模仿 QQ 授权页：白底 + 权限列表），点「同意授权」后直接跳回浏览器
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) {
+      final back = WebAuthService.buildErrorCallback(
+        redirect: req.redirect,
+        error: 'unknown',
+        state: req.state,
+      );
+      await _launchBrowser(back);
+      return;
+    }
 
-    if (agreed != true) {
+    final decision = await WebAuthPage.push(ctx, request: req);
+    if (decision != WebAuthDecision.approve) {
       final back = WebAuthService.buildErrorCallback(
         redirect: req.redirect,
         error: 'denied',
