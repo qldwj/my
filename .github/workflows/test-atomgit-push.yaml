@@ -5,7 +5,7 @@ name: "test-atomgit-push"
 #
 # 用法：
 # 1. GitHub → Actions → test-atomgit-push → Run workflow
-# 2. 默认值已填好（qldwi / qldwi/Kazumi），直接运行即可
+# 2. 默认值已填好（qldwi / qldwi/Kazumi），target_branch 留空即可
 # 3. 跑完看日志，成功会打印 "推送成功" 和测试分支名
 # 4. 测试完可到 AtomGit 上删掉那个测试分支
 
@@ -21,7 +21,7 @@ on:
         required: true
         default: 'qldwi/Kazumi'
       target_branch:
-        description: '推送到的目标分支（留空则自动生成测试分支）'
+        description: '推送到的目标分支（留空自动生成测试分支，不要填 main）'
         required: false
         default: ''
 
@@ -73,7 +73,9 @@ jobs:
           set -e
           URL="https://${USER}:${TOKEN}@atomgit.com/${REPO}.git"
 
-          if [ -n "$INPUT_BRANCH" ]; then
+          # 如果用户填了分支名就用，否则自动生成一个带时间戳的测试分支。
+          # 注意：不要填 main，否则可能覆盖远程 main。
+          if [ -n "$INPUT_BRANCH" ] && [ "$INPUT_BRANCH" != "main" ]; then
             BRANCH="$INPUT_BRANCH"
           else
             BRANCH="actions-test-$(date +%Y%m%d-%H%M%S)"
@@ -82,7 +84,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git checkout -b "$BRANCH"
+          # 用 -B（大写）创建或重置本地分支，避免 "branch already exists" 报错
+          git checkout -B "$BRANCH"
+
           echo "AtomGit push test at $(date -u)" > .atomgit-push-test
           git add .atomgit-push-test
           git commit -m "test: verify AtomGit push from GitHub Actions"
