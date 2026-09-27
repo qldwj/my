@@ -1,4 +1,4 @@
-name: "test-build-release"
+name: "build"
 
 # 用途：构建 + 签名正式版，APK 发布到当前仓库 qldwj/my 的 GitHub Release。
 # 不推 Kazumikfc、不推 AtomGit、不发 Telegram。
