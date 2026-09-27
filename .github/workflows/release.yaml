@@ -1,10 +1,10 @@
-
 name: "build-release" # 正式版构建
 
 # 正式版流程：
 # 1. 构建 Flutter APK 并签名
 # 2. 发布到 GitHub 正式仓库 qldwj/Kazumikfc（含 APK 附件）
 # 3. 在 AtomGit 仓库 qldwi/Kazumi 创建 Tag 和 Release（不含附件，APK 手动上传）
+# 4. 发送 Telegram 通知（多行格式，无表情符号）
 #
 # 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
 # 正式版类型为 09，测试版为 00。
@@ -16,15 +16,15 @@ name: "build-release" # 正式版构建
 # - KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_PASSWORD / KEY_ALIAS
 # - PAT_TOKEN（GitHub 个人令牌，用于在 Kazumikfc 创建 Release）
 # - ATOMGIT_TOKEN（AtomGit 访问令牌，用于创建 Tag 和 Release）
-# - TG_BOT_TOKEN / TG_CHAT_ID（可选，Telegram 通知）
+# - TG_BOT_TOKEN / TG_CHAT_ID（Telegram 通知）
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: '正式版版本号'
+        description: '正式版版本号（如 2.3.9）'
         required: true
-        default: '2.4.0'
+        default: '2.3.9'
       sign_check:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
@@ -249,13 +249,19 @@ jobs:
           fi
         shell: bash
 
-      # ========== 发送 Telegram 通知 ==========
+      # ========== 发送 Telegram 通知（多行格式，无表情符号） ==========
       - name: Send Telegram notification
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          VERSION: ${{ env.tag }}
         run: |
+          MESSAGE="樱花动漫 v${VERSION} 发布成功！%0A%0A"
+          MESSAGE="${MESSAGE}GitHub：https://github.com/qldwj/Kazumikfc/releases/download/${VERSION}/YHDM_android_${VERSION}.apk%0A"
+          MESSAGE="${MESSAGE}GitCode：https://gitcode.com/qldwi/kazumi/releases/${VERSION}%0A"
+          MESSAGE="${MESSAGE}发布页：https://github.com/qldwj/Kazumikfc/releases/tag/${VERSION}"
+
           curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
             -d chat_id="${TG_CHAT_ID}" \
-            -d text="樱花动漫 正式版 v${{ env.tag }} 已发布"
+            --data-urlencode "text=${MESSAGE}"
         shell: bash
