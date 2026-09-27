@@ -1,124 +1,85 @@
-name: "test-atomgit-push"
+name: "test-atomgit-push-ssh"
+
+# 用途：验证 ATOMGIT_SSH_KEY 是否能通过 SSH 向 AtomGit 推送。
+# 不参与正式发布，只做验证。
+#
+# 用法：
+# GitHub → Actions → test-atomgit-push-ssh → Run workflow
+# 跑完看日志，成功会打印「推送成功」和测试分支名。
+# 测试完可到 AtomGit 仓库删掉那个 actions-test- 分支。
 
 on:
   workflow_dispatch:
-    inputs:
-      atomgit_user:
-        description: 'AtomGit 用户名'
-        required: true
-        default: 'qldwi'
-      atomgit_repo:
-        description: 'AtomGit 仓库完整路径（用户名/仓库名）'
-        required: true
-        default: 'qldwi/Kazumi'
-      target_branch:
-        description: '推送到的目标分支（务必留空，自动生成测试分支）'
-        required: false
-        default: ''
 
 jobs:
   test-push:
-    name: "测试 AtomGit 推送"
+    name: "测试 AtomGit SSH 推送"
     runs-on: ubuntu-latest
-    # 全局超时，避免整个 job 挂死
     timeout-minutes: 5
     env:
-      # 关闭 git 交互式认证提示，避免在无 TTY 环境下挂起
       GIT_TERMINAL_PROMPT: "0"
-      # 限制单次 HTTP 请求超时（秒）
-      GIT_HTTP_LOW_SPEED_LIMIT: "1000"
-      GIT_HTTP_LOW_SPEED_TIME: "20"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check token exists
+      - name: Setup SSH key
         env:
-          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          SSH_KEY: ${{ secrets.ATOMGIT_SSH_KEY }}
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "ATOMGIT_TOKEN 未配置，请先在仓库 Secrets 里添加"
+          if [ -z "$SSH_KEY" ]; then
+            echo "ATOMGIT_SSH_KEY 未配置，请先在仓库 Secrets 里添加私钥"
             exit 1
           fi
-          echo "ATOMGIT_TOKEN 已配置，长度 ${#TOKEN}"
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/atomgit_key
+          chmod 600 ~/.ssh/atomgit_key
+          ssh-keyscan -t rsa,ed25519 atomgit.com >> ~/.ssh/known_hosts 2>/dev/null || true
+          cat >> ~/.ssh/config <<'EOF'
+          Host atomgit.com
+            HostName atomgit.com
+            User git
+            IdentityFile ~/.ssh/atomgit_key
+            IdentitiesOnly yes
+          EOF
+          echo "SSH 配置完成"
         shell: bash
 
-      # 诊断 1：DNS 能否解析 atomgit.com
-      - name: Diagnose DNS
+      - name: Test SSH connection
         run: |
-          echo "===== 解析 atomgit.com ====="
-          getent hosts atomgit.com || echo "getent 解析失败"
-          echo "===== ping 测试（不阻塞太久） ====="
-          ping -c 2 -W 3 atomgit.com || echo "ping 失败（可能被防火墙屏蔽，不一定代表不能访问）"
+          echo "===== 测试 SSH 连接 ====="
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -T git@atomgit.com 2>&1 || true
         shell: bash
 
-      # 诊断 2：HTTPS 端口是否可连
-      - name: Diagnose HTTPS connectivity
-        run: |
-          echo "===== 测试 443 端口 ====="
-          timeout 15 bash -c 'cat < /dev/null > /dev/tcp/atomgit.com/443' && echo "443 可连" || echo "443 连接失败或超时"
-          echo "===== curl 访问首页 ====="
-          curl -sS -m 15 -o /dev/null -w "HTTP 状态: %{http_code}, 耗时: %{time_total}s\n" https://atomgit.com/ || echo "curl 访问失败"
-        shell: bash
-
-      # 诊断 3：ls-remote 测试认证
-      - name: Test ls-remote
-        env:
-          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
-          USER: ${{ github.event.inputs.atomgit_user }}
-          REPO: ${{ github.event.inputs.atomgit_repo }}
+      - name: Test push via SSH
         run: |
           set -e
-          URL="https://${USER}:${TOKEN}@atomgit.com/${REPO}.git"
-          echo "测试访问: https://${USER}:***@atomgit.com/${REPO}.git"
-          if timeout 30 git ls-remote "$URL" > /tmp/lsremote.out 2>&1; then
-            echo "认证成功，仓库可读"
-            echo "远程 refs 数量: $(wc -l < /tmp/lsremote.out)"
-          else
-            echo "认证失败或超时，错误输出："
+          URL="git@atomgit.com:qldwi/Kazumi.git"
+          BRANCH="actions-test-$(date +%Y%m%d-%H%M%S)"
+
+          echo "===== 测试 ls-remote ====="
+          if ! timeout 30 git ls-remote "$URL" > /tmp/lsremote.out 2>&1; then
+            echo "无法访问 AtomGit 仓库，错误输出："
             cat /tmp/lsremote.out
             exit 1
           fi
-        shell: bash
-
-      # 推送测试：带超时保护，避免无限挂起
-      - name: Test push
-        env:
-          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
-          USER: ${{ github.event.inputs.atomgit_user }}
-          REPO: ${{ github.event.inputs.atomgit_repo }}
-          INPUT_BRANCH: ${{ github.event.inputs.target_branch }}
-        run: |
-          set -e
-          URL="https://${USER}:${TOKEN}@atomgit.com/${REPO}.git"
-
-          # 强制自动生成分支名，忽略用户填的 main 或其它单字符
-          if [ -n "$INPUT_BRANCH" ] && [ "$INPUT_BRANCH" != "main" ] && [ ${#INPUT_BRANCH} -gt 2 ]; then
-            BRANCH="$INPUT_BRANCH"
-          else
-            BRANCH="actions-test-$(date +%Y%m%d-%H%M%S)"
-          fi
+          echo "仓库可读，远程 refs 数量: $(wc -l < /tmp/lsremote.out)"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # -B 允许分支已存在时重置
           git checkout -B "$BRANCH"
-
-          echo "AtomGit push test at $(date -u)" > .atomgit-push-test
+          echo "AtomGit SSH push test at $(date -u)" > .atomgit-push-test
           git add .atomgit-push-test
-          git commit -m "test: verify AtomGit push from GitHub Actions"
+          git commit -m "test: verify AtomGit SSH push from GitHub Actions"
 
-          echo "准备推送到分支: $BRANCH"
-          # timeout 90：给推送最多 90 秒，超过就判定失败，避免无限挂起
-          if timeout 90 git push "$URL" "HEAD:refs/heads/$BRANCH"; then
-            echo "推送成功"
-            echo "测试分支: $BRANCH"
+          echo "===== 推送到分支: $BRANCH ====="
+          if timeout 120 git push "$URL" "HEAD:refs/heads/$BRANCH"; then
+            echo "推送成功，分支: $BRANCH"
+            echo "可到 AtomGit 仓库查看该分支，确认后删除"
           else
             RC=$?
             echo "推送失败，退出码: $RC"
             if [ $RC -eq 124 ]; then
-              echo "原因：推送超时（90 秒无响应），大概率是网络到 atomgit.com 不通或认证卡住"
+              echo "原因：推送超时（120 秒无响应）"
             fi
             exit 1
           fi
