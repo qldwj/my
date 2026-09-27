@@ -1,18 +1,22 @@
+
 name: "build-release" # 正式版构建
 
 # 正式版流程：
-# - tag 不带后缀（v2.3.9）
-# - 发布为正式 release（不加 --prerelease）
-# - 推 AtomGit、发 TG 通知
+# 1. 构建 Flutter APK 并签名
+# 2. 发布到 GitHub 正式仓库 qldwj/Kazumikfc（含 APK 附件）
+# 3. 在 AtomGit 仓库 qldwi/Kazumi 创建 Tag 和 Release（不含附件，APK 手动上传）
 #
 # 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
 # 正式版类型为 09，测试版为 00。
 # 例如 2.3.9 → 正式版 2030909，测试版 2030900。
 #
-# AtomGit 信息：
-# - 用户名: qldwi
-# - 仓库路径: qldwi/Kazumi
-# - Secret 名称: ATOMGIT_TOKEN
+# 需要的 Secrets：
+# - DANDANAPI_APPID / DANDANAPI_KEY
+# - KAZUMI_APPID / KAZUMI_KEY
+# - KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_PASSWORD / KEY_ALIAS
+# - PAT_TOKEN（GitHub 个人令牌，用于在 Kazumikfc 创建 Release）
+# - ATOMGIT_TOKEN（AtomGit 访问令牌，用于创建 Tag 和 Release）
+# - TG_BOT_TOKEN / TG_CHAT_ID（可选，Telegram 通知）
 
 on:
   workflow_dispatch:
@@ -174,7 +178,7 @@ jobs:
         shell: bash
 
       # ========== 发布到 App 读取的正式仓库（GitHub: qldwj/Kazumikfc） ==========
-      - name: Release to Kazumikfc
+      - name: Release to Kazumikfc (GitHub)
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
@@ -195,39 +199,54 @@ jobs:
             YHDM_android_${{ env.tag }}.apk
         shell: bash
 
-      # ========== 推送到 AtomGit（atomgit.com，仓库 qldwi/Kazumi） ==========
+      # ========== 在 AtomGit 创建 Tag 和 Release（不含附件） ==========
       #
-      # AtomGit 用户名: qldwi
-      # AtomGit 仓库路径: qldwi/Kazumi
-      # 需要的 Secret: ATOMGIT_TOKEN（AtomGit 访问令牌）
-      - name: Push to AtomGit
+      # 说明：AtomGit 服务端对来自 GitHub Actions 的大文件上传会卡死，
+      # 因此这里只创建 Tag 和 Release，APK 由你手动上传到 AtomGit 网页。
+      #
+      # AtomGit 仓库: qldwi/Kazumi
+      # Secret: ATOMGIT_TOKEN（AtomGit 访问令牌）
+
+      - name: Create AtomGit Tag
         env:
-          ATOMGIT_TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ env.tag }}
         run: |
-          set -e
-          if [ -z "$ATOMGIT_TOKEN" ]; then
-            echo "ATOMGIT_TOKEN 未配置，跳过 AtomGit 推送"
-            exit 0
+          echo "===== 创建 AtomGit Tag: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/atomgit_tag.json -w "%{http_code}" -X POST \
+            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/tags" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"refs\":\"main\",\"tag_name\":\"$TAG\",\"tag_message\":\"Release $TAG\"}")
+          echo "HTTP 状态码: $HTTP_CODE"
+          cat /tmp/atomgit_tag.json
+          # Tag 已存在也继续，不算失败
+        shell: bash
+
+      - name: Create AtomGit Release
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          TAG: ${{ env.tag }}
+        run: |
+          echo "===== 创建 AtomGit Release: $TAG ====="
+          HTTP_CODE=$(curl -s -o /tmp/atomgit_release.json -w "%{http_code}" -X POST \
+            "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases" \
+            -H "PRIVATE-TOKEN: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"tag_name\":\"$TAG\",
+              \"name\":\"$TAG\",
+              \"body\":\"樱花动漫 正式版 $TAG\",
+              \"target_commitish\":\"main\",
+              \"release_status\":\"latest\"
+            }")
+          echo "HTTP 状态码: $HTTP_CODE"
+          cat /tmp/atomgit_release.json
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "AtomGit Release 创建成功（未含附件，请手动上传 APK）"
+          else
+            echo "AtomGit Release 创建失败（可能已存在）"
           fi
-
-          ATOMGIT_USER="qldwi"
-          ATOMGIT_REPO="qldwi/Kazumi"
-          REMOTE_URL="https://${ATOMGIT_USER}:${ATOMGIT_TOKEN}@atomgit.com/${ATOMGIT_REPO}.git"
-
-          echo "准备推送到 AtomGit：${ATOMGIT_REPO}"
-
-          # 先测远程是否可达，避免直接 403
-          if ! git ls-remote "$REMOTE_URL" &>/dev/null; then
-            echo "无法访问 AtomGit 仓库，请检查："
-            echo "1. AtomGit 上是否已创建 ${ATOMGIT_REPO}"
-            echo "2. ATOMGIT_TOKEN 是否是 AtomGit 的令牌（不是 GitHub 的）"
-            echo "3. 令牌是否有仓库读写权限"
-            exit 1
-          fi
-
-          git remote remove atomgit 2>/dev/null || true
-          git remote add atomgit "$REMOTE_URL"
-          git push atomgit HEAD:main --tags --force
         shell: bash
 
       # ========== 发送 Telegram 通知 ==========
