@@ -1,0 +1,99 @@
+name: "test-atomgit-push"
+
+# 用途：单独测试 ATOMGIT_TOKEN 是否能向 AtomGit 推送。
+# 不参与正式发布，只做验证。
+#
+# 用法：
+# 1. GitHub → Actions → test-atomgit-push → Run workflow
+# 2. 默认值已填好（qldwi / qldwi/Kazumi），直接运行即可
+# 3. 跑完看日志，成功会打印 "推送成功" 和测试分支名
+# 4. 测试完可到 AtomGit 上删掉那个测试分支
+
+on:
+  workflow_dispatch:
+    inputs:
+      atomgit_user:
+        description: 'AtomGit 用户名'
+        required: true
+        default: 'qldwi'
+      atomgit_repo:
+        description: 'AtomGit 仓库完整路径（用户名/仓库名）'
+        required: true
+        default: 'qldwi/Kazumi'
+      target_branch:
+        description: '推送到的目标分支（留空则自动生成测试分支）'
+        required: false
+        default: ''
+
+jobs:
+  test-push:
+    name: "测试 AtomGit 推送"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check token exists
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "ATOMGIT_TOKEN 未配置，请先在仓库 Secrets 里添加"
+            exit 1
+          fi
+          echo "ATOMGIT_TOKEN 已配置，长度 ${#TOKEN}"
+        shell: bash
+
+      - name: Test ls-remote
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          USER: ${{ github.event.inputs.atomgit_user }}
+          REPO: ${{ github.event.inputs.atomgit_repo }}
+        run: |
+          set -e
+          URL="https://${USER}:${TOKEN}@atomgit.com/${REPO}.git"
+          echo "测试访问: https://${USER}:***@atomgit.com/${REPO}.git"
+          if git ls-remote "$URL" > /tmp/lsremote.out 2>&1; then
+            echo "认证成功，仓库可读"
+            echo "远程 refs 数量: $(wc -l < /tmp/lsremote.out)"
+          else
+            echo "认证失败或仓库不存在，错误输出："
+            cat /tmp/lsremote.out
+            exit 1
+          fi
+        shell: bash
+
+      - name: Test push
+        env:
+          TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
+          USER: ${{ github.event.inputs.atomgit_user }}
+          REPO: ${{ github.event.inputs.atomgit_repo }}
+          INPUT_BRANCH: ${{ github.event.inputs.target_branch }}
+        run: |
+          set -e
+          URL="https://${USER}:${TOKEN}@atomgit.com/${REPO}.git"
+
+          if [ -n "$INPUT_BRANCH" ]; then
+            BRANCH="$INPUT_BRANCH"
+          else
+            BRANCH="actions-test-$(date +%Y%m%d-%H%M%S)"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          echo "AtomGit push test at $(date -u)" > .atomgit-push-test
+          git add .atomgit-push-test
+          git commit -m "test: verify AtomGit push from GitHub Actions"
+
+          echo "准备推送到分支: $BRANCH"
+          if git push "$URL" "HEAD:refs/heads/$BRANCH"; then
+            echo "推送成功"
+            echo "测试分支: $BRANCH"
+            echo "可到 AtomGit 仓库查看该分支，确认后删除"
+          else
+            echo "推送失败，请检查 ATOMGIT_TOKEN 是否具备写权限"
+            exit 1
+          fi
+        shell: bash
