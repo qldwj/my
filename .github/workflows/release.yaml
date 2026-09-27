@@ -1,33 +1,21 @@
-name: "build-beta" # 测试版构建
+name: "build-release" # 正式版构建
 
-# 与正式版的区别：
-# - tag 带 -beta 后缀（v2.3.9-beta），与正式版 v2.3.9 互不覆盖
-# - 发布时加 --prerelease（正式通道看不到，只有测试通道能收到）
-# - 不推 GitCode、不发 TG 通知
+# 正式版流程：
+# - tag 不带后缀（v2.3.9）
+# - 发布为正式 release（不加 --prerelease）
+# - 推 GitCode、发 TG 通知
 #
-# 用法：
-# 1. GitHub → Actions → build-beta → Run workflow
-# 2. 填「下一个版本号」（如 2.3.9）+ 是否开签名校验
-# 3. 构建完自动在 qldwj/Kazumikfc 创建 pre-release（tag 形如 v2.3.9-beta）
-# 4. 用户 App 里把「更新通道」切到「测试版」即可收到；正式版用户不受影响
-#
-# 版本号规则：填 2.3.9 → 测试版 tag 自动加 -beta 后缀（v2.3.9-beta），
-# 正式版发布时才用 v2.3.9，两者互不覆盖。
-# 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位。
-# 测试版类型为 00，正式版为 09。
-# 例如 2.3.9 → 测试版 2030900，正式版 2030909。
+# 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
+# 正式版类型为 09，测试版为 00。
+# 例如 2.3.9 → 正式版 2030909，测试版 2030900。
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: '测试版版本号（如 2.3.9，会自动加 -beta 后缀）'
+        description: '正式版版本号（如 2.3.9）'
         required: true
         default: '2.3.9'
-      beta_suffix:
-        description: '测试版后缀（如 beta / beta2 / rc1，默认 beta）'
-        required: true
-        default: 'beta'
       sign_check:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
@@ -41,7 +29,7 @@ env:
 
 jobs:
   build-and-sign:
-    name: "构建测试版并签名"
+    name: "构建正式版并签名"
     runs-on: "ubuntu-latest"
     permissions: write-all
     steps:
@@ -49,29 +37,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set version
-        # 测试版 tag：2.3.9 + beta → v2.3.9-beta
         run: |
-          echo "tag=${{ github.event.inputs.version }}-${{ github.event.inputs.beta_suffix }}" >> $GITHUB_ENV
+          echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           echo "raw_version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
         shell: bash
 
       - name: Sync version to api_endpoints.dart + pubspec.yaml
-        # 关键：App 内部版本号必须带 -beta 后缀，否则会和远程 tag 判断错误：
-        # 本地 2.3.9（无后缀） vs 远程 2.3.9-beta（有后缀）
-        # → version.dart 规则「本地正式版>远程测试版」判定为「不需要更新」
-        # → 自己发的测试版永远检测不到，而且会抢占正式版 2.3.9 的版本号
-        # 带后缀后：
-        # 2.3.9-beta vs 2.3.9-beta → 相同（已最新，正确）
-        # 2.3.9-beta vs 2.3.9 → 本地有后缀、远程无后缀 → 能升级到正式版
-        # 2.3.8 vs 2.3.9-beta → 数字更大 → 正式版用户能收到测试版
-        #
-        # 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
-        # 测试版类型为 00，正式版为 09。
-        # 例如 2.3.9 → 测试版 2030900，正式版 2030909。
+        # 正式版版本号无后缀，构建号末尾 09。
+        # 例如 2.3.9 → 版本号 2.3.9，构建号 2030909。
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          SUFFIX="${{ github.event.inputs.beta_suffix }}"
-          FULL_VERSION="${VERSION}-${SUFFIX}"
+          FULL_VERSION="${VERSION}"
           FIRST=$(echo $VERSION | awk -F. '{print $1}')
           SECOND=$(echo $VERSION | awk -F. '{print $2}')
           THIRD=$(echo $VERSION | awk -F. '{print $3}')
@@ -79,11 +55,11 @@ jobs:
           FIRST=$(printf "%d" "$FIRST")
           SECOND=$(printf "%02d" "$SECOND")
           THIRD=$(printf "%02d" "$THIRD")
-          # 测试版构建号末尾 00
-          BUILD_CODE="${FIRST}${SECOND}${THIRD}00"
+          # 正式版构建号末尾 09
+          BUILD_CODE="${FIRST}${SECOND}${THIRD}09"
           sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
-          echo "测试版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
+          echo "✅ 正式版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
         shell: bash
 
       - name: Install dependencies
@@ -125,16 +101,16 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
           if [ ! -s yhdm.jks ]; then
-            echo "Keystore 解码失败，请检查 KEYSTORE_BASE64"
+            echo "❌ Keystore 解码失败，请检查 KEYSTORE_BASE64"
             exit 1
           fi
-          echo "Keystore 解码成功"
+          echo "✅ Keystore 解码成功"
         shell: bash
 
       - name: Validate keystore (optional)
         run: |
           keytool -list -keystore yhdm.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" > /dev/null 2>&1 || {
-            echo "Keystore 验证失败，但签名可能仍会成功，继续..."
+            echo "⚠️ Keystore 验证失败，但签名可能仍会成功，继续..."
           }
         shell: bash
 
@@ -192,39 +168,46 @@ jobs:
           $APKSIGNER verify YHDM_android_${{ env.tag }}.apk
         shell: bash
 
-      # ========== 发布到 App 读取的正式仓库（Kazumikfc），但标记为 pre-release ==========
-      #
-      # 为什么发到 Kazumikfc：App 的更新源写死为 qldwj/Kazumikfc
-      # - 正式版通道（stable）读 /releases/latest → 只会拿到「非 prerelease」的正式版
-      # - 测试版通道（beta） 读 /releases?per_page=10 → 取第一个有 apk 的 → 能拿到测试版
-      # 所以用 --prerelease 发布即可：正式用户不受影响，测试用户能收到。
-      # tag 用 v2.3.9-beta，与正式版 v2.3.9 完全区分，互不覆盖。
-      #
-      # 公告内容：提示测试版不稳定，遇到闪退等问题请安装正式版，
-      # 并给出正式版下载地址 qlyyz.xyz。公告中不含任何 emoji。
-      - name: Release beta to Kazumikfc as pre-release
+      # ========== 发布到 App 读取的正式仓库（Kazumikfc） ==========
+      - name: Release to Kazumikfc
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           TAG="${{ env.tag }}"
           REPO="qldwj/Kazumikfc"
-          NOTES="测试版 v$TAG
-
-          注意：这是测试版本，可能不稳定。
-          如果遇到闪退、卡顿或其他异常情况，请安装正式版本。
-          正式版下载地址：https://qlyyz.xyz "
-          # 覆盖同名 beta tag
+          # 覆盖同名正式 tag
           if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
             echo "Tag $TAG 已存在，删除重建..."
             gh release delete "$TAG" --repo "$REPO" -y
             git push --delete https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git "$TAG" 2>/dev/null || true
             sleep 2
           fi
-          # --prerelease：正式通道（latest）不会返回它，只有 beta 通道能看到
+          # 正式 release：不加 --prerelease，正式通道 latest 会返回它
           gh release create "$TAG" \
             --repo "$REPO" \
-            --title "v$TAG 测试版" \
-            --notes "$NOTES" \
-            --prerelease \
+            --title "v$TAG" \
+            --notes " 樱花动漫 正式版 v$TAG" \
             YHDM_android_${{ env.tag }}.apk
+        shell: bash
+
+      # ========== 推送到 GitCode（根据你的实际仓库和认证方式调整） ==========
+      - name: Push to GitCode
+        env:
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+        run: |
+          # 示例：推送到 GitCode 镜像仓库
+          # 请将下面的地址替换为你的 GitCode 仓库地址
+          git remote add gitcode https://gitcode.com/qldwj/Kazumikfc.git
+          git push https://oauth2:${GITCODE_TOKEN}@gitcode.com/qldwj/Kazumikfc.git HEAD:main --tags
+        shell: bash
+
+      # ========== 发送 Telegram 通知（根据你的实际 bot 和 chat id 调整） ==========
+      - name: Send Telegram notification
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT_ID}" \
+            -d text="樱花动漫 正式版 v${{ env.tag }} 已发布"
         shell: bash
