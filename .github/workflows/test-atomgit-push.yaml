@@ -1,8 +1,4 @@
-
 name: "upload-240-from-my-to-atomgit"
-
-# 从 qldwj/my 的 Release 资产下载 2.4.0 APK，上传到 AtomGit。
-# 验证 API 上传链路。
 
 on:
   workflow_dispatch:
@@ -25,7 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---------- 1. 从 GitHub Release 下载 APK ----------
       - name: Download APK from GitHub Release
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -38,42 +33,35 @@ jobs:
             --repo "$REPO" \
             --pattern "*.apk" \
             --dir release_assets
-          echo "===== 下载结果 ====="
           ls -lh release_assets/
           COUNT=$(ls release_assets/*.apk 2>/dev/null | wc -l)
-          echo "APK_COUNT=$COUNT" >> $GITHUB_ENV
           if [ "$COUNT" -eq 0 ]; then
             echo "没有下载到 APK"
             exit 1
           fi
         shell: bash
 
-      # ---------- 2. 选定 APK ----------
       - name: Select APK
         run: |
           APK=$(ls release_assets/*.apk | head -1)
-          echo "选定 APK: $APK"
           echo "APK_PATH=$APK" >> $GITHUB_ENV
           echo "APK_NAME=$(basename $APK)" >> $GITHUB_ENV
         shell: bash
 
-      # ---------- 3. 创建 AtomGit Tag ----------
       - name: Create AtomGit Tag
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
           TAG: ${{ github.event.inputs.tag }}
         run: |
           echo "===== 创建 AtomGit Tag: $TAG ====="
-          HTTP_CODE=$(curl -s -o /tmp/tag.json -w "%{http_code}" -X POST \
+          curl -s -X POST \
             "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/tags" \
             -H "PRIVATE-TOKEN: $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"refs\":\"main\",\"tag_name\":\"$TAG\",\"tag_message\":\"Release $TAG\"}")
-          echo "HTTP 状态码: $HTTP_CODE"
-          cat /tmp/tag.json
+            -d "{\"refs\":\"main\",\"tag_name\":\"$TAG\",\"tag_message\":\"Release $TAG\"}" \
+            || echo "Tag 可能已存在，继续"
         shell: bash
 
-      # ---------- 4. 创建 AtomGit Release（正式版） ----------
       - name: Create AtomGit Release
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
@@ -95,48 +83,66 @@ jobs:
           cat /tmp/release.json
         shell: bash
 
-      # ---------- 5. 上传 APK 到 AtomGit ----------
+      # ========== 关键修复：用 Python 发 PUT，完整带上所有 OBS header ==========
       - name: Upload APK to AtomGit
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
           TAG: ${{ github.event.inputs.tag }}
+          APK_PATH: ${{ env.APK_PATH }}
+          APK_NAME: ${{ env.APK_NAME }}
         run: |
-          set -e
-          APK_FILE="${{ env.APK_PATH }}"
-          FILE_NAME="${{ env.APK_NAME }}"
-          echo "准备上传: $APK_FILE ($FILE_NAME)"
-          ls -lh "$APK_FILE"
-
-          curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/$TAG/upload_url?file_name=$FILE_NAME" \
+          # 1. 重新获取 upload_url（每次 PUT 都要重新申请，签名 URL 有有效期）
+          curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/$TAG/upload_url?file_name=$APK_NAME" \
             -H "PRIVATE-TOKEN: $TOKEN" > /tmp/upload_url.json
           echo "===== upload_url 响应 ====="
           cat /tmp/upload_url.json
           echo
 
-          UPLOAD_URL=$(python3 -c "import json;print(json.load(open('/tmp/upload_url.json')).get('url',''))")
-          CONTENT_TYPE=$(python3 -c "import json;d=json.load(open('/tmp/upload_url.json'));print(d.get('headers',{}).get('Content-Type','application/octet-stream'))")
+          # 2. 用 Python 完整发送 PUT，带上所有必需 header
+          python3 << 'PY'
+          import json, os, sys, urllib.request, urllib.error
 
-          if [ -z "$UPLOAD_URL" ]; then
-            echo "未获取到上传地址"
-            exit 1
-          fi
+          with open('/tmp/upload_url.json') as f:
+              d = json.load(f)
 
-          HTTP_CODE=$(curl -s -o /tmp/put_result.txt -w "%{http_code}" -X PUT \
-            "$UPLOAD_URL" \
-            -H "Content-Type: $CONTENT_TYPE" \
-            --data-binary @"$APK_FILE")
+          url = d.get('url', '')
+          if not url:
+              print("未获取到上传地址")
+              sys.exit(1)
 
-          echo "PUT 状态码: $HTTP_CODE"
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "APK 上传成功"
-          else
-            echo "APK 上传失败"
-            cat /tmp/put_result.txt
-            exit 1
-          fi
+          headers = d.get('headers', {})
+          apk_path = os.environ['APK_PATH']
+
+          print(f"上传文件: {apk_path}")
+          print(f"文件大小: {os.path.getsize(apk_path)} 字节")
+          print("携带 header:")
+          for k, v in headers.items():
+              display = v if len(v) < 80 else v[:77] + '...'
+              print(f"  {k}: {display}")
+
+          with open(apk_path, 'rb') as f:
+              data = f.read()
+
+          req = urllib.request.Request(url, data=data, method='PUT')
+          for k, v in headers.items():
+              req.add_header(k, v)
+
+          try:
+              with urllib.request.urlopen(req, timeout=300) as resp:
+                  print(f"PUT 状态码: {resp.status}")
+                  body = resp.read().decode('utf-8', errors='replace')
+                  print("响应内容:", body[:500])
+                  print("APK 上传成功")
+          except urllib.error.HTTPError as e:
+              print(f"PUT 失败，HTTP 状态码: {e.code}")
+              print(e.read().decode('utf-8', errors='replace')[:1000])
+              sys.exit(1)
+          except Exception as e:
+              print(f"PUT 异常: {e}")
+              sys.exit(1)
+          PY
         shell: bash
 
-      # ---------- 6. 确认结果 ----------
       - name: Confirm AtomGit release
         env:
           TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
@@ -145,5 +151,13 @@ jobs:
           echo "===== 确认 AtomGit Release 状态 ====="
           curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/tags/$TAG" \
             -H "PRIVATE-TOKEN: $TOKEN" > /tmp/final.json
-          cat /tmp/final.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/final.json'))
+          print("名称:", d.get('name'))
+          print("状态:", d.get('release_status'))
+          print("附件:")
+          for a in d.get('assets', []) or []:
+              print("  -", a.get('name'), a.get('size'), "字节")
+          PY
         shell: bash
