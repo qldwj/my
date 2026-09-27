@@ -69,7 +69,9 @@ jobs:
           FIRST=$(echo $VERSION | awk -F. '{print $1}')
           SECOND=$(echo $VERSION | awk -F. '{print $2}')
           THIRD=$(echo $VERSION | awk -F. '{print $3}')
-          BUILD_CODE="${FIRST}0${SECOND}0${THIRD}9"
+          # ⚠️ 测试版 build code 用「000」段，必须小于同版本正式版（正式版用「900」段），
+          #    否则装过测试版的用户无法覆盖安装正式版（versionCode 只能递增）
+          BUILD_CODE="${FIRST}0${SECOND}0${THIRD}000"
           sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
           echo "✅ 测试版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
