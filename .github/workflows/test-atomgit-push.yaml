@@ -1,7 +1,8 @@
+
 name: "upload-240-from-my-to-atomgit"
 
-# 从 qldwj/my 仓库里找到 2.4.0 的 APK，上传到 AtomGit。
-# 用于验证 API 上传链路。
+# 从 qldwj/my 的 Release 资产下载 2.4.0 APK，上传到 AtomGit。
+# 验证 API 上传链路。
 
 on:
   workflow_dispatch:
@@ -10,48 +11,50 @@ on:
         description: '要上传的版本 tag'
         required: true
         default: '2.4.0'
+      gh_repo:
+        description: 'APK 所在的 GitHub 仓库'
+        required: true
+        default: 'qldwj/my'
 
 jobs:
   upload:
-    name: "从 my 仓库上传 2.4.0 到 AtomGit"
+    name: "上传 Release 资产到 AtomGit"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout qldwj/my
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # ---------- 1. 在仓库里找 APK ----------
-      - name: Find APK in repository
+      # ---------- 1. 从 GitHub Release 下载 APK ----------
+      - name: Download APK from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.event.inputs.gh_repo }}
+          TAG: ${{ github.event.inputs.tag }}
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          echo "===== 搜索仓库内的 APK 文件 ====="
-          find . -name "*.apk" -not -path "./.git/*" -type f -exec ls -lh {} \; > /tmp/apk_list.txt
-          cat /tmp/apk_list.txt
-
-          COUNT=$(wc -l < /tmp/apk_list.txt)
-          echo "找到 $COUNT 个 APK 文件"
+          mkdir -p release_assets
+          echo "===== 下载 $REPO 的 Release $TAG 中的 APK ====="
+          gh release download "$TAG" \
+            --repo "$REPO" \
+            --pattern "*.apk" \
+            --dir release_assets
+          echo "===== 下载结果 ====="
+          ls -lh release_assets/
+          COUNT=$(ls release_assets/*.apk 2>/dev/null | wc -l)
           echo "APK_COUNT=$COUNT" >> $GITHUB_ENV
-
           if [ "$COUNT" -eq 0 ]; then
-            echo "仓库里没有 APK 文件，尝试查看该 tag 下的文件："
-            git ls-tree -r "$TAG" --name-only | grep -i "\.apk" || echo "该 tag 下也没有 APK"
+            echo "没有下载到 APK"
             exit 1
           fi
         shell: bash
 
-      # ---------- 2. 选定要上传的 APK ----------
+      # ---------- 2. 选定 APK ----------
       - name: Select APK
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          # 优先选文件名里含 tag 的，否则取第一个
-          SELECTED=$(grep -i "$TAG" /tmp/apk_list.txt | head -1 | awk '{print $NF}' || true)
-          if [ -z "$SELECTED" ]; then
-            SELECTED=$(head -1 /tmp/apk_list.txt | awk '{print $NF}')
-          fi
-          echo "选定 APK: $SELECTED"
-          echo "APK_PATH=$SELECTED" >> $GITHUB_ENV
+          APK=$(ls release_assets/*.apk | head -1)
+          echo "选定 APK: $APK"
+          echo "APK_PATH=$APK" >> $GITHUB_ENV
+          echo "APK_NAME=$(basename $APK)" >> $GITHUB_ENV
         shell: bash
 
       # ---------- 3. 创建 AtomGit Tag ----------
@@ -100,11 +103,10 @@ jobs:
         run: |
           set -e
           APK_FILE="${{ env.APK_PATH }}"
-          FILE_NAME=$(basename "$APK_FILE")
+          FILE_NAME="${{ env.APK_NAME }}"
           echo "准备上传: $APK_FILE ($FILE_NAME)"
           ls -lh "$APK_FILE"
 
-          # 获取 OBS 签名上传地址
           curl -s "https://api.atomgit.com/api/v5/repos/qldwi/Kazumi/releases/$TAG/upload_url?file_name=$FILE_NAME" \
             -H "PRIVATE-TOKEN: $TOKEN" > /tmp/upload_url.json
           echo "===== upload_url 响应 ====="
