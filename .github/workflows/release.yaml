@@ -3,11 +3,16 @@ name: "build-release" # 正式版构建
 # 正式版流程：
 # - tag 不带后缀（v2.3.9）
 # - 发布为正式 release（不加 --prerelease）
-# - 推 GitCode、发 TG 通知
+# - 推 AtomGit、发 TG 通知
 #
 # 构建号规则：主版本 1 位 + 次版本 2 位补零 + 修订号 2 位补零 + 类型 2 位
 # 正式版类型为 09，测试版为 00。
 # 例如 2.3.9 → 正式版 2030909，测试版 2030900。
+#
+# AtomGit 信息：
+# - 用户名: qldwi
+# - 仓库路径: qldwi/Kazumi
+# - Secret 名称: ATOMGIT_TOKEN
 
 on:
   workflow_dispatch:
@@ -59,7 +64,7 @@ jobs:
           BUILD_CODE="${FIRST}${SECOND}${THIRD}09"
           sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
-          echo "✅ 正式版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
+          echo "正式版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
         shell: bash
 
       - name: Install dependencies
@@ -101,16 +106,16 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yhdm.jks
           if [ ! -s yhdm.jks ]; then
-            echo "❌ Keystore 解码失败，请检查 KEYSTORE_BASE64"
+            echo "Keystore 解码失败，请检查 KEYSTORE_BASE64"
             exit 1
           fi
-          echo "✅ Keystore 解码成功"
+          echo "Keystore 解码成功"
         shell: bash
 
       - name: Validate keystore (optional)
         run: |
           keytool -list -keystore yhdm.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" > /dev/null 2>&1 || {
-            echo "⚠️ Keystore 验证失败，但签名可能仍会成功，继续..."
+            echo "Keystore 验证失败，但签名可能仍会成功，继续..."
           }
         shell: bash
 
@@ -168,7 +173,7 @@ jobs:
           $APKSIGNER verify YHDM_android_${{ env.tag }}.apk
         shell: bash
 
-      # ========== 发布到 App 读取的正式仓库（Kazumikfc） ==========
+      # ========== 发布到 App 读取的正式仓库（GitHub: qldwj/Kazumikfc） ==========
       - name: Release to Kazumikfc
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -186,22 +191,46 @@ jobs:
           gh release create "$TAG" \
             --repo "$REPO" \
             --title "v$TAG" \
-            --notes " 樱花动漫 正式版 v$TAG" \
+            --notes "樱花动漫 正式版 v$TAG" \
             YHDM_android_${{ env.tag }}.apk
         shell: bash
 
-      # ========== 推送到 GitCode（根据你的实际仓库和认证方式调整） ==========
-      - name: Push to GitCode
+      # ========== 推送到 AtomGit（atomgit.com，仓库 qldwi/Kazumi） ==========
+      #
+      # AtomGit 用户名: qldwi
+      # AtomGit 仓库路径: qldwi/Kazumi
+      # 需要的 Secret: ATOMGIT_TOKEN（AtomGit 访问令牌）
+      - name: Push to AtomGit
         env:
-          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+          ATOMGIT_TOKEN: ${{ secrets.ATOMGIT_TOKEN }}
         run: |
-          # 示例：推送到 GitCode 镜像仓库
-          # 请将下面的地址替换为你的 GitCode 仓库地址
-          git remote add gitcode https://gitcode.com/qldwj/Kazumikfc.git
-          git push https://oauth2:${GITCODE_TOKEN}@gitcode.com/qldwj/Kazumikfc.git HEAD:main --tags
+          set -e
+          if [ -z "$ATOMGIT_TOKEN" ]; then
+            echo "ATOMGIT_TOKEN 未配置，跳过 AtomGit 推送"
+            exit 0
+          fi
+
+          ATOMGIT_USER="qldwi"
+          ATOMGIT_REPO="qldwi/Kazumi"
+          REMOTE_URL="https://${ATOMGIT_USER}:${ATOMGIT_TOKEN}@atomgit.com/${ATOMGIT_REPO}.git"
+
+          echo "准备推送到 AtomGit：${ATOMGIT_REPO}"
+
+          # 先测远程是否可达，避免直接 403
+          if ! git ls-remote "$REMOTE_URL" &>/dev/null; then
+            echo "无法访问 AtomGit 仓库，请检查："
+            echo "1. AtomGit 上是否已创建 ${ATOMGIT_REPO}"
+            echo "2. ATOMGIT_TOKEN 是否是 AtomGit 的令牌（不是 GitHub 的）"
+            echo "3. 令牌是否有仓库读写权限"
+            exit 1
+          fi
+
+          git remote remove atomgit 2>/dev/null || true
+          git remote add atomgit "$REMOTE_URL"
+          git push atomgit HEAD:main --tags --force
         shell: bash
 
-      # ========== 发送 Telegram 通知（根据你的实际 bot 和 chat id 调整） ==========
+      # ========== 发送 Telegram 通知 ==========
       - name: Send Telegram notification
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
