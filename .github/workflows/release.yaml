@@ -32,13 +32,18 @@ jobs:
         shell: bash
 
       - name: Sync version to api_endpoints.dart + pubspec.yaml
+        # ⚠️ 版本号（build code）规则：正式版必须大于同版本的测试版
+        #   测试版(2.4.0-beta)  = 20400000（末尾 000 段）
+        #   正式版(2.4.0)       = 20400900（末尾 900 段）
+        #   → 装过测试版的用户可以直接覆盖安装正式版（versionCode 递增）
+        #   且正式版 900 段始终大于历史任何已发布的测试版（如旧的 2040092）
         run: |
           VERSION="${{ github.event.inputs.version }}"
           FIRST=$(echo $VERSION | awk -F. '{print $1}')
           SECOND=$(echo $VERSION | awk -F. '{print $2}')
           THIRD=$(echo $VERSION | awk -F. '{print $3}')
-          BUILD_CODE="${FIRST}0${SECOND}0${THIRD}0"
-          sed -i "s/static const String version = '[^']*'/static const String version = '$VERSION'/" lib/request/config/api_endpoints.dart
+          BUILD_CODE="${FIRST}0${SECOND}0${THIRD}900"
+          sed -i "s/static const String version = '[^']*'/static const String version = '$VERSION'/\" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $VERSION+$BUILD_CODE/" pubspec.yaml
           echo "✅ 版本号已同步: $VERSION (构建号: $BUILD_CODE)"
         shell: bash
