@@ -61,11 +61,15 @@ jobs:
           SECOND=$(echo $VERSION | awk -F. '{print $2}')
           THIRD=$(echo $VERSION | awk -F. '{print $3}')
           # 补零对齐：次版本和修订号各占 2 位
-          FIRST=$(printf "%d" "$FIRST")
+          # --- 构建号规则（固定 9 位）---
+          # 主2 + 次2 + 修2 + 渠道3 = 9 字符；渠道：正式 092 / 验证 091 / 测试 090
+          # Android versionCode 只能存整数，前导 0 自动去掉（2.4.1 正式 = 020401092 -> 20401092）
+          # 同版本下 正式 > 验证 > 测试，跨版本单调递增，覆盖安装方向永远正确
+          FIRST=$(printf "%02d" "$FIRST")
           SECOND=$(printf "%02d" "$SECOND")
           THIRD=$(printf "%02d" "$THIRD")
-          # 正式版构建号末尾 09
-          BUILD_CODE="${FIRST}${SECOND}${THIRD}09"
+          BUILD_CODE_PAD="${FIRST}${SECOND}${THIRD}092"
+          BUILD_CODE=$((10#$BUILD_CODE_PAD))
           sed -i "s/static const String version = '[^']*'/static const String version = '$FULL_VERSION'/" lib/request/config/api_endpoints.dart
           sed -i "s/^version: .*/version: $FULL_VERSION+$BUILD_CODE/" pubspec.yaml
           echo "正式版版本号已同步: $FULL_VERSION (构建号: $BUILD_CODE)"
