@@ -167,8 +167,20 @@ class KazumiSyncService {
       int historyCount = 0;
 
       // 3. 覆盖本地收藏
-      // 先清空
-      GStorage.collectibles.clear();
+      // 🛡️ 保护：云端没有任何收藏而本地有 → 视为「云端是空的」，拒绝覆盖，
+      // 否则一次误点下载就把本机追番清空（用户反馈的“重启后收藏全丢”主因之一）
+      final bool cloudEmpty =
+          collectList.isEmpty && historyList.isEmpty && settings.isEmpty;
+      if (cloudEmpty &&
+          (GStorage.collectibles.isNotEmpty || GStorage.histories.isNotEmpty)) {
+        return [
+          '⚠️ 云端数据为空，已取消覆盖（本机收藏 ${GStorage.collectibles.length} 条、历史 ${GStorage.histories.length} 条未动）',
+        ];
+      }
+      // 🛡️ 覆盖前先快照，误覆盖后可在「我的-同步设置」一键回退
+      await GStorage.snapshotBeforeOverwrite();
+      await GStorage.collectibles.clear();
+      await GStorage.collectibles.flush();
       for (final item in collectList) {
         if (item is! Map) continue;
         final bangumiItem = BangumiItem(
@@ -207,7 +219,8 @@ class KazumiSyncService {
 
       // 4. 覆盖本地历史（使用协调器）
       await HistoryStorageCoordinator().run(() async {
-        GStorage.histories.clear();
+        await GStorage.histories.clear();
+        await GStorage.histories.flush();
         for (final raw in historyList) {
           if (raw is! Map) continue;
           final remoteTime = (raw['lastWatchTime'] as num?)?.toInt() ?? 0;

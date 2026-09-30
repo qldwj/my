@@ -53,6 +53,10 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       return;
     }
     final dirLabel = upload ? '上传' : '下载';
+    // 🛡️ 「下载=云端覆盖本机」前先快照，避免误点导致收藏丢失
+    if (!upload) {
+      await GStorage.snapshotBeforeOverwrite();
+    }
     setState(() => _busy = true);
     final done = <String>[];
     final failed = <String>[];
@@ -259,6 +263,25 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                   ],
                                 ),
                               ),
+                              // 展开箭头
+                              IconButton(
+                                icon: Icon(
+                                  _oneWayExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                                onPressed: () => setState(
+                                    () => _oneWayExpanded = !_oneWayExpanded),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 上传 / 下载 单独一行（原来挤在标题行里把文字压成竖排）
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                          child: Row(
+                            children: [
                               // 上传 / 下载 两个按钮
                               FilledButton.tonalIcon(
                                 onPressed: _busy
@@ -275,17 +298,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 icon: const Icon(Icons.download_rounded, size: 16),
                                 label: const Text('下载'),
                               ),
-                              // 展开箭头
-                              IconButton(
-                                icon: Icon(
-                                  _oneWayExpanded
-                                      ? Icons.keyboard_arrow_up_rounded
-                                      : Icons.keyboard_arrow_down_rounded,
-                                  color: colors.onSurfaceVariant,
-                                ),
-                                onPressed: () => setState(
-                                    () => _oneWayExpanded = !_oneWayExpanded),
-                              ),
                             ],
                           ),
                         ),
@@ -296,6 +308,24 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                             child: Column(
                               children: [
+                                if (GStorage.hasSnapshot)
+                                  ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: const Icon(Icons.restore_rounded, size: 18),
+                                    title: Text(
+                                      '上一次覆盖前备份过本机收藏，点此恢复（当前快照 ${GStorage.snapshotCollectCount} 条）',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    onTap: () async {
+                                      final n = await GStorage
+                                          .restoreCollectiblesFromSnapshot();
+                                      if (!mounted) return;
+                                      KazumiDialog.showToast(
+                                          message: '已恢复 $n 条收藏');
+                                      setState(() {});
+                                    },
+                                  ),
                                 const Divider(height: 1),
                                 _switchTile(
                                   title: '观看记录',

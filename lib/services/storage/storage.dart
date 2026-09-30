@@ -29,6 +29,10 @@ class GStorage {
   /// 🆕 通知屏蔽列表：键=番剧ID（String），值为番剧名（方便展示）。屏蔽后不再推送该番的更新提醒。
   static late Box<String> notifyMuted;
 
+  // 🆕 收藏/历史快照箱（覆盖型同步前自动备份，可一键回退）
+  static late Box<CollectedBangumi> collectiblesBak;
+  static late Box<History> historiesBak;
+
   /// Hive directory path, initialized during init()
   static String? _hivePath;
 
@@ -161,6 +165,41 @@ class GStorage {
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
     notifyMuted = await _openBoxSafe<String>('notifyMuted');
+    collectiblesBak =
+        await _openBoxSafe<CollectedBangumi>('collectiblesBak');
+    historiesBak = await _openBoxSafe<History>('historiesBak');
+  }
+
+  /// 🆕 覆盖型同步（云端→本机）前调用：把当前收藏/历史整体快照一份
+  static Future<void> snapshotBeforeOverwrite() async {
+    try {
+      await collectiblesBak.clear();
+      await collectiblesBak.putAll(collectibles.toMap());
+      await collectiblesBak.flush();
+      await historiesBak.clear();
+      await historiesBak.putAll(histories.toMap());
+      await historiesBak.flush();
+      KazumiLogger().i(
+        'GStorage: snapshot ok (collect=${collectibles.length}, history=${histories.length})',
+      );
+    } catch (e) {
+      KazumiLogger().e('GStorage: snapshot failed', error: e);
+    }
+  }
+
+  /// 🆕 是否已有可用快照
+  static bool get hasSnapshot => collectiblesBak.isNotEmpty;
+
+  static int get snapshotCollectCount => collectiblesBak.length;
+
+  /// 🆕 用快照回退收藏（只回退收藏，历史体积大不默认回退）
+  static Future<int> restoreCollectiblesFromSnapshot() async {
+    if (!hasSnapshot) return 0;
+    final bak = collectiblesBak.toMap();
+    await collectibles.clear();
+    await collectibles.putAll(bak);
+    await collectibles.flush();
+    return collectibles.length;
   }
 
   /// Open a Hive box with automatic recovery on corruption.
@@ -175,6 +214,14 @@ class GStorage {
 
       // 🆕 先抢救能读出的记录：一条坏记录不再让整箱数据陪葬
       final salvaged = await _salvageBox<T>(boxName);
+
+      // 先把“坏箱”原样另存一份再重建：salvage 失败时还有人工抢救机会
+      try {
+        final src = File('$_hivePath/$boxName.hive');
+        if (await src.exists()) {
+          await src.copy('$_hivePath/$boxName.hive.corrupted-${DateTime.now().millisecondsSinceEpoch}');
+        }
+      } catch (_) {}
 
       // Delete the corrupted box files
       await _deleteBoxFiles(boxName);
