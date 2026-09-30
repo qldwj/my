@@ -323,7 +323,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       final http.Response res;
                       try {
                         res = await http.post(
-                          Uri.parse('https://qlyyz.xyz/api/comment.php?action=add'),
+                          Uri.parse('https://qlyyz.xyz/api/v0/comment.php?action=add'),
                           headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer $token',

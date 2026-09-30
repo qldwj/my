@@ -394,7 +394,7 @@ class PlayerController implements Disposable {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
       final res = await http.post(
-        Uri.parse('https://qlyyz.xyz/api/progress.php?action=save_progress'),
+        Uri.parse('https://qlyyz.xyz/api/v0/progress.php?action=save_progress'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

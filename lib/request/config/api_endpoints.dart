@@ -2,7 +2,7 @@ import 'package:kazumi/services/storage/storage.dart';
 
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.3.5';
+  static const String version = '2.4.1';   // ⚠️ 必须与 pubspec.yaml 一致（更新检查以它为准）
 
   /// 规则API级别
   static const int apiLevel = 9;
@@ -28,7 +28,7 @@ class ApiEndpoints {
   static const String pluginMarketApi = 'https://qlyyz.xyz/json/api.php';
 
   /// 自建弹幕接口
-  static const String danmakuApi = 'https://qlyyz.xyz/api/danmaku.php';
+  static const String danmakuApi = 'https://qlyyz.xyz/api/v0/danmaku.php';
 
   /// 在线升级（最新正式版）
   static const String latestApp =

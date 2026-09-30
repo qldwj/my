@@ -51,13 +51,13 @@ class CustomCommentItem {
   }
 }
 
-/// 自建评论 API（对接 qlyyz.xyz/api/comment.php）
+/// 自建评论 API（对接 qlyyz.xyz/api/v0/comment.php）
 ///
 /// 来源 source='server'；我的服务器评论优先于 Bangumi 评论显示
 class CustomCommentApi {
   CustomCommentApi._();
 
-  static const String baseUrl = 'https://qlyyz.xyz/api/comment.php';
+  static const String baseUrl = 'https://qlyyz.xyz/api/v0/comment.php';
 
   static Future<Map<String, dynamic>> _post(
     String action,

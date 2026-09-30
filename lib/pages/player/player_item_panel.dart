@@ -204,6 +204,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               children: [
                 TextButton(
                   onPressed: () {
+                    // 中文输入法候选词未上屏时，第一下点击会被输入法吃掉：
+                    // 先 clearComposing()（等价于「上屏」）再发送，一次点击即可发出。
+                    textController.clearComposing();
                     unawaited(_submitDanmakuText(textController.text));
                   },
                   style: TextButton.styleFrom(

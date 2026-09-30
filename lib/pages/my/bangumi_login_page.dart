@@ -16,7 +16,7 @@ class BangumiLoginPage extends StatefulWidget {
 }
 
 class _BangumiLoginPageState extends State<BangumiLoginPage> {
-  static const String _authBaseUrl = 'https://qlyyz.xyz/api/bangumi_oauth';
+  static const String _authBaseUrl = 'https://qlyyz.xyz/api/v1/bangumi_oauth';
   static const String _redirectUri = 'yhdm://bangumi-auth';
 
   StreamSubscription<Uri>? _linkSub;

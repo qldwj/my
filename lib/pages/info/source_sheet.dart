@@ -271,10 +271,17 @@ class _SourceSheetState extends State<SourceSheet>
   Future<void> _playWithSource(Plugin plugin, SearchItem searchItem) async {
     if (!mounted) return;
     final cancelToken = RuleCancelToken();
+    // 用户是否主动关掉了「获取中」（点外部 / 返回键）
+    bool userClosed = false;
     KazumiDialog.showLoading(
       msg: '获取中',
-      barrierDismissible: isDesktop(),
-      onDismiss: cancelToken.cancel,
+      // 原来手机上是 barrierDismissible: false，导致只能干等，
+      // 返回键还会连带触发自动选源重试 -> 表现为「一直要按返回」
+      barrierDismissible: true,
+      onDismiss: () {
+        userClosed = true;
+        cancelToken.cancel();
+      },
     );
     try {
       final roads = await plugin.queryChapterRoads(
@@ -285,7 +292,7 @@ class _SourceSheetState extends State<SourceSheet>
         throw ChapterErrorException(plugin.name);
       }
       KazumiDialog.dismiss();
-      if (!mounted) return;
+      if (userClosed || !mounted) return;   // 用户已取消就不再进播放页
       context.pushNamed(
         '/video/',
         arguments: OnlineVideoPlaybackArgs(
@@ -299,6 +306,11 @@ class _SourceSheetState extends State<SourceSheet>
     } catch (_) {
       KazumiLogger().w("PluginSearchService: failed to query video playlist");
       KazumiDialog.dismiss();
+      if (userClosed) {
+        // 用户主动关闭：不再重新排自动选源定时器，否则会再次弹「获取中」
+        _autoSelected = false;
+        return;
+      }
       if (_autoSelected) {
         _autoSelected = false;
         if (mounted && GStorage.getSetting(SettingsKeys.autoSelectSource)) {

@@ -36,7 +36,7 @@ class WebAuthService {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 12);
       final req = await client.postUrl(
-          Uri.parse('https://qlyyz.xyz/api/webauth.php?action=create'));
+          Uri.parse('https://qlyyz.xyz/api/v1/webauth.php?action=create'));
       req.headers.set('Content-Type', 'application/json; charset=utf-8');
       req.headers.set('Authorization', 'Bearer $token');
       req.add(utf8.encode(jsonEncode({

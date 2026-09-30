@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/account_status_cache.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -31,17 +32,31 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   void initState() {
     super.initState();
     _profile = SocialService.restoreLocalProfile();
+    // 🆕 先用本地 Hive 缓存渲染，避免每次进页面都等服务器 login_status
+    final cached = AccountStatusCache.readStatus();
+    if (cached != null) {
+      _status = {
+        'has_qq': cached['has_qq'] == true,
+        'has_wechat': cached['has_wechat'] == true,
+        'has_telegram': cached['has_telegram'] == true,
+        'has_douyin': cached['has_douyin'] == true,
+      };
+    }
     _loadStatus();
   }
 
   Future<void> _loadStatus() async {
+    // 🆕 5 分钟内已有本地缓存就不再打服务器
+    if (!AccountStatusCache.shouldRefresh && AccountStatusCache.readStatus() != null) {
+      return;
+    }
     try {
       final token = AuthService.getLocalToken();
       if (token == null) return;
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 10);
       final request = await client.postUrl(
-        Uri.parse('https://qlyyz.xyz/api/login?action=login_status'));
+        Uri.parse('https://qlyyz.xyz/api/v1/login?action=login_status'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
       request.headers.set('Authorization', 'Bearer $token');
       request.add(utf8.encode('{}'));
@@ -59,6 +74,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             'has_douyin': d['has_douyin'] ?? false,
           };
         });
+        // 🆕 落到 Hive，下次进页面秒显示
+        AccountStatusCache.saveStatus(Map<String, dynamic>.from(d));
       }
     } catch (_) {}
   }
@@ -272,7 +289,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 10);
       final request = await client.postUrl(
-        Uri.parse('https://qlyyz.xyz/api/login?action=unbind_provider'));
+        Uri.parse('https://qlyyz.xyz/api/v1/login?action=unbind_provider'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
       request.headers.set('Authorization', 'Bearer $token');
       request.add(utf8.encode(jsonEncode({'provider': provider})));
@@ -281,6 +298,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       client.close();
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true) {
+        await AccountStatusCache.clear();   // 🆕 状态变了，缓存作废
         _loadStatus();
         KazumiDialog.showToast(message: '$name 已解绑');
       } else {

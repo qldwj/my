@@ -19,8 +19,8 @@ class QQLoginPage extends StatefulWidget {
 }
 
 class _QQLoginPageState extends State<QQLoginPage> {
-  static const String _verifyUrl = 'https://qlyyz.xyz/api/login?action=verify_app_token';
-  static const String _bindUrl = 'https://qlyyz.xyz/api/login?action=bind_provider';
+  static const String _verifyUrl = 'https://qlyyz.xyz/api/v1/login?action=verify_app_token';
+  static const String _bindUrl = 'https://qlyyz.xyz/api/v1/login?action=bind_provider';
 
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();
@@ -143,7 +143,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
     setState(() => _loading = true);
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
-      final uri = Uri.parse('https://qlyyz.xyz/api/oauth_login.php?action=login&provider=qq$bindParam');
+      final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=qq$bindParam');
       if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');

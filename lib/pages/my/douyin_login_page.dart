@@ -18,8 +18,8 @@ class DouyinLoginPage extends StatefulWidget {
 }
 
 class _DouyinLoginPageState extends State<DouyinLoginPage> {
-  static const String _verifyUrl = 'https://qlyyz.xyz/api/login?action=verify_app_token';
-  static const String _bindUrl = 'https://qlyyz.xyz/api/login?action=bind_provider';
+  static const String _verifyUrl = 'https://qlyyz.xyz/api/v1/login?action=verify_app_token';
+  static const String _bindUrl = 'https://qlyyz.xyz/api/v1/login?action=bind_provider';
 
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();
@@ -66,7 +66,7 @@ class _DouyinLoginPageState extends State<DouyinLoginPage> {
           if (currentToken != null) {
             final bindClient = HttpClient();
             bindClient.connectionTimeout = const Duration(seconds: 15);
-            final bindReq = await bindClient.postUrl(Uri.parse('https://qlyyz.xyz/api/login?action=bind_provider'));
+            final bindReq = await bindClient.postUrl(Uri.parse('https://qlyyz.xyz/api/v1/login?action=bind_provider'));
             bindReq.headers.set('Content-Type', 'application/json; charset=utf-8');
             bindReq.headers.set('Authorization', 'Bearer $currentToken');
             bindReq.add(utf8.encode(jsonEncode({'provider': bindProvider, 'app_token': bindToken})));
@@ -142,7 +142,7 @@ class _DouyinLoginPageState extends State<DouyinLoginPage> {
     setState(() => _loading = true);
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
-      final uri = Uri.parse('https://qlyyz.xyz/api/oauth_login.php?action=login&provider=douyin$bindParam');
+      final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=douyin$bindParam');
       if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');

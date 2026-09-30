@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/services/account_status_cache.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -110,17 +112,35 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   /// 刷新登录状态
   void _refreshLoginState() {
     _loggedIn = AuthService.isLoggedIn;
-    if (_loggedIn) _loadStatus(); // 只要已登录就加载状态
+    if (_loggedIn) {
+      // 🆕 先用本地 Hive 缓存渲染（含 6 项绑定状态）
+      final cached = AccountStatusCache.readStatus();
+      if (cached != null) {
+        _status = {
+          'has_qq': cached['has_qq'] == true,
+          'has_wechat': cached['has_wechat'] == true,
+          'has_telegram': cached['has_telegram'] == true,
+          'has_douyin': cached['has_douyin'] == true,
+          'has_bangumi': cached['has_bangumi'] == true,
+          'has_email': cached['has_email'] == true,
+        };
+      }
+      _loadStatus(); // 只要已登录就加载状态
+    }
     if (mounted) setState(() {});
   }
 
   Future<void> _loadStatus() async {
+    // 🆕 5 分钟内已有本地缓存就不再打服务器
+    if (!AccountStatusCache.shouldRefresh && AccountStatusCache.readStatus() != null) {
+      return;
+    }
     try {
       final token = AuthService.getLocalToken();
       if (token == null) return;
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 10);
-      final request = await client.postUrl(Uri.parse('https://qlyyz.xyz/api/login?action=login_status'));
+      final request = await client.postUrl(Uri.parse('https://qlyyz.xyz/api/v1/login?action=login_status'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
       request.headers.set('Authorization', 'Bearer $token');
       request.add(utf8.encode('{}'));
@@ -140,11 +160,114 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             'has_email': statusData['has_email'] ?? false,
           };
         });
+        // 🆕 落到 Hive
+        AccountStatusCache.saveStatus(statusData);
       }
     } catch (e) {}
   }
 
+  /// 🆕 换包名迁移：生成一次性迁移码给新 App 用
+  Future<void> _showTransferDialog() async {
+    KazumiDialog.showLoading(msg: '生成中');
+    final res = await AuthService.createTransferCode();
+    KazumiDialog.dismiss();
+    if (!mounted) return;
+    if (res['success'] != true) {
+      KazumiDialog.showToast(message: '${res['error'] ?? '生成失败'}');
+      return;
+    }
+    final code = (res['code'] ?? '').toString();
+    final min = ((res['expires_in'] ?? 600) as num).toInt() ~/ 60;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('迁移码已生成'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SelectableText(
+              code,
+              style: const TextStyle(
+                  fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '约 $min 分钟内有效、只能用一次。\n'
+              '在新版 App 的「账号」页点「我有迁移码」输入这串码，'
+              '即可直接继承当前登录，不用重新登录。',
+              style: TextStyle(
+                  fontSize: 13, color: Theme.of(ctx).colorScheme.outline),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: code));
+              if (ctx.mounted) Navigator.pop(ctx);
+              KazumiDialog.showToast(message: '迁移码已复制');
+            },
+            child: const Text('复制并关闭'),
+          ),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  /// 🆕 换包名迁移：输入迁移码，直接继承旧 App 的登录态
+  Future<void> _importTransferCode() async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('我有迁移码'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLength: 8,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                  hintText: '例如 7KQF2M8X', counterText: ''),
+            ),
+            const SizedBox(height: 4),
+            Text('迁移码在旧版 App「账号」页生成，10 分钟内有效、只能用一次。',
+                style: TextStyle(
+                    fontSize: 12, color: Theme.of(ctx).colorScheme.outline)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('立即迁移')),
+        ],
+      ),
+    );
+    final code = ctrl.text.trim();
+    ctrl.dispose();
+    if (ok != true || code.isEmpty || !mounted) return;
+    final done = await AuthService.consumeTransferCode(code);
+    if (!mounted) return;
+    if (done) {
+      KazumiDialog.showToast(message: '✅ 登录状态已迁移，无需重新登录');
+      try {
+        await SocialService.ensureProfileAfterLogin();
+      } catch (_) {}
+      _refreshLoginState();
+      setState(() {});
+    }
+  }
+
   void _logout() {
+    AccountStatusCache.clear();   // 🆕 退出登录必须清掉账号状态缓存
     AuthService.clearLocalToken();
     SocialService.clearProfileCache();
     GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
@@ -315,6 +438,16 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          // 🆕 换包名迁移：用旧 App 的迁移码直接继承登录态
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _importTransferCode,
+              icon: const Icon(Icons.input, size: 20),
+              label: const Text('我有迁移码'),
+            ),
+          ),
         ] else ...[
           // ========== 已登录：绑定状态列表 ==========
           _buildSectionTitle('账号绑定'),
@@ -377,6 +510,18 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             title: const Text('登录设备管理'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeviceSessionsPage())),
+          ),
+          const SizedBox(height: 8),
+          // 🆕 换包名迁移：给新 App 生成一次性迁移码
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: const Text('迁移到新 App（换包名）'),
+              subtitle: const Text('生成 10 分钟一次性迁移码，新 App 输入即可继承当前登录'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showTransferDialog,
+            ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -450,7 +595,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         if (token == null) return;
         final client = HttpClient();
         client.connectionTimeout = const Duration(seconds: 10);
-        final request = await client.postUrl(Uri.parse('https://qlyyz.xyz/api/login?action=unbind_provider'));
+        final request = await client.postUrl(Uri.parse('https://qlyyz.xyz/api/v1/login?action=unbind_provider'));
         request.headers.set('Content-Type', 'application/json; charset=utf-8');
         request.headers.set('Authorization', 'Bearer $token');
         request.add(utf8.encode(jsonEncode({'provider': provider})));
@@ -459,6 +604,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         client.close();
         final data = jsonDecode(body) as Map<String, dynamic>;
         if (data['success'] == true) {
+          await AccountStatusCache.clear();   // 🆕 缓存作废
           KazumiDialog.showToast(message: '$name 已解绑');
           await _loadStatus();
         } else {

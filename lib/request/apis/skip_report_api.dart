@@ -10,7 +10,7 @@ import 'package:kazumi/services/logging/logger.dart';
 class SkipReportApi {
   SkipReportApi._();
 
-  static const String baseUrl = 'https://qlyyz.xyz/api/skip.php';
+  static const String baseUrl = 'https://qlyyz.xyz/api/v0/skip.php';
 
   /// 上报：opMs/edMs 为该番片头/片尾毫秒（0 表示无）
   static Future<void> report({

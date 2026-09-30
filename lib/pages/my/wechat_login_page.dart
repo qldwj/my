@@ -18,8 +18,8 @@ class WechatLoginPage extends StatefulWidget {
 }
 
 class _WechatLoginPageState extends State<WechatLoginPage> {
-  static const String _verifyUrl = 'https://qlyyz.xyz/api/login?action=verify_app_token';
-  static const String _bindUrl = 'https://qlyyz.xyz/api/login?action=bind_provider';
+  static const String _verifyUrl = 'https://qlyyz.xyz/api/v1/login?action=verify_app_token';
+  static const String _bindUrl = 'https://qlyyz.xyz/api/v1/login?action=bind_provider';
 
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();
@@ -142,7 +142,7 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
     setState(() => _loading = true);
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
-      final uri = Uri.parse('https://qlyyz.xyz/api/oauth_login.php?action=login&provider=wechat$bindParam');
+      final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=wechat$bindParam');
       if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');

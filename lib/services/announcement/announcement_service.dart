@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class AnnouncementService {
-  static const String _apiUrl = 'https://qlyyz.xyz/api/notice?action=get';
+  static const String _apiUrl = 'https://qlyyz.xyz/api/v0/notice?action=get';
 
   static Future<void> checkAnnouncement() async {
     try {

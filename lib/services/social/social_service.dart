@@ -188,7 +188,7 @@ class SocialConversation {
 class SocialService {
   SocialService._();
 
-  static const String baseUrl = 'https://qlyyz.xyz/api/log/log.php';
+  static const String baseUrl = 'https://qlyyz.xyz/api/v1/log/log.php';
 
   /// 当前登录用户的本地资料缓存
   static SocialProfile? _myProfile;

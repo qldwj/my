@@ -13,7 +13,7 @@ import 'package:kazumi/services/logging/logger.dart';
 class AdminService {
   AdminService._();
 
-  static const String baseUrl = 'https://qlyyz.xyz/api/danmaku_admin.php';
+  static const String baseUrl = 'https://qlyyz.xyz/api/v0/danmaku_admin.php';
 
   /// 当前用户管理员状态缓存
   static ({bool admin, String headTitle})? _cache;

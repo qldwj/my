@@ -317,7 +317,11 @@ class AutoUpdater {
     try {
       final asset = getUpdateAssetForType(updateInfo.assets, InstallationType.androidApk);
       final downloadUrl = getUpdateDownloadUrlFromAsset(asset);
-      if (downloadUrl.isEmpty) return;
+      if (downloadUrl.isEmpty) {
+        // 找不到可下载包时必须回退成弹窗，否则「静默模式」下永远没有任何提示
+        _showUpdateDialog(updateInfo, isAutoCheck: true);
+        return;
+      }
 
       final fileName = 'Kazumi-${updateInfo.version}.apk';
       final tempDir = await getTemporaryDirectory();
@@ -326,6 +330,11 @@ class AutoUpdater {
 
       if (await file.exists()) {
         KazumiLogger().i('Update: APK already downloaded: $filePath');
+        // 原来这里直接 return，不写 pending 标记 -> 下次启动也不会提示安装，
+        // 表现就是「进软件从来不检查更新」。
+        await GStorage.putSetting(
+            SettingsKeys.pendingUpdateVersion, updateInfo.version);
+        await GStorage.putSetting(SettingsKeys.pendingUpdatePath, filePath);
         return;
       }
 
@@ -337,6 +346,8 @@ class AutoUpdater {
       await GStorage.putSetting(SettingsKeys.pendingUpdatePath, filePath);
     } catch (e) {
       KazumiLogger().w('Update: silent download failed', error: e);
+      // 静默下载失败不能静吞，否则用户等不到更新提示
+      _showUpdateDialog(updateInfo, isAutoCheck: true);
     }
   }
 

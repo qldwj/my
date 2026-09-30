@@ -5,7 +5,7 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 
 class EpisodeCommentService {
-  static const String _baseUrl = 'https://qlyyz.xyz/api/episode_comment.php';
+  static const String _baseUrl = 'https://qlyyz.xyz/api/v0/episode_comment.php';
 
   static Future<Map<String, dynamic>> addComment({
     required int subjectId, required int episode, required String content, String? avatar,

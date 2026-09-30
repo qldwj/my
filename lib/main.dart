@@ -325,7 +325,7 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
     final request = await client.postUrl(
-      Uri.parse('https://qlyyz.xyz/api/login?action=verify_app_token'),
+      Uri.parse('https://qlyyz.xyz/api/v1/login?action=verify_app_token'),
     );
     request.headers.set('Content-Type', 'application/json; charset=utf-8');
     request.add(utf8.encode(jsonEncode({
@@ -348,7 +348,7 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
         final bindClient = HttpClient();
         bindClient.connectionTimeout = const Duration(seconds: 10);
         final bindReq = await bindClient.postUrl(
-          Uri.parse('https://qlyyz.xyz/api/login?action=sync_bindinfo'));
+          Uri.parse('https://qlyyz.xyz/api/v1/login?action=sync_bindinfo'));
         bindReq.headers.set('Content-Type', 'application/json; charset=utf-8');
         bindReq.headers.set('Authorization', 'Bearer ${data['token']}');
         bindReq.add(utf8.encode(jsonEncode({

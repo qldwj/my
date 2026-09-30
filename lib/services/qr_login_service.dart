@@ -8,7 +8,7 @@ import 'dart:io';
 class QrLoginService {
 
   static const String base =
-      "https://qlyyz.xyz/api/qr/";
+      "https://qlyyz.xyz/api/v1/qr/";
 
   static const String scheme = "yhdmgz";
 
