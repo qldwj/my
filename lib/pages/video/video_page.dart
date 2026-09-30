@@ -800,19 +800,26 @@ class _VideoPageState extends State<VideoPage>
                       ],
                     ),
                     if (isLandscape && videoPageController.showTabBody) ...[
-                      if (disableAnimations) ...[
-                        sideTabMask,
-                        sideTabBody,
-                      ] else ...[
-                        FadeTransition(
-                          opacity: _maskOpacityAnimation,
-                          child: sideTabMask,
-                        ),
-                        SlideTransition(
-                          position: _rightOffsetAnimation,
-                          child: sideTabBody,
-                        ),
-                      ],
+                      // 显式 Positioned：避免面板/遮罩命中区域与绘制位置不一致
+                      Positioned.fill(
+                        child: disableAnimations
+                            ? sideTabMask
+                            : FadeTransition(
+                                opacity: _maskOpacityAnimation,
+                                child: sideTabMask,
+                              ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: disableAnimations
+                            ? sideTabBody
+                            : SlideTransition(
+                                position: _rightOffsetAnimation,
+                                child: sideTabBody,
+                              ),
+                      ),
                     ],
                   ],
                 )),
@@ -1491,14 +1498,24 @@ class _VideoPageState extends State<VideoPage>
                 clipBehavior: Clip.hardEdge,
                 child: InkWell(
                   onTap: () async {
-                    if (count0 == videoPageController.selectedEpisode.episode &&
-                        videoPageController.selectedEpisode.road ==
-                            visibleRoad) {
+                    final bool sameEpisode =
+                        count0 == videoPageController.selectedEpisode.episode &&
+                            visibleRoad ==
+                                videoPageController.selectedEpisode.road;
+                    // 横屏点「没反应」时靠这行日志定位（是否命中、面板/全屏状态）
+                    KazumiLogger().i(
+                        'VideoPageController: tap episode ep=$count0 road=$visibleRoad'
+                        ' url=$urlItem'
+                        ' selected=${videoPageController.selectedEpisode.episode}'
+                        '/${videoPageController.selectedEpisode.road}'
+                        ' sideTab=$_isSideTabLayout'
+                        ' fullscreen=${videoPageController.isFullscreen}');
+                    _closeTabBodyAnimated();
+                    if (sameEpisode) {
+                      // 原来直接 return，用户看到的就是「点了没反应」
+                      KazumiDialog.showToast(message: '已经是当前剧集');
                       return;
                     }
-                    KazumiLogger()
-                        .i('VideoPageController: video URL is $urlItem');
-                    _closeTabBodyAnimated();
                     changeEpisode(count0, currentRoad: visibleRoad);
                   },
                   child: Padding(

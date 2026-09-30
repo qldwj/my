@@ -1,5 +1,27 @@
 # 更新公告
 
+## v2.4.1 (20401900)
+
+### 🐛 修复
+- **横屏不能选集**：横屏选集面板改为显式 `Positioned` 定位（遮罩铺满、面板贴右），命中区域与绘制位置一致；点当前集不再「无反应」，会提示「已经是当前剧集」，并加了一行 tap 日志方便回捞
+- **中文输入法时点「发送」发不出弹幕**：发送前先 `clearComposing()`，候选词未上屏时一次点击即可发出
+- **进入软件不检查/不提示更新**：静默下载「APK 已存在」时现在也会写入 pending 标记（下次进入即提示安装）；找不到安装包或下载失败时回退为直接弹更新框，不再静吞
+- **网页授权没点同意就被跳走并报错**：冷启动深链最多等 3 秒拿到可用 context；拿不到就留在 App 内提示，不再跳浏览器报 `unknown`；用户直接按返回退出授权页时静默取消，不再报 `denied`
+- **下线「聊天室 / 看番赚金币」功能**：服务端从未部署 `api/chat`（房间消息在 `v0/watch.php` 的 `chat`、私信在 `v1/log/log.php`），故删除 `chat_room_page.dart`、`task_center_page.dart` 两个无入口页面，以及播放页 `_earnCoins` 每 5 分钟上报金币的死请求（连带清掉失效的 `dart:convert`、`auth_service` import）
+- **「获取中」要连按好几次返回**：手机端加载框允许点外部/返回关闭，关闭即取消请求；取消后不再进播放页、也不再重排自动选源定时器（原来会立刻再弹一次「获取中」）
+
+### 🔧 其它
+- **🆕 换包名迁移桥（为下一版做准备）**：新增服务端 `api/v1/transfer.php`（一次性迁移码：8 位、10 分钟有效、一次一用、每账号最多 5 个、按 IP 限失败次数、全程留痕；独立 `storage/v1/transfer.db`，不改 `kazumi.db` 表结构）。
+  - 旧 App：「账号」页 →「迁移到新 App（换包名）」生成迁移码（可一键复制）
+  - 新 App：「账号」页 →「我有迁移码」输入，或深链 `yhdmgz://transfer?code=XXXXXXXX` 自动继承
+  - 原理：服务端 token 不校验包名/签名/UA，所以换包名后同一 token 直接可用 → **不用重新登录**，收藏/历史靠云同步拉回
+- **账号绑定状态本地缓存（Hive）**：新增 `AccountStatusCache`（存 `setting` 盒，键 `accountStatusCache`/`accountStatusAt`，带 token 的 sha256 归属签名防串号）。进「我的 / 编辑资料 / 账号绑定」先用本地缓存秒显示，**5 分钟内不再请求 `api/v1/login?action=login_status`**；解绑、退出登录立即清缓存
+- **移除从未接入的 GitHub 登录死代码**：`AuthService.oauthAuthorizeUrl()`（零调用、client id 还是占位符）与深链 `yhdmgz://oauthgithub` 分支删除；`auth_service` 里硬编码的已废弃回调 `api/qqgithub.php` 一并清掉
+- 后端接口全面迁到 `api/v0`（功能类：弹幕/评论/剧集评论/跳过/进度/一起看/公告/代理/搜索）与 `api/v1`（账号类：登录/OAuth/网页授权/扫码/社交/同步）；搜索端点由 `subjects` 更名为 `search`
+- `ApiEndpoints.version` 与 `pubspec.yaml` 统一为 2.4.1（更新检查以它为准，两处不一致会导致永远提示更新或永远不提示）
+
+---
+
 ## v2.4.0-beta (2040090)
 
 ### 🆕 网页版授权登录（webauth）重做

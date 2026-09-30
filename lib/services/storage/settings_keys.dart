@@ -932,6 +932,18 @@ class SettingsKeys {
     group: SettingGroup.misc,
   );
 
+  // 🆕 账号绑定状态本地缓存（不进导出/重置列表：纯缓存，可随时丢弃）
+  static const accountStatusCache = SettingKey<String>(
+    'accountStatusCache',
+    '',
+    group: SettingGroup.sync,
+  );
+  static const accountStatusAt = SettingKey<int>(
+    'accountStatusAt',
+    0,
+    group: SettingGroup.sync,
+  );
+
   static final List<SettingKey<Object?>> all = [
     hAenable,
     autoSwitchSource,

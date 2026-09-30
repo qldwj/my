@@ -35,7 +35,7 @@ class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
 
   /// 通过代理请求 Bangumi API（仅在开启 Bangumi 镜像时使用，仅用于评论）
-  static const String _proxyBase = 'https://qlyyz.xyz/api/proxy';
+  static const String _proxyBase = 'https://qlyyz.xyz/api/v0/proxy';
   static bool get _proxyEnabled =>
       GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 

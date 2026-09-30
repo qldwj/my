@@ -98,41 +98,35 @@ class DeepLinkService {
   /// 处理深链（规则分享 yhdmgz:// 或登录回调 yhdm:// 或 https App Links）
   /// 🆕 网页版授权登录：整页确认授权 → 申请 code → 跳回浏览器（不再用弹窗）
   Future<void> _handleWebAuth(WebAuthRequest req) async {
-    // 未登录 → 提示先登录
+    // 未登录 → 只提示，不跳浏览器（未点「同意授权」前一律不跳）
     if (AuthService.getLocalToken() == null) {
-      _showToast('请先在 App 内登录樱花动漫账号');
-      // 跳回浏览器并带错误
-      final back = WebAuthService.buildErrorCallback(
-        redirect: req.redirect,
-        error: 'not_logged_in',
-        state: req.state,
-      );
-      await _launchBrowser(back);
+      _showToast('请先在 App 内登录樱花动漫账号，再重新打开授权链接');
       return;
     }
 
     final appName = req.appName.isNotEmpty ? req.appName : '该网页';
 
     // 整页确认授权（模仿 QQ 授权页：白底 + 权限列表），点「同意授权」后直接跳回浏览器
-    final ctx = rootNavigatorKey.currentContext;
+    // 冷启动深链时首页可能还没 build 完，直接跳浏览器会让用户
+    // 「还没点同意就被跳走并报错」。这里最多等 ~3s 拿到可用 context。
+    BuildContext? ctx = rootNavigatorKey.currentContext;
+    for (int i = 0; i < 20; i++) {
+      if (ctx != null && ctx.mounted) break;
+      await Future.delayed(const Duration(milliseconds: 150));
+      ctx = rootNavigatorKey.currentContext;
+    }
     if (ctx == null || !ctx.mounted) {
-      final back = WebAuthService.buildErrorCallback(
-        redirect: req.redirect,
-        error: 'unknown',
-        state: req.state,
-      );
-      await _launchBrowser(back);
+      // 不再跳浏览器报错，留在 App 里提示，用户重开链接即可
+      _showToast('授权页面还没准备好，请在 App 内重新打开该链接');
       return;
     }
 
-    final decision = await WebAuthPage.push(ctx, request: req);
+    final decision = await WebAuthPage.push(ctx!, request: req);
+    // ⭐ 只有用户点了「同意授权」才跳回浏览器；
+    // 点「拒绝」或直接返回都留在 App，不再带着 error 把网页跳走
     if (decision != WebAuthDecision.approve) {
-      final back = WebAuthService.buildErrorCallback(
-        redirect: req.redirect,
-        error: 'denied',
-        state: req.state,
-      );
-      await _launchBrowser(back);
+      _showToast(
+          decision == WebAuthDecision.deny ? '你已拒绝该网页的授权' : '已取消授权');
       return;
     }
 
@@ -212,15 +206,13 @@ class DeepLinkService {
       return;
     }
 
-    // 🆕 GitHub / QQ OAuth 回调（登录或绑定；两个专属协议）
-    if (url.startsWith('yhdmgz://oauthgithub') ||
-        url.startsWith('yhdmgz://oauthqq')) {
+    // 🆕 QQ OAuth 回调（登录或绑定）；GitHub 登录未实现，已移除对应死分支
+    if (url.startsWith('yhdmgz://oauthqq')) {
       try {
         final uri = Uri.parse(url);
         final token = uri.queryParameters['token'];
         final bound = uri.queryParameters['bound'];
-        final provider = uri.queryParameters['provider'] ??
-            (url.startsWith('yhdmgz://oauthgithub') ? 'GitHub' : 'QQ');
+        final provider = uri.queryParameters['provider'] ?? 'QQ';
         final error = uri.queryParameters['error'];
         if (bound == '1') {
           _showToast('✅ 已绑定 $provider 账号');
@@ -247,6 +239,22 @@ class DeepLinkService {
       } catch (e) {
         KazumiLogger().e('DeepLink: OAuth 回调处理失败', error: e);
         _showToast('OAuth 登录失败：${e.toString()}');
+      }
+      return;
+    }
+
+    // 🆕 换包名迁移：yhdmgz://transfer?code=XXXXXXXX
+    if (url.startsWith('yhdmgz://transfer')) {
+      try {
+        final code = Uri.parse(url).queryParameters['code']?.trim() ?? '';
+        if (code.isEmpty) {
+          _showToast('缺少迁移码');
+          return;
+        }
+        final done = await AuthService.consumeTransferCode(code);
+        if (done) _showToast('✅ 登录状态已迁移，无需重新登录');
+      } catch (e) {
+        _showToast('迁移失败: $e');
       }
       return;
     }

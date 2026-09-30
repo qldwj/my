@@ -20,8 +20,8 @@ class TelegramLoginPage extends StatefulWidget {
 
 class _TelegramLoginPageState extends State<TelegramLoginPage> {
   static const String _botUsername = 'yhdmlogin_bot';
-  static const String _verifyUrl = 'https://qlyyz.xyz/api/login?action=verify_app_token';
-  static const String _bindUrl = 'https://qlyyz.xyz/api/login?action=bind_provider';
+  static const String _verifyUrl = 'https://qlyyz.xyz/api/v1/login?action=verify_app_token';
+  static const String _bindUrl = 'https://qlyyz.xyz/api/v1/login?action=bind_provider';
 
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();

@@ -42,11 +42,11 @@ class SavedAccount {
 
 /// 自定义登录/注册服务
 ///
-/// 原有接口路径保持不变（qlyyz.xyz/api/login）；
+/// 账号接口已迁到 v1（qlyyz.xyz/api/v1/login）；
 /// 🆕 新增的社交接口（好友/聊天/头像等）统一走 qlyyz.xyz/api/log/，
 /// 见 SocialService。
 class AuthService {
-  static const String baseUrl = 'https://qlyyz.xyz/api/login';
+  static const String baseUrl = 'https://qlyyz.xyz/api/v1/login';
 
   static String get _appId => bangumiMirrorCredentials['id'] ?? '';
   static String get _appKey => bangumiMirrorCredentials['value'] ?? '';
@@ -167,23 +167,6 @@ class AuthService {
       await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
     }
     return res;
-  }
-
-  /// 🆕 OAuth 客户端 ID（与 login.php 顶部配置一致，部署后替换）
-  static const String githubClientId = 'REPLACE_GITHUB_CLIENT_ID';
-  static const String qqClientId = 'REPLACE_QQ_CLIENT_ID';
-
-  /// 🆕 生成 GitHub 登录授权地址（QQ 已去除，仅 GitHub）
-  /// [bindToken] 传入当前登录 token 时是"绑定"流程，否则是"登录"流程
-  static String oauthAuthorizeUrl(String provider, {String? bindToken}) {
-    if (provider != 'github') return '';
-    final redirect = Uri.encodeComponent('https://qlyyz.xyz/api/qqgithub.php');
-    final state = bindToken ?? 'login';
-    return 'https://github.com/login/oauth/authorize'
-        '?client_id=Ov23li0JDXZtR2XZtQuc'
-        '&redirect_uri=$redirect'
-        '&scope=user'
-        '&state=$state';
   }
 
   /// 🆕 OAuth 账号绑定邮箱（把一次性 @oauth.local 邮箱换成真实邮箱）
@@ -424,6 +407,80 @@ class AuthService {
 
   static void clearLocalToken() {
     GStorage.putSetting(SettingsKeys.kazumiToken, '');
+  }
+
+  // ==================== 🆕 换包名迁移（一次性迁移码） ====================
+  //
+  // 背景：Android 应用私有目录按包名隔离，新包读不到旧包的 Hive `setting`
+  // 盒（登录 token 在里面）。服务端 token 不校验包名/签名/UA，所以用一次性
+  // 迁移码把同一个 token 递过去，就能「不用重新登录」。
+
+  static const String _transferApi = 'https://qlyyz.xyz/api/v1/transfer.php';
+
+  /// 旧 App：生成一次性迁移码（10 分钟有效、一次一用）
+  static Future<Map<String, dynamic>> createTransferCode() async {
+    final token = getLocalToken();
+    if (token == null) return {'success': false, 'error': '未登录'};
+    try {
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 10);
+      final request = await client.postUrl(Uri.parse('$_transferApi?action=create'));
+      request.headers.set('Authorization', 'Bearer $token');
+      request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      request.add(utf8.encode('{}'));
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final data = jsonDecode(body);
+      if (data is Map && data['success'] == true) {
+        return Map<String, dynamic>.from(data);
+      }
+      return {
+        'success': false,
+        'error': (data is Map ? data['error'] : null) ?? '生成失败',
+      };
+    } catch (e) {
+      KazumiLogger().e('Transfer: create failed', error: e);
+      return {'success': false, 'error': '网络错误: $e'};
+    }
+  }
+
+  /// 新 App：用迁移码换回同一个登录态（成功即写入本地 token）
+  static Future<bool> consumeTransferCode(String code) async {
+    final c = code.trim().toUpperCase();
+    if (c.isEmpty) return false;
+    try {
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 10);
+      final request = await client.postUrl(Uri.parse('$_transferApi?action=consume'));
+      request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      request.add(utf8.encode(jsonEncode({'code': c})));
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final data = jsonDecode(body);
+      if (data is! Map || data['success'] != true) {
+        KazumiDialog.showToast(
+            message: '${data is Map ? (data['error'] ?? '迁移码无效') : '迁移码无效'}');
+        return false;
+      }
+      final token = (data['token'] ?? '').toString();
+      if (token.isEmpty) {
+        KazumiDialog.showToast(message: '迁移失败：未取回登录态');
+        return false;
+      }
+      saveLocalToken(token);
+      final email = (data['email'] ?? '').toString();
+      if (email.isNotEmpty) await saveUserEmail(email);
+      await GStorage.putSetting(SettingsKeys.kazumiSyncEnable, true);
+      // 说明：AccountStatusCache 带 token 归属签名，换了 token 会自动失效，无需手动清
+      KazumiLogger().i('Transfer: login state migrated');
+      return true;
+    } catch (e) {
+      KazumiLogger().e('Transfer: consume failed', error: e);
+      KazumiDialog.showToast(message: '网络错误，迁移失败');
+      return false;
+    }
   }
 
   // ==================== 🆕 账号快速切换（持久保存） ====================
