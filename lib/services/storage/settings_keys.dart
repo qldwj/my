@@ -101,10 +101,10 @@ class SettingsKeys {
     60,
     group: SettingGroup.player,
   );
-  // 🆕 自动跳过片头/片尾（对齐 Animeko：到点自动跳，默认开启）
+  // 🆕 自动跳过片头/片尾：默认关闭，用户主动开启后才生效（避免首次进入就被自动跳）
   static const autoSkipOpEdEnabled = SettingKey<bool>(
     'autoSkipOpEdEnabled',
-    true,
+    false,
     group: SettingGroup.player,
   );
   static const hardwareDecoder = SettingKey<String>(

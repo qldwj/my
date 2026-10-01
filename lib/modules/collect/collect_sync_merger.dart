@@ -61,8 +61,22 @@ class CollectSyncMerger {
     required List<CollectedBangumi> remoteCollectibles,
     required List<CollectedBangumiChange> remoteChanges,
   }) {
-    final mergedCollectibles =
-        remoteCollectibles.map(_copyCollectible).toList();
+    // ⭐ 合并语义（v2）：取「云端 ∪ 本机」并集，删除以「显式 delete change」为准。
+    //   旧实现是「以云端为基底」，本机里只要有条目在云端不存在、又恰好
+    //   没有未推送的 add change（旧版本同步遗留 / 上次同步后已 push 但
+    //   云端被另一台设备覆盖回空），重启同步就会被悄悄清掉——
+    //   用户反馈的「上次追番了，下次启动就没了」就是这条。
+    final byId = <int, CollectedBangumi>{};
+    // 1. 先放本机（保留本机条目作为基线）
+    for (final item in localCollectibles) {
+      byId[item.bangumiItem.id] = _copyCollectible(item);
+    }
+    // 2. 云端覆盖（远端更新优先：同 id 取云端版本，云端独有的也补进来）
+    for (final item in remoteCollectibles) {
+      byId[item.bangumiItem.id] = _copyCollectible(item);
+    }
+
+    // 3. 把本机新增（未在云端出现的 change）按 action 应用，沿用旧逻辑
     final newLocalChanges = localChanges.where((localChange) {
       return !remoteChanges
           .any((remoteChange) => remoteChange.id == localChange.id);
@@ -71,8 +85,8 @@ class CollectSyncMerger {
 
     for (final change in newLocalChanges) {
       if (change.action == 3) {
-        mergedCollectibles
-            .removeWhere((item) => item.bangumiItem.id == change.bangumiID);
+        // 显式删除：本机里这条要删掉，云端有的也覆盖删
+        byId.remove(change.bangumiID);
         continue;
       }
 
@@ -89,20 +103,12 @@ class CollectSyncMerger {
         localCollectible.time,
         change.type,
       );
-      final index = mergedCollectibles.indexWhere(
-        (item) => item.bangumiItem.id == change.bangumiID,
-      );
-
-      if (change.action == 1) {
-        if (index == -1) {
-          mergedCollectibles.add(changedCollectible);
-        } else {
-          mergedCollectibles[index] = changedCollectible;
-        }
-      } else if (change.action == 2 && index != -1) {
-        mergedCollectibles[index] = changedCollectible;
-      }
+      // action==1 新增 / action==2 状态变更：都以本机最新状态写回
+      byId[change.bangumiID] = changedCollectible;
     }
+
+    final mergedCollectibles = byId.values.toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
 
     final mergedChanges = <int, CollectedBangumiChange>{
       for (final change in remoteChanges) change.id: change,

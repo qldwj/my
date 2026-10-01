@@ -139,8 +139,45 @@ class GStorage {
   /// Put a collectible using the same write queue
   static Future<void> putCollectible(CollectedBangumi collectible) {
     return _runCollectChangesWriteExclusive(() async {
-      await collectibles.put(collectible.bangumiItem.id, collectible);
+      final id = collectible.bangumiItem.id;
+      await collectibles.put(id, collectible);
       await collectibles.flush();
+      // ⭐ 写后校验（"追了下次没了"的根因排查）：
+      //   1) Hive 的 put 只是排到 write queue；flush 排空 write queue 并把
+      //      bytes 交给 RandomAccessFile，**不一定 fsync**。某些机型 / 进程
+      //      被 force-stop 时，会出现"UI 看着有、重启就丢"的现象。
+      //   2) 这里立即 get 回来比对：若内存 box 里都没有，说明 put 被吞了；
+      //      若 box 有但 id/type/name 不一致，说明 adapter 编解码异常。
+      //   3) 不一致时再 put + flush 一次兜底，并把警告打到日志，方便复现。
+      CollectedBangumi? verify;
+      try {
+        verify = collectibles.get(id);
+      } catch (e) {
+        KazumiLogger().e(
+          'GStorage: collectible 写后读回异常 id=$id',
+          error: e,
+        );
+      }
+      final bool ok = verify != null &&
+          verify.type == collectible.type &&
+          verify.bangumiItem.id == collectible.bangumiItem.id;
+      if (!ok) {
+        KazumiLogger().w(
+          'GStorage: collectible 写后校验失败 id=$id，重试一次'
+          '（type 期望=${collectible.type} 实际=${verify?.type}）',
+        );
+        await collectibles.put(id, collectible);
+        await collectibles.flush();
+        try {
+          final again = collectibles.get(id);
+          if (again == null) {
+            KazumiLogger().e(
+              'GStorage: collectible 二次写入后仍读不到 id=$id，'
+              '本机 Hive 可能未正确持久化（检查 /data/data/<pkg>/files/hive/collectibles.hive）',
+            );
+          }
+        } catch (_) {}
+      }
     });
   }
 
@@ -172,6 +209,18 @@ class GStorage {
     collectiblesBak =
         await _openBoxSafe<CollectedBangumi>('collectiblesBak');
     historiesBak = await _openBoxSafe<History>('historiesBak');
+
+    // ⭐ 启动诊断：收藏盘里到底有没有数据，一眼看出是"没写进去"还是"被覆盖"。
+    //   如果用户报"追番没了"，先看这条日志里 length 是不是和 UI 看到的一致。
+    try {
+      KazumiLogger().i(
+        'GStorage: booted. collectibles=${collectibles.length}, '
+        'bak=${collectiblesBak.length}, changes=${collectChanges.length}, '
+        'histories=${histories.length}, path=$_hivePath',
+      );
+    } catch (e) {
+      KazumiLogger().w('GStorage: 启动诊断读取异常', error: e);
+    }
   }
 
   /// 🆕 覆盖型同步（云端→本机）前调用：把当前收藏/历史整体快照一份
@@ -412,6 +461,18 @@ class GStorage {
       );
 
       // Update local storage
+      // 🛡️ 兜底防御：合并后为空但本机当前非空 → 拒绝覆盖。
+      //   正常双向合并不会出现这种情况（取并集），但任何上游数据异常
+      //   （云端被另一设备推空 / 解析失败 / adapter 抛错被吞）都不应该
+      //   把本机追番清空。用户反馈的"重启后收藏全没"就是这条路径。
+      final int localBefore = collectibles.length;
+      if (mergeResult.collectibles.isEmpty && localBefore > 0) {
+        KazumiLogger().w(
+          'WebDav: 合并结果为空但本机有 $localBefore 条收藏，拒绝覆盖；'
+          '请检查云端 collectibles.tmp / collectchanges.tmp 是否被异常推空',
+        );
+        return;
+      }
       // 🛡️ 覆盖前留一份快照，误同步可在「同步设置」里一键回退
       await snapshotBeforeOverwrite();
       await collectibles.clear();
