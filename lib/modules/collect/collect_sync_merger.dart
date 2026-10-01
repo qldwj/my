@@ -180,7 +180,7 @@ class CollectSyncMerger {
           BangumiUploadMutation(bangumiId: id, type: localMap[id]!.type),
         );
       }
-    } else {
+    } else if (priority == BangumiSyncPriority.bangumiFirst) {
       for (final id in mismatchIds) {
         conflictLocalUpdates.add(
           BangumiLocalMutation(
@@ -188,6 +188,24 @@ class CollectSyncMerger {
             changeAction: 2,
           ),
         );
+      }
+    } else if (priority == BangumiSyncPriority.timeFirst) {
+      for (final id in mismatchIds) {
+        final localTime = localMap[id]!.time;
+        final remoteTime = remoteMap[id]!.updatedAt;
+        if (localTime.isAfter(remoteTime) ||
+            localTime.isAtSameMomentAs(remoteTime)) {
+          conflictUploads.add(
+            BangumiUploadMutation(bangumiId: id, type: localMap[id]!.type),
+          );
+        } else {
+          conflictLocalUpdates.add(
+            BangumiLocalMutation(
+              collectible: _fromBangumiCollection(remoteMap[id]!),
+              changeAction: 2,
+            ),
+          );
+        }
       }
     }
 

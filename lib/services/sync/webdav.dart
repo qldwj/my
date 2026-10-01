@@ -70,6 +70,18 @@ class WebDav {
     }
   }
 
+  /// 官方 2.3.7 新增：统一开关 WebDAV。关闭主开关时连带关闭历史/收藏/弹幕护盾子开关。
+  Future<void> setEnabled(bool enabled) async {
+    if (enabled && !initialized) await init();
+    if (!enabled) {
+      // Collection sync reads its own flag independently of the master switch.
+      await GStorage.putSetting(SettingsKeys.webDavEnableHistory, false);
+      await GStorage.putSetting(SettingsKeys.webDavEnableCollect, false);
+      await GStorage.putSetting(SettingsKeys.webDavEnableDanmakuShield, false);
+    }
+    await GStorage.putSetting(SettingsKeys.webDavEnable, enabled);
+  }
+
   Future<T> _runWebDavExclusive<T>(Future<T> Function() action) {
     return _webDavOperationQueue.run(action);
   }

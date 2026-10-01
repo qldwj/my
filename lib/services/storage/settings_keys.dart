@@ -259,6 +259,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
+  // 官方 2.3.7 新增：弹幕简繁转换模式（0 不转换 / 1 简->繁 / 2 繁->简）
+  static const danmakuChConvert = SettingKey<int>(
+    'danmakuChConvert',
+    0,
+    group: SettingGroup.danmaku,
+  );
   static const danmakuFontWeight = SettingKey<int>(
     _SettingBoxKey.danmakuFontWeight,
     4,
@@ -362,6 +368,13 @@ class SettingsKeys {
         group: SettingGroup.proxy,
       );
 
+  // 官方 2.3.7：未设置时回退到旧镜像开关（enabled 默认）
+  static const bangumiAcceleration = SettingKey<String>(
+    'bangumiAcceleration',
+    '',
+    group: SettingGroup.proxy,
+  );
+
   static const enableSystemProxy = SettingKey<bool>(
     _SettingBoxKey.enableSystemProxy,
     false,
@@ -375,6 +388,12 @@ class SettingsKeys {
   static const isWideScreen = SettingKey<bool>(
     _SettingBoxKey.isWideScreen,
     false,
+    group: SettingGroup.interface,
+  );
+  // 官方 2.3.7：收藏页默认布局（list/grid），供收集视图使用
+  static const defaultCollectLayout = SettingKey<String>(
+    'defaultCollectLayout',
+    'list',
     group: SettingGroup.interface,
   );
   static const webDavEnable = SettingKey<bool>(
@@ -480,6 +499,12 @@ class SettingsKeys {
   static const syncPlayEndPoint = SettingKey<String>(
     _SettingBoxKey.syncPlayEndPoint,
     '127.0.0.1:8999',
+    group: SettingGroup.player,
+  );
+  // 官方 2.3.7：SyncPlay 显示用户名
+  static const syncPlayUserName = SettingKey<String>(
+    'syncPlayUserName',
+    '',
     group: SettingGroup.player,
   );
   /// 🆕 播放崩溃恢复点（JSON：番剧id/集数/位置/时间戳）

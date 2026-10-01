@@ -18,6 +18,7 @@ class NetworkImgLayer extends StatelessWidget {
     this.filterQuality = FilterQuality.high,
     this.color,
     this.colorBlendMode,
+    this.borderRadius,
   });
 
   final String? src;
@@ -31,6 +32,17 @@ class NetworkImgLayer extends StatelessWidget {
   final FilterQuality filterQuality;
   final Color? color;
   final BlendMode? colorBlendMode;
+  final BorderRadius? borderRadius;
+
+  BorderRadius get _borderRadius =>
+      borderRadius ??
+      BorderRadius.circular(
+        type == 'avatar'
+            ? 50
+            : type == 'emote'
+                ? 0
+                : StyleString.imgRadius.x,
+      );
 
   static Widget heroFlightShuttleBuilder(
     BuildContext flightContext,
@@ -90,13 +102,7 @@ class NetworkImgLayer extends StatelessWidget {
     return src != '' && src != null
         ? ClipRRect(
             clipBehavior: Clip.antiAlias,
-            borderRadius: BorderRadius.circular(
-              type == 'avatar'
-                  ? 50
-                  : type == 'emote'
-                      ? 0
-                      : StyleString.imgRadius.x,
-            ),
+            borderRadius: _borderRadius,
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               width: width,
@@ -138,11 +144,7 @@ class NetworkImgLayer extends StatelessWidget {
             Theme.of(context).colorScheme.surfaceContainerLow,
           ],
         ),
-        borderRadius: BorderRadius.circular(type == 'avatar'
-            ? 50
-            : type == 'emote'
-                ? 0
-                : StyleString.imgRadius.x),
+        borderRadius: _borderRadius,
       ),
       child: type == 'bg'
           ? const SizedBox()

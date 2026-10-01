@@ -75,3 +75,66 @@ class SyncPageIntro extends StatelessWidget {
     );
   }
 }
+
+class SyncFeedback extends StatelessWidget {
+  const SyncFeedback({
+    super.key,
+    required this.message,
+    this.error = false,
+    this.busy = false,
+    this.progress,
+  });
+
+  final String message;
+  final bool error;
+  final bool busy;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: error ? colors.errorContainer : colors.secondaryContainer,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  error
+                      ? Icons.error_outline_rounded
+                      : busy
+                          ? Icons.sync_rounded
+                          : Icons.check_circle_outline_rounded,
+                  size: 20,
+                  color: error
+                      ? colors.onErrorContainer
+                      : colors.onSecondaryContainer,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(message,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: error
+                              ? colors.onErrorContainer
+                              : colors.onSecondaryContainer)),
+                ),
+              ],
+            ),
+            if (busy) ...[
+              const SizedBox(height: 12),
+              LinearProgressIndicator(value: progress),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

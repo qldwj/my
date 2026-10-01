@@ -98,6 +98,9 @@ class ApiEndpoints {
   /// Bangumi Next API Domain
   static const String bangumiAPINextDomain = 'https://next.bgm.tv';
 
+  /// Bangumi 公共 API 宿主（传输层据此判断是否公网直连）
+  static const bangumiPublicApiHosts = {'api.bgm.tv', 'next.bgm.tv'};
+
   /// 每日放送
   static const String bangumiCalendar = '/p1/calendar';
 
@@ -142,6 +145,9 @@ class ApiEndpoints {
 
   /// 检索弹弹番剧元数据
   static const String dandanAPISearch = "/api/v2/search/anime";
+
+  /// 检索弹弹剧集元数据（按集数匹配）
+  static const String dandanAPISearchEpisodes = "/api/v2/search/episodes";
 
   /// 获取弹弹番剧元数据
   static const String dandanAPIInfo = "/api/v2/bangumi/";
