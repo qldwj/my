@@ -612,11 +612,12 @@ class _CollectPageState extends State<CollectPage>
     }
     final ThemeData theme = Theme.of(context);
     return Tab(
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(tab.text ?? ''),
-          const SizedBox(width: 6),
+          const SizedBox(height: 2),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
@@ -645,16 +646,14 @@ class _CollectPageState extends State<CollectPage>
           preferredSize: const Size.fromHeight(kTextTabBarHeight),
           child: Observer(
             builder: (context) {
-              final bool showAnimeCounter =
-                  GStorage.getSetting(SettingsKeys.showAnimeCounter);
               return TabBar(
                 controller: tabController,
-                tabs: showAnimeCounter
-                    ? [
-                        for (int i = 0; i < tabs.length; i++)
-                          _buildTabWithCount(tabs[i], _collectibleCounts[i]),
-                      ]
-                    : tabs,
+                tabs: [
+                  for (int i = 0; i < tabs.length; i++)
+                    _buildTabWithCount(tabs[i], _collectibleCounts[i]),
+                ],
+                labelPadding:
+                    const EdgeInsets.symmetric(vertical: 2),
                 indicatorColor: Theme.of(context).colorScheme.primary,
               );
             },
@@ -776,8 +775,6 @@ class _CollectPageState extends State<CollectPage>
           .where((c) => folderIds.contains(c.bangumiItem.id))
           .toList();
     }
-    final bool showAnimeCounter =
-        GStorage.getSetting(SettingsKeys.showAnimeCounter);
     List<Widget> gridViewList = [];
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
         List.generate(tabs.length, (_) => <CollectedBangumi>[]);
@@ -846,25 +843,6 @@ class _CollectPageState extends State<CollectPage>
                 },
               ),
             ),
-            if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 12),
-                      child: Text(
-                        '总计：${collectedBangumiRenderItem.length}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
       );
