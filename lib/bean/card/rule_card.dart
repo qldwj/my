@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/source_rating_widget.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.
@@ -12,6 +13,7 @@ class RuleCard extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.selected = false,
+    this.ratingSourceId,
   });
 
   final String title;
@@ -23,6 +25,9 @@ class RuleCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool selected;
+
+  /// 非空则在卡片上显示该源的稳定性评分（点击可打分）
+  final String? ratingSourceId;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +62,8 @@ class RuleCard extends StatelessWidget {
                         style: textTheme.bodySmall
                             ?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
+                    if (ratingSourceId != null)
+                      SourceRatingWidget(sourceId: ratingSourceId!),
                   ],
                 ),
               ),
