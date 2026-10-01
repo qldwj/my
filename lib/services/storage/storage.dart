@@ -30,6 +30,9 @@ class GStorage {
   static late Box<String> notifyMuted;
 
   // 🆕 收藏/历史快照箱（覆盖型同步前自动备份，可一键回退）
+  // 🆕 弹幕缓存箱（key: "<bangumiId>_<episode>"，value 为整包 JSON）
+  static late Box<String> danmakuCache;
+
   static late Box<CollectedBangumi> collectiblesBak;
   static late Box<History> historiesBak;
 
@@ -165,6 +168,7 @@ class GStorage {
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
     notifyMuted = await _openBoxSafe<String>('notifyMuted');
+    danmakuCache = await _openBoxSafe<String>('danmakuCache');
     collectiblesBak =
         await _openBoxSafe<CollectedBangumi>('collectiblesBak');
     historiesBak = await _openBoxSafe<History>('historiesBak');
@@ -343,10 +347,20 @@ class GStorage {
     KazumiLogger().i(
         'WebDav: restoring collectibles. tempCollectiblesBox length ${tempBoxItems.length}');
 
+    // 🛡️ 远端备份盒为空 → 绝不清空本机
+    if (tempBoxItems.isEmpty) {
+      KazumiLogger().w(
+          'WebDav: 远端备份为空，跳过覆盖（本机 ${collectibles.length} 条保留）');
+      await tempBox.close();
+      return;
+    }
+    await snapshotBeforeOverwrite();
     await collectibles.clear();
+    await collectibles.flush();
     for (var tempBoxItem in tempBoxItems) {
       await collectibles.put(tempBoxItem.key, tempBoxItem.value);
     }
+    await collectibles.flush();
     await tempBox.close();
   }
 
@@ -398,7 +412,10 @@ class GStorage {
       );
 
       // Update local storage
+      // 🛡️ 覆盖前留一份快照，误同步可在「同步设置」里一键回退
+      await snapshotBeforeOverwrite();
       await collectibles.clear();
+      await collectibles.flush();
       for (var collect in mergeResult.collectibles) {
         // ⚠️ 防御：WebDAV 远端盒子里的 type 可能是 0 或 >5（其他端/旧版本写入），
         // 直接入库会导致追番页 `type-1` 数组越界白屏，这里钳制到 1..5。

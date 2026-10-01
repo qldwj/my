@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 弹幕本地库
@@ -38,13 +39,21 @@ class DanmakuCacheService {
     try {
       final dir = await _ensureDir();
       final f = File('${dir.path}/${_fileName(bangumiId, episode)}');
-      await f.writeAsString(jsonEncode({
+      final payload = jsonEncode({
         'bangumiId': bangumiId,
         'episode': episode,
         'savedAt': DateTime.now().millisecondsSinceEpoch,
         'count': danmakus.length,
         'danmakus': danmakus,
-      }));
+      });
+      await f.writeAsString(payload);
+      // 🆕 再存一份进 Hive（danmakuCache 箱）：文件被系统清理/手动清缓存后仍能命中
+      try {
+        await GStorage.danmakuCache.put('${bangumiId}_$episode', payload);
+        await GStorage.danmakuCache.flush();
+      } catch (e) {
+        KazumiLogger().w('DanmakuCache: Hive 副本写入失败（不影响文件缓存）', error: e);
+      }
       KazumiLogger().i('DanmakuCache: 已缓存 ${danmakus.length} 条弹幕 '
           '(bgm=$bangumiId ep=$episode)');
     } catch (e) {
@@ -61,6 +70,12 @@ class DanmakuCacheService {
       final dir = await _ensureDir();
       final f = File('${dir.path}/${_fileName(bangumiId, episode)}');
       if (!await f.exists()) return null;
+      final hit = GStorage.danmakuCache.get('${bangumiId}_$episode');
+      if (hit != null && hit.isNotEmpty) {
+        final dh = jsonDecode(hit) as Map<String, dynamic>;
+        final lh = dh['danmakus'];
+        if (lh is List) return lh;
+      }
       final d = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
       final list = d['danmakus'];
       if (list is List && list.isNotEmpty) {
