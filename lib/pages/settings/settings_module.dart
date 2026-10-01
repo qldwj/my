@@ -14,8 +14,10 @@ import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/notification_settings_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
+import 'package:kazumi/pages/settings/proxy/api_proxy_page.dart';
 import 'package:kazumi/pages/settings/renderer_settings.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
+import 'package:kazumi/pages/my/feedback_page.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/webview_embed_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
@@ -54,6 +56,10 @@ final settingsModule = createModule(
             ..route('/interface',
                 child: (context, state) => const InterfaceSettingsPage())
             ..module(proxyModule)
+            ..route('/mirror-proxy',
+                child: (context, state) => const ApiProxyPage())
+            ..route('/feedback',
+                child: (context, state) => const FeedbackPage())
             ..route('/player/super',
                 child: (context, state) => const SuperResolutionSettings())
             ..module(webDavModule)

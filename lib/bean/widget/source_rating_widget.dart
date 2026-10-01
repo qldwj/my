@@ -16,16 +16,19 @@ class SourceRatingWidget extends StatefulWidget {
 
 class _SourceRatingWidgetState extends State<SourceRatingWidget> {
   SourceRating? _rating;
-  bool _loading = true;
+  late bool _loading;
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
+    // 有 10 分钟内的缓存 → 直接显示，不再闪「评分加载中」，列表重建也秒出
+    _loading = !SourceRatingService.hasCache(widget.sourceId);
     _load();
   }
 
   Future<void> _load() async {
+    if (!_loading) return;
     setState(() => _loading = true);
     final r = await SourceRatingService.fetch(widget.sourceId);
     if (!mounted) return;

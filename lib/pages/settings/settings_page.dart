@@ -3,9 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/pages/my/feedback_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
-import 'package:kazumi/pages/settings/proxy/api_proxy_page.dart';
 import 'package:kazumi/utils/constants.dart';
 
 /// 设置主页（总设置）
@@ -235,7 +233,7 @@ const List<_SettingsGroup> _settingsGroups = [
         icon: Icons.vpn_key_rounded,
         title: '镜像代理',
         description: '配置镜像域名、端点路径与图片加速',
-        page: ApiProxyPage(),
+        path: '/settings/mirror-proxy',
       ),
     ],
   ),
@@ -280,7 +278,7 @@ const List<_SettingsGroup> _settingsGroups = [
         icon: Icons.feedback_rounded,
         title: '意见反馈',
         description: '查看所有反馈及处理情况',
-        page: FeedbackPage(),
+        path: '/settings/feedback',
       ),
       SettingsEntrySpec(
         icon: Icons.info_outline_rounded,
