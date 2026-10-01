@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/social/social_service.dart';
@@ -76,7 +77,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
@@ -136,7 +137,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   Widget get characterInfoBody {
     if (loadingCharacter) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingIndicator());
     }
     if (characterFullItem.id == 0) {
       return GeneralErrorWidget(
@@ -279,7 +280,7 @@ class _CharacterPageState extends State<CharacterPage> {
             if (loadingComments) {
               return const SliverFillRemaining(
                 child: Center(
-                  child: CircularProgressIndicator(),
+                  child: LoadingIndicator(),
                 ),
               );
             }

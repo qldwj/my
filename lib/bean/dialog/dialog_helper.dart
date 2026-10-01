@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/navigation.dart';
@@ -113,7 +114,7 @@ class KazumiDialog {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(),
+                      const LoadingIndicator(),
                       const SizedBox(height: 16),
                       Text(
                         msg ?? 'Loading...',

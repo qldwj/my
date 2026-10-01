@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -188,7 +189,7 @@ class _MarketPageState extends State<MarketPage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingIndicator());
     }
     if (_loadFailed) {
       return Center(

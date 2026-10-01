@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -96,7 +97,7 @@ class _SpeedTestDialogState extends State<_SpeedTestDialog> {
       children: [
         const Padding(
           padding: EdgeInsets.all(20),
-          child: CircularProgressIndicator(),
+          child: LoadingIndicator(),
         ),
         Text('正在测试 ${widget.roads.length} 个线路...',
             style: theme.textTheme.bodyMedium),

@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/services/auth_service.dart';
@@ -285,7 +286,7 @@ class _YhdmgzQrScanPageState extends State<YhdmgzQrScanPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
+                    LoadingIndicator(color: Colors.white),
                     SizedBox(height: 16),
                     Text(
                       "正在登录...",

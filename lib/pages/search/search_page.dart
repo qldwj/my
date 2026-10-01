@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -370,7 +371,7 @@ class _SearchPageState extends State<SearchPage> {
 
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: LoadingIndicator());
               }
               int crossCount = 3;
               if (MediaQuery.sizeOf(context).width >

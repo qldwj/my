@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -180,7 +181,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingIndicator());
     }
     if (_loadFailed) {
       return _buildLoadError();

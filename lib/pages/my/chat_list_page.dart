@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class _ChatListPageState extends State<ChatListPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           : _conversations.isEmpty
               ? const Center(
                   child: GeneralEmptyState(

@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -194,7 +195,7 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
             if (_apiLoading)
               const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: LoadingIndicator()),
               )
             else if (_apiEntries.isNotEmpty) ...[
               // 与官方一致：展示 Bangumi 真实关联条目
@@ -326,7 +327,7 @@ class _RelatedSearchSectionState extends State<RelatedSearchSection> {
               if (_loading)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: LoadingIndicator()),
                 )
               else if (_results.isEmpty)
                 SliverFillRemaining(

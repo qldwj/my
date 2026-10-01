@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/playlist/playlist_module.dart';
@@ -103,7 +104,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           : _playlists.isEmpty
               ? Center(
                   child: Column(
@@ -219,7 +220,7 @@ class _PlaylistDetailPageState extends State<_PlaylistDetailPage> {
     return Scaffold(
       appBar: SysAppBar(title: Text(widget.playlist.name)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           : _items.isEmpty
               ? Center(
                   child: Column(

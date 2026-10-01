@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:kazumi/services/qr_login_service.dart';
@@ -57,7 +58,7 @@ class _YhdmgzCameraScanPageState extends State<YhdmgzCameraScanPage> {
             },
           ),
           if (loading)
-            const Center(child: CircularProgressIndicator()),
+            const Center(child: LoadingIndicator()),
         ],
       ),
     );
