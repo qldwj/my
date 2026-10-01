@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -295,9 +296,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         );
 
   Widget _buildLoading(ThemeData theme) => Center(
-        child: CircularProgressIndicator.adaptive(
-          valueColor: AlwaysStoppedAnimation<Color>(
-              theme.getCoreColor(CoreColorType.success)),
+        child: LoadingIndicator(color: theme.getCoreColor(CoreColorType.success),
         ),
       );
 

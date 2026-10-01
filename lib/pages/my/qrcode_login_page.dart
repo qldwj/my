@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -289,7 +290,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           // 未登录：显示二维码，让已登录的设备扫码把登录分享给本机
           : !_isLoggedIn
               ? _buildQrcodeMode(colorScheme)
@@ -350,7 +351,7 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
               ),
               if (_scanProcessing)
                 const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: LoadingIndicator(color: Colors.white),
                 ),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -71,7 +72,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
       body: (modes.isEmpty)
-          ? const CircularProgressIndicator()
+          ? const LoadingIndicator()
           : SettingsList(
               maxWidth: 1000,
               sections: [

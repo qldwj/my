@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -167,7 +168,7 @@ class _LogsPageState extends State<LogsPage> {
   Widget get buildBody {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: LoadingIndicator(),
       );
     }
 

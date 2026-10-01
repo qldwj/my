@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -730,7 +731,7 @@ class _TimelinePageState extends State<TimelinePage>
         if (timelineController.isLoading &&
             timelineController.bangumiCalendar.isEmpty) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: LoadingIndicator(),
           );
         }
         if (timelineController.isTimeOut) {

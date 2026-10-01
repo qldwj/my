@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -340,7 +341,7 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: LoadingIndicator())
                 : _messages.isEmpty
                     ? const Center(
                         child: Text('还没有消息，打个招呼吧 👋'),

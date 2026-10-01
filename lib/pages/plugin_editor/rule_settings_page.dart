@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -120,7 +121,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
               if (_loadingStar)
                 const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: LoadingIndicator()),
                 )
               else if (plugins.isEmpty)
                 const Padding(

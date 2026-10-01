@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -407,7 +408,7 @@ class _StatsPageState extends State<StatsPage> {
     return Scaffold(
       appBar: const SysAppBar(title: Text('观看统计')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

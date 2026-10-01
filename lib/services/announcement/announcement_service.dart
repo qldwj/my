@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:convert';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -212,7 +213,7 @@ class _HtmlContentViewState extends State<_HtmlContentView> {
         WebViewWidget(controller: _controller),
         if (_loading)
           const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: LoadingIndicator(),
           ),
       ],
     );

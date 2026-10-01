@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -209,7 +210,7 @@ class _CollectionBrowserPageState extends State<CollectionBrowserPage> {
 
   Widget _buildBody(ColorScheme colorScheme) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingIndicator());
     }
     if (_error != null) {
       return Center(

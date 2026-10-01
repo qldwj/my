@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
@@ -81,7 +82,7 @@ class _CommentListPageState extends State<CommentListPage> {
             // 评论列表
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: LoadingIndicator())
                   : _comments.isEmpty
                       ? const Center(child: Text('暂无评论', style: TextStyle(color: Colors.grey)))
                       : RefreshIndicator(

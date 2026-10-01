@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -519,7 +520,7 @@ class _SourceSheetState extends State<SourceSheet>
                 const SizedBox(height: 4),
                 Text(statusText, style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 24),
-                const CircularProgressIndicator(),
+                const LoadingIndicator(),
                 const SizedBox(height: 12),
                 Text(
                   detailText,
@@ -548,7 +549,7 @@ class _SourceSheetState extends State<SourceSheet>
   Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
     final status = widget.infoController.pluginSearchStatus[plugin.name];
     if (status == PluginSearchStatus.pending) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: LoadingIndicator());
     }
     if (status == PluginSearchStatus.captcha) {
       return GeneralErrorWidget(
@@ -920,7 +921,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                   if (imageUrl == null) {
                     return const Column(
                       children: [
-                        CircularProgressIndicator(),
+                        LoadingIndicator(),
                         SizedBox(height: 12),
                         Text('正在加载验证码图片...'),
                       ],

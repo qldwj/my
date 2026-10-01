@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -401,7 +402,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ],
             ),
             if (_isLoading)
-              const Center(child: CircularProgressIndicator())
+              const Center(child: LoadingIndicator())
             else if (_feedbacks.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(20),

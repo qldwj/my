@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
@@ -90,7 +91,7 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
               color: colorScheme.surfaceContainerLow,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: statementsText == null
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: LoadingIndicator())
                   : SingleChildScrollView(
                       controller: _scrollController,
                       padding: const EdgeInsets.all(20),
