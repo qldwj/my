@@ -7,7 +7,7 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/card/animeflow_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
@@ -790,13 +790,6 @@ class _CollectPageState extends State<CollectPage>
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }
-    int crossCount = 3;
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
-      crossCount = 5;
-    }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
-      crossCount = 6;
-    }
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
       gridViewList.add(
@@ -805,60 +798,52 @@ class _CollectPageState extends State<CollectPage>
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(StyleString.cardSpace,
                   StyleString.cardSpace, StyleString.cardSpace, 0),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  mainAxisSpacing: StyleString.cardSpace - 2,
-                  crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount: crossCount,
-                  mainAxisExtent:
-                      MediaQuery.of(context).size.width / crossCount / 0.65 +
-                          MediaQuery.textScalerOf(context).scale(32.0),
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    return collectedBangumiRenderItem.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
-                                onLongPress: () => _showShortcutMenu(
-                                    collectedBangumiRenderItem[index]
-                                        .bangumiItem),
-                              ),
-                              Positioned(
-                                right: 5,
-                                bottom: 5,
-                                child: showDelete
-                                    ? Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondaryContainer,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSecondaryContainer,
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ],
-                          )
-                        : null;
-                  },
-                  childCount: collectedBangumiRenderItem.isNotEmpty
-                      ? collectedBangumiRenderItem.length
-                      : 10,
-                ),
+              sliver: SliverList.separated(
+                itemCount: collectedBangumiRenderItem.isNotEmpty
+                    ? collectedBangumiRenderItem.length
+                    : 10,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (BuildContext context, int index) {
+                  return collectedBangumiRenderItem.isNotEmpty
+                      ? Stack(
+                          children: [
+                            AnimeFlowCard(
+                              bangumiItem: collectedBangumiRenderItem[index]
+                                  .bangumiItem,
+                              canTap: !showDelete,
+                              onLongPress: () => _showShortcutMenu(
+                                  collectedBangumiRenderItem[index]
+                                      .bangumiItem),
+                            ),
+                            Positioned(
+                              right: 5,
+                              bottom: 5,
+                              child: showDelete
+                                  ? Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: CollectButton(
+                                        bangumiItem:
+                                            collectedBangumiRenderItem[index]
+                                                .bangumiItem,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                      ),
+                                    )
+                                  : Container(),
+                            ),
+                          ],
+                        )
+                      : null;
+                },
               ),
             ),
             if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)

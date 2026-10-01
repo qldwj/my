@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/air_time_resolver.dart';
 
 /// 时间线番剧卡片
 class BangumiTimelineCard extends StatelessWidget {
@@ -198,6 +199,19 @@ class BangumiTimelineCard extends StatelessWidget {
             icon: Icons.how_to_vote_outlined,
             iconColor: colorScheme.onSurfaceVariant,
             label: bangumiItem.votes.toString(),
+            textStyle: metricStyle,
+          ),
+        // 🆕 播出时间指标：周X · MM-DD（本地推算），未开播显示🔒
+        if (AirTimeResolver.describe(bangumiItem).isNotEmpty)
+          buildMetric(
+            context,
+            icon: AirTimeResolver.isUpcoming(bangumiItem)
+                ? Icons.lock_clock_outlined
+                : Icons.check_circle_outline,
+            iconColor: AirTimeResolver.isUpcoming(bangumiItem)
+                ? colorScheme.onSurfaceVariant
+                : colorScheme.primary,
+            label: AirTimeResolver.describe(bangumiItem),
             textStyle: metricStyle,
           ),
       ],

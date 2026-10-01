@@ -970,6 +970,13 @@ class SettingsKeys {
     group: SettingGroup.sync,
   );
 
+  // 🆕 换包名迁移引导：true=用户已做过选择，之后不再弹。纯本地缓存。
+  static const migratePromptDone = SettingKey<bool>(
+    'migratePromptDone',
+    false,
+    group: SettingGroup.sync,
+  );
+
   static final List<SettingKey<Object?>> all = [
     hAenable,
     autoSwitchSource,

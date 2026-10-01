@@ -7,6 +7,7 @@ import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/migration_guide_service.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
@@ -169,6 +170,15 @@ class _InitPageState extends State<InitPage> {
       },
     ));
     _startDefaultPage();
+
+    // 🆕 换包名迁移引导：首次启动询问是否装过旧版，用过则填迁移码直接继承登录态
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          MigrationGuideService.maybeShow(context);
+        }
+      });
+    }
   }
 
   /// 桌面快捷方式点击：打开番剧详情页并自动弹出选源（点一下源即播放）
