@@ -7,6 +7,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/onboarding/steps/disclaimer_step.dart';
+import 'package:kazumi/pages/onboarding/steps/migration_step.dart';
 import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
 import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
 import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
@@ -38,7 +39,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   PluginsController get pluginsController => widget.pluginsController;
 
-  int get stepCount => Platform.isAndroid ? 4 : 3;
+  int get stepCount => Platform.isAndroid ? 5 : 4;
 
   @override
   void dispose() {
@@ -55,6 +56,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           if (mounted) setState(() => _disclaimerScrolled = true);
         },
       ),
+      const MigrationStep(),
       if (Platform.isAndroid)
         UpdateSourceStep(
           useGithubUpdate: useGithubUpdate,

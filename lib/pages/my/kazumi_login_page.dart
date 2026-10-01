@@ -177,7 +177,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       return;
     }
     final code = (res['code'] ?? '').toString();
-    final min = ((res['expires_in'] ?? 600) as num).toInt() ~/ 60;
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -193,7 +192,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             ),
             const SizedBox(height: 10),
             Text(
-              '约 $min 分钟内有效、只能用一次。\n'
+              '约 90 秒内有效、只能用一次。\n'
               '在新版 App 的「账号」页点「我有迁移码」输入这串码，'
               '即可直接继承当前登录，不用重新登录。',
               style: TextStyle(
@@ -236,7 +235,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   hintText: '例如 7KQF2M8X', counterText: ''),
             ),
             const SizedBox(height: 4),
-            Text('迁移码在旧版 App「账号」页生成，10 分钟内有效、只能用一次。',
+            Text('迁移码在旧版 App「账号」页生成，90 秒内有效、只能用一次。',
                 style: TextStyle(
                     fontSize: 12, color: Theme.of(ctx).colorScheme.outline)),
           ],
@@ -518,7 +517,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             child: ListTile(
               leading: const Icon(Icons.swap_horiz),
               title: const Text('迁移到新 App（换包名）'),
-              subtitle: const Text('生成 10 分钟一次性迁移码，新 App 输入即可继承当前登录'),
+              subtitle: const Text('生成 90 秒一次性迁移码，新 App 输入即可继承当前登录'),
               trailing: const Icon(Icons.chevron_right),
               onTap: _showTransferDialog,
             ),

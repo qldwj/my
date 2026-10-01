@@ -41,6 +41,9 @@ class _SearchPageState extends State<SearchPage> {
   SearchFilterState filterState = const SearchFilterState();
   bool _syncingSearchText = false;
 
+  /// 新搜索（按回车/提交）进行中：有旧列表时也显示齿轮加载覆盖
+  bool _searchingRefresh = false;
+
   @override
   void initState() {
     super.initState();
@@ -224,7 +227,12 @@ class _SearchPageState extends State<SearchPage> {
     setState(() => filterState = parsed);
     final normalizedValue = SearchParser.fromFilterState(parsed);
     _setSearchText(normalizedValue);
-    await searchPageController.searchBangumi(normalizedValue, type: 'init');
+    if (mounted) setState(() => _searchingRefresh = true);
+    try {
+      await searchPageController.searchBangumi(normalizedValue, type: 'init');
+    } finally {
+      if (mounted) setState(() => _searchingRefresh = false);
+    }
     if (searchController.isOpen) {
       searchController.closeView(normalizedValue);
     }
@@ -368,8 +376,9 @@ class _SearchPageState extends State<SearchPage> {
                 );
               }
 
-              if (searchPageController.isLoading &&
-                  searchPageController.bangumiList.isEmpty) {
+              if (_searchingRefresh ||
+                  (searchPageController.isLoading &&
+                      searchPageController.bangumiList.isEmpty)) {
                 return const Center(child: LoadingIndicator());
               }
               int crossCount = 3;

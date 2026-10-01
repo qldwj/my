@@ -417,7 +417,7 @@ class AuthService {
 
   static const String _transferApi = 'https://qlyyz.xyz/api/v1/transfer.php';
 
-  /// 旧 App：生成一次性迁移码（10 分钟有效、一次一用）
+  /// 旧 App：生成一次性迁移码（90 秒有效、一次一用）
   static Future<Map<String, dynamic>> createTransferCode() async {
     final token = getLocalToken();
     if (token == null) return {'success': false, 'error': '未登录'};
