@@ -14,7 +14,6 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/widgets/comment/comment_list.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 import 'package:url_launcher/url_launcher.dart';
@@ -109,7 +108,7 @@ class _SourceSheetState extends State<SourceSheet>
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
     _sourceTabController = TabController(
-      length: _filteredPlugins.length + 1,
+      length: _filteredPlugins.length,
       vsync: this,
     );
     _sourceTabController.addListener(() {
@@ -729,7 +728,7 @@ class _SourceSheetState extends State<SourceSheet>
                               _filterText = '';
                               _sourceTabController.dispose();
                               _sourceTabController = TabController(
-                                length: _filteredPlugins.length + 1,
+                                length: _filteredPlugins.length,
                                 vsync: this,
                               );
                             });
@@ -744,7 +743,7 @@ class _SourceSheetState extends State<SourceSheet>
                     _filterText = value.trim().toLowerCase();
                     _sourceTabController.dispose();
                     _sourceTabController = TabController(
-                      length: _filteredPlugins.length + 1,
+                      length: _filteredPlugins.length,
                       vsync: this,
                     );
                   });
@@ -832,12 +831,6 @@ class _SourceSheetState extends State<SourceSheet>
                       return buildPluginView(plugin, cardList);
                     },
                   ), // ← 这里 `}),` 正确：闭包后跟右括号和逗号
-                  CommentListPage(
-                    subjectId: widget.infoController.bangumiItem.id,
-                    animeName: widget.infoController.bangumiItem.nameCn.isNotEmpty
-                        ? widget.infoController.bangumiItem.nameCn
-                        : widget.infoController.bangumiItem.name,
-                  ),
                 ],
               ),
             ),
