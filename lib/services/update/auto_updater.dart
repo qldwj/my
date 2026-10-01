@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -296,6 +297,14 @@ class AutoUpdater {
   /// 节流：距上次自动检查 ≥12 小时才真正打 GitHub；同版本静默下载连续
   /// 失败 ≥3 次本日不再重试。手点「设置→关于→检查更新」走
   /// [manualCheckForUpdates]，不经过这里，不受任何限制。
+  ///
+  /// 升级感知：[ApiEndpoints.version]（即 pubspec 里的 version）变化时，
+  /// 自动清掉 lastAutoCheckAtMs + 失败计数 → 用户**升级到新版后第一次
+  /// 启动一定能看到下一个版本提示**，不会卡在"我刚装的版本"的节流窗口里。
+  ///
+  /// 行为：发现新版 → **始终弹更新对话框**（不再"静默吞掉"）。
+  /// silentDownload=true 时**对话框背后并行启动后台下载**，
+  /// 等用户下次启动看到「立即安装」时多半已下完，校验通过即可直装。
   Future<void> autoCheckForUpdates() async {
     try {
       await Future.delayed(const Duration(seconds: 3));
@@ -304,6 +313,24 @@ class AutoUpdater {
       if (autoUpdate != true) {
         KazumiLogger().i('Update: auto update not enabled, skipping');
         return;
+      }
+
+      // ⭐ 升级感知：本机版本号变化（首次安装 / 升级到新版 / 回滚）→
+      //   清空节流时间戳与失败计数，保证本次启动一定会去 GitHub 查一次。
+      final currentVersion = ApiEndpoints.version;
+      final lastSeenVersion =
+          GStorage.getSetting(SettingsKeys.lastCheckedCurrentVersion);
+      if (lastSeenVersion != currentVersion) {
+        KazumiLogger().i(
+          'Update: 检测到本机版本号变化 ($lastSeenVersion → $currentVersion)，'
+          '重置自动检查节流与失败计数',
+        );
+        await GStorage.putSetting(SettingsKeys.lastAutoCheckAtMs, 0);
+        await GStorage.putSetting(
+            SettingsKeys.silentDownloadFailVersion, '');
+        await GStorage.putSetting(SettingsKeys.silentDownloadFailCount, 0);
+        await GStorage.putSetting(
+            SettingsKeys.lastCheckedCurrentVersion, currentVersion);
       }
 
       // ⭐ 12 小时节流：避免每次启动都拉 GitHub + 反复触发整包下载，
@@ -325,31 +352,39 @@ class AutoUpdater {
 
       KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
-      if (updateInfo != null) {
-        final silentDownload =
-            GStorage.getSetting(SettingsKeys.silentDownload);
-        if (silentDownload == true && Platform.isAndroid) {
-          // ⭐ 同一版本连续失败计数：达到 3 次后本日不再无脑重试，
-          //   避免反复"已下载完成→立即安装→安装包无效"循环。
-          final failVer = GStorage.getSetting(
-              SettingsKeys.silentDownloadFailVersion);
-          final failCnt = GStorage.getSetting(
-              SettingsKeys.silentDownloadFailCount);
-          if (failVer == updateInfo.version && failCnt >= 3) {
-            KazumiLogger().w(
-              'Update: ${updateInfo.version} 已连续 $failCnt 次静默下载失败，'
-              '本次跳过自动重试（用户可在「设置→关于」手动更新）',
-            );
-          } else {
-            // 后台下载 APK，下次打开时提示安装
-            _silentDownloadApk(updateInfo);
-          }
-        } else {
-          _showUpdateDialog(updateInfo, isAutoCheck: true);
-        }
-      } else {
+      if (updateInfo == null) {
         KazumiLogger().i('Update: already up to date');
+        return;
       }
+
+      final silentDownload =
+          GStorage.getSetting(SettingsKeys.silentDownload);
+      bool willSilentDownload = false;
+      if (silentDownload == true && Platform.isAndroid) {
+        // ⭐ 同版本连续失败 ≥3 次：本日不再无脑重试，避免反复
+        //   「半截 APK → 立即安装 → 安装包无效」死循环。
+        final failVer =
+            GStorage.getSetting(SettingsKeys.silentDownloadFailVersion);
+        final failCnt =
+            GStorage.getSetting(SettingsKeys.silentDownloadFailCount);
+        if (failVer == updateInfo.version && failCnt >= 3) {
+          KazumiLogger().w(
+            'Update: ${updateInfo.version} 已连续 $failCnt 次静默下载失败，'
+            '本次跳过自动重试（用户可在「设置→关于」手动更新）',
+          );
+        } else {
+          willSilentDownload = true;
+          // 后台下载 APK，下次启动看到「立即安装」时多半已下完
+          unawaited(_silentDownloadApk(updateInfo));
+        }
+      }
+
+      // ⭐ **始终弹窗**：旧逻辑只在 silentDownload=false 时弹，于是
+      //   默认配置下用户首次进入 App 只看到后台下载、没有任何提示，
+      //   误以为"检测不工作、必须手动检查"。现在：发现新版必弹；
+      //   并行后台下载只是给后续「立即安装」做加速，不再吞掉对话框。
+      _showUpdateDialog(updateInfo,
+          isAutoCheck: true, silentDownloading: willSilentDownload);
     } catch (e) {
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
@@ -582,7 +617,10 @@ class AutoUpdater {
   }
 
   /// 显示更新对话框
-  void _showUpdateDialog(UpdateInfo updateInfo, {bool isAutoCheck = false}) {
+  /// [silentDownloading]=true 时附带一行"已在后台下载 vX 安装包"提示，
+  /// 这样自动检查路径也能弹窗告知用户，不再像以前那样静默吞掉。
+  void _showUpdateDialog(UpdateInfo updateInfo,
+      {bool isAutoCheck = false, bool silentDownloading = false}) {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
@@ -621,6 +659,27 @@ class AutoUpdater {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(updateInfo.description),
+                // ⭐ 自动检查 + 静默下载并行时的提示：用户既能立即看到
+                //   "有新版"，又知道后台已经在帮他下，下次启动会弹"立即安装"。
+                if (silentDownloading) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.cloud_download_outlined,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '已同时在后台下载 ${updateInfo.version} 安装包，'
+                          '下次进入 App 会自动提示安装；也可在此处点"立即下载"立刻获取。',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (updateInfo.publishedAt.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(

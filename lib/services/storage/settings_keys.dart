@@ -712,6 +712,14 @@ class SettingsKeys {
     0,
     group: SettingGroup.update,
   );
+  /// 记录"上一次自动检查时本机是哪个版本号"。当 [ApiEndpoints.version] 变化
+  /// （升级到新版 / 卸载重装 / 回滚），autoCheckForUpdates 据此重置节流时间戳
+  /// 与失败计数，保证升级后第一次启动一定能重新检测。
+  static const lastCheckedCurrentVersion = SettingKey<String>(
+    'lastCheckedCurrentVersion',
+    '',
+    group: SettingGroup.update,
+  );
 
   static const animekoRuleLastCheck = SettingKey<int>(
     'animekoRuleLastCheck',
