@@ -41,7 +41,7 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
   @override
   void write(BinaryWriter writer, BangumiItem obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
