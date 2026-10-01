@@ -235,7 +235,7 @@ class _PopularPageState extends State<PopularPage> {
     return SliverAppBar(
       pinned: true,
       stretch: true,
-      expandedHeight: 120,
+      expandedHeight: 170,
       elevation: 0,
       titleSpacing: 0,
       centerTitle: false,
@@ -246,7 +246,7 @@ class _PopularPageState extends State<PopularPage> {
         child: dtb.DragToMoveArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final double maxExtent = 120 - MediaQuery.of(context).padding.top;
+              final double maxExtent = 170 - MediaQuery.of(context).padding.top;
               final t = (1 -
                   ((constraints.maxHeight - kToolbarHeight) /
                           (maxExtent - kToolbarHeight))
@@ -257,35 +257,91 @@ class _PopularPageState extends State<PopularPage> {
               return Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 16, top: 8, bottom: 8, right: 60),
-                  child: SizedBox(
-                    height: 44,
-                    child: Observer(
-                      builder: (_) {
-                        final bool isTrend = popularController.currentTag == '';
-                        return InkWell(
-                          key: selectorKey,
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: showTagMenu,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
-                                style: theme.textTheme.headlineMedium!.copyWith(
-                                  fontWeight: fontWeight,
-                                  fontSize: fontSize,
+                  padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 第一行：标题（热门番组/标签选择）
+                      SizedBox(
+                        height: 40,
+                        child: Observer(
+                          builder: (_) {
+                            final bool isTrend = popularController.currentTag == '';
+                            return InkWell(
+                              key: selectorKey,
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: showTagMenu,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    isTrend ? '热门番组' : popularController.currentTag,
+                                    style: theme.textTheme.headlineMedium!.copyWith(
+                                      fontWeight: fontWeight,
+                                      fontSize: fontSize,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(Icons.keyboard_arrow_down,
+                                      size: fontSize, color: theme.iconTheme.color),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // 第二行：搜索框（横框，图标在框内）+ 历史 + 离线下载
+                      SizedBox(
+                        height: 42,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Material(
+                                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(22),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(22),
+                                  onTap: () => context.pushNamed('/search/'),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.search,
+                                            size: 20, color: theme.iconTheme.color),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '搜索番剧、番组或剧名',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.keyboard_arrow_down,
-                                  size: fontSize, color: theme.iconTheme.color),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              tooltip: '历史',
+                              onPressed: () => context.pushNamed('/settings/history/'),
+                              icon: const Icon(Icons.history),
+                            ),
+                            IconButton(
+                              tooltip: '离线下载',
+                              onPressed: () => context.pushNamed('/settings/download/'),
+                              icon: const Icon(Icons.download_outlined),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -298,14 +354,7 @@ class _PopularPageState extends State<PopularPage> {
 
   List<Widget> buildActions() {
     final isLoggedIn = AuthService.isLoggedIn;
-    final actions = <Widget>[
-      if (MediaQuery.of(context).orientation == Orientation.portrait)
-        IconButton(
-          tooltip: '搜索',
-          onPressed: () => context.pushNamed('/search/'),
-          icon: const Icon(Icons.search),
-        ),
-    ];
+    final actions = <Widget>[];
     // 🆕 已登录显示头像，未登录显示登录图标
     actions.add(
       IconButton(
