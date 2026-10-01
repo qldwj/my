@@ -75,19 +75,13 @@ abstract class _CollectController with Store {
       return;
     }
 
-    // 1. Sync with Bangumi if enabled
-    final bool syncSucceeded = await _syncBangumiCollectIfEnabled(
-      bangumiItem.id,
-      type,
-    );
-    if (!syncSucceeded) {
-      return;
-    }
-
     final int currentCollectType = getCollectType(bangumiItem);
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
-    // 2. ⭐ 先更新本地数据库，再同步樱花（保证上传的是最新状态）
+    // 1. ⭐ 本地优先：先落 Hive，再尝试远端同步。
+    //    旧逻辑是「Bangumi 同步失败就直接 return」，于是未登录 / token 失效 /
+    //    Bangumi 未初始化 / 网络差的用户点收藏后，界面上像成功了，
+    //    实际根本没写盘 → 退出重进收藏全没（用户反馈的主因）。
     await _collectCrudRepository.addCollectible(bangumiItem, type);
     await GStorage.appendCollectChange(
       bangumiId: bangumiItem.id,
@@ -95,6 +89,13 @@ abstract class _CollectController with Store {
       type: type,
     );
     loadCollectibles();
+
+    // 2. Bangumi 同步：失败只提示，不回滚本机（变更已入队，后续同步自动补）
+    final bool syncSucceeded =
+        await _syncBangumiCollectIfEnabled(bangumiItem.id, type);
+    if (!syncSucceeded) {
+      KazumiDialog.showToast(message: '已保存到本机，Bangumi 稍后自动补同步');
+    }
 
     // 3. Sync with Kazumi if enabled（本地已更新，上传最新 type）
     await _syncKazumiCollectIfEnabled();
@@ -206,7 +207,7 @@ abstract class _CollectController with Store {
 
     final bangumi = BangumiSyncService();
     if (!bangumi.initialized) {
-      KazumiDialog.showToast(message: 'Bangumi 未初始化，同步失败，已取消本次状态修改');
+      KazumiDialog.showToast(message: 'Bangumi 未初始化，本次只保存到本机，稍后自动重试');
       KazumiLogger().w(
         'Bangumi: immediate collect sync skipped because Bangumi is not initialized. '
         'bangumiId=$bangumiId, type=$localType',
@@ -223,7 +224,7 @@ abstract class _CollectController with Store {
         KazumiDialog.showToast(message: '已同步到 Bangumi');
         return true;
       } else if (!synced) {
-        KazumiDialog.showToast(message: '同步到 Bangumi 失败，已取消本次状态修改');
+        KazumiDialog.showToast(message: '同步到 Bangumi 失败，已保存本机，稍后自动重试');
         KazumiLogger().w(
           'Bangumi: immediate collect sync did not complete. bangumiId=$bangumiId, type=$localType',
         );
@@ -231,7 +232,7 @@ abstract class _CollectController with Store {
       }
       return true;
     } catch (e, stackTrace) {
-      KazumiDialog.showToast(message: '同步到 Bangumi 失败，已取消本次状态修改: $e');
+      KazumiDialog.showToast(message: '同步到 Bangumi 失败，已保存本机，稍后自动重试: $e');
       KazumiLogger().e(
         'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
         error: e,
