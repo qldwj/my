@@ -95,6 +95,14 @@ String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
   return '';
 }
 
+/// 读取 GitHub release asset 的 size（字节）。缺失时返回 0。
+int getUpdateFileSizeFromAsset(Map<String, dynamic>? asset) {
+  if (asset == null) return 0;
+  final s = asset['size'];
+  if (s is int) return s;
+  return int.tryParse(s?.toString() ?? '') ?? 0;
+}
+
 List<String> getUpdateFilePatterns(InstallationType installationType) {
   switch (installationType) {
     case InstallationType.windowsMsix:
@@ -284,6 +292,10 @@ class AutoUpdater {
   }
 
   /// 自动检查更新（只在启用自动更新时）
+  ///
+  /// 节流：距上次自动检查 ≥12 小时才真正打 GitHub；同版本静默下载连续
+  /// 失败 ≥3 次本日不再重试。手点「设置→关于→检查更新」走
+  /// [manualCheckForUpdates]，不经过这里，不受任何限制。
   Future<void> autoCheckForUpdates() async {
     try {
       await Future.delayed(const Duration(seconds: 3));
@@ -294,13 +306,44 @@ class AutoUpdater {
         return;
       }
 
+      // ⭐ 12 小时节流：避免每次启动都拉 GitHub + 反复触发整包下载，
+      //   进而留下半成品 APK → "立即安装→安装包无效"的死循环。
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final last = GStorage.getSetting(SettingsKeys.lastAutoCheckAtMs);
+      const throttle = Duration(hours: 12);
+      if (last > 0 && now - last < throttle.inMilliseconds) {
+        KazumiLogger().i(
+          'Update: 距上次自动检查 ${((now - last) ~/ 60000)} 分钟，'
+          '<${throttle.inHours}h 节流窗口，跳过 GitHub 探测；'
+          '仍会处理已存在的 pending 安装。',
+        );
+        // 节流命中也要让上次完整下载好的 APK 能被提示安装
+        await checkPendingUpdate();
+        return;
+      }
+      await GStorage.putSetting(SettingsKeys.lastAutoCheckAtMs, now);
+
       KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {
-        final silentDownload = GStorage.getSetting(SettingsKeys.silentDownload);
+        final silentDownload =
+            GStorage.getSetting(SettingsKeys.silentDownload);
         if (silentDownload == true && Platform.isAndroid) {
-          // 静默下载模式：后台下载APK，下次打开时提示安装
-          _silentDownloadApk(updateInfo);
+          // ⭐ 同一版本连续失败计数：达到 3 次后本日不再无脑重试，
+          //   避免反复"已下载完成→立即安装→安装包无效"循环。
+          final failVer = GStorage.getSetting(
+              SettingsKeys.silentDownloadFailVersion);
+          final failCnt = GStorage.getSetting(
+              SettingsKeys.silentDownloadFailCount);
+          if (failVer == updateInfo.version && failCnt >= 3) {
+            KazumiLogger().w(
+              'Update: ${updateInfo.version} 已连续 $failCnt 次静默下载失败，'
+              '本次跳过自动重试（用户可在「设置→关于」手动更新）',
+            );
+          } else {
+            // 后台下载 APK，下次打开时提示安装
+            _silentDownloadApk(updateInfo);
+          }
         } else {
           _showUpdateDialog(updateInfo, isAutoCheck: true);
         }
@@ -323,31 +366,128 @@ class AutoUpdater {
         return;
       }
 
+      final expectedHash = getUpdateFileHashFromAsset(asset ?? const {});
+      final expectedSize = getUpdateFileSizeFromAsset(asset);
       final fileName = 'Kazumi-${updateInfo.version}.apk';
       final tempDir = await getTemporaryDirectory();
       final filePath = '${tempDir.path}/$fileName';
       final file = File(filePath);
 
+      // ⭐ 已存在的文件**必须**做完整性校验。
+      //   旧逻辑只看 file.exists()，于是「上次下到一半 / 进程被杀 / 网络中断」
+      //   留下的半个 APK 会被当成"已下载完成"→ 写 pending → 下次启动
+      //   弹「立即安装」→ 包安装器报「安装包无效」。这正是用户反馈的现象。
       if (await file.exists()) {
-        KazumiLogger().i('Update: APK already downloaded: $filePath');
-        // 原来这里直接 return，不写 pending 标记 -> 下次启动也不会提示安装，
-        // 表现就是「进软件从来不检查更新」。
-        await GStorage.putSetting(
-            SettingsKeys.pendingUpdateVersion, updateInfo.version);
-        await GStorage.putSetting(SettingsKeys.pendingUpdatePath, filePath);
-        return;
+        final sane = await _isApkFileSane(file, expectedHash, expectedSize);
+        if (sane) {
+          KazumiLogger().i('Update: APK 已完整存在，写 pending: $filePath');
+          await GStorage.putSetting(
+              SettingsKeys.pendingUpdateVersion, updateInfo.version);
+          await GStorage.putSetting(
+              SettingsKeys.pendingUpdatePath, filePath);
+          return;
+        }
+        KazumiLogger().w(
+          'Update: 本机 $fileName 完整性校验未通过（半截/损坏/0 字节），删除并重下',
+        );
+        try {
+          await file.delete();
+        } catch (_) {}
       }
 
+      // ⭐ 原子下载：先下到 *.part，下载完校验通过再 rename 到正式名。
+      //   任何中断都只会在 *.part 上留下半截文件，正式路径不会出现
+      //   "存在但不完整"的状态。
+      final partFile = File('$filePath.part');
+      try {
+        if (await partFile.exists()) await partFile.delete();
+      } catch (_) {}
+
       KazumiLogger().i('Update: silent download started: $downloadUrl');
-      await _downloadClient.download(downloadUrl, filePath);
+      await _downloadClient.download(downloadUrl, partFile.path);
+
+      final sane =
+          await _isApkFileSane(partFile, expectedHash, expectedSize);
+      if (!sane) {
+        KazumiLogger().w(
+          'Update: silent download 完整性未通过，丢弃（不写 pending，下次重试）：$filePath',
+        );
+        try {
+          await partFile.delete();
+        } catch (_) {}
+        await _recordSilentDownloadFailure(updateInfo.version);
+        return;
+      }
+      await partFile.rename(filePath);
       KazumiLogger().i('Update: silent download completed: $filePath');
 
-      await GStorage.putSetting(SettingsKeys.pendingUpdateVersion, updateInfo.version);
-      await GStorage.putSetting(SettingsKeys.pendingUpdatePath, filePath);
+      await GStorage.putSetting(
+          SettingsKeys.pendingUpdateVersion, updateInfo.version);
+      await GStorage.putSetting(
+          SettingsKeys.pendingUpdatePath, filePath);
+      // ⭐ 下载成功，清掉该版本失败计数
+      await GStorage.putSetting(
+          SettingsKeys.silentDownloadFailVersion, '');
+      await GStorage.putSetting(SettingsKeys.silentDownloadFailCount, 0);
     } catch (e) {
       KazumiLogger().w('Update: silent download failed', error: e);
+      // ⭐ 累计同版本失败次数；autoCheckForUpdates 据此决定是否继续重试。
+      await _recordSilentDownloadFailure(updateInfo.version);
       // 静默下载失败不能静吞，否则用户等不到更新提示
       _showUpdateDialog(updateInfo, isAutoCheck: true);
+    }
+  }
+
+  /// 累计同版本的静默下载失败计数（达到 3 次后 auto check 会自动跳过该版本）
+  Future<void> _recordSilentDownloadFailure(String version) async {
+    try {
+      final prevVer =
+          GStorage.getSetting(SettingsKeys.silentDownloadFailVersion);
+      final prevCnt =
+          GStorage.getSetting(SettingsKeys.silentDownloadFailCount);
+      final newCnt = prevVer == version ? prevCnt + 1 : 1;
+      await GStorage.putSetting(
+          SettingsKeys.silentDownloadFailVersion, version);
+      await GStorage.putSetting(
+          SettingsKeys.silentDownloadFailCount, newCnt);
+      KazumiLogger().w('Update: 静默下载失败 第 $newCnt 次 版本=$version');
+    } catch (_) {}
+  }
+
+  /// APK 完整性校验：
+  ///  - 有 sha256（GitHub release asset.digest）→ 必须严格匹配；
+  ///  - 没 sha256 但有 size → 必须严格匹配；
+  ///  - 都没有 → 兜底要求 > 5MB（避免 0 字节 / 网络异常留下的半截文件
+  ///    被错判为可用）。
+  Future<bool> _isApkFileSane(
+      File file, String expectedHash, int expectedSize) async {
+    try {
+      if (!await file.exists()) return false;
+      final len = await file.length();
+      if (len <= 0) return false;
+      if (expectedHash.isNotEmpty) {
+        final actual = await calculateFileHash(file);
+        final ok = actual.toLowerCase() == expectedHash.toLowerCase();
+        if (!ok) {
+          KazumiLogger().w(
+            'Update: APK hash 不匹配 期望=$expectedHash 实际=$actual',
+          );
+        }
+        return ok;
+      }
+      if (expectedSize > 0) {
+        final ok = len == expectedSize;
+        if (!ok) {
+          KazumiLogger().w(
+            'Update: APK size 不匹配 期望=$expectedSize 实际=$len',
+          );
+        }
+        return ok;
+      }
+      return len > 5 * 1024 * 1024;
+    } catch (e) {
+      KazumiLogger().w('Update: APK 完整性校验异常', error: e);
+      return false;
     }
   }
 
@@ -361,6 +501,27 @@ class AutoUpdater {
 
       final file = File(pendingPath);
       if (!await file.exists()) {
+        GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+        GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+        return;
+      }
+      // ⭐ 兜底：pending 指向的 apk 必须 > 1MB 且可读，避免上次留半个 / 0 字节
+      //   的文件再次进入"立即安装"循环。
+      try {
+        final len = await file.length();
+        if (len < 1024 * 1024) {
+          KazumiLogger().w(
+            'Update: pending APK 文件尺寸过小 ($len B)，判定损坏，清掉 pending: $pendingPath',
+          );
+          GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+          GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+          try {
+            await file.delete();
+          } catch (_) {}
+          return;
+        }
+      } catch (e) {
+        KazumiLogger().w('Update: pending APK 读取失败，清掉 pending', error: e);
         GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
         GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
         return;
@@ -1063,6 +1224,23 @@ class AutoUpdater {
           exit(0);
         }
       } else if (Platform.isAndroid) {
+        // ⭐ 安装前最后一道校验：存在 + 可读 + >1MB，避免系统包安装器
+        //   抛"安装包无效"后再回头处理。
+        final f = File(filePath);
+        int len = 0;
+        try {
+          if (await f.exists()) len = await f.length();
+        } catch (_) {}
+        if (len < 1024 * 1024) {
+          KazumiDialog.showToast(
+              message: '安装包已损坏或不完整，请在「设置→关于」重新检查更新');
+          GStorage.putSetting(SettingsKeys.pendingUpdateVersion, '');
+          GStorage.putSetting(SettingsKeys.pendingUpdatePath, '');
+          try {
+            if (len > 0) await f.delete();
+          } catch (_) {}
+          return;
+        }
         final result = await OpenFilex.open(filePath);
         if (result.type != ResultType.done) {
           KazumiDialog.showToast(message: '无法打开安装文件: ${result.message}');

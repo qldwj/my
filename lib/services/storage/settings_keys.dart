@@ -695,6 +695,24 @@ class SettingsKeys {
     group: SettingGroup.update,
   );
 
+  // ⭐ 启动检查更新的节流 / 静默下载失败计数（治"每次启动都重下"和
+  //   "半截 APK 反复弹立即安装"）。手点"检查更新"不受这些影响。
+  static const lastAutoCheckAtMs = SettingKey<int>(
+    'lastAutoCheckAtMs',
+    0,
+    group: SettingGroup.update,
+  );
+  static const silentDownloadFailVersion = SettingKey<String>(
+    'silentDownloadFailVersion',
+    '',
+    group: SettingGroup.update,
+  );
+  static const silentDownloadFailCount = SettingKey<int>(
+    'silentDownloadFailCount',
+    0,
+    group: SettingGroup.update,
+  );
+
   static const animekoRuleLastCheck = SettingKey<int>(
     'animekoRuleLastCheck',
     0,
