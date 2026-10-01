@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/network/image_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -21,7 +22,7 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
 
   @override
   Widget build(BuildContext context) {
-    final bangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    final bangumiAcceleration = BangumiAcceleration.current;
     final gitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     final imageAcceleration = ImageAcceleration.fromSetting(
       GStorage.getSetting(SettingsKeys.imageAcceleration),
@@ -30,13 +31,23 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
       title: const Text('访问加速'),
       margin: widget.margin,
       tiles: [
-        SettingsTile.switchTile(
+        SettingsTile(
           leading: Icons.travel_explore_rounded,
-          title: const Text('番剧条目镜像'),
-          description: const Text('加速番剧信息、热门与时间表加载'),
-          initialValue: bangumiProxy,
-          onToggle: (value) =>
-              _save(SettingsKeys.enableBangumiProxy, value ?? !bangumiProxy),
+          title: const Text('番剧条目加速'),
+          description: const Text('番剧信息与评论'),
+          value: SizedBox(
+            width: 60,
+            child: Text(bangumiAcceleration.label, textAlign: TextAlign.center),
+          ),
+          onPressed: (context) => _selectAcceleration(
+            context,
+            title: '番剧条目加速',
+            current: bangumiAcceleration,
+            modes: BangumiAcceleration.values,
+            label: (mode) => mode.label,
+            description: (mode) => mode.description,
+            setting: SettingsKeys.bangumiAcceleration,
+          ),
         ),
         SettingsTile.switchTile(
           leading: Icons.extension_rounded,
@@ -55,33 +66,49 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
             width: 60,
             child: Text(imageAcceleration.label, textAlign: TextAlign.center),
           ),
-          onPressed: (context) =>
-              _selectImageAcceleration(context, imageAcceleration),
+          onPressed: (context) => _selectAcceleration(
+            context,
+            title: '图片加速',
+            current: imageAcceleration,
+            modes: ImageAcceleration.values,
+            label: (mode) => mode.label,
+            description: (mode) => mode.description,
+            setting: SettingsKeys.imageAcceleration,
+          ),
         ),
       ],
     );
   }
 
-  Future<void> _selectImageAcceleration(
-    BuildContext context,
-    ImageAcceleration current,
-  ) async {
-    final selected = await KazumiDialog.show<ImageAcceleration>(
+  Future<void> _selectAcceleration<T extends Enum>(
+    BuildContext context, {
+    required String title,
+    required T current,
+    required List<T> modes,
+    required String Function(T) label,
+    required String Function(T) description,
+    required SettingKey<String> setting,
+  }) async {
+    final selected = await KazumiDialog.show<T>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('图片加速'),
+        title: Text(title),
         children: [
-          RadioGroup<ImageAcceleration>(
+          RadioGroup<T>(
             groupValue: current,
             onChanged: (value) => Navigator.of(context).pop(value),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final mode in ImageAcceleration.values)
-                  RadioListTile<ImageAcceleration>(
+                for (final mode in modes)
+                  RadioListTile<T>(
                     value: mode,
-                    title: Text(mode.label),
-                    subtitle: Text(mode.description),
+                    title: Text(label(mode)),
+                    subtitle: Text(
+                      description(mode),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
             ),
@@ -90,7 +117,15 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
       ),
     );
     if (mounted && selected != null && selected != current) {
-      await _save(SettingsKeys.imageAcceleration, selected.name);
+      await _save(setting, selected.name);
     }
   }
+}
+
+extension on BangumiAcceleration {
+  String get description => switch (this) {
+    BangumiAcceleration.direct => '访问官方接口',
+    BangumiAcceleration.ech => '启用加密握手',
+    BangumiAcceleration.mirror => '镜像接口（默认）',
+  };
 }

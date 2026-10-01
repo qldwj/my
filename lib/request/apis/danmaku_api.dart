@@ -97,6 +97,18 @@ class DanmakuApi {
     return danmakuSearchResponse;
   }
 
+  // v2 episode search avoids the anime search's 25-result cap.
+  // Fetch full episode lists separately; search results can truncate them.
+  static Future<DanmakuSearchResponse> searchAnimes(String title) async {
+    final endPoint =
+        ApiEndpoints.dandanAPIDomain + ApiEndpoints.dandanAPISearchEpisodes;
+    final jsonData = await _client.get(
+      endPoint,
+      queryParameters: {'anime': title, 'v2': 'true'},
+    );
+    return DanmakuSearchResponse.fromJson(jsonData);
+  }
+
   static Future<List<DanmakuEntry>> getDanDanmaku(
       int bangumiID, int episode) async {
     List<DanmakuEntry> danmakus = [];

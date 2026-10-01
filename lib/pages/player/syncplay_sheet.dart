@@ -570,7 +570,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
   void initState() {
     super.initState();
     _usernameController.text =
-        GStorage.getSetting<String>(SettingsKeys.syncPlayEndPoint);
+        GStorage.getSetting<String>(SettingsKeys.syncPlayUserName);
     if (_usernameController.text.isEmpty) {
       _usernameController.text = _generateUserName();
     }
@@ -590,7 +590,7 @@ class _SyncPlayRoomSheetState extends State<_SyncPlayRoomSheet> {
     final String username = _usernameController.text.trim();
     final String room =
         widget.isCreate ? _createdRoom : _roomController.text.trim();
-    GStorage.putSetting<String>(SettingsKeys.syncPlayEndPoint, username);
+    GStorage.putSetting<String>(SettingsKeys.syncPlayUserName, username);
     // Close first so the connection toasts land on the page underneath rather
     // than behind this sheet.
     Navigator.of(context).pop();

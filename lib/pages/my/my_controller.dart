@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/my/watch_stats.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -9,15 +10,73 @@ import 'package:kazumi/services/announcement/announcement_service.dart';
 // 🆕 弹幕屏蔽词云端同步（恢复官方 2.3.3）
 import 'package:kazumi/modules/danmaku/danmaku_shield_rule.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
+// 官方 2.3.7：我的页面观看统计（响应式监听历史/下载仓库）
+import 'package:kazumi/repositories/download_repository.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 
 part 'my_controller.g.dart';
 
 class MyController = _MyController with _$MyController;
 
 abstract class _MyController with Store {
-  _MyController(this._shieldRepository);
+  _MyController(
+    this._historyRepository,
+    this._downloadRepository,
+    this._shieldRepository,
+  );
 
+  final IHistoryRepository _historyRepository;
+  final IDownloadRepository _downloadRepository;
   final IDanmakuShieldRepository _shieldRepository;
+
+  @observable
+  WatchStats watchStats = const WatchStats();
+
+  static const Duration _refreshDebounce = Duration(milliseconds: 300);
+
+  int _viewerCount = 0;
+  final List<StreamSubscription<void>> _subscriptions = [];
+  Timer? _refreshDebounceTimer;
+
+  // Route swaps can briefly attach two page instances.
+  void attach() {
+    _viewerCount++;
+    if (_subscriptions.isEmpty) {
+      for (final changes in [
+        _historyRepository.changes,
+        _downloadRepository.changes,
+      ]) {
+        _subscriptions.add(changes.listen((_) => _scheduleRefresh()));
+      }
+    }
+    _refresh();
+  }
+
+  void detach() {
+    if (--_viewerCount > 0) {
+      return;
+    }
+    _refreshDebounceTimer?.cancel();
+    _refreshDebounceTimer = null;
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+  }
+
+  void _scheduleRefresh() {
+    // Coalesce frequent playback history writes.
+    _refreshDebounceTimer?.cancel();
+    _refreshDebounceTimer = Timer(_refreshDebounce, _refresh);
+  }
+
+  @action
+  void _refresh() {
+    watchStats = WatchStats.from(
+      histories: _historyRepository.getAllHistories(),
+      downloadRecords: _downloadRepository.getAllRecords(),
+    );
+  }
 
   @observable
   ObservableList<String> shieldList = ObservableList.of([]);

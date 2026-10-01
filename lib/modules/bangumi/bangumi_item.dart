@@ -39,6 +39,9 @@ class BangumiItem {
   String info;
   BangumiInterest? interest;
 
+  /// Calendar metadata tags (e.g. 原创/小说改)，与用户打分数 tags 分开，不落盘。
+  final List<String> metaTags;
+
   // ==================== 新增：详情页展示用的集数/状态 ====================
   /// 0 = 未开播 / UPCOMING, 1 = 连载中 / ON_AIR, 2 = 完结 / COMPLETED
   @HiveField(15, defaultValue: 0)
@@ -71,6 +74,7 @@ class BangumiItem {
     this.status = 0,
     this.totalEpisodes = 0,
     this.latestEpisode = 0,
+    this.metaTags = const [],
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -143,6 +147,7 @@ class BangumiItem {
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
     List<int> voteList = parseBangumiVoteCount(json);
+    final rawMetaTags = json['metaTags'];
     BangumiInterest? interest;
     final interestRaw = json['interest'];
     if (interestRaw is Map<String, dynamic>) {
@@ -181,6 +186,14 @@ class BangumiItem {
       // 集数/播出状态：api.bgm.tv /v0 与 next.bgm.tv /p1 均有 eps 与 status 字段
       totalEpisodes: (json['eps'] is num) ? (json['eps'] as num).toInt() : 0,
       status: _parseAiringStatus(json['status'], airDateStr),
+      metaTags: rawMetaTags is List
+          ? rawMetaTags
+              .whereType<String>()
+              .map((name) => name.trim())
+              .where((name) => name.isNotEmpty)
+              .toSet()
+              .toList()
+          : const [],
       interest: interest,
     );
   }

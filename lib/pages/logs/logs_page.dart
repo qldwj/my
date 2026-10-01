@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -58,6 +59,10 @@ class _LogsPageState extends State<LogsPage> {
 
   Future<void> _loadLogs() async {
     if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
     try {
       final file = await _getLogsFile();
@@ -173,8 +178,11 @@ class _LogsPageState extends State<LogsPage> {
     }
 
     if (_hasError) {
-      return const Center(
-        child: Text('加载日志失败'),
+      return GeneralErrorWidget(
+        title: '无法读取日志',
+        errMsg: '请稍后重新加载。',
+        icon: Icons.receipt_long_rounded,
+        onRetry: _loadLogs,
       );
     }
 
