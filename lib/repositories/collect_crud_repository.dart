@@ -60,15 +60,35 @@ class CollectCrudRepository implements ICollectCrudRepository {
 
   @override
   List<CollectedBangumi> getAllCollectibles() {
-    try {
-      return _collectiblesBox.values.cast<CollectedBangumi>().toList();
-    } catch (e) {
-      KazumiLogger().w(
-        'GStorage: get all collectibles failed',
-        error: e,
-      );
-      return [];
+    // ⚠️ 不要用 box.values.cast<T>().toList()：只要箱里有**一条**类型不符/损坏的
+    // 记录，整批读取就会抛异常并被 catch 成 []，用户看到的就是
+    // “追番页全空”（其实数据还在盘上）。这里改成逐 key 读、坏记录跳过。
+    final result = <CollectedBangumi>[];
+    var broken = 0;
+    for (final key in _collectiblesBox.keys.toList()) {
+      try {
+        final value = _collectiblesBox.get(key);
+        if (value is CollectedBangumi) {
+          result.add(value);
+        } else {
+          broken++;
+          KazumiLogger().w(
+            'GStorage: collectible key=$key 类型异常(${value.runtimeType})，已跳过',
+          );
+        }
+      } catch (e) {
+        broken++;
+        KazumiLogger().w(
+          'GStorage: collectible key=$key 读取失败，已跳过: $e',
+        );
+      }
     }
+    if (broken > 0) {
+      KazumiLogger().w(
+        'GStorage: 收藏共 ${result.length} 条正常、$broken 条异常已跳过',
+      );
+    }
+    return result;
   }
 
   @override
@@ -170,7 +190,15 @@ class CollectCrudRepository implements ICollectCrudRepository {
   @override
   List<BangumiItem> getFavorites() {
     try {
-      return _favoritesBox.values.cast<BangumiItem>().toList();
+      // 同样逐条容错，避免一条坏记录让整批“旧版收藏”读不出来
+      final list = <BangumiItem>[];
+      for (final key in _favoritesBox.keys.toList()) {
+        try {
+          final v = _favoritesBox.get(key);
+          if (v is BangumiItem) list.add(v);
+        } catch (_) {}
+      }
+      return list;
     } catch (e) {
       KazumiLogger().i(
         'GStorage: get favorites failed',
