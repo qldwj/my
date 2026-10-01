@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
+import 'package:kazumi/bean/widget/source_rating_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -143,6 +144,25 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                     ),
                     value: _starred.contains(p.name),
                     onChanged: (_) => _toggleStar(p.name),
+                  ),
+            ],
+          ),
+          SettingsSectionCard(
+            title: '源稳定性评分（帮助选源）',
+            children: [
+              if (plugins.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('暂无规则'),
+                )
+              else
+                for (final p in plugins)
+                  ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    title: Text(p.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: SourceRatingWidget(sourceId: p.name),
                   ),
             ],
           ),
