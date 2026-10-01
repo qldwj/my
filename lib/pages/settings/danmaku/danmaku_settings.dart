@@ -4,7 +4,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/danmaku_cache_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_ch_convert_tile.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -234,7 +234,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             SettingsSection(
               title: Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) {
                     context.pushNamed('/settings/danmaku/shield');
                   },
@@ -246,7 +246,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             SettingsSection(
               title: Text('本地弹幕库', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     final size = await DanmakuCacheService.totalSize();
                     if (!context.mounted) return;
@@ -486,7 +486,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             SettingsSection(
               tiles: [
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) => resetDanmakuSettings(),
                   title:
                       Text('恢复默认设置', style: TextStyle(fontFamily: fontFamily)),

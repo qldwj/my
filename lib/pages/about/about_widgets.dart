@@ -151,7 +151,6 @@ class _CheckUpdateButtonState extends State<CheckUpdateButton> {
   Widget build(BuildContext context) => StateActionButton(
         onPressed: _checking ? null : _check,
         text: _checking ? '正在检查…' : '检查更新',
-        reserveText: '正在检查…',
         icon: Icons.update_rounded,
       );
 }

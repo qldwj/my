@@ -112,7 +112,6 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> showWorkbench() async {
     final result = await showAdaptiveBottomSheet<_SearchWorkbenchResult>(
       maxHeightFactor: 0.86,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       context: context,
       builder: (context) {
         return _SearchWorkbenchSheet(
