@@ -233,6 +233,9 @@ class AutoUpdater {
   /// 获取最新预览版（所有版本都有：正式版 + 测试版）
   /// 同时请求镜像与 GitHub，合并去重后挑选**版本号最高**的发布（不再只信镜像第一个，
   /// 避免镜像缓存滞后导致刚发布的测试版检测不到）。
+  ///
+  /// ⭐ 优化：镜像命中候选时**不再 await GitHub 直链**（国内 GitHub 5-10 秒，
+  ///   之前每次都白等）。仅当镜像没拿到任何候选时才回落到 GitHub。
   Future<Map<String, dynamic>> _latestBetaRelease() async {
     final List<Map<String, dynamic>> candidates = [];
     // 按 tag 去重：镜像与 GitHub 是同一份数据源时只保留一份，避免重复项干扰排序
@@ -249,7 +252,7 @@ class AutoUpdater {
       candidates.add(Map<String, dynamic>.from(item));
     }
 
-    // 1) 镜像
+    // 1) 镜像（已替换 browser_download_url 为 gitcode 直链，国内快）
     try {
       final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleasesMirror);
       final list = json.decode(raw);
@@ -259,21 +262,23 @@ class AutoUpdater {
         }
       }
     } catch (e) {
-      // 镜像失败，记录日志并继续使用 GitHub
       KazumiLogger().w('Update: mirror for beta releases failed, fallback to GitHub', error: e);
     }
 
-    // 2) GitHub（权威数据源，发布即同步）
-    try {
-      final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
-      final list = json.decode(raw);
-      if (list is List) {
-        for (final item in list) {
-          addCandidate(item);
+    // ⭐ 2) GitHub 兜底：仅在镜像没拿到任何候选时才打（之前是无脑 await 拖慢
+    //   启动检查 5-10 秒）。镜像正常工作时直接走候选挑选，跳过 GitHub。
+    if (candidates.isEmpty) {
+      try {
+        final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
+        final list = json.decode(raw);
+        if (list is List) {
+          for (final item in list) {
+            addCandidate(item);
+          }
         }
+      } catch (e) {
+        KazumiLogger().w('Update: github releases for beta failed', error: e);
       }
-    } catch (e) {
-      KazumiLogger().w('Update: github releases for beta failed', error: e);
     }
 
     if (candidates.isEmpty) {
@@ -294,38 +299,45 @@ class AutoUpdater {
 
   /// 自动检查更新（只在启用自动更新时）
   ///
-  /// 节流：距上次自动检查 ≥12 小时才真正打 GitHub；同版本静默下载连续
-  /// 失败 ≥3 次本日不再重试。手点「设置→关于→检查更新」走
-  /// [manualCheckForUpdates]，不经过这里，不受任何限制。
+  /// 行为：**每次启动都打 GitHub**（不做时间节流），保证你升级到新版
+  /// 后第一次启动一定能看到下一个版本提示。手点「设置→关于→检查更新」
+  /// 走 [manualCheckForUpdates]，与这里并行。
   ///
-  /// 升级感知：[ApiEndpoints.version]（即 pubspec 里的 version）变化时，
-  /// 自动清掉 lastAutoCheckAtMs + 失败计数 → 用户**升级到新版后第一次
-  /// 启动一定能看到下一个版本提示**，不会卡在"我刚装的版本"的节流窗口里。
+  /// 通道（[SettingsKeys.updateChannel]）：
+  ///  - 'stable' → 仅看正式版
+  ///  - 其他/默认 → 正式版 + 测试版一起挑版本号最高的（[checkForUpdates]
+  ///    内部 [_latestBetaRelease] 拉的是 GitHub 全部 release，**两种都包含**）
   ///
-  /// 行为：发现新版 → **始终弹更新对话框**（不再"静默吞掉"）。
-  /// silentDownload=true 时**对话框背后并行启动后台下载**，
-  /// 等用户下次启动看到「立即安装」时多半已下完，校验通过即可直装。
+  /// 保留的保护：
+  ///  - 同版本静默下载连续失败 ≥3 次 → 本日不再无脑重试（避免坏包死循环）
+  ///  - 本机版本号变化 → 清掉失败计数（升级后从干净状态开始）
+  ///
+  /// 调用约定：**checkPendingUpdate() 由本方法全权负责**，外部（如
+  /// MyController.checkUpdate）不要再重复调用，否则会双弹"立即安装"。
   Future<void> autoCheckForUpdates() async {
     try {
       await Future.delayed(const Duration(seconds: 3));
 
       final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
       if (autoUpdate != true) {
-        KazumiLogger().i('Update: auto update not enabled, skipping');
+        KazumiLogger().i('Update: auto update not enabled, skipping GitHub');
+        // ⭐ 即便关掉了自动检查，上次"已下载完但用户没装"的 pending 仍然要
+        //   提示安装——这条之前会漏（早 return 后 my_controller 又没调），
+        //   表现就是"上次明明下完了下次进 App 不提示"。
+        await checkPendingUpdate();
         return;
       }
 
       // ⭐ 升级感知：本机版本号变化（首次安装 / 升级到新版 / 回滚）→
-      //   清空节流时间戳与失败计数，保证本次启动一定会去 GitHub 查一次。
+      //   清掉同版本失败计数，保证刚升上的版本不被旧失败"连坐"。
       final currentVersion = ApiEndpoints.version;
       final lastSeenVersion =
           GStorage.getSetting(SettingsKeys.lastCheckedCurrentVersion);
       if (lastSeenVersion != currentVersion) {
         KazumiLogger().i(
-          'Update: 检测到本机版本号变化 ($lastSeenVersion → $currentVersion)，'
-          '重置自动检查节流与失败计数',
+          'Update: 本机版本号变化 ($lastSeenVersion → $currentVersion)，'
+          '重置同版本失败计数',
         );
-        await GStorage.putSetting(SettingsKeys.lastAutoCheckAtMs, 0);
         await GStorage.putSetting(
             SettingsKeys.silentDownloadFailVersion, '');
         await GStorage.putSetting(SettingsKeys.silentDownloadFailCount, 0);
@@ -333,29 +345,19 @@ class AutoUpdater {
             SettingsKeys.lastCheckedCurrentVersion, currentVersion);
       }
 
-      // ⭐ 12 小时节流：避免每次启动都拉 GitHub + 反复触发整包下载，
-      //   进而留下半成品 APK → "立即安装→安装包无效"的死循环。
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final last = GStorage.getSetting(SettingsKeys.lastAutoCheckAtMs);
-      const throttle = Duration(hours: 12);
-      if (last > 0 && now - last < throttle.inMilliseconds) {
-        KazumiLogger().i(
-          'Update: 距上次自动检查 ${((now - last) ~/ 60000)} 分钟，'
-          '<${throttle.inHours}h 节流窗口，跳过 GitHub 探测；'
-          '仍会处理已存在的 pending 安装。',
-        );
-        // 节流命中也要让上次完整下载好的 APK 能被提示安装
-        await checkPendingUpdate();
-        return;
-      }
-      await GStorage.putSetting(SettingsKeys.lastAutoCheckAtMs, now);
-
       KazumiLogger().i('Update: auto checking for updates...');
       final updateInfo = await checkForUpdates();
       if (updateInfo == null) {
-        KazumiLogger().i('Update: already up to date');
+        KazumiLogger().i('Update: already up to date (current=$currentVersion)');
+        // 没有新版时仍要处理"上次完整下载好但用户没装的 pending"
+        await checkPendingUpdate();
         return;
       }
+
+      KazumiLogger().i(
+        'Update: 发现新版 ${updateInfo.version} '
+        '(${updateInfo.isTestVersion ? '测试版' : '正式版'})，current=$currentVersion',
+      );
 
       final silentDownload =
           GStorage.getSetting(SettingsKeys.silentDownload);
@@ -604,6 +606,25 @@ class AutoUpdater {
 
   /// 手动检查更新
   Future<void> manualCheckForUpdates() async {
+    // ⭐ in-flight 锁：用户在「设置→关于」连点 5 次"检查更新"只会真正打
+    //   GitHub 一次（其余复用同一个 Future），避免撞 GitHub API 限流。
+    final inflight = _manualCheckInFlight;
+    if (inflight != null) {
+      KazumiLogger().i('Update: 已在检查中，复用 in-flight future');
+      return inflight;
+    }
+    final f = _doManualCheck();
+    _manualCheckInFlight = f;
+    try {
+      await f;
+    } finally {
+      _manualCheckInFlight = null;
+    }
+  }
+
+  Future<void>? _manualCheckInFlight;
+
+  Future<void> _doManualCheck() async {
     try {
       final updateInfo = await checkForUpdates();
       if (updateInfo != null) {

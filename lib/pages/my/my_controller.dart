@@ -105,10 +105,10 @@ abstract class _MyController with Store {
       if (type == 'manual') {
         await autoUpdater.manualCheckForUpdates();
       } else {
-        // 自动检查更新
+        // 自动检查更新（autoCheckForUpdates 内部已经负责处理 pending 安装
+        // 提示，所以这里不再额外调 checkPendingUpdate，避免双弹"立即安装"
+        // 对话框 —— 用户反馈"出现两个对话框/关掉一个又弹一个"的根因）。
         await autoUpdater.autoCheckForUpdates();
-        // 检查是否有待安装的更新（静默下载的）
-        await autoUpdater.checkPendingUpdate();
         // 自动检查公告（仅在自动检查时触发）
         await AnnouncementService.checkAnnouncement();
       }
