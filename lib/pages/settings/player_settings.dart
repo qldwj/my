@@ -470,6 +470,19 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
+                    autoSource = value ?? !autoSource;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.autoSelectSource, autoSource);
+                    setState(() {});
+                  },
+                  title: Text('自动选择第一个播放源',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('点击开始观看时自动使用第一个可用播放源',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: autoSource,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
                     backgroundPlayback = value ?? !backgroundPlayback;
                     await GStorage.putSetting<bool>(
                         SettingsKeys.backgroundPlayback, backgroundPlayback);
