@@ -104,6 +104,13 @@ class KazumiSyncService {
         '_version': 1, // 可选
       };
 
+      // 🛡️ 关键保护：本机列表为空时**不要上传该字段**。
+      // 服务端 upload_all 是「按传入的 key 整块覆盖」，一旦某次读取异常/清库后
+      // 误点上传，就会把云端也洗成空 —— 之后任何设备再同步都会“追番全没”。
+      // 真正的删除请走 action=sync 的 removed（合并语义），不依赖这里。
+      if (collectList.isEmpty) data.remove('collect');
+      if (historyList.isEmpty) data.remove('history');
+
       // 🔧 写死 URL（直接使用完整地址）
       const uploadUrl = 'https://qlyyz.xyz/api/v1/login.php?action=upload_all';
       final response = await http.post(

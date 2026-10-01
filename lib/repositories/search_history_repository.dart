@@ -47,7 +47,14 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
   @override
   List<SearchHistory> getAllHistories() {
     try {
-      final histories = _searchHistoryBox.values.toList().cast<SearchHistory>();
+      // 逐条容错读取（一条坏记录不能让搜索历史整体变空）
+      final histories = <SearchHistory>[];
+      for (final key in _searchHistoryBox.keys.toList()) {
+        try {
+          final v = _searchHistoryBox.get(key);
+          if (v is SearchHistory) histories.add(v);
+        } catch (_) {}
+      }
       histories.sort((a, b) => b.timestamp - a.timestamp);
       return histories;
     } catch (e, stackTrace) {
