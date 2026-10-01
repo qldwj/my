@@ -412,7 +412,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     if (!mounted) return;
     KazumiDialog.showToast(message: '来自分享链接，请选择第 $ep 集');
     showAdaptiveBottomSheet<void>(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       context: context,
       builder: (context) {
         return SourceSheet(infoController: infoController);
@@ -1068,8 +1067,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   tooltip: '开始观看',
                   onPressed: () {
                     showAdaptiveBottomSheet<void>(
-                      backgroundColor:
-                          Theme.of(context).scaffoldBackgroundColor,
                       context: context,
                       builder: (context) {
                         return SourceSheet(
