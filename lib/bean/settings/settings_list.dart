@@ -53,8 +53,11 @@ class SettingsSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: DefaultTextStyle.merge(
-                style:
-                    textTheme.titleSmall?.copyWith(color: colorScheme.primary),
+                style: textTheme.titleSmall
+                    ?.copyWith(
+                      color: colorScheme.primary,
+                      fontFamily: textTheme.bodyMedium?.fontFamily,
+                    ),
                 child: title!,
               ),
             ),
@@ -161,6 +164,7 @@ class _TileLabel extends StatelessWidget {
     final disabled = enabled ? null : _disabledOn(context);
     final foreground = disabled ?? colorScheme.onSurface;
     final secondary = disabled ?? colorScheme.onSurfaceVariant;
+    final baseFamily = textTheme.bodyMedium?.fontFamily;
 
     return Row(
       children: [
@@ -174,13 +178,19 @@ class _TileLabel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DefaultTextStyle.merge(
-                style: textTheme.bodyLarge?.copyWith(color: foreground),
+                style: textTheme.bodyLarge?.copyWith(
+                  color: foreground,
+                  fontFamily: baseFamily,
+                ),
                 child: title,
               ),
               if (description != null) ...[
                 const SizedBox(height: 2),
                 DefaultTextStyle.merge(
-                  style: textTheme.bodySmall?.copyWith(color: secondary),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: secondary,
+                    fontFamily: baseFamily,
+                  ),
                   child: description!,
                 ),
               ],
@@ -238,12 +248,16 @@ class SettingsCategoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: textTheme.bodyLarge),
+                  Text(title,
+                      style: textTheme.bodyLarge
+                          ?.copyWith(fontFamily: textTheme.bodyMedium?.fontFamily)),
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontFamily: textTheme.bodyMedium?.fontFamily,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -319,6 +333,7 @@ class SettingsSliderTile extends StatelessWidget {
                   valueLabel,
                   style: textTheme.labelMedium?.copyWith(
                     color: colorScheme.onSecondaryContainer,
+                    fontFamily: textTheme.bodyMedium?.fontFamily,
                     // Steady digit widths, so dragging can't jitter the pill.
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),

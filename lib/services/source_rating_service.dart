@@ -16,16 +16,36 @@ class SourceRatingService {
 
   static const String baseUrl = ApiEndpoints.sourceRatingApi;
 
+  /// 评分缓存（内存级，TTL 10 分钟）。
+  /// 规则卡片重建 / 列表下滑再滑回时不再重复打服务器，降低后端占用。
+  static const Duration _cacheTtl = Duration(minutes: 10);
+  static final Map<String, _CachedEntry> _cache = {};
+
   /// 源评分聚合数据
   static SourceRating parse(Map<String, dynamic> j) {
     return SourceRating.fromJson(j);
   }
 
-  /// 获取某源的评分聚合（含「我」是否评过）
+  /// 是否有未过期的该源缓存（用于避免列表重建时闪「加载中」）
+  static bool hasCache(String sourceId) {
+    final cached = _cache[sourceId];
+    return cached != null &&
+        DateTime.now().difference(cached.at) < _cacheTtl;
+  }
+
+  /// 获取某源的评分聚合（含「我」是否评过）。
+  /// 10 分钟内对同一 sourceId 只真实请求一次，其余走缓存。
   static Future<SourceRating?> fetch(String sourceId) async {
+    final cached = _cache[sourceId];
+    final now = DateTime.now();
+    if (cached != null && now.difference(cached.at) < _cacheTtl) {
+      return cached.rating;
+    }
     final res = await _get('get', {'sourceId': sourceId});
     if (res['success'] != true) return null;
-    return SourceRating.fromJson(res);
+    final rating = SourceRating.fromJson(res);
+    _cache[sourceId] = _CachedEntry(now, rating);
+    return rating;
   }
 
   /// 提交 / 更新评分（匿名，限IP）
@@ -44,7 +64,10 @@ class SourceRatingService {
     if (res['success'] != true) {
       throw SourceRatingError(res['error'] ?? '提交评分失败');
     }
-    return SourceRating.fromJson(res);
+    final rating = SourceRating.fromJson(res);
+    // 提交后立即刷新该源的缓存，避免旧数据
+    _cache[sourceId] = _CachedEntry(DateTime.now(), rating);
+    return rating;
   }
 
   /// 获取评分排行（帮用户选源）
@@ -173,4 +196,11 @@ class SourceRatingError implements Exception {
   SourceRatingError(this.message);
   @override
   String toString() => message;
+}
+
+/// 内存缓存条目（评分 + 写入时间）
+class _CachedEntry {
+  final DateTime at;
+  final SourceRating rating;
+  _CachedEntry(this.at, this.rating);
 }
