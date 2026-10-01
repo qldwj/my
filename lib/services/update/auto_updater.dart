@@ -385,8 +385,7 @@ class AutoUpdater {
       //   默认配置下用户首次进入 App 只看到后台下载、没有任何提示，
       //   误以为"检测不工作、必须手动检查"。现在：发现新版必弹；
       //   并行后台下载只是给后续「立即安装」做加速，不再吞掉对话框。
-      _showUpdateDialog(updateInfo,
-          isAutoCheck: true, silentDownloading: willSilentDownload);
+      _showUpdateDialog(updateInfo, isAutoCheck: true);
     } catch (e) {
       KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
@@ -638,10 +637,8 @@ class AutoUpdater {
   }
 
   /// 显示更新对话框
-  /// [silentDownloading]=true 时附带一行"已在后台下载 vX 安装包"提示，
-  /// 这样自动检查路径也能弹窗告知用户，不再像以前那样静默吞掉。
   void _showUpdateDialog(UpdateInfo updateInfo,
-      {bool isAutoCheck = false, bool silentDownloading = false}) {
+      {bool isAutoCheck = false}) {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
@@ -680,27 +677,6 @@ class AutoUpdater {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(updateInfo.description),
-                // ⭐ 自动检查 + 静默下载并行时的提示：用户既能立即看到
-                //   "有新版"，又知道后台已经在帮他下，下次启动会弹"立即安装"。
-                if (silentDownloading) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.cloud_download_outlined,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '已同时在后台下载 ${updateInfo.version} 安装包，'
-                          '下次进入 App 会自动提示安装；也可在此处点"立即下载"立刻获取。',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
                 if (updateInfo.publishedAt.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
