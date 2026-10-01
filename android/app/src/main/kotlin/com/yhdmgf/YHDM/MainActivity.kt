@@ -1,4 +1,4 @@
-package com.predidit.YHDM
+package com.yhdmgf.YHDM
 
 import android.app.PendingIntent
 import android.content.Intent
