@@ -115,13 +115,16 @@ class CustomCommentApi {
     required int subjectId,
     int episode = 0,
   }) async {
+    String body = '';
+    int statusCode = 0;
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
       final request = await client.getUrl(
           Uri.parse('$baseUrl?action=list&id=$subjectId&ep=$episode'));
       final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
+      statusCode = response.statusCode;
+      body = await response.transform(utf8.decoder).join();
       client.close();
       final json = jsonDecode(body) as Map<String, dynamic>;
       final list = json['comments'];
@@ -135,7 +138,11 @@ class CustomCommentApi {
       final nick = json['admin_nickname']?.toString() ?? '';
       return (items: items, adminNickname: nick);
     } catch (e) {
-      KazumiLogger().e('CustomComment: 拉取失败', error: e);
+      // 🆕 记录状态码 + 响应原文，便于判断 Kangle 验证页 / 空响应 / 正常 JSON
+      final preview = body.length > 800 ? body.substring(0, 800) : body;
+      KazumiLogger().e('CustomComment: 拉取失败 status=$statusCode',
+          error: e, forceLog: true);
+      KazumiLogger().w('CustomComment: 响应原文: $preview', forceLog: true);
       return (items: const <CustomCommentItem>[], adminNickname: '');
     }
   }
