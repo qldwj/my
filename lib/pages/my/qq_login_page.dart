@@ -45,18 +45,61 @@ class _QQLoginPageState extends State<QQLoginPage> {
     super.dispose();
   }
 
+  /// 🆕 带空体容错 + 自动重试的 POST JSON
+  /// 解决慢网/响应被截断导致的 "FormatException: Unexpected end of input"（jsonDecode 空串）
+  Future<Map<String, dynamic>?> _postJson(
+    String url,
+    Map<String, dynamic> body, {
+    String? bearer,
+    int retries = 2,
+  }) async {
+    for (var attempt = 0; attempt <= retries; attempt++) {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 15);
+      try {
+        final req = await client.postUrl(Uri.parse(url));
+        req.headers.set('Content-Type', 'application/json; charset=utf-8');
+        if (bearer != null && bearer.isNotEmpty) {
+          req.headers.set('Authorization', 'Bearer $bearer');
+        }
+        req.add(utf8.encode(jsonEncode(body)));
+        final res = await req.close();
+        final raw = await res.transform(utf8.decoder).join();
+        client.close();
+        if (raw.trim().isEmpty) {
+          // 空体：慢网被截断，重试
+          if (attempt < retries) {
+            await Future.delayed(const Duration(milliseconds: 600));
+            continue;
+          }
+          return {'success': false, 'error': '网络异常，响应为空，请重试'};
+        }
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+        return {'success': false, 'error': '响应格式异常'};
+      } catch (_) {
+        client.close();
+        if (attempt < retries) {
+          await Future.delayed(const Duration(milliseconds: 600));
+          continue;
+        }
+        rethrow;
+      }
+    }
+    return null;
+  }
+
   Future<void> _verifyToken(String appToken) async {
     setState(() => _loading = true);
     try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 15);
-      final request = await client.postUrl(Uri.parse(_verifyUrl));
-      request.headers.set('Content-Type', 'application/json; charset=utf-8');
-      request.add(utf8.encode(jsonEncode({'app_token': appToken, 'device_name': AuthService.currentDeviceName()})));
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final data = jsonDecode(body) as Map<String, dynamic>;
+      final data = await _postJson(_verifyUrl, {
+        'app_token': appToken,
+        'device_name': AuthService.currentDeviceName(),
+      });
+      if (data == null) {
+        if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '登录失败，请重试'); }
+        return;
+      }
 
       // 🆕 绑定模式：服务器返回 bind_mode，调用 bind_provider 完成绑定
       if (data['bind_mode'] == true) {
@@ -65,22 +108,16 @@ class _QQLoginPageState extends State<QQLoginPage> {
         if (bindProvider.isNotEmpty && bindToken.isNotEmpty) {
           final currentToken = AuthService.getLocalToken();
           if (currentToken != null) {
-            final bindClient = HttpClient();
-            bindClient.connectionTimeout = const Duration(seconds: 15);
-            final bindReq = await bindClient.postUrl(Uri.parse(_bindUrl));
-            bindReq.headers.set('Content-Type', 'application/json; charset=utf-8');
-            bindReq.headers.set('Authorization', 'Bearer $currentToken');
-            bindReq.add(utf8.encode(jsonEncode({'provider': bindProvider, 'app_token': bindToken})));
-            final bindRes = await bindReq.close();
-            final bindBody = await bindRes.transform(utf8.decoder).join();
-            bindClient.close();
-            final bindData = jsonDecode(bindBody) as Map<String, dynamic>;
+            final bindData = await _postJson(_bindUrl, {
+              'provider': bindProvider,
+              'app_token': bindToken,
+            }, bearer: currentToken);
             if (mounted) {
               setState(() => _loading = false);
-              if (bindData['success'] == true) {
+              if (bindData != null && bindData['success'] == true) {
                 KazumiDialog.showToast(message: '绑定成功');
               } else {
-                KazumiDialog.showToast(message: bindData['error'] ?? '绑定失败');
+                KazumiDialog.showToast(message: bindData?['error'] ?? '绑定失败');
               }
               Navigator.of(context).pop(true);
             }
@@ -105,7 +142,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
         KazumiDialog.showToast(message: data['error'] ?? '登录失败');
       }
     } catch (e) {
-      if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '网络错误: $e'); }
+      if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '网络错误，请重试'); }
     }
   }
 
@@ -114,16 +151,14 @@ class _QQLoginPageState extends State<QQLoginPage> {
     try {
       final token = AuthService.getLocalToken();
       if (token == null) { KazumiDialog.showToast(message: '未登录'); return; }
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 15);
-      final request = await client.postUrl(Uri.parse(_bindUrl));
-      request.headers.set('Content-Type', 'application/json; charset=utf-8');
-      request.headers.set('Authorization', 'Bearer $token');
-      request.add(utf8.encode(jsonEncode({'provider': 'qq', 'app_token': appToken})));
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final data = jsonDecode(body) as Map<String, dynamic>;
+      final data = await _postJson(_bindUrl, {
+        'provider': 'qq',
+        'app_token': appToken,
+      }, bearer: token);
+      if (data == null) {
+        if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '绑定失败，请重试'); }
+        return;
+      }
       if (data['success'] == true) {
         if (mounted) {
           setState(() => _loading = false);
@@ -135,7 +170,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
         KazumiDialog.showToast(message: data['error'] ?? '绑定失败');
       }
     } catch (e) {
-      if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '网络错误: $e'); }
+      if (mounted) { setState(() => _loading = false); KazumiDialog.showToast(message: '网络错误，请重试'); }
     }
   }
 
