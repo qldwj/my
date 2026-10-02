@@ -402,16 +402,42 @@ class SocialService {
     return res['error']?.toString() ?? '操作失败';
   }
 
-  /// 好友列表
-  static Future<List<SocialProfile>> friendList() async {
+  /// 好友列表（Hive 持久化：变化时才写盘）
+  static const String _friendListKey = 'social_friends_cache';
+  static List<SocialProfile>? _friendCache;
+
+  static bool _sameSet(List<String> a, List<String> b) {
+    final x = List.of(a)..sort();
+    final y = List.of(b)..sort();
+    if (x.length != y.length) return false;
+    for (var i = 0; i < x.length; i++) {
+      if (x[i] != y[i]) return false;
+    }
+    return true;
+  }
+
+  static Future<List<SocialProfile>> friendList({bool refresh = false}) async {
+    if (!refresh && _friendCache != null) return _friendCache!;
     final res = await _post('friend_list', {});
-    if (!_isSuccess(res)) return [];
-    final list = res['friends'];
-    if (list is! List) return [];
-    return list
-        .whereType<Map>()
-        .map((e) => SocialProfile.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    if (_isSuccess(res)) {
+      final list = res['friends'];
+      if (list is List) {
+        final friends = list
+            .whereType<Map>()
+            .map((e) => SocialProfile.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        _friendCache = friends;
+        // 变化才写 Hive（uid 列表）
+        final newIds = friends.map((f) => f.uid).toList();
+        final oldIds = Storage.getStringListSettingByName(_friendListKey);
+        if (!_sameSet(oldIds, newIds)) {
+          await Storage.putStringListSettingByName(_friendListKey, newIds);
+        }
+        return friends;
+      }
+    }
+    // 请求失败：退回内存缓存
+    return _friendCache ?? [];
   }
 
   /// 删除好友
