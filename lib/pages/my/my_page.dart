@@ -22,6 +22,7 @@ import 'package:kazumi/pages/my/friends_page.dart';
 import 'package:kazumi/pages/my/chat_list_page.dart';
 import 'package:kazumi/pages/my/privacy_settings_page.dart';
 import 'package:kazumi/pages/my/security_center_page.dart';
+import 'package:kazumi/services/checkin_service.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
@@ -55,6 +56,11 @@ class _MyPageState extends State<MyPage> {
   SocialProfile? _socialProfile;
   int _friendRequestCount = 0;
   int _chatUnreadCount = 0;
+  String _titleName = '';
+  String _titleIcon = '';
+  int _titleUnlocked = 0;
+  int _titleTotal = 0;
+  List<Map<String, dynamic>> _titleList = [];
 
   @override
   void initState() {
@@ -74,9 +80,30 @@ class _MyPageState extends State<MyPage> {
     _loadGoal();
     _loadBangumiUser();
     _loadSocialProfile();
+    _loadTitle();
     // 首次进入检查是否已添加规则
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstTimeRule();
+    });
+  }
+
+  /// 🆕 加载当前称号（追番/打卡/积分/绑定维度，账号区展示）
+  Future<void> _loadTitle() async {
+    if (!AuthService.isLoggedIn) return;
+    int collectCount = 0;
+    try {
+      collectCount = GStorage.collectibles.length;
+    } catch (_) {}
+    final res = await CheckinService.achievements(collectCount: collectCount);
+    if (!mounted || res['error'] != null) return;
+    final title = res['title'];
+    final list = (res['achievements'] as List?)?.map((e) => Map<String, dynamic>.from(e)).toList() ?? [];
+    setState(() {
+      _titleName = title is Map ? (title['name']?.toString() ?? '') : '';
+      _titleIcon = title is Map ? (title['icon']?.toString() ?? '') : '';
+      _titleUnlocked = res['unlockedCount'] is int ? res['unlockedCount'] as int : 0;
+      _titleTotal = list.length;
+      _titleList = list;
     });
   }
 
@@ -689,6 +716,12 @@ class _MyPageState extends State<MyPage> {
         actions: [
           if (AuthService.isLoggedIn)
             IconButton(
+              tooltip: '分享账号',
+              icon: const Icon(Icons.share_rounded, size: 22),
+              onPressed: _shareProfile,
+            ),
+          if (AuthService.isLoggedIn)
+            IconButton(
               tooltip: '隐私设置',
               icon: const Icon(Icons.privacy_tip_outlined, size: 22),
               onPressed: () {
@@ -757,6 +790,11 @@ class _MyPageState extends State<MyPage> {
                     children: [
                       // ── 个人中心 + 头像/登录/好友 ──
                       _buildHeader(colorScheme, textTheme, bangumiLoggedIn),
+                      if (AuthService.isLoggedIn) ...[
+                        const SizedBox(height: 12),
+                        // 🆕 我的称号（已登录账号区内展示）
+                        _buildTitleCard(colorScheme, textTheme),
+                      ],
                       const SizedBox(height: 20),
                       // ── 本周目标 ──
                       _buildWeeklyGoal(colorScheme, textTheme),
@@ -854,6 +892,169 @@ class _MyPageState extends State<MyPage> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// 🆕 分享账号：复制公开主页链接
+  Future<void> _shareProfile() async {
+    final uid = _socialProfile?.uid ?? '';
+    if (uid.isEmpty) {
+      KazumiDialog.showToast(message: '账号资料未就绪，请稍后再试');
+      return;
+    }
+    final link = 'https://qlyyz.xyz/api/u.php?uid=$uid';
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!mounted) return;
+    KazumiDialog.showToast(message: '账号链接已复制，可分享给好友');
+  }
+
+  /// 🆕 我的称号卡片 + 成就列表
+  void _showTitleList(ColorScheme cs) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cs.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          builder: (ctx, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Row(
+                    children: [
+                      Text('我的称号',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                      const SizedBox(width: 8),
+                      Text('$_titleUnlocked / $_titleTotal 已解锁',
+                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    controller: scrollController,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.95,
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: _titleList.length,
+                    itemBuilder: (_, i) {
+                      final a = _titleList[i];
+                      final unlocked = a['unlocked'] == true;
+                      final cur = a['current'] is int ? a['current'] as int : 0;
+                      final target = a['target'] is int ? a['target'] as int : 0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: unlocked
+                              ? cs.primaryContainer.withOpacity(0.55)
+                              : cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: unlocked ? Border.all(color: cs.primary, width: 1) : null,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Opacity(
+                              opacity: unlocked ? 1 : 0.35,
+                              child: Text(a['icon']?.toString() ?? '🏅',
+                                  style: const TextStyle(fontSize: 26)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(a['name']?.toString() ?? '',
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: unlocked ? cs.onSurface : cs.onSurfaceVariant,
+                                )),
+                            const SizedBox(height: 2),
+                            Text(unlocked ? '已解锁' : '$cur/$target',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: unlocked ? cs.primary : cs.outline,
+                                )),
+                            const SizedBox(height: 2),
+                            Text(a['desc']?.toString() ?? '',
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 9, color: cs.outline)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 🆕 我的称号卡片：显示当前称号 + 已解锁数，点击展开成就列表
+  Widget _buildTitleCard(ColorScheme colorScheme, TextTheme textTheme) {
+    return InkWell(
+      onTap: () => _showTitleList(colorScheme),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              colorScheme.primaryContainer.withOpacity(0.6),
+              colorScheme.tertiaryContainer.withOpacity(0.5),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46, height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+              child: Text(_titleIcon.isEmpty ? '🏅' : _titleIcon,
+                  style: const TextStyle(fontSize: 24)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_titleName.isEmpty ? '暂无称号' : _titleName,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      )),
+                  const SizedBox(height: 2),
+                  Text('已解锁 $_titleUnlocked / $_titleTotal 个称号 · 追番/打卡/积分均可获得',
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant),
+          ],
         ),
       ),
     );
