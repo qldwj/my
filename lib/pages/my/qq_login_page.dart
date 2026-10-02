@@ -144,7 +144,8 @@ class _QQLoginPageState extends State<QQLoginPage> {
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
       final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=qq$bindParam');
-      if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      // 🆕 用外部浏览器打开（内置浏览器部分设备不可用，外部更兼容）
+      if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');
     }
