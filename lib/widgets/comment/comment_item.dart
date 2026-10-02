@@ -3,7 +3,7 @@ import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/pages/my/profile_page.dart';
+import 'package:kazumi/pages/social/public_profile_page.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
 class CommentItemWidget extends StatefulWidget {
@@ -38,15 +38,14 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                 onTap: () {
                   // 🆕 点击头像查看个人主页（仅樱花评论有 uid）
                   if (c.isSakura && c.uid.isNotEmpty) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ProfilePage(
-                          uid: c.uid,
-                          nickname: c.sender,
-                          avatar: c.avatar,
+                    final uid = int.tryParse(c.uid);
+                    if (uid != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PublicProfilePage(uid: uid),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   }
                 },
                 child: CircleAvatar(
