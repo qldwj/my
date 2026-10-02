@@ -1085,6 +1085,16 @@ class _MyPageState extends State<MyPage> {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (AuthService.isLoggedIn && _socialProfile != null && _socialProfile!.uid.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    'UID：${_socialProfile!.uid}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
