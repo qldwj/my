@@ -2,6 +2,7 @@ import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -221,8 +222,7 @@ class _CollectionBrowserPageState extends State<CollectionBrowserPage> {
   /// 返回上一级（规则管理页），避免嵌套导航直接跳回「我的」页面
   void _goBack() {
     if (!mounted) return;
-    final nav = Navigator.of(context);
-    if (nav.canPop()) nav.pop();
+    context.maybePop();
   }
 
   Widget _buildBody(ColorScheme colorScheme) {

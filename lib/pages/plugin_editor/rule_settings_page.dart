@@ -95,7 +95,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
         title: const Text('规则设置'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => context.maybePop(),
         ),
       ),
       body: ListView(

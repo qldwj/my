@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/checkin_service.dart';
 
@@ -168,8 +169,7 @@ class _CheckinPageState extends State<CheckinPage> {
   /// 返回上一页（回"我的"页）；系统返回与左上角按钮统一走这里
   void _goBack() {
     if (!mounted) return;
-    final nav = Navigator.of(context);
-    if (nav.canPop()) nav.pop();
+    context.maybePop();
   }
 
   /// 近 60 天打卡日历（打卡日期高亮）
