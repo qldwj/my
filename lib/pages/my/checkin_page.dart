@@ -83,8 +83,19 @@ class _CheckinPageState extends State<CheckinPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('追番打卡')),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _goBack,
+        ),
+        title: const Text('追番打卡'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -150,7 +161,15 @@ class _CheckinPageState extends State<CheckinPage> {
                 _buildCalendar(cs),
               ],
             ),
+      ),
     );
+  }
+
+  /// 返回上一页（回"我的"页）；系统返回与左上角按钮统一走这里
+  void _goBack() {
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    if (nav.canPop()) nav.pop();
   }
 
   /// 近 60 天打卡日历（打卡日期高亮）

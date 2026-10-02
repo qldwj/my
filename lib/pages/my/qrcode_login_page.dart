@@ -274,31 +274,48 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: SysAppBar(
-        title: Text(_isLoggedIn ? '分享登录给其他设备' : '扫码登录'),
-        actions: [
-          if (_scanMode && _scannerController != null)
-            IconButton(
-              icon: Icon(
-                _scannerController!.torchEnabled
-                    ? Icons.flash_on_rounded
-                    : Icons.flash_off_rounded,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: SysAppBar(
+          title: Text(_isLoggedIn ? '分享登录给其他设备' : '扫码登录'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goBack,
+          ),
+          actions: [
+            if (_scanMode && _scannerController != null)
+              IconButton(
+                icon: Icon(
+                  _scannerController!.torchEnabled
+                      ? Icons.flash_on_rounded
+                      : Icons.flash_off_rounded,
+                ),
+                onPressed: () => _scannerController!.toggleTorch(),
               ),
-              onPressed: () => _scannerController!.toggleTorch(),
-            ),
-        ],
+          ],
+        ),
+        body: _loading
+            ? const Center(child: LoadingIndicator())
+            // 未登录：显示二维码，让已登录的设备扫码把登录分享给本机
+            : !_isLoggedIn
+                ? _buildQrcodeMode(colorScheme)
+                // 已登录：打开相机扫别人的二维码（桌面端无摄像头时给出提示）
+                : _scanMode
+                    ? _buildScannerMode(colorScheme)
+                    : _buildDesktopNotSupported(colorScheme),
       ),
-      body: _loading
-          ? const Center(child: LoadingIndicator())
-          // 未登录：显示二维码，让已登录的设备扫码把登录分享给本机
-          : !_isLoggedIn
-              ? _buildQrcodeMode(colorScheme)
-              // 已登录：打开相机扫别人的二维码（桌面端无摄像头时给出提示）
-              : _scanMode
-                  ? _buildScannerMode(colorScheme)
-                  : _buildDesktopNotSupported(colorScheme),
     );
+  }
+
+  /// 返回上一页（回"我的"页）；系统返回与左上角按钮统一走这里
+  void _goBack() {
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    if (nav.canPop()) nav.pop();
   }
 
   // ── 桌面端未登录不支持扫码提示 ──
