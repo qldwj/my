@@ -40,7 +40,9 @@ class PluginIconCache {
         client.close();
         return null;
       }
-      final bytes = await consolidateHttpClientResponseBytes(res);
+      final builder = BytesBuilder(copy: false);
+      await res.forEach(builder.add);
+      final bytes = builder.takeBytes();
       client.close();
       if (bytes.isEmpty) return null;
       await GStorage.pluginIcons.put(url, bytes);
