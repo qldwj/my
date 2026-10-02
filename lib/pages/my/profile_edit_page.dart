@@ -380,7 +380,31 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             Clipboard.setData(ClipboardData(text: token));
             KazumiDialog.showToast(message: '已复制 Token');
           }),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // 隐私设置（默认全部开启）
+          Text('隐私设置', style: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.bold, color: cs.primary)),
+          const SizedBox(height: 4),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+            title: const Text('允许查看我的主页', style: TextStyle(fontSize: 14)),
+            value: _profile?.allowViewProfile ?? true,
+            onChanged: (v) => _updatePrivacy('allowViewProfile', v),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+            title: const Text('允许查看我的资料', style: TextStyle(fontSize: 14)),
+            value: _profile?.allowViewInfo ?? true,
+            onChanged: (v) => _updatePrivacy('allowViewInfo', v),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+            title: const Text('允许添加我为好友', style: TextStyle(fontSize: 14)),
+            value: _profile?.allowAddFriend ?? true,
+            onChanged: (v) => _updatePrivacy('allowAddFriend', v),
+          ),
+          const SizedBox(height: 16),
 
           // 第三方账号
           Text('第三方账号', style: TextStyle(
@@ -393,6 +417,20 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _updatePrivacy(String key, bool v) async {
+    final err = await SocialService.updatePrivacy(
+      allowViewProfile: key == 'allowViewProfile' ? v : null,
+      allowViewInfo: key == 'allowViewInfo' ? v : null,
+      allowAddFriend: key == 'allowAddFriend' ? v : null,
+    );
+    if (err != null) {
+      KazumiDialog.showToast(message: err);
+      return;
+    }
+    final fresh = await SocialService.getProfile(refresh: true);
+    if (mounted && fresh != null) setState(() => _profile = fresh);
   }
 
   Widget _infoTile(String label, String value, {VoidCallback? onTap}) {
