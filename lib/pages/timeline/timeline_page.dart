@@ -7,10 +7,13 @@ import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
+import 'package:kazumi/utils/device.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({
@@ -28,6 +31,7 @@ class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
   TimelineController get timelineController => widget.controller;
   TabController? tabController;
+  late bool showRating;
   final GlobalKey filterSectionKey = GlobalKey();
 
   @override
@@ -36,6 +40,7 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     tabController =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
+    showRating = GStorage.getSetting(SettingsKeys.showRating);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
@@ -757,13 +762,18 @@ class _TimelinePageState extends State<TimelinePage>
 
   // 🆕 Animeko 风格：按天列表条目 + 放送时间 + 今天当前时间指示器
   List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {
-    final todayWeekday = DateTime.now().weekday; // 1-7 周一=1
-    final now = DateTime.now();
-    final nowStr =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    List<Widget> listViewList = [];
-    for (var dayIdx = 0; dayIdx < 7; dayIdx++) {
-      var filteredList = bangumiCalendar[dayIdx];
+    List<Widget> gridViewList = [];
+    int crossCount = 1;
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+      crossCount = 2;
+    }
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+      crossCount = 3;
+    }
+    double cardHeight = isDesktop() ? 160 : (isTablet() ? 140 : 120);
+    for (var bangumiList in bangumiCalendar) {
+      // 根据过滤器设置过滤番剧
+      var filteredList = bangumiList;
 
       if (timelineController.notShowAbandonedBangumis) {
         final abandonedBangumiIds =
@@ -772,12 +782,14 @@ class _TimelinePageState extends State<TimelinePage>
             .where((item) => !abandonedBangumiIds.contains(item.id))
             .toList();
       }
+
       if (timelineController.notShowWatchedBangumis) {
         final watchedBangumiIds = timelineController.loadWatchedBangumiIds();
         filteredList = filteredList
             .where((item) => !watchedBangumiIds.contains(item.id))
             .toList();
       }
+
       if (timelineController.onlyShowWatchingBangumis) {
         final watchingBangumiIds = timelineController.loadWatchingBangumiIds();
         filteredList = filteredList
@@ -785,170 +797,37 @@ class _TimelinePageState extends State<TimelinePage>
             .toList();
       }
 
-      final isToday = (dayIdx + 1) == todayWeekday;
-      // 每条目带精确放送时间
-      final entries = filteredList
-          .map((item) => (item, timelineController.timeOf(item.id)))
-          .toList();
-      // 天内排序：已知时间升序，时间未定排最后
-      entries.sort((a, b) {
-        if (a.$2 == null && b.$2 == null) return 0;
-        if (a.$2 == null) return 1;
-        if (b.$2 == null) return -1;
-        return a.$2!.compareTo(b.$2!);
-      });
-
-      List<Widget> children = [];
-      if (isToday) {
-        // 今天：已开播(<=当前) 放前面 → 当前指示器 → 接下来(>当前) → 时间未定
-        final passed = entries
-            .where((e) => e.$2 != null && e.$2!.compareTo(nowStr) <= 0);
-        final upcoming =
-            entries.where((e) => e.$2 != null && e.$2!.compareTo(nowStr) > 0);
-        final untimed = entries.where((e) => e.$2 == null);
-        children = [
-          ...passed.map((e) => _buildTimelineItem(e.$1, e.$2, aired: true)),
-          _buildCurrentTimeIndicator(nowStr),
-          ...upcoming.map((e) => _buildTimelineItem(e.$1, e.$2, aired: false)),
-          ...untimed.map((e) => _buildTimelineItem(e.$1, e.$2, aired: false)),
-        ];
-      } else {
-        children =
-            entries.map((e) => _buildTimelineItem(e.$1, e.$2, aired: true)).toList();
-      }
-
-      listViewList.add(
+      gridViewList.add(
         CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(children),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  mainAxisSpacing: StyleString.cardSpace - 2,
+                  crossAxisSpacing: StyleString.cardSpace,
+                  crossAxisCount: crossCount,
+                  mainAxisExtent: cardHeight + 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    if (filteredList.isEmpty) return null;
+                    final item = filteredList[index];
+                    return BangumiTimelineCard(
+                        bangumiItem: item,
+                        cardHeight: cardHeight,
+                        showRating: showRating,
+                        exactTime: timelineController.timeOf(item.id));
+                  },
+                  childCount:
+                      filteredList.isNotEmpty ? filteredList.length : 10,
+                ),
               ),
             ),
           ],
         ),
       );
     }
-    return listViewList;
-  }
-
-  /// Animeko 单条目（海报 + 标题 + 放送时刻）
-  Widget _buildTimelineItem(BangumiItem item, String? time,
-      {required bool aired}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final title = item.nameCn.isNotEmpty ? item.nameCn : item.name;
-    final cover = item.images['large'] ??
-        item.images['medium'] ??
-        item.images['grid'] ??
-        '';
-    final textColor =
-        aired ? colorScheme.onSurface : colorScheme.onSurfaceVariant;
-    return InkWell(
-      onTap: () => context.pushNamed('/info/', arguments: item),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 48,
-                height: 66,
-                child: cover.isEmpty
-                    ? Container(color: colorScheme.surfaceContainerHighest)
-                    : Image.network(
-                        cover,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: colorScheme.surfaceContainerHighest,
-                          child: Icon(Icons.movie_outlined,
-                              color: colorScheme.outline),
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.airDate.isNotEmpty ? item.airDate : '连载中',
-                    style: TextStyle(fontSize: 12, color: colorScheme.outline),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (time != null)
-              Text(
-                time,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: aired ? colorScheme.primary : colorScheme.outline,
-                ),
-              )
-            else
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.lock_clock_outlined,
-                      size: 14, color: colorScheme.outline),
-                  const SizedBox(width: 3),
-                  Text('时间未定',
-                      style: TextStyle(fontSize: 12, color: colorScheme.outline)),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 当前时间指示器（模仿 Animeko：🔔 + 当前时间 + 分隔线）
-  Widget _buildCurrentTimeIndicator(String nowStr) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 10, 0, 10),
-            child: Row(
-              children: [
-                Icon(Icons.alarm_outlined, size: 18, color: colorScheme.primary),
-                const SizedBox(width: 6),
-                Text(
-                  '现在 $nowStr',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Divider(
-            thickness: 1.5,
-            color: colorScheme.primary.withOpacity(0.6),
-          ),
-        ),
-      ],
-    );
+    return gridViewList;
   }
 }

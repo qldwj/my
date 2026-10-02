@@ -15,6 +15,7 @@ class BangumiTimelineCard extends StatelessWidget {
     this.cardHeight = 120,
     this.cardWidth,
     this.enableHero = true,
+    this.exactTime,
   });
 
   final BangumiItem bangumiItem;
@@ -23,6 +24,7 @@ class BangumiTimelineCard extends StatelessWidget {
   final bool enableHero;
   final double cardHeight;
   final double? cardWidth;
+  final String? exactTime; // 🆕 精确放送时刻 "HH:mm"（来自服务端）
 
   @override
   Widget build(BuildContext context) {
@@ -201,8 +203,16 @@ class BangumiTimelineCard extends StatelessWidget {
             label: bangumiItem.votes.toString(),
             textStyle: metricStyle,
           ),
-        // 🆕 播出时间指标：周X · MM-DD（本地推算），未开播显示🔒
-        if (AirTimeResolver.describe(bangumiItem).isNotEmpty)
+        // 🆕 播出时间：优先精确放送时刻(HH:mm)，无则回退日期粗判(周X·MM-DD)
+        if (exactTime != null && exactTime!.isNotEmpty)
+          buildMetric(
+            context,
+            icon: Icons.schedule,
+            iconColor: colorScheme.primary,
+            label: exactTime!,
+            textStyle: metricStyle,
+          )
+        else if (AirTimeResolver.describe(bangumiItem).isNotEmpty)
           buildMetric(
             context,
             icon: AirTimeResolver.isUpcoming(bangumiItem)

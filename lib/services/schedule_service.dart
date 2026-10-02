@@ -38,6 +38,10 @@ class ScheduleService {
       final req = await client.getUrl(
         Uri.parse('$_api?action=weekly&id=$id&tz=$tz'),
       );
+      // 🆕 带浏览器 UA，避免被服务器防火墙(WAF)拦成 HTML
+      req.headers.set('User-Agent',
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+      req.headers.set('Accept', 'application/json, text/plain, */*');
       final res = await req.close();
       final body = await res.transform(utf8.decoder).join();
       client.close();
