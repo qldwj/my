@@ -232,9 +232,16 @@ class _SearchPageState extends State<SearchPage> {
     if (searchController.isOpen) {
       searchController.closeView(normalizedValue);
     }
+    final _searchStart = DateTime.now();
     try {
       await searchPageController.searchBangumi(normalizedValue, type: 'init');
     } finally {
+      // 齿轮至少显示 600ms，避免搜索太快一闪而过看不到
+      final elapsed = DateTime.now().difference(_searchStart).inMilliseconds;
+      final remain = 600 - elapsed;
+      if (remain > 0) {
+        await Future<void>.delayed(Duration(milliseconds: remain));
+      }
       if (mounted) setState(() => _searchingRefresh = false);
     }
   }

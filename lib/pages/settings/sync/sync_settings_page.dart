@@ -218,10 +218,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                         AuthService.isLoggedIn ? Colors.green : colors.outline,
                     iconBg: colors.secondaryContainer,
                     iconFg: colors.onSecondaryContainer,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => KazumiLoginPage()),
-                      );
+                    onTap: () async {
+                      await context.pushNamed('/my/login');
+                      if (mounted) setState(() {});
                     },
                   ),
 
