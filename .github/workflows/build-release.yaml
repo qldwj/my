@@ -260,12 +260,7 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           VERSION: ${{ env.tag }}
         run: |
-          MESSAGE="樱花动漫 v${VERSION} 发布成功！
-
-GitHub：https://github.com/qldwj/Kazumikfc/releases/download/${VERSION}/YHDM_android_${VERSION}.apk
-GitCode：https://gitcode.com/qldwi/kazumi/releases/${VERSION}
-发布页：https://github.com/qldwj/Kazumikfc/releases/tag/${VERSION}"
-
+          MESSAGE=$(printf '樱花动漫 v%s 发布成功！\n\nGitHub：https://github.com/qldwj/Kazumikfc/releases/download/%s/YHDM_android_%s.apk\nGitCode：https://gitcode.com/qldwi/kazumi/releases/%s\n发布页：https://github.com/qldwj/Kazumikfc/releases/tag/%s' "$VERSION" "$VERSION" "$VERSION" "$VERSION" "$VERSION")
           curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
             -d chat_id="${TG_CHAT_ID}" \
             --data-urlencode "text=${MESSAGE}"
