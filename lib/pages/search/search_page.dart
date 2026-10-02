@@ -228,13 +228,14 @@ class _SearchPageState extends State<SearchPage> {
     final normalizedValue = SearchParser.fromFilterState(parsed);
     _setSearchText(normalizedValue);
     if (mounted) setState(() => _searchingRefresh = true);
+    // 立即关闭建议视图，避免"暂无搜索建议"盖住结果区的齿轮加载特效
+    if (searchController.isOpen) {
+      searchController.closeView(normalizedValue);
+    }
     try {
       await searchPageController.searchBangumi(normalizedValue, type: 'init');
     } finally {
       if (mounted) setState(() => _searchingRefresh = false);
-    }
-    if (searchController.isOpen) {
-      searchController.closeView(normalizedValue);
     }
   }
 
