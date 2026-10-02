@@ -30,8 +30,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:kazumi/services/plugin/plugin_import_parser.dart';
 
 /// 默认 Animeko 规则仓库地址
-const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/yhdmgf/anisubs/main/';
-const String kAnimekoRepoIndex = kAnimekoRepoBase + 'main.json';
+const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/';
+const String kAnimekoRepoIndex = kAnimekoRepoBase + 'index.json';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({
@@ -270,6 +270,10 @@ class _PluginViewPageState extends State<PluginViewPage>
         } else if (entry is Map) {
           ruleUrl = (entry['file'] ?? entry['url'] ?? '').toString();
           ruleName = (entry['name'] ?? ruleUrl.replaceAll('.json', '')).toString();
+          // Kazumi 规则仓库格式：index 只给 name，规则文件为 <name>.json
+          if (ruleUrl.isEmpty && entry['name'] != null) {
+            ruleUrl = '${entry['name']}.json';
+          }
         } else {
           continue;
         }
@@ -291,7 +295,7 @@ class _PluginViewPageState extends State<PluginViewPage>
             continue;
           }
 
-          final plugins = AnimekoRuleConverter.convertFromJson(ruleJson);
+          final plugins = _parseRuleJson(ruleJson);
           
           if (plugins.isEmpty) {
             lastError = '$ruleName 未解析到规则';
@@ -339,6 +343,20 @@ class _PluginViewPageState extends State<PluginViewPage>
       KazumiDialog.showToast(message: '导入失败: ${e.toString()}');
       return -1;
     }
+  }
+
+  /// 解析仓库规则 JSON：优先 Kazumi 单规则格式（[Plugin.fromJson]），
+  /// 失败则回退 animeko 格式（[AnimekoRuleConverter]）。
+  List<Plugin> _parseRuleJson(String ruleJson) {
+    if (ruleJson.trim().isEmpty) return const [];
+    try {
+      final data = jsonDecode(ruleJson);
+      if (data is Map<String, dynamic>) {
+        final plugin = Plugin.fromJson(data);
+        if (plugin.name.isNotEmpty) return [plugin];
+      }
+    } catch (_) {}
+    return AnimekoRuleConverter.convertFromJson(ruleJson);
   }
 
   /// 从 JSON 内容或链接创建合集
