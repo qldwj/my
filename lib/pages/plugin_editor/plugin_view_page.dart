@@ -827,23 +827,49 @@ class _PluginViewPageState extends State<PluginViewPage>
                 tooltip: '删除选中',
               ),
             ] else ...[
-              IconButton(
-                onPressed: () => showMcpServerDialog(context),
-                tooltip: 'AI规则生成器',
-                icon: const Icon(Icons.smart_toy_rounded),
-              ),
-              IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const RuleSettingsPage()),
-                ),
-                tooltip: '规则设置',
-                icon: const Icon(Icons.tune_rounded),
-              ),
-              IconButton(
-                onPressed: _handleUpdate,
-                tooltip: '更新全部',
-                icon: const Icon(Icons.update),
+              // 收纳进「更多」菜单，右上角不再图标堆叠（AI生成器/规则设置/更新全部 全保留）
+              PopupMenuButton<String>(
+                tooltip: '更多',
+                icon: const Icon(Icons.more_vert),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'ai':
+                      showMcpServerDialog(context);
+                      break;
+                    case 'settings':
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const RuleSettingsPage()),
+                      );
+                      break;
+                    case 'update':
+                      _handleUpdate();
+                      break;
+                  }
+                },
+                itemBuilder: (ctx) => const [
+                  PopupMenuItem(
+                    value: 'ai',
+                    child: ListTile(
+                      leading: Icon(Icons.smart_toy_rounded),
+                      title: Text('AI规则生成器'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: ListTile(
+                      leading: Icon(Icons.tune_rounded),
+                      title: Text('规则设置'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'update',
+                    child: ListTile(
+                      leading: Icon(Icons.update),
+                      title: Text('更新全部'),
+                    ),
+                  ),
+                ],
               ),
               IconButton(
                 onPressed: _handleAdd,
