@@ -222,7 +222,9 @@ class _CollectionBrowserPageState extends State<CollectionBrowserPage> {
   /// 返回上一级（规则管理页），避免嵌套导航直接跳回「我的」页面
   void _goBack() {
     if (!mounted) return;
-    context.maybePop();
+    // 本页由 plugin_view_page 用 Navigator.push(MaterialPageRoute) 打开，
+    // 需 pop 回上一 MaterialPageRoute（规则页）；context.maybePop 是模块化导航会 pop 错层。
+    Navigator.of(context).pop();
   }
 
   Widget _buildBody(ColorScheme colorScheme) {
