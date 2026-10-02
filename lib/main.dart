@@ -330,7 +330,7 @@ Future<void> _handleThirdPartyToken(String appToken, String providerName) async 
     request.headers.set('Content-Type', 'application/json; charset=utf-8');
     request.add(utf8.encode(jsonEncode({
       'app_token': appToken,
-      'device_name': 'App 深链登录',
+      'device_name': AuthService.currentDeviceName(),
     })));
     final response = await request.close();
     final body = await response.transform(utf8.decoder).join();
