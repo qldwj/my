@@ -25,6 +25,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   final _appLinks = AppLinks();
   int? _expandedFaq;
   bool _loggingIn = false;
+  String? _authUrl; // 拿到的 bgm.tv 授权链接，供兜底按钮用
 
   bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
@@ -82,13 +83,26 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
           : null;
       if (url == null || url.isEmpty) throw Exception('获取授权链接失败');
       if (!mounted) return;
-      // 🆕 改用外部浏览器打开（内置浏览器部分设备不可用，外部更兼容）
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      _authUrl = url; // 保存供兜底按钮用
+      // 🆕 主登录：应用内浏览器打开授权页（之前的格式）
+      await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
     } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
       if (mounted) KazumiDialog.showToast(message: '授权失败: $e');
     } finally {
       if (mounted) setState(() => _loggingIn = false);
+    }
+  }
+
+  // 🆕 兜底：应用内浏览器打不开时，点下方按钮跳外部浏览器
+  Future<void> _openExternal() async {
+    final url = _authUrl;
+    if (url == null || url.isEmpty) return;
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      KazumiLogger().e('Bangumi外部浏览器打开失败', error: e);
+      if (mounted) KazumiDialog.showToast(message: '打开失败: $e');
     }
   }
 
@@ -152,6 +166,18 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
                     )
                   : const Text('登录 / 注册', style: TextStyle(fontSize: 17)),
             ),
+            const SizedBox(height: 12),
+            // 🆕 兜底按钮：应用内浏览器打不开时，点我跳外部浏览器
+            if (_authUrl != null)
+              InkWell(
+                onTap: _openExternal,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text('如果无法打开浏览器，点击我',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: colorScheme.outline, decoration: TextDecoration.underline)),
+                ),
+              ),
             const SizedBox(height: 12),
             // 🆕 检查 Bangumi 服务状态
             InkWell(
