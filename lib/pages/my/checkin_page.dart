@@ -20,6 +20,8 @@ class _CheckinPageState extends State<CheckinPage> {
   bool _checkedToday = false;
   String _today = '';
   List<String> _calendar = [];
+  List<Map<String, dynamic>> _achievements = [];
+  int _unlockedCount = 0;
 
   @override
   void initState() {
@@ -48,6 +50,22 @@ class _CheckinPageState extends State<CheckinPage> {
       _today = res['today']?.toString() ?? '';
       _calendar = (res['calendar'] as List?)?.map((e) => e.toString()).toList() ?? [];
       _loading = false;
+    });
+    await _loadAchievements();
+  }
+
+  Future<void> _loadAchievements() async {
+    final res = await CheckinService.achievements();
+    if (!mounted) return;
+    if (res['error'] != null || res['achievements'] == null) return;
+    final list = (res['achievements'] as List).cast<Map>();
+    var unlocked = 0;
+    for (final a in list) {
+      if (a['unlocked'] == true) unlocked++;
+    }
+    setState(() {
+      _achievements = list.map((e) => Map<String, dynamic>.from(e)).toList();
+      _unlockedCount = unlocked;
     });
   }
 
@@ -148,8 +166,92 @@ class _CheckinPageState extends State<CheckinPage> {
                         fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
                 const SizedBox(height: 8),
                 _buildCalendar(cs),
+                const SizedBox(height: 24),
+                // 🆕 成就系统
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('成就系统',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    Text('$_unlockedCount / ${_achievements.length} 已解锁',
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_achievements.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    alignment: Alignment.center,
+                    child: Text('成就加载中…', style: TextStyle(fontSize: 12, color: cs.outline)),
+                  )
+                else
+                  _buildAchievementGrid(cs),
               ],
             ),
+    );
+  }
+
+  /// 🆕 成就网格（每行 3 个，解锁彩色 / 未解锁灰色）
+  Widget _buildAchievementGrid(ColorScheme cs) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.92,
+      ),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _achievements.length,
+      itemBuilder: (_, i) {
+        final a = _achievements[i];
+        final unlocked = a['unlocked'] == true;
+        final cur = a['current'] is int ? a['current'] as int : 0;
+        final target = a['target'] is int ? a['target'] as int : 0;
+        final icon = a['icon']?.toString() ?? '🏅';
+        final name = a['name']?.toString() ?? '';
+        final desc = a['desc']?.toString() ?? '';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            color: unlocked
+                ? cs.primaryContainer.withOpacity(0.55)
+                : cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: unlocked ? Border.all(color: cs.primary, width: 1) : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Opacity(
+                opacity: unlocked ? 1 : 0.35,
+                child: Text(icon, style: const TextStyle(fontSize: 26)),
+              ),
+              const SizedBox(height: 4),
+              Text(name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: unlocked ? cs.onSurface : cs.onSurfaceVariant,
+                  )),
+              const SizedBox(height: 2),
+              Text(unlocked ? '已解锁' : '$cur/$target',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: unlocked ? cs.primary : cs.outline,
+                  )),
+              const SizedBox(height: 2),
+              Text(desc,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 9, color: cs.outline)),
+            ],
+          ),
+        );
+      },
     );
   }
 
