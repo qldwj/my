@@ -15,6 +15,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
+import 'package:kazumi/pages/my/checkin_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/friends_page.dart';
@@ -821,6 +822,19 @@ class _MyPageState extends State<MyPage> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      // ── 追番打卡 ──
+                      _buildToolTile(
+                        colorScheme, textTheme,
+                        icon: Icons.local_fire_department_rounded,
+                        title: '追番打卡',
+                        caption: '连看天数 / 打卡日历',
+                        color: colorScheme.tertiaryContainer,
+                        foreground: colorScheme.onTertiaryContainer,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CheckinPage()),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       // ── 关于樱花动漫 ──
