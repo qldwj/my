@@ -19,6 +19,9 @@ class TorrentService {
   /// magnet -> torrent id
   final Map<String, int> _magnetToId = {};
 
+  /// magnet -> lavf demuxer 格式（libtorrent 流 URL 无扩展名，media_kit 自动探测会失败）
+  final Map<String, String> _magnetToFormat = {};
+
   bool _initializing = false;
 
   /// 确保引擎已初始化（幂等）
@@ -70,8 +73,42 @@ class TorrentService {
 
     final stream = engine.startStream(id);
     _magnetToUrl[magnet] = stream.url;
+    // 记录种子实际文件格式（.mkv/.mp4 等），供播放器按类型指定 demuxer
+    try {
+      final files = engine.getFiles(id);
+      _magnetToFormat[magnet] = _formatForFiles(files);
+    } catch (_) {
+      _magnetToFormat.remove(magnet);
+    }
     KazumiLogger().i('TorrentService: 磁力已就绪 -> ${stream.url}');
     return stream.url;
+  }
+
+  /// 获取该磁力对应的 lavf demuxer 格式（无则 null，走自动探测）
+  String? getDemuxerFormat(String magnet) => _magnetToFormat[magnet];
+
+  /// 从种子文件列表挑选流式播放的主文件，按其扩展名映射 lavf 格式
+  String _formatForFiles(List<FileInfo> files) {
+    FileInfo? streamFile;
+    for (final f in files) {
+      if (f.isStreamable &&
+          (streamFile == null || f.size > streamFile.size)) {
+        streamFile = f;
+      }
+    }
+    final name = streamFile?.name ?? '';
+    final idx = name.lastIndexOf('.');
+    final ext = idx < 0 ? '' : name.substring(idx + 1).toLowerCase();
+    return switch (ext) {
+      'mkv' || 'webm' => 'matroska',
+      'mp4' || 'm4v' || 'm4a' || 'mov' =>
+        'mov,mp4,m4a,3gp,3g2,mj2',
+      'ts' => 'mpegts',
+      'avi' => 'avi',
+      'flv' => 'flv',
+      'rmvb' || 'rm' => 'rmvb',
+      _ => '',
+    };
   }
 
   /// 轮询等待磁力 metadata 就绪（默认 60s 超时）
@@ -113,6 +150,7 @@ class TorrentService {
     }
     _magnetToId.remove(magnet);
     _magnetToUrl.remove(magnet);
+    _magnetToFormat.remove(magnet);
   }
 
   /// 清理全部 BT 资源
@@ -128,5 +166,6 @@ class TorrentService {
     _engine = null;
     _magnetToId.clear();
     _magnetToUrl.clear();
+    _magnetToFormat.clear();
   }
 }
