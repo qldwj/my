@@ -1,5 +1,7 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/widget/source_rating_widget.dart';
+import 'package:kazumi/services/plugin/plugin_icon_cache.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.
@@ -20,6 +22,7 @@ class RuleCard extends StatelessWidget {
     this.selected = false,
     this.installed = false,
     this.ratingSourceId,
+    this.iconUrl,
   });
 
   final String title;
@@ -36,6 +39,9 @@ class RuleCard extends StatelessWidget {
 
   /// 非空则在卡片上显示该源的稳定性评分（点击可打分）
   final String? ratingSourceId;
+
+  /// 该规则的动漫图标 URL（Hive 永久缓存）。为空或加载失败时显示默认图标。
+  final String? iconUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -96,13 +102,16 @@ class RuleCard extends StatelessWidget {
                           borderRadius:
                               BorderRadius.circular(installed ? 24 : 16),
                         ),
-                        child: Icon(
-                          selected
-                              ? Icons.check_rounded
-                              : Icons.extension_rounded,
-                          color: selected || installed
-                              ? colors.onSecondaryContainer
-                              : colors.onPrimaryContainer,
+                        child: _RuleIcon(
+                          url: iconUrl,
+                          fallback: Icon(
+                            selected
+                                ? Icons.check_rounded
+                                : Icons.extension_rounded,
+                            color: selected || installed
+                                ? colors.onSecondaryContainer
+                                : colors.onPrimaryContainer,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -229,6 +238,54 @@ class RuleTag extends StatelessWidget {
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: foreground, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// 规则图标：首次从 [PluginIconCache] 下载并写入 Hive 永久缓存，
+/// 之后（含重启）直接读 Hive。无 URL / 加载失败时显示默认 [fallback] 图标。
+class _RuleIcon extends StatefulWidget {
+  final String? url;
+  final Widget fallback;
+  const _RuleIcon({required this.url, required this.fallback});
+
+  @override
+  State<_RuleIcon> createState() => _RuleIconState();
+}
+
+class _RuleIconState extends State<_RuleIcon> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final url = widget.url;
+    if (url == null || url.isEmpty) return;
+    final bytes = await PluginIconCache.instance.load(url);
+    if (!mounted) return;
+    if (bytes != null && bytes.isNotEmpty) {
+      setState(() => _bytes = bytes);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (bytes == null || bytes.isEmpty) return widget.fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.memory(
+        bytes,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => widget.fallback,
       ),
     );
   }
