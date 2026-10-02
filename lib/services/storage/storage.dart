@@ -33,6 +33,10 @@ class GStorage {
   // 🆕 弹幕缓存箱（key: "<bangumiId>_<episode>"，value 为整包 JSON）
   static late Box<String> danmakuCache;
 
+  // 🆕 需登录规则的 Cookie 持久化箱（key: "plugin_cookie_<规则名>",
+  // value 为 {cookies, userAgent, savedAt} Map，重启后仍有效，默认 30 天）
+  static late Box<dynamic> pluginCookies;
+
   static late Box<CollectedBangumi> collectiblesBak;
   static late Box<History> historiesBak;
 
@@ -206,6 +210,7 @@ class GStorage {
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
     notifyMuted = await _openBoxSafe<String>('notifyMuted');
     danmakuCache = await _openBoxSafe<String>('danmakuCache');
+    pluginCookies = await _openBoxSafe<dynamic>('pluginCookies');
     collectiblesBak =
         await _openBoxSafe<CollectedBangumi>('collectiblesBak');
     historiesBak = await _openBoxSafe<History>('historiesBak');

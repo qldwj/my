@@ -42,6 +42,10 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+
+  /// 🆕 此规则需要登录验证时的登录页地址（[needLogin] 为 true 时用内置 WebView 打开它）。
+  /// 规则 JSON 键为 `loginURL` 或 `loginUrl`。
+  String loginUrl;
   String searchMode;
   String chapterMode;
   ApiSearchConfig searchApiConfig;
@@ -56,6 +60,10 @@ class Plugin {
   /// Whether this rule is enabled for search. Disabled rules are skipped
   /// during queryAllSource and don't appear in source selection tabs.
   bool enabled;
+
+  /// 🆕 此规则是否需要登录验证后才能观看（登录后通过内置 WebView 保存 Cookie，
+  /// 后续观看自动携带）。规则 JSON 可通过 `needLogin: true` 标记。
+  bool needLogin;
 
   /// 合集相关 —— 当此插件是 Animeko 合集时使用
   /// 合集 = 一个仓库文件包含多个动漫来源
@@ -85,6 +93,7 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
+    this.loginUrl = '',
     this.searchMode = RuleMode.xpath,
     this.chapterMode = RuleMode.xpath,
     ApiSearchConfig? searchApiConfig,
@@ -92,6 +101,7 @@ class Plugin {
     AntiCrawlerConfig? antiCrawlerConfig,
     this.animekoConfig,
     this.enabled = true,
+    this.needLogin = false,
     this.isCollection = false,
     this.collectionUrl = '',
     this.collectionLastUpdate = '',
@@ -123,6 +133,7 @@ class Plugin {
       chapterRoads: json['chapterRoads'] as String? ?? '',
       chapterResult: json['chapterResult'] as String? ?? '',
       referer: json['referer'] ?? '',
+      loginUrl: json['loginURL'] as String? ?? json['loginUrl'] as String? ?? '',
       searchMode: RuleMode.normalize(json['searchMode']),
       chapterMode: RuleMode.normalize(json['chapterMode']),
       searchApiConfig: json['searchApiConfig'] is Map
@@ -146,6 +157,7 @@ class Plugin {
             )
           : null,
       enabled: json['enabled'] as bool? ?? true,
+      needLogin: json['needLogin'] as bool? ?? false,
       isCollection: json['isCollection'] as bool? ?? false,
       collectionUrl: json['collectionUrl'] as String? ?? '',
       collectionLastUpdate: json['collectionLastUpdate'] as String? ?? '',
@@ -180,6 +192,7 @@ class Plugin {
       chapterRoads: '',
       chapterResult: '',
       referer: '',
+      loginUrl: '',
       searchMode: RuleMode.xpath,
       chapterMode: RuleMode.xpath,
       searchApiConfig: ApiSearchConfig(),
@@ -187,6 +200,7 @@ class Plugin {
       antiCrawlerConfig: AntiCrawlerConfig.empty(),
       animekoConfig: null,
       enabled: true,
+      needLogin: false,
       isCollection: false,
       collectionUrl: '',
       collectionLastUpdate: '',
@@ -216,6 +230,7 @@ class Plugin {
       'chapterRoads': chapterRoads,
       'chapterResult': chapterResult,
       'referer': referer,
+      'loginURL': loginUrl,
       'searchMode': searchMode,
       'chapterMode': chapterMode,
       // Persisting re-serializes the whole plugin list, so a configured API
@@ -229,6 +244,7 @@ class Plugin {
       if (animekoConfig != null)
         animekoConfigKey: animekoConfig!.toJson(),
       'enabled': enabled,
+      'needLogin': needLogin,
       if (isCollection) ...{
         'isCollection': true,
         'collectionUrl': collectionUrl,

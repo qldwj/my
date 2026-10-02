@@ -23,6 +23,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
+import 'package:kazumi/pages/plugin_login/plugin_login_page.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -79,11 +80,12 @@ class _SourceSheetState extends State<SourceSheet>
         const order = {
           PluginSearchStatus.success: 0,
           PluginSearchStatus.captcha: 1,
-          PluginSearchStatus.noResult: 2,
-          PluginSearchStatus.error: 3,
+          PluginSearchStatus.login: 2,
+          PluginSearchStatus.noResult: 3,
+          PluginSearchStatus.error: 4,
         };
-        final oa = order[sa] ?? 4;
-        final ob = order[sb] ?? 4;
+        final oa = order[sa] ?? 5;
+        final ob = order[sb] ?? 5;
         if (oa != ob) return oa.compareTo(ob);
         return a.name.compareTo(b.name);
       });
@@ -545,10 +547,32 @@ class _SourceSheetState extends State<SourceSheet>
     );
   }
 
+  /// 打开内置 WebView 登录页，登录成功后自动抓取并保存 Cookie
+  void _openPluginLogin(Plugin plugin) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PluginLoginPage(plugin: plugin)),
+    );
+  }
+
   Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
     final status = widget.infoController.pluginSearchStatus[plugin.name];
     if (status == PluginSearchStatus.pending) {
       return const Center(child: LoadingIndicator());
+    }
+    if (status == PluginSearchStatus.login) {
+      return GeneralErrorWidget(
+        errMsg: '${plugin.name} 需要验证登录后才能观看（使用内置浏览器登录并保存 Cookie）',
+        actions: [
+          GeneralErrorButton(
+            onPressed: () => _openPluginLogin(plugin),
+            text: '去登录',
+          ),
+          GeneralErrorButton(
+            onPressed: () => pluginSearchService?.querySource(keyword, plugin.name),
+            text: '重试',
+          ),
+        ],
+      );
     }
     if (status == PluginSearchStatus.captcha) {
       return GeneralErrorWidget(
@@ -772,6 +796,7 @@ class _SourceSheetState extends State<SourceSheet>
                                 PluginSearchStatus.noResult => Colors.orange,
                                 PluginSearchStatus.captcha => Colors.blue,
                                 PluginSearchStatus.error => Colors.red,
+                                PluginSearchStatus.login => Colors.purple,
                                 _ => Colors.grey,
                               },
                               shape: BoxShape.circle,
