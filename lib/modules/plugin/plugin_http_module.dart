@@ -5,6 +5,7 @@ class PluginHTTPItem {
   String author;
   int lastUpdate;
   bool antiCrawlerEnabled;
+  bool needLogin;
 
   PluginHTTPItem({
     required this.name,
@@ -13,6 +14,7 @@ class PluginHTTPItem {
     required this.author,
     required this.lastUpdate,
     this.antiCrawlerEnabled = false,
+    this.needLogin = false,
   });
 
   factory PluginHTTPItem.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class PluginHTTPItem {
       author: json['author'],
       lastUpdate: json['lastUpdate'] ?? 0,
       antiCrawlerEnabled: antiCrawlerEnabled,
+      needLogin: json['needLogin'] as bool? ?? false,
     );
   }
 }

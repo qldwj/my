@@ -212,9 +212,15 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
                 background: colorScheme.secondaryContainer,
                 foreground: colorScheme.onSecondaryContainer,
               ),
+              if (item.needLogin)
+                RuleTag(
+                  label: '需要登录',
+                  background: colorScheme.errorContainer,
+                  foreground: colorScheme.onErrorContainer,
+                ),
               if (item.antiCrawlerEnabled)
                 RuleTag(
-                  label: 'captcha',
+                  label: '需要验证',
                   background: colorScheme.tertiaryContainer,
                   foreground: colorScheme.onTertiaryContainer,
                 ),

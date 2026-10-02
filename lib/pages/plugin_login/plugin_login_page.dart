@@ -37,7 +37,12 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       ..setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (url) {
-          if (!url.contains('login') && url.contains('http') && !_saving) {
+          // 排除初始 loginUrl：如次元城 loginUrl 是首页（不含 'login'），
+          // 旧逻辑一打开就误判"登录成功"自动保存，而用户还没登录，之后只得手动点保存。
+          if (url != widget.plugin.loginUrl &&
+              !url.contains('login') &&
+              url.contains('http') &&
+              !_saving) {
             _statusText = '登录成功，正在保存…';
             setState(() {});
             _finishAndSave(url);
