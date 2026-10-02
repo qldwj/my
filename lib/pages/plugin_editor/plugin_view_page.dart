@@ -16,7 +16,6 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
-import 'package:kazumi/pages/plugin_editor/collection_browser_page.dart';
 import 'package:kazumi/pages/plugin_editor/collection_detail_page.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -127,24 +126,6 @@ class _PluginViewPageState extends State<PluginViewPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.cloud_download),
-                title: const Text('从仓库安装合集'),
-                subtitle: const Text('浏览并安装 Animeko 合集'),
-                onTap: () {
-                  KazumiDialog.dismiss();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => CollectionBrowserPage(
-                        controller: pluginsController,
-                      ),
-                    ),
-                  ).then((changed) {
-                    if (changed == true && mounted) setState(() {});
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-              ListTile(
                 leading: const Icon(Icons.add_box),
                 title: const Text('新建 XPath 规则'),
                 onTap: () {
@@ -176,20 +157,9 @@ class _PluginViewPageState extends State<PluginViewPage>
               ListTile(
                 leading: const Icon(Icons.file_open),
                 title: const Text('从文件批量导入'),
-                subtitle: const Text('选择 JSON 文件，可一次导入多条规则'),
                 onTap: () {
                   KazumiDialog.dismiss();
                   _importFromFile();
-                },
-              ),
-              const SizedBox(height: 10),
-              ListTile(
-                leading: const Icon(Icons.extension),
-                title: const Text('导入 Animeko JSON'),
-                subtitle: const Text('从链接或剪贴板导入单个规则'),
-                onTap: () {
-                  KazumiDialog.dismiss();
-                  _showAnimekoImportDialog();
                 },
               ),
             ],
