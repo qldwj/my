@@ -34,7 +34,7 @@ class _CollectionBrowserPageState extends State<CollectionBrowserPage> {
   PluginsController get pluginsController => widget.controller;
 
   static const String repoBase =
-      'https://raw.githubusercontent.com/qlgfwz/anisubs/main/';
+      'https://raw.githubusercontent.com/yhdmgf/anisubs/main/';
   static const String repoIndex = repoBase + 'main.json';
 
   List<_RepoEntry> _entries = [];
@@ -193,19 +193,36 @@ class _CollectionBrowserPageState extends State<CollectionBrowserPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: SysAppBar(
-        title: Text('安装合集  (${_selected.length})'),
-        actions: [
-          if (_selected.isNotEmpty)
-            TextButton(
-              onPressed: _installSelected,
-              child: const Text('安装'),
-            ),
-        ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: SysAppBar(
+          title: Text('安装合集  (${_selected.length})'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goBack,
+          ),
+          actions: [
+            if (_selected.isNotEmpty)
+              TextButton(
+                onPressed: _installSelected,
+                child: const Text('安装'),
+              ),
+          ],
+        ),
+        body: _buildBody(colorScheme),
       ),
-      body: _buildBody(colorScheme),
     );
+  }
+
+  /// 返回上一级（规则管理页），避免嵌套导航直接跳回「我的」页面
+  void _goBack() {
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    if (nav.canPop()) nav.pop();
   }
 
   Widget _buildBody(ColorScheme colorScheme) {

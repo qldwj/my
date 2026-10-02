@@ -13,8 +13,7 @@ class CaptchaRequiredException implements Exception {
   final String pluginName;
 
   @override
-  String toString() =>
-      'CaptchaRequiredException: $pluginName requires captcha verification';
+  String toString() => '$pluginName 需要人机验证（验证码），请先完成验证';
 }
 
 class NoResultException implements Exception {

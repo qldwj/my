@@ -30,7 +30,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:kazumi/services/plugin/plugin_import_parser.dart';
 
 /// 默认 Animeko 规则仓库地址
-const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/qlgfwz/anisubs/main/';
+const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/yhdmgf/anisubs/main/';
 const String kAnimekoRepoIndex = kAnimekoRepoBase + 'main.json';
 
 class PluginViewPage extends StatefulWidget {
