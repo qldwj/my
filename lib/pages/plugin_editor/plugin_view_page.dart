@@ -16,6 +16,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
+import 'package:kazumi/pages/plugin_editor/collection_browser_page.dart';
 import 'package:kazumi/pages/plugin_editor/collection_detail_page.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -125,6 +126,23 @@ class _PluginViewPageState extends State<PluginViewPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ListTile(
+                leading: const Icon(Icons.cloud_download),
+                title: const Text('从仓库安装合集'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CollectionBrowserPage(
+                        controller: pluginsController,
+                      ),
+                    ),
+                  ).then((changed) {
+                    if (changed == true && mounted) setState(() {});
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
               ListTile(
                 leading: const Icon(Icons.add_box),
                 title: const Text('新建 XPath 规则'),
