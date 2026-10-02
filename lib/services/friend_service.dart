@@ -60,7 +60,15 @@ class FriendService {
       final resp = await req.close();
       final s = await resp.transform(utf8.decoder).join();
       client.close();
-      if (resp.statusCode != 200) return {'error': 'HTTP ${resp.statusCode}: $s'};
+      if (resp.statusCode != 200) {
+        try {
+          final j = jsonDecode(s);
+          if (j is Map && j['error'] != null) {
+            return {'error': j['error'].toString()};
+          }
+        } catch (_) {}
+        return {'error': '请求失败（HTTP ${resp.statusCode}）'};
+      }
       return jsonDecode(s) as Map<String, dynamic>;
     } catch (e) {
       client.close();
