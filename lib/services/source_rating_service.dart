@@ -91,6 +91,11 @@ class SourceRatingService {
       final uri = Uri.parse('$baseUrl?action=$action').replace(
           queryParameters: {...Uri.parse('$baseUrl?action=$action').queryParameters, ...q});
       final request = await client.getUrl(uri);
+      // 🆕 带浏览器 UA/Accept，避免被服务器防火墙(WAF)拦成 HTML
+      request.headers.set('User-Agent',
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+      request.headers.set('Accept', 'application/json, text/plain, */*');
+      request.headers.set('Accept-Language', 'zh-CN,zh;q=0.9');
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();
       client.close();
@@ -111,6 +116,10 @@ class SourceRatingService {
       final request =
           await client.postUrl(Uri.parse('$baseUrl?action=$action'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      request.headers.set('User-Agent',
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+      request.headers.set('Accept', 'application/json, text/plain, */*');
+      request.headers.set('Accept-Language', 'zh-CN,zh;q=0.9');
       request.add(utf8.encode(jsonEncode(body)));
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();
