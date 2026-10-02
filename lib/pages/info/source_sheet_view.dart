@@ -24,6 +24,7 @@ class _SourceSearchGroup {
         PluginSearchStatus.noResult => '无结果',
         PluginSearchStatus.error => '检索失败',
         PluginSearchStatus.captcha => '需要验证',
+        PluginSearchStatus.login => '需要登录',
       };
 }
 
@@ -296,7 +297,8 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
                 ),
               ],
             ),
-          PluginSearchStatus.captcha =>
+          PluginSearchStatus.captcha ||
+          PluginSearchStatus.login =>
             _buildSourceIssue(group.name, requiresVerification: true),
           PluginSearchStatus.error =>
             _buildSourceIssue(group.name, requiresVerification: false),

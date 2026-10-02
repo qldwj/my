@@ -3,6 +3,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/utils/async_session.dart';
 
@@ -87,6 +88,13 @@ class PluginSearchService {
 
   Future<void> _queryPlugin(Plugin plugin, String keyword) async {
     if (_isCancelled) return;
+    // 🆕 需登录规则：未保存有效 Cookie 时标记「需要登录」（紫色），不发起搜索
+    if (plugin.needLogin &&
+        !PluginCookieManager.instance.hasSaved(plugin.name)) {
+      infoController.pluginSearchStatus[plugin.name] =
+          PluginSearchStatus.login;
+      return;
+    }
     final session = _querySessions
         .putIfAbsent(plugin.name, AsyncSessionOwner.new)
         .begin();
