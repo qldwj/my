@@ -204,6 +204,8 @@ class SocialService {
     if (token == null) {
       return {'success': false, 'error': '未登录'};
     }
+    String resp = '';
+    int statusCode = 0;
     try {
       await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防 CC 触发 JS 验证页
       final client = HttpClient();
@@ -220,7 +222,8 @@ class SocialService {
       request.headers.set('Authorization', 'Bearer $token');
       request.add(utf8.encode(jsonEncode(body)));
       final response = await request.close();
-      final resp = await response.transform(utf8.decoder).join();
+      statusCode = response.statusCode;
+      resp = await response.transform(utf8.decoder).join();
       client.close();
       if (response.statusCode != 200) {
         // ⭐ 登录失效自动登出（社交接口同样会返回「登录已过期/未登录」）
@@ -242,7 +245,13 @@ class SocialService {
       }
       return jsonDecode(resp) as Map<String, dynamic>;
     } catch (e) {
-      KazumiLogger().e('Social: 请求失败 action=$action', error: e);
+      // 🆕 记录状态码 + 响应原文，便于判断是 Kangle 验证页 / 空响应 / 正常 JSON
+      final preview = resp.length > 800 ? resp.substring(0, 800) : resp;
+      KazumiLogger().e(
+          'Social: 请求失败 action=$action status=$statusCode',
+          error: e,
+          forceLog: true);
+      KazumiLogger().w('Social: 响应原文: $preview', forceLog: true);
       return {'success': false, 'error': '网络异常'};
     }
   }

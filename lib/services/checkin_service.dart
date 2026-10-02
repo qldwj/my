@@ -23,6 +23,8 @@ class CheckinService {
     if (token == null) return {'error': '未登录'};
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
+    String s = '';
+    int statusCode = 0;
     try {
       await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防 CC 触发 JS 验证页
       final body = <String, dynamic>{'action': action, ...?extra};
@@ -37,13 +39,18 @@ class CheckinService {
       req.headers.set('Referer', 'https://qlyyz.xyz/');
       req.add(utf8.encode(jsonEncode(body)));
       final resp = await req.close();
-      final s = await resp.transform(utf8.decoder).join();
+      statusCode = resp.statusCode;
+      s = await resp.transform(utf8.decoder).join();
       client.close();
       if (resp.statusCode != 200) return {'error': 'HTTP ${resp.statusCode}: $s'};
       return jsonDecode(s) as Map<String, dynamic>;
     } catch (e) {
       client.close();
-      KazumiLogger().e('Checkin: 请求失败', error: e);
+      // 🆕 记录状态码 + 响应原文，便于判断 Kangle 验证页 / 空响应 / 正常 JSON
+      final preview = s.length > 800 ? s.substring(0, 800) : s;
+      KazumiLogger().e('Checkin: 请求失败 status=$statusCode',
+          error: e, forceLog: true);
+      KazumiLogger().w('Checkin: 响应原文: $preview', forceLog: true);
       return {'error': '网络连接失败: $e'};
     }
   }
