@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/utils/api_throttle.dart';
 
 class EpisodeCommentService {
   static const String _baseUrl = 'https://qlyyz.xyz/api/v0/episode_comment.php';
@@ -27,6 +28,7 @@ class EpisodeCommentService {
       'subjectId': subjectId, 'episode': episode, 'content': content,
       'sender': sender, 'avatar': avatar ?? '',
     };
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=add'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode(body));
@@ -40,6 +42,7 @@ class EpisodeCommentService {
     SocialService.restoreLocalProfile();
     final sender = SocialService.myProfile?.nickname ?? '';
     final avatar = SocialService.myProfile?.avatar ?? '';
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=reply'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode({'commentId': commentId, 'content': content, 'sender': sender, 'avatar': avatar}));
@@ -48,7 +51,8 @@ class EpisodeCommentService {
 
   static Future<List<EpisodeComment>> getComments({required int subjectId, int episode = 0, String sort = 'time'}) async {
     try {
-      final res = await http.get(Uri.parse('$_baseUrl?action=list&id=$subjectId&ep=$episode&sort=$sort'), headers: _browserHeaders);
+      await ApiThrottle.wait();
+    final res = await http.get(Uri.parse('$_baseUrl?action=list&id=$subjectId&ep=$episode&sort=$sort'), headers: _browserHeaders);
       final data = jsonDecode(res.body);
       if (data['success'] == true) {
         return (data['data'] as List).map((e) => EpisodeComment.fromJson(e)).toList();
@@ -60,6 +64,7 @@ class EpisodeCommentService {
   static Future<Map<String, dynamic>> vote({required int commentId, required int value}) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=vote'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode({'commentId': commentId, 'value': value}));
@@ -69,6 +74,7 @@ class EpisodeCommentService {
   static Future<Map<String, dynamic>> react({required int commentId, required String sticker}) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=react'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode({'commentId': commentId, 'sticker': sticker}));
@@ -78,6 +84,7 @@ class EpisodeCommentService {
   static Future<Map<String, dynamic>> removeComment(int commentId) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=remove'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode({'commentId': commentId}));
@@ -87,6 +94,7 @@ class EpisodeCommentService {
   static Future<Map<String, dynamic>> reportComment({required int commentId, required String reason}) async {
     final token = AuthService.getLocalToken();
     if (token == null) return {'success': false, 'error': '请先登录'};
+    await ApiThrottle.wait();
     final res = await http.post(Uri.parse('$_baseUrl?action=report'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode({'commentId': commentId, 'reason': reason}));
@@ -94,6 +102,7 @@ class EpisodeCommentService {
   }
 
   static Future<List<Map<String, String>>> getStickers() async {
+    await ApiThrottle.wait();
     final res = await http.get(Uri.parse('$_baseUrl?action=stickers'), headers: _browserHeaders);
     final data = jsonDecode(res.body);
     if (data['success'] == true) return List<Map<String, String>>.from(data['data'] ?? []);

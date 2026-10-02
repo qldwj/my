@@ -6,6 +6,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/notification/anime_update_notification_service.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/api_throttle.dart';
 
 /// 社交用户资料
 class SocialProfile {
@@ -204,6 +205,7 @@ class SocialService {
       return {'success': false, 'error': '未登录'};
     }
     try {
+      await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防 CC 触发 JS 验证页
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
       // 🆕 浏览器 UA + 完整头：Kangle WAF 对非浏览器(dart:io 默认UA)返回 JS 验证页(cbk_var)导致解析失败

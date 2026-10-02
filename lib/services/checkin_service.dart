@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/api_throttle.dart';
 
 /// 🆕 追番打卡 / 连看天数客户端
 ///
@@ -23,6 +24,7 @@ class CheckinService {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
     try {
+      await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防 CC 触发 JS 验证页
       final body = <String, dynamic>{'action': action, ...?extra};
       final req = await client.postUrl(Uri.parse('$api?action=$action'));
       req.headers.set('Content-Type', 'application/json; charset=utf-8');
