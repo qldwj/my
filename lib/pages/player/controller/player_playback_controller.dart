@@ -455,17 +455,22 @@ abstract class _PlayerPlaybackController with Store {
       // 这里通过 libtorrent 顺序下载 + 本地 HTTP 流中转，转成可播地址。
       String playUrl = videoUrl();
       if (TorrentService.isMagnet(playUrl)) {
+        final magnet = playUrl;
         try {
-          playUrl = await TorrentService.instance.resolveStreamUrl(playUrl);
+          playUrl = await TorrentService.instance.resolveStreamUrl(magnet);
         } catch (e) {
           KazumiLogger().e('TorrentService: 磁力解析失败 $e');
           KazumiDialog.showToast(message: '磁力链接解析失败，请检查做种数或稍后重试');
           return await _discardIfNotCurrent(candidate);
         }
-        // libtorrent 本地流 URL 无扩展名，media_kit 自动探测会报"无法识别文件格式"，
-        // 强制 HLS demuxer（libtorrent 流式服务按 HLS 分段提供）。
-        final btPp = player.platform as NativePlayer;
-        await btPp.setProperty('demuxer-lavf-format', 'hls');
+        // libtorrent 流是「原始文件流」(HTTP byte-range)，不是 HLS。
+        // 流 URL 无扩展名，media_kit 自动探测会报"无法识别文件格式"，
+        // 故按种子实际文件类型(.mkv/.mp4…)指定 lavf demuxer 格式。
+        final btFmt = TorrentService.instance.getDemuxerFormat(magnet);
+        if (btFmt != null && btFmt.isNotEmpty) {
+          final btPp = player.platform as NativePlayer;
+          await btPp.setProperty('demuxer-lavf-format', btFmt);
+        }
       }
 
       await player.open(
