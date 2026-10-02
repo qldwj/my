@@ -138,13 +138,22 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
     }
   }
 
+  // 🆕 主登录：应用内浏览器打开授权页（之前的格式）
   Future<void> _login() async {
+    await _open(mode: LaunchMode.inAppBrowserView);
+  }
+
+  // 🆕 兜底：内置浏览器打不开时，点下方按钮跳外部浏览器
+  Future<void> _openExternal() async {
+    await _open(mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _open({required LaunchMode mode}) async {
     setState(() => _loading = true);
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
       final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=wechat$bindParam');
-      // 🆕 外部浏览器打开。去掉 canLaunchUrl 守卫（部分设备返回 false 导致点击无效）
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri, mode: mode);
     } catch (e) {
       KazumiDialog.showToast(message: '打开授权页失败: $e');
     }
@@ -174,7 +183,18 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
           child: _loading ? const SizedBox(width: 20, height: 20,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : Text(widget.bindMode ? '打开微信授权绑定' : '打开微信授权', style: const TextStyle(fontSize: 17))),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // 🆕 兜底按钮：应用内浏览器打不开时，点我跳外部浏览器
+        InkWell(
+          onTap: _loading ? null : _openExternal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text('如果无法打开浏览器，点击我',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: cs.outline, decoration: TextDecoration.underline)),
+          ),
+        ),
+        const SizedBox(height: 8),
         Text('授权后会自动跳回 App 完成${widget.bindMode ? "绑定" : "登录"}',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: cs.outline)),
       ]),
