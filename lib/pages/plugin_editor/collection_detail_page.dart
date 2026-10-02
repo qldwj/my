@@ -199,9 +199,18 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final children = _plugin.childPlugins;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
       appBar: SysAppBar(
         title: Text(_plugin.name),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _goBack,
+        ),
         actions: [
           // 手动刷新
           IconButton(
@@ -333,7 +342,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           ),
         ],
       ),
+      ),
     );
+  }
+
+  /// 返回上一级（合集浏览页），避免嵌套导航直接跳回「我的」页面
+  void _goBack() {
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    if (nav.canPop()) nav.pop();
   }
 
   /// 构建统计信息行
