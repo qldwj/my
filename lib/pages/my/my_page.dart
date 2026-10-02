@@ -904,7 +904,7 @@ class _MyPageState extends State<MyPage> {
       KazumiDialog.showToast(message: '账号资料未就绪，请稍后再试');
       return;
     }
-    final link = 'https://qlyyz.xyz/api/u.php?uid=$uid';
+    final link = 'https://qlyyz.xyz/api/u.php?uid=$uid&html=1';
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     KazumiDialog.showToast(message: '账号链接已复制，可分享给好友');
