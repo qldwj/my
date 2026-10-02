@@ -143,15 +143,22 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
     }
   }
 
-  /// 打开 Telegram Bot
+  /// 🆕 主登录：应用内浏览器打开 Telegram Bot（统一格式）
   Future<void> _openBot() async {
+    await _open(mode: LaunchMode.inAppBrowserView);
+  }
+
+  /// 🆕 兜底：应用内浏览器打不开时，点下方按钮跳外部浏览器
+  Future<void> _openExternal() async {
+    await _open(mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _open({required LaunchMode mode}) async {
     setState(() => _loading = true);
     try {
       final startParam = widget.bindMode ? 'BIND' : 'LOGIN';
       final uri = Uri.parse('https://t.me/$_botUsername?start=$startParam');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      await launchUrl(uri, mode: mode);
     } catch (e) {
       KazumiDialog.showToast(message: '打开 Telegram 失败: $e');
     }
@@ -183,7 +190,18 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
           child: _loading ? const SizedBox(width: 20, height: 20,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : Text(widget.bindMode ? '打开 Telegram 绑定' : '打开 Telegram 登录', style: const TextStyle(fontSize: 17))),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // 🆕 兜底按钮：应用内浏览器打不开时，点我跳外部浏览器
+        InkWell(
+          onTap: _loading ? null : _openExternal,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text('如果无法打开浏览器，点击我',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: cs.outline, decoration: TextDecoration.underline)),
+          ),
+        ),
+        const SizedBox(height: 8),
         Text('在 Telegram 中点击确认按钮完成${widget.bindMode ? "绑定" : "登录"}',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: cs.outline)),
       ]),
