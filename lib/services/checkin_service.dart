@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/api_throttle.dart';
 
 /// 🆕 追番打卡 / 连看天数客户端
@@ -67,6 +68,28 @@ class CheckinService {
 
   /// 🆕 成就系统：追番/连签/累计/积分/绑定账号/Bangumi 解锁列表 + 当前称号
   /// [collectCount] = 本机追番收藏数（看动漫维度）
-  static Future<Map<String, dynamic>> achievements({int collectCount = 0}) =>
-      _post('achievements', {'collect_count': collectCount});
+  /// 结果 Hive 持久化（变化才写盘），请求失败时退回缓存
+  static const String _achCacheKey = 'checkin_achievements_cache';
+
+  static Future<Map<String, dynamic>> achievements(
+      {int collectCount = 0}) async {
+    final res = await _post('achievements', {'collect_count': collectCount});
+    if (res['error'] == null) {
+      final newJson = jsonEncode(res);
+      final cached = Storage.getStringListSettingByName(_achCacheKey);
+      if (cached.isEmpty || cached.first != newJson) {
+        await Storage.putStringListSettingByName(_achCacheKey, [newJson]);
+      }
+      return res;
+    }
+    // 请求失败：退回 Hive 缓存
+    final cached = Storage.getStringListSettingByName(_achCacheKey);
+    if (cached.isNotEmpty) {
+      try {
+        return Map<String, dynamic>.from(
+            jsonDecode(cached.first) as Map);
+      } catch (_) {}
+    }
+    return {'error': '请求失败'};
+  }
 }
