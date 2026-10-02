@@ -888,6 +888,9 @@ class AutoUpdater {
     // 显示下载进度对话框
     DateTime? _lastTime;
     int _lastBytes = 0;
+    // 🆕 缓存最近一次采样的速度/剩余时间，未到采样间隔的帧沿用旧值，避免速度行一闪一闪
+    double _lastSpeed = 0;
+    Duration? _lastEta;
 
     KazumiDialog.show(
       clickMaskDismiss: false,
@@ -921,11 +924,17 @@ class AutoUpdater {
                       }
                       _lastTime = now;
                       _lastBytes = received;
+                      // 🆕 缓存本次采样结果，供未采样帧沿用
+                      _lastSpeed = speed;
+                      _lastEta = eta;
                     }
                   } else {
                     _lastTime = now;
                     _lastBytes = received;
                   }
+                  // 🆕 未到采样间隔的帧沿用上次速度/剩余时间，避免速度行一闪一闪
+                  speed = _lastSpeed;
+                  eta = _lastEta;
 
                   return Column(
                     children: [
