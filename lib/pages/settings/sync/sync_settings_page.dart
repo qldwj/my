@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
 import 'package:kazumi/services/auth_service.dart';
