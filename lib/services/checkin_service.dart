@@ -27,7 +27,12 @@ class CheckinService {
       final req = await client.postUrl(Uri.parse('$api?action=$action'));
       req.headers.set('Content-Type', 'application/json; charset=utf-8');
       req.headers.set('Authorization', 'Bearer $token');
-      req.headers.set('User-Agent', 'yhdm-mobile/1.0');
+      // 🆕 浏览器 UA + 完整头：Kangle WAF 把 yhdm-mobile 识别为机器人 → 返回 JS 验证页(cbk_var)导致解析失败
+      req.headers.set('User-Agent',
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
+      req.headers.set('Accept', 'application/json, text/plain, */*');
+      req.headers.set('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8');
+      req.headers.set('Referer', 'https://qlyyz.xyz/');
       req.add(utf8.encode(jsonEncode(body)));
       final resp = await req.close();
       final s = await resp.transform(utf8.decoder).join();

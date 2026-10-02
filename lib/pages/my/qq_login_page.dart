@@ -56,6 +56,8 @@ class _QQLoginPageState extends State<QQLoginPage> {
     for (var attempt = 0; attempt <= retries; attempt++) {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
+      client.userAgent =
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
       try {
         final req = await client.postUrl(Uri.parse(url));
         req.headers.set('Content-Type', 'application/json; charset=utf-8');
