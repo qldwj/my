@@ -462,6 +462,10 @@ abstract class _PlayerPlaybackController with Store {
           KazumiDialog.showToast(message: '磁力链接解析失败，请检查做种数或稍后重试');
           return await _discardIfNotCurrent(candidate);
         }
+        // libtorrent 本地流 URL 无扩展名，media_kit 自动探测会报"无法识别文件格式"，
+        // 强制 HLS demuxer（libtorrent 流式服务按 HLS 分段提供）。
+        final btPp = player.platform as NativePlayer;
+        await btPp.setProperty('demuxer-lavf-format', 'hls');
       }
 
       await player.open(
