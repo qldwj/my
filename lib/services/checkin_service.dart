@@ -76,14 +76,14 @@ class CheckinService {
     final res = await _post('achievements', {'collect_count': collectCount});
     if (res['error'] == null) {
       final newJson = jsonEncode(res);
-      final cached = Storage.getStringListSettingByName(_achCacheKey);
+      final cached = GStorage.getStringListSettingByName(_achCacheKey);
       if (cached.isEmpty || cached.first != newJson) {
-        await Storage.putStringListSettingByName(_achCacheKey, [newJson]);
+        await GStorage.putStringListSettingByName(_achCacheKey, [newJson]);
       }
       return res;
     }
     // 请求失败：退回 Hive 缓存
-    final cached = Storage.getStringListSettingByName(_achCacheKey);
+    final cached = GStorage.getStringListSettingByName(_achCacheKey);
     if (cached.isNotEmpty) {
       try {
         return Map<String, dynamic>.from(
