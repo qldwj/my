@@ -206,9 +206,15 @@ class SocialService {
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
+      // 🆕 浏览器 UA + 完整头：Kangle WAF 对非浏览器(dart:io 默认UA)返回 JS 验证页(cbk_var)导致解析失败
+      client.userAgent =
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
       final request =
           await client.postUrl(Uri.parse('$baseUrl?action=$action'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      request.headers.set('Accept', 'application/json, text/plain, */*');
+      request.headers.set('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8');
+      request.headers.set('Referer', 'https://qlyyz.xyz/');
       request.headers.set('Authorization', 'Bearer $token');
       request.add(utf8.encode(jsonEncode(body)));
       final response = await request.close();
