@@ -82,8 +82,8 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
           : null;
       if (url == null || url.isEmpty) throw Exception('获取授权链接失败');
       if (!mounted) return;
-      // 🆕 用内置浏览器打开（与微信/QQ 一致），拿到 bgm.tv 授权链接后直接进入授权页
-      await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
+      // 🆕 改用外部浏览器打开（内置浏览器部分设备不可用，外部更兼容）
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
       if (mounted) KazumiDialog.showToast(message: '授权失败: $e');
