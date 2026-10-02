@@ -77,6 +77,10 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
       final res = await req.close();
       final body = await res.transform(utf8.decoder).join();
       client.close();
+      if (body.trim().isEmpty) {
+        // 🆕 慢网/被截断导致空体 → 不再裸 jsonDecode 报 FormatException
+        throw Exception('网络异常，响应为空，请重试');
+      }
       final data = jsonDecode(body);
       final url = (data is Map && data['url'] != null)
           ? data['url'].toString()
