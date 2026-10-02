@@ -928,14 +928,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           },
                         ),
                       ),
-                      // 添加到播放列表
-                      EmbeddedNativeControlArea(
-                        child: IconButton(
-                          onPressed: () => _addToPlaylist(context),
-                          icon: const Icon(Icons.playlist_add_rounded),
-                          tooltip: '添加到播放列表',
-                        ),
-                      ),
                       // 分享番剧
                       EmbeddedNativeControlArea(
                         child: IconButton(
