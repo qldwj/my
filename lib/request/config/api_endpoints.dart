@@ -33,6 +33,11 @@ class ApiEndpoints {
   /// 🆕 规则源稳定性评分接口
   static const String sourceRatingApi = 'https://qlyyz.xyz/api/v0/rating.php';
 
+  /// 🆕 追番打卡接口（v1/checkin.php）
+  static const String checkinApi = 'https://qlyyz.xyz/api/v1/checkin.php';
+  /// 🆕 公开个人主页接口（api/u.php）
+  static const String publicProfileApi = 'https://qlyyz.xyz/api/u.php';
+
   /// 在线升级（最新正式版）
   static const String latestApp =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases/latest';

@@ -6,6 +6,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/webauth/webauth_page.dart';
+import 'package:kazumi/pages/social/public_profile_page.dart';
 import 'package:kazumi/plugins/animeko_converter.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -206,6 +207,23 @@ class DeepLinkService {
       return;
     }
 
+    // 🆕 公开主页深链 yhdm://u/{uid} → 打开公开主页，可直接加好友/关注
+    if (url.startsWith('yhdm://u/')) {
+      try {
+        final seg = url.replaceFirst('yhdm://u/', '').split('?')[0].split('/')[0];
+        final uid = int.tryParse(seg);
+        if (uid != null) {
+          await _openPublicProfile(uid);
+        } else {
+          _showToast('链接无效');
+        }
+      } catch (e) {
+        KazumiLogger().e('DeepLink: 打开主页失败', error: e);
+        _showToast('打开主页失败');
+      }
+      return;
+    }
+
     // 🆕 QQ OAuth 回调（登录或绑定）；GitHub 登录未实现，已移除对应死分支
     if (url.startsWith('yhdmgz://oauthqq')) {
       try {
@@ -329,6 +347,26 @@ class DeepLinkService {
       KazumiLogger().e('DeepLink: 处理链接失败', error: e, stackTrace: st);
       _showToast('规则导入失败: ${e.toString()}');
     }
+  }
+
+  /// 打开公开主页（yhdm://u/{uid}）
+  Future<void> _openPublicProfile(int uid) async {
+    if (rootNavigatorKey.currentContext == null) {
+      _showToast('无法打开主页');
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final navContext = rootNavigatorKey.currentContext;
+        if (navContext == null || !navContext.mounted) return;
+        Navigator.of(navContext).push(
+          MaterialPageRoute(builder: (_) => PublicProfilePage(uid: uid)),
+        );
+      } catch (e) {
+        KazumiLogger().e('DeepLink: 打开公开主页失败', error: e);
+        _showToast('打开主页失败');
+      }
+    });
   }
 
   /// 打开番剧详情页（拉取信息 → 等一帧 → push /info/）
