@@ -1,6 +1,7 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'dart:io';
+import 'package:kazumi/torrent/torrent_service.dart';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
@@ -450,8 +451,21 @@ abstract class _PlayerPlaybackController with Store {
         }
       }
 
+      // 🆕 BT/磁力源：RSS 规则返回 magnet 磁链，media_kit 无法直接播，
+      // 这里通过 libtorrent 顺序下载 + 本地 HTTP 流中转，转成可播地址。
+      String playUrl = videoUrl();
+      if (TorrentService.isMagnet(playUrl)) {
+        try {
+          playUrl = await TorrentService.instance.resolveStreamUrl(playUrl);
+        } catch (e) {
+          KazumiLogger().e('TorrentService: 磁力解析失败 $e');
+          KazumiDialog.showToast(message: '磁力链接解析失败，请检查做种数或稍后重试');
+          return await _discardIfNotCurrent(candidate);
+        }
+      }
+
       await player.open(
-        Media(videoUrl(),
+        Media(playUrl,
             start: Duration(seconds: offset), httpHeaders: httpHeaders),
         play: autoPlay,
       );
