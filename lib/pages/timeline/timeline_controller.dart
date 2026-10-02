@@ -3,6 +3,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/services/schedule_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
 
@@ -18,6 +19,10 @@ abstract class _TimelineController with Store {
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
+
+  /// 🆕 精确放送时刻：bangumi id → "HH:mm"（来自服务端 schedule.php weekly）
+  @observable
+  Map<int, String> timeById = {};
 
   @observable
   String seasonString = '';
@@ -66,9 +71,29 @@ abstract class _TimelineController with Store {
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
     changeSortType(sortType);
+    await _loadTimes();
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
   }
+
+  /// 🆕 批量拉取日历里所有番的精确放送时刻（服务端 schedule.php weekly）
+  Future<void> _loadTimes() async {
+    final allIds = <int>{};
+    for (final list in bangumiCalendar) {
+      for (final item in list) {
+        if (item.id > 0) allIds.add(item.id);
+      }
+    }
+    if (allIds.isEmpty) {
+      timeById = {};
+      return;
+    }
+    final weekly = await ScheduleService.fetchWeekly(allIds.toList(), tz: 8);
+    timeById = {for (final e in weekly.entries) e.key: e.value.time};
+  }
+
+  /// 某部番的精确放送时刻（"HH:mm"），无数据返回 null
+  String? timeOf(int bangumiId) => timeById[bangumiId];
 
   @action
   Future<void> getSchedulesBySeason() async {
