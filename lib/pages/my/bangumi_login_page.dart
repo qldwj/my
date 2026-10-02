@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -22,6 +24,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   StreamSubscription<Uri>? _linkSub;
   final _appLinks = AppLinks();
   int? _expandedFaq;
+  bool _loggingIn = false;
 
   bool get _isLoggedIn => GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
 
@@ -58,15 +61,33 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   }
 
   Future<void> _login() async {
+    if (_loggingIn) return;
+    setState(() => _loggingIn = true);
     try {
-      final authUrl = '$_authBaseUrl?action=login&redirect_uri=$_redirectUri';
-      final uri = Uri.parse(authUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-      }
+      // 🆕 App 内转圈 → 请求后端拿 bgm.tv 授权链接 → 直接跳转（不经过 qlyyz 中间页）
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 15);
+      final req = await client.getUrl(
+        Uri.parse('$_authBaseUrl?action=auth_url&redirect_uri=$_redirectUri'),
+      );
+      req.headers.set('User-Agent',
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+      req.headers.set('Accept', 'application/json, text/plain, */*');
+      final res = await req.close();
+      final body = await res.transform(utf8.decoder).join();
+      client.close();
+      final data = jsonDecode(body);
+      final url = (data is Map && data['url'] != null)
+          ? data['url'].toString()
+          : null;
+      if (url == null || url.isEmpty) throw Exception('获取授权链接失败');
+      if (!mounted) return;
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (e) {
       KazumiLogger().e('Bangumi登录失败', error: e);
-      KazumiDialog.showToast(message: '授权失败: $e');
+      if (mounted) KazumiDialog.showToast(message: '授权失败: $e');
+    } finally {
+      if (mounted) setState(() => _loggingIn = false);
     }
   }
 
@@ -120,9 +141,15 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
 
           if (!_isLoggedIn) ...[
             FilledButton(
-              onPressed: _login,
+              onPressed: _loggingIn ? null : _login,
               style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-              child: const Text('登录 / 注册', style: TextStyle(fontSize: 17)),
+              child: _loggingIn
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Text('登录 / 注册', style: TextStyle(fontSize: 17)),
             ),
             const SizedBox(height: 12),
             // 🆕 检查 Bangumi 服务状态
