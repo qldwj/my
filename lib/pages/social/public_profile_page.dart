@@ -101,8 +101,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
-            final popped = await Modular.to.maybePop();
-            if (!popped) Modular.to.navigate('/');
+            final navigator = Navigator.of(context);
+            final popped = await navigator.maybePop();
+            if (!popped) navigator.popUntil((route) => route.isFirst);
           },
         ),
       ),
