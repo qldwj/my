@@ -88,8 +88,8 @@ class _MyPageState extends State<MyPage> {
   }
 
   /// 🆕 加载当前称号（追番/打卡/积分/绑定维度，账号区展示）
+  /// 未登录也读 Hive 缓存（在线成功会写盘，失败/离线退回缓存），保证称号持久化
   Future<void> _loadTitle() async {
-    if (!AuthService.isLoggedIn) return;
     int collectCount = 0;
     try {
       collectCount = GStorage.collectibles.length;
