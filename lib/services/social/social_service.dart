@@ -256,9 +256,13 @@ class SocialService {
     final p = res['profile'];
     if (p is! Map) return null;
     _myProfile = SocialProfile.fromJson(Map<String, dynamic>.from(p));
-    // 缓存到本地
-    await GStorage.putSetting(
-        SettingsKeys.socialProfile, jsonEncode(_myProfile!.toJson()));
+    // 🆕 UID 已在 Hive 持久化（socialProfile key），且 uid 为 final 不可修改。
+    // 参考追番页"本地优先 + 变化才写盘"：仅当资料（头像/昵称等）真正变化时才覆盖写，
+    // 避免每次拉取 profile 都重复写盘。
+    final json = jsonEncode(_myProfile!.toJson());
+    if (GStorage.getSetting(SettingsKeys.socialProfile) != json) {
+      await GStorage.putSetting(SettingsKeys.socialProfile, json);
+    }
     return _myProfile;
   }
 
