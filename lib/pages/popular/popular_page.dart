@@ -292,55 +292,6 @@ class _PopularPageState extends State<PopularPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // 第二行：搜索框（横框，图标在框内）+ 历史 + 离线下载
-                      SizedBox(
-                        height: 42,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Material(
-                                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(22),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(22),
-                                  onTap: () => context.pushNamed('/search/'),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.search,
-                                            size: 20, color: theme.iconTheme.color),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '搜索番剧、番组或剧名',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: theme.colorScheme.onSurfaceVariant,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              tooltip: '历史',
-                              onPressed: () => context.pushNamed('/settings/history/'),
-                              icon: const Icon(Icons.history),
-                            ),
-                            IconButton(
-                              tooltip: '离线下载',
-                              onPressed: () => context.pushNamed('/settings/download/'),
-                              icon: const Icon(Icons.download_outlined),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -355,6 +306,28 @@ class _PopularPageState extends State<PopularPage> {
   List<Widget> buildActions() {
     final isLoggedIn = AuthService.isLoggedIn;
     final actions = <Widget>[];
+    // 搜索 / 历史 / 离线下载 三个图标并排放在右上角
+    actions.add(
+      IconButton(
+        tooltip: '搜索',
+        onPressed: () => context.pushNamed('/search/'),
+        icon: const Icon(Icons.search),
+      ),
+    );
+    actions.add(
+      IconButton(
+        tooltip: '历史',
+        onPressed: () => context.pushNamed('/settings/history/'),
+        icon: const Icon(Icons.history),
+      ),
+    );
+    actions.add(
+      IconButton(
+        tooltip: '离线下载',
+        onPressed: () => context.pushNamed('/settings/download/'),
+        icon: const Icon(Icons.download_outlined),
+      ),
+    );
     // 🆕 已登录显示头像，未登录显示登录图标
     actions.add(
       IconButton(

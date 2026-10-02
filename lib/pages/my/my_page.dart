@@ -1380,27 +1380,6 @@ class _MyPageState extends State<MyPage> {
                 clipBehavior: Clip.none,
                 children: [
                   Icon(icon, size: 28, color: colorScheme.onSecondaryContainer),
-                  // 使用次数角标（0 次不显示）
-                  if (count > 0)
-                    Positioned(
-                      right: -16,
-                      top: -12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$count',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
               const SizedBox(height: 8),
