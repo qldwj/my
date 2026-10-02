@@ -46,6 +46,9 @@ class Plugin {
   /// 🆕 此规则需要登录验证时的登录页地址（[needLogin] 为 true 时用内置 WebView 打开它）。
   /// 规则 JSON 键为 `loginURL` 或 `loginUrl`。
   String loginUrl;
+
+  /// 🆕 此规则的动漫图标 URL（规则 JSON 键为 `icon`）。为空或加载失败时显示默认图标。
+  String icon;
   String searchMode;
   String chapterMode;
   ApiSearchConfig searchApiConfig;
@@ -94,6 +97,7 @@ class Plugin {
     required this.chapterResult,
     required this.referer,
     this.loginUrl = '',
+    this.icon = '',
     this.searchMode = RuleMode.xpath,
     this.chapterMode = RuleMode.xpath,
     ApiSearchConfig? searchApiConfig,
@@ -134,6 +138,7 @@ class Plugin {
       chapterResult: json['chapterResult'] as String? ?? '',
       referer: json['referer'] ?? '',
       loginUrl: json['loginURL'] as String? ?? json['loginUrl'] as String? ?? '',
+      icon: json['icon'] as String? ?? '',
       searchMode: RuleMode.normalize(json['searchMode']),
       chapterMode: RuleMode.normalize(json['chapterMode']),
       searchApiConfig: json['searchApiConfig'] is Map
@@ -193,6 +198,7 @@ class Plugin {
       chapterResult: '',
       referer: '',
       loginUrl: '',
+      icon: '',
       searchMode: RuleMode.xpath,
       chapterMode: RuleMode.xpath,
       searchApiConfig: ApiSearchConfig(),
@@ -231,6 +237,7 @@ class Plugin {
       'chapterResult': chapterResult,
       'referer': referer,
       'loginURL': loginUrl,
+      'icon': icon,
       'searchMode': searchMode,
       'chapterMode': chapterMode,
       // Persisting re-serializes the whole plugin list, so a configured API

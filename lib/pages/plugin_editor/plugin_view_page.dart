@@ -1090,6 +1090,7 @@ class _PluginViewPageState extends State<PluginViewPage>
             key: ObjectKey(plugin),
             title: plugin.name,
             selected: selectedNames.contains(plugin.name),
+            iconUrl: plugin.icon.isNotEmpty ? plugin.icon : null,
             caption: caption,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
