@@ -103,7 +103,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           onPressed: () async {
             final navigator = Navigator.of(context);
             final popped = await navigator.maybePop();
-            if (!popped) navigator.popUntil((route) => route.isFirst);
+            if (!popped && context.mounted) {
+              // 深链冷启动时无上一页 → 返回「我的」页面（模块化路由）
+              context.pushNamed('/tab/my/');
+            }
           },
         ),
       ),

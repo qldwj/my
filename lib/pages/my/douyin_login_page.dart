@@ -190,9 +190,14 @@ class _DouyinLoginPageState extends State<DouyinLoginPage> {
     try {
       final bindParam = widget.bindMode ? '&bind=1' : '';
       final uri = Uri.parse('https://qlyyz.xyz/api/v1/oauth_login.php?action=login&provider=douyin$bindParam');
-      await launchUrl(uri, mode: mode);
+      final ok = await launchUrl(uri, mode: mode);
+      if (!ok && mounted) {
+        KazumiDialog.showToast(message: '应用内浏览器打开失败，请点下方按钮改用外部浏览器');
+      }
     } catch (e) {
-      KazumiDialog.showToast(message: '打开授权页失败: $e');
+      if (mounted) {
+        KazumiDialog.showToast(message: '打开授权页失败，请点下方按钮改用外部浏览器');
+      }
     }
     if (mounted) setState(() => _loading = false);
   }
