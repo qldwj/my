@@ -429,9 +429,9 @@ class SocialService {
         _friendCache = friends;
         // 变化才写 Hive（uid 列表）
         final newIds = friends.map((f) => f.uid).toList();
-        final oldIds = Storage.getStringListSettingByName(_friendListKey);
+        final oldIds = GStorage.getStringListSettingByName(_friendListKey);
         if (!_sameSet(oldIds, newIds)) {
-          await Storage.putStringListSettingByName(_friendListKey, newIds);
+          await GStorage.putStringListSettingByName(_friendListKey, newIds);
         }
         return friends;
       }
