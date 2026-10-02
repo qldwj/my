@@ -50,4 +50,7 @@ class CheckinService {
 
   /// 生成分享文案
   static Future<Map<String, dynamic>> share() => _post('share', null);
+
+  /// 🆕 成就系统：连签/累计/积分/绑定账号/Bangumi 的解锁列表
+  static Future<Map<String, dynamic>> achievements() => _post('achievements', null);
 }
