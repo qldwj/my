@@ -3,9 +3,11 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/animeflow_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/friend_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/social/social_service.dart';
 
 /// 🆕 公开个人主页（分享链接 api/u/{uid} 打开；可一键加好友/关注）
@@ -104,8 +106,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final navigator = Navigator.of(context);
             final popped = await navigator.maybePop();
             if (!popped && context.mounted) {
-              // 深链冷启动时无上一页 → 返回「我的」页面（模块化路由）
-              context.pushNamed('/tab/my/');
+              // 深链冷启动时无上一页 → 用根 Navigator 返回「我的」页面
+              // （深链用 rootNavigatorKey push 本页，context.pushNamed 会找不到路由）
+              final rootCtx = rootNavigatorKey.currentContext;
+              if (rootCtx != null) {
+                Navigator.of(rootCtx).pushNamed('/tab/my/');
+              } else {
+                KazumiLogger().w('PublicProfilePage: 无根导航上下文，无法返回');
+              }
             }
           },
         ),
