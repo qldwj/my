@@ -549,10 +549,14 @@ class _SourceSheetState extends State<SourceSheet>
   }
 
   /// 打开内置 WebView 登录页，登录成功后自动抓取并保存 Cookie
-  void _openPluginLogin(Plugin plugin) {
-    Navigator.of(context).push(
+  /// 保存成功后自动重新获取该规则的搜索结果，无需手动点「重试」
+  void _openPluginLogin(Plugin plugin) async {
+    final ok = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => PluginLoginPage(plugin: plugin)),
     );
+    if (ok == true) {
+      pluginSearchService?.querySource(keyword, plugin.name);
+    }
   }
 
   Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
