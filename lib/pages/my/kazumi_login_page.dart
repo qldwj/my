@@ -359,6 +359,19 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   label: const Text('去官网登录'),
                 ),
               ),
+              const SizedBox(height: 12),
+              // 🆕 邮箱验证码登录（回到邮箱直登，不再只走网页）
+              SizedBox(
+                width: double.infinity, height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
+                    _onAuthResult(r);
+                  },
+                  icon: const Icon(Icons.email),
+                  label: const Text('邮箱验证码登录'),
+                ),
+              ),
             ]),
           ),
           const SizedBox(height: 24),
