@@ -60,6 +60,14 @@ class AuthService {
   /// 接口返回「登录已过期 / 未登录 / 请重新登录」或 HTTP 401/403。
   static void Function()? onAuthFailed;
 
+  /// ⭐ 全局登录/绑定状态变化通知（登录、绑定、换号后刷新「我的」页）
+  static void Function()? onLoginChanged;
+  static void notifyLoginChanged() {
+    try {
+      onLoginChanged?.call();
+    } catch (_) {}
+  }
+
   /// 检测到登录失效：清除本地 token + 通知 App 层
   static void handleAuthFailure() {
     clearLocalToken();
@@ -409,6 +417,8 @@ class AuthService {
 
   static void saveLocalToken(String token) {
     GStorage.putSetting(SettingsKeys.kazumiToken, token);
+    // 登录/绑定成功 → 通知 App 刷新登录态（「我的」页及时显示）
+    notifyLoginChanged();
   }
 
   static void clearLocalToken() {
