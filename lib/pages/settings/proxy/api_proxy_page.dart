@@ -391,8 +391,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '番剧搜索：强制直连官方 api.kazumi.fyi 签名接口（内置官方凭据，'
-                      '带 X-AppId / X-Timestamp / X-Signature），不走中转。',
+                      '番剧搜索：App 走 qlyyz 中转签名接口（qlyyz 凭据），'
+                      '后端上游直连官方 api.kazumi.fyi（带官方签名）。',
                       style: TextStyle(fontSize: 12, color: cs.outline),
                     ),
                   ),
