@@ -14,6 +14,9 @@ class EpisodeComment {
   final int createdAt;
   final List<EpisodeComment> replies;
   final List<CommentReaction> reactions;
+  final String title;
+  final int coins;
+  final bool pinned;
 
   EpisodeComment({
     required this.id,
@@ -31,6 +34,9 @@ class EpisodeComment {
     required this.createdAt,
     this.replies = const [],
     this.reactions = const [],
+    this.title = '',
+    this.coins = 0,
+    this.pinned = false,
   });
 
   factory EpisodeComment.fromJson(Map<String, dynamic> json) {

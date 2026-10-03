@@ -72,7 +72,7 @@ class CommentsCard extends StatelessWidget {
     final showTitle = item.title.isNotEmpty;
     final isHot = item.source == 'server' && item.votes >= 5;
     return GestureDetector(
-      onLongPress: item.source == 'server' ? _reportComment : null,
+      onLongPress: item.source == 'server' ? () => _reportComment(context) : null,
       child: SelectionArea(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -245,12 +245,12 @@ class CommentsCard extends StatelessWidget {
   }
 
   /// 🆕 长按评论 → 举报（樱花评论）
-  Future<void> _reportComment() async {
+  Future<void> _reportComment(BuildContext ctx) async {
     final item = commentItem!;
     if (item.source != 'server') return;
     final reasons = ['低俗色情', '广告引流', '辱骂攻击', '其他违规'];
     final res = await showDialog<String>(
-      context: context,
+      context: ctx,
       builder: (ctx) => SimpleDialog(
         title: const Text('举报这条评论'),
         children: [
