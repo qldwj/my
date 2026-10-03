@@ -377,19 +377,40 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
-          // ========== 未登录：邮箱登录置顶，第三方登录在下方 ==========
-          // 🆕 邮箱验证码登录（直接在主登录页，无需跳转网页版）
-          SizedBox(
-            width: double.infinity, height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
-                _onAuthResult(r);
-              },
-              icon: const Icon(Icons.email),
-              label: const Text('邮箱验证码登录'),
-            ),
+          // ========== 未登录：邮箱登录直接显示，第三方登录在下方 ==========
+          Text('邮箱登录', style: TextStyle(fontSize: 14, color: cs.outline)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: '邮箱', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
           ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: TextField(controller: _codeController, maxLength: 6,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '验证码', border: OutlineInputBorder()))),
+            const SizedBox(width: 12),
+            FilledButton.tonal(onPressed: _sendingCode ? null : _sendCode,
+              child: _sendingCode
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('发送验证码')),
+          ]),
+          if (_captchaChallenge != null) ...[
+            const SizedBox(height: 12),
+            TextField(controller: _captchaController, maxLength: 6,
+              decoration: InputDecoration(labelText: '人机验证', border: const OutlineInputBorder(),
+                suffixIcon: Padding(padding: const EdgeInsets.all(12),
+                  child: Text(_captchaChallenge!,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4))))),
+          ],
+          const SizedBox(height: 16),
+          FilledButton(onPressed: _logging ? null : _loginWithEmail,
+            style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+            child: _logging
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('登录 / 注册', style: TextStyle(fontSize: 16))),
           const SizedBox(height: 16),
           Text('第三方登录', style: TextStyle(fontSize: 14, color: cs.outline)),
           const SizedBox(height: 12),
