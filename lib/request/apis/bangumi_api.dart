@@ -404,19 +404,66 @@ class BangumiApi {
     }
   }
 
-  /// 走 qlyyz.xyz 镜像搜索（签名 POST /api/v0/search.php）。
-  /// 后端已有 30 分钟 SQLite 缓存，翻页/重复搜索秒切，不重复打上游。
+  /// 走镜像搜索（签名 POST）。镜像域名含 kazumi.fyi → 用服务器下发的搜索凭据
+  /// 签官方 api.kazumi.fyi；否则走 qlyyz.xyz（qlyyz 凭据签名，后端 30 分钟缓存）。
   static Future<BangumiSearchPage?> _mirrorSearchPage(
       Map<String, dynamic> params, int limit, int offset) async {
     final bodyJson = jsonEncode(params);
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final appId = bangumiMirrorCredentials['id'] ?? '';
-    final appKey = bangumiMirrorCredentials['value'] ?? '';
-    // 后端签名串：appId + timestamp + "POST" + "/v0/search/subjects" + sha256(body) + secretKey
     const reqPath = '/v0/search/subjects';
     final bodySha = sha256.convert(utf8.encode(bodyJson)).toString();
-    final raw = utf8.encode(
-        appId + timestamp.toString() + 'POST' + reqPath + bodySha + appKey);
+
+    final domain = GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
+
+    // 1) kazumi.fyi 官方镜像：用服务器下发的搜索凭据签名
+    if (domain.contains('kazumi.fyi')) {
+      final cred = await _getSearchCredential();
+      if (cred != null) {
+        final raw = utf8.encode(cred['id']! + timestamp.toString() + 'POST' +
+            reqPath + bodySha + cred['secret']!);
+        final signature = base64Encode(sha256.convert(raw).bytes);
+        try {
+          final client = HttpClient();
+          client.connectionTimeout = const Duration(seconds: 6);
+          final uri = Uri.parse(
+              'https://api.kazumi.fyi$reqPath?limit=$limit&offset=$offset');
+          final request = await client.postUrl(uri);
+          request.headers.set('Content-Type', 'application/json');
+          request.headers.set('X-AppId', cred['id']!);
+          request.headers.set('X-Timestamp', timestamp.toString());
+          request.headers.set('X-Signature', signature);
+          request.add(utf8.encode(bodyJson));
+          final response = await request
+              .close()
+              .timeout(const Duration(seconds: 8));
+          final respBody = await response.transform(utf8.decoder).join();
+          client.close();
+          final data = jsonDecode(respBody);
+          final jsonList = data['data'];
+          if (jsonList is! List || jsonList.isEmpty) return null;
+          final items = <BangumiItem>[];
+          for (dynamic jsonItem in jsonList) {
+            if (jsonItem is Map<String, dynamic>) {
+              try {
+                final item = BangumiItem.fromJson(jsonItem);
+                if (item.nameCn != '') items.add(item);
+              } catch (_) {}
+            }
+          }
+          if (items.isEmpty) return null;
+          return BangumiSearchPage(items: items, rawCount: jsonList.length);
+        } catch (e) {
+          KazumiLogger().w('kazumi.fyi mirror search failed', error: e);
+        }
+      }
+    }
+
+    // 2) 否则走 qlyyz.xyz（qlyyz 凭据签名，后端 30 分钟 SQLite 缓存）
+    final appId = bangumiMirrorCredentials['id'] ?? '';
+    final appKey = bangumiMirrorCredentials['value'] ?? '';
+    final raw =
+        utf8.encode(appId + timestamp.toString() + 'POST' + reqPath +
+            bodySha + appKey);
     final signature = base64Encode(sha256.convert(raw).bytes);
     try {
       final client = HttpClient();
@@ -451,6 +498,58 @@ class BangumiApi {
       KazumiLogger().w('mirror search failed, fallback to direct', error: e);
       return null;
     }
+  }
+
+  /// 获取 api.kazumi.fyi 搜索凭据：优先读 Hive，无则从服务器下发接口获取并保存。
+  /// 访问下发接口带 qlyyz 凭据签名（防止滥用），返回后存 Hive（不硬编码）。
+  static Future<Map<String, String>?> _getSearchCredential() async {
+    final savedId = GStorage.getSetting(SettingsKeys.bangumiSearchCredentialId);
+    final savedSecret =
+        GStorage.getSetting(SettingsKeys.bangumiSearchCredentialSecret);
+    if (savedId.isNotEmpty && savedSecret.isNotEmpty) {
+      return {'id': savedId, 'secret': savedSecret};
+    }
+    const credPath = '/v0/credentials';
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final appId = bangumiMirrorCredentials['id'] ?? '';
+    final appKey = bangumiMirrorCredentials['value'] ?? '';
+    final body = '';
+    final bodySha = sha256.convert(utf8.encode(body)).toString();
+    final raw =
+        utf8.encode(appId + timestamp.toString() + 'POST' + credPath +
+            bodySha + appKey);
+    final signature = base64Encode(sha256.convert(raw).bytes);
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 6);
+      final uri =
+          Uri.parse('https://qlyyz.xyz/api/v1/checkin.php?action=credentials');
+      final request = await client.postUrl(uri);
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('X-AppId', appId);
+      request.headers.set('X-Timestamp', timestamp.toString());
+      request.headers.set('X-Signature', signature);
+      request.add(utf8.encode(body));
+      final response =
+          await request.close().timeout(const Duration(seconds: 8));
+      final respBody = await response.transform(utf8.decoder).join();
+      client.close();
+      final data = jsonDecode(respBody);
+      if (data['success'] == true) {
+        final id = (data['id'] ?? '').toString();
+        final secret = (data['secret'] ?? '').toString();
+        if (id.isNotEmpty && secret.isNotEmpty) {
+          await GStorage.putSetting(
+              SettingsKeys.bangumiSearchCredentialId, id);
+          await GStorage.putSetting(
+              SettingsKeys.bangumiSearchCredentialSecret, secret);
+          return {'id': id, 'secret': secret};
+        }
+      }
+    } catch (e) {
+      KazumiLogger().w('fetch search credential failed', error: e);
+    }
+    return null;
   }
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
