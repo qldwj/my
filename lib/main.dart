@@ -33,6 +33,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/metered_network_service.dart';
 // ✅ 新增导入：签名校验
 import 'package:kazumi/services/signature/signature_service.dart';
+import 'package:kazumi/services/stats_report_service.dart';
 import 'package:kazumi/pages/signature/signature_error_page.dart';
 import 'package:kazumi/services/network/ech_http_licenses.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -116,6 +117,9 @@ void main() async {
     SystemProxyService.init();
   }
   ProxyManager.applyProxy();
+
+  // 🆕 启动上报统计（异步，失败静默）：设备码 + 手机型号 + IP
+  unawaited(StatsReportService.reportStartup());
 
   // ⭐ 官方 2.3.2：网络感知低内存模式需要知道当前是不是移动数据
   await MeteredNetworkService.refresh();
