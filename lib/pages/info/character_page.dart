@@ -150,7 +150,7 @@ class _CharacterPageState extends State<CharacterPage> {
           GeneralErrorButton(
             onPressed: () {
               launchUrl(
-                Uri.parse('https://qlyyz.xyz/api/check.php'),
+                Uri.parse('https://qlyyz.xyz/check.php'),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -298,7 +298,7 @@ class _CharacterPageState extends State<CharacterPage> {
                     GeneralErrorButton(
                       onPressed: () {
                         launchUrl(
-                          Uri.parse('https://qlyyz.xyz/api/check.php'),
+                          Uri.parse('https://qlyyz.xyz/check.php'),
                           mode: LaunchMode.externalApplication,
                         );
                       },

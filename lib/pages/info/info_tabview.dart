@@ -537,7 +537,7 @@ class _InfoTabViewState extends State<InfoTabView>
                         GeneralErrorButton(
                           onPressed: () {
                             launchUrl(
-                              Uri.parse('https://qlyyz.xyz/api/check.php'),
+                              Uri.parse('https://qlyyz.xyz/check.php'),
                               mode: LaunchMode.externalApplication,
                             );
                           },
@@ -629,7 +629,7 @@ class _InfoTabViewState extends State<InfoTabView>
                       GeneralErrorButton(
                         onPressed: () {
                           launchUrl(
-                            Uri.parse('https://qlyyz.xyz/api/check.php'),
+                            Uri.parse('https://qlyyz.xyz/check.php'),
                             mode: LaunchMode.externalApplication,
                           );
                         },
@@ -720,7 +720,7 @@ class _InfoTabViewState extends State<InfoTabView>
                       GeneralErrorButton(
                         onPressed: () {
                           launchUrl(
-                            Uri.parse('https://qlyyz.xyz/api/check.php'),
+                            Uri.parse('https://qlyyz.xyz/check.php'),
                             mode: LaunchMode.externalApplication,
                           );
                         },
