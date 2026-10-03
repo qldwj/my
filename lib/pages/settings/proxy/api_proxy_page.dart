@@ -380,6 +380,27 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
           ),
           const SizedBox(height: 8),
 
+          // 🆕 番剧搜索说明（写在每日放送端点上方的列表首项）
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.search_rounded, color: cs.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '番剧搜索：镜像为 kazumi.fyi 时走签名接口，签名凭据由服务器下发，不在源码暴露；'
+                      '镜像为 qlyyz 时走 qlyyz 搜索接口。',
+                      style: TextStyle(fontSize: 12, color: cs.outline),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // 每个端点
           ..._endpoints.entries.map((entry) => _buildEndpointCard(entry.key, entry.value)),
 

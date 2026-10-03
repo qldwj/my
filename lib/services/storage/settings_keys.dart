@@ -359,6 +359,17 @@ class SettingsKeys {
     'https://api.kazumi.fyi',
     group: SettingGroup.proxy,
   );
+  // 🆕 搜索凭据（api.kazumi.fyi 签名用，从服务器下发接口获取，存 Hive，不硬编码）
+  static const bangumiSearchCredentialId = SettingKey<String>(
+    'bangumiSearchCredentialId',
+    '',
+    group: SettingGroup.proxy,
+  );
+  static const bangumiSearchCredentialSecret = SettingKey<String>(
+    'bangumiSearchCredentialSecret',
+    '',
+    group: SettingGroup.proxy,
+  );
 
   /// 根据 key 获取/设置自定义镜像路径
   static SettingKey<String> bangumiProxyPath(String endpointKey) =>
