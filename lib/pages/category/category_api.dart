@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:kazumi/utils/http_headers.dart';
 
 /// 次元城分类代理接口数据层（category.php，无签名，30 分钟后端缓存）
 class CategoryApi {
@@ -62,11 +63,31 @@ class CategoryApi {
   static Future<String?> _get(Uri uri) async {
     final client = HttpClient()..connectionTimeout = _connectTimeout;
     try {
-      final request = await client.getUrl(uri);
-      final response = await request.close().timeout(_receiveTimeout);
-      if (response.statusCode != 200) return null;
-      return await response.transform(utf8.decoder).join();
-    } catch (_) {
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          final request = await client.getUrl(uri);
+          request.headers
+            ..set('user-agent', getRandomUA())
+            ..set('referer', 'https://qlyyz.xyz/')
+            ..set('accept', 'application/json');
+          final response =
+              await request.close().timeout(_receiveTimeout);
+          if (response.statusCode != 200) {
+            if (attempt == 0) continue;
+            return null;
+          }
+          final body = await response.transform(utf8.decoder).join();
+          // Kangle WAF 拦截时返回混淆 JS（以 <html 开头），重试一次
+          if (body.trimLeft().startsWith('<')) {
+            if (attempt == 0) continue;
+            return null;
+          }
+          return body;
+        } catch (_) {
+          if (attempt == 0) continue;
+          return null;
+        }
+      }
       return null;
     } finally {
       client.close();
