@@ -356,7 +356,7 @@ class SettingsKeys {
   );
   static const bangumiProxyDomain = SettingKey<String>(
     _SettingBoxKey.bangumiProxyDomain,
-    'https://api.qlyyz.top',
+    'https://api.kazumi.fyi',
     group: SettingGroup.proxy,
   );
 
