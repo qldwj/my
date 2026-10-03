@@ -155,6 +155,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController versionController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
   final TextEditingController baseURLController = TextEditingController();
+  final TextEditingController iconController = TextEditingController();
   final TextEditingController searchURLController = TextEditingController();
   final TextEditingController searchListController = TextEditingController();
   final TextEditingController searchNameController = TextEditingController();
@@ -273,6 +274,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     versionController.text = plugin.version;
     userAgentController.text = plugin.userAgent;
     baseURLController.text = plugin.baseUrl;
+    iconController.text = plugin.icon;
     searchURLController.text = plugin.searchURL;
     searchListController.text = plugin.searchList;
     searchNameController.text = plugin.searchName;
@@ -352,6 +354,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     versionController.dispose();
     userAgentController.dispose();
     baseURLController.dispose();
+    iconController.dispose();
     searchURLController.dispose();
     searchListController.dispose();
     searchNameController.dispose();
@@ -442,6 +445,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                     EditorTextField(
                       controller: baseURLController,
                       label: _RuleEditorText.baseUrl,
+                    ),
+                    EditorTextField(
+                      controller: iconController,
+                      label: '图标 URL（动漫头像，可留空用默认）',
                     ),
                   ],
                 ),
@@ -910,6 +917,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       adBlocker: adBlocker,
       userAgent: userAgentController.text,
       baseUrl: baseURLController.text,
+      icon: iconController.text.trim(),
       searchURL: searchURLController.text,
       searchList: searchListController.text,
       searchName: searchNameController.text,
