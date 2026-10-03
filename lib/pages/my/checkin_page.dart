@@ -63,7 +63,7 @@ class _CheckinPageState extends State<CheckinPage> {
       return;
     }
     KazumiDialog.showToast(
-        message: res['checked'] == true ? '打卡成功 ✅ +5 积分' : '今天已打卡过啦');
+        message: res['checked'] == true ? '打卡成功 ✅ +${res['bonus'] ?? 5} 积分' : '今天已打卡过啦');
     await _load();
   }
 
@@ -146,7 +146,7 @@ class _CheckinPageState extends State<CheckinPage> {
                   icon: Icon(_checkedToday
                       ? Icons.check_circle_rounded
                       : Icons.local_fire_department_rounded),
-                  label: Text(_checkedToday ? '今天已打卡' : (_checking ? '打卡中…' : '今天打卡 +5 积分')),
+                  label: Text(_checkedToday ? '今天已打卡' : (_checking ? '打卡中…' : '今天打卡 +5~10 积分')),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
