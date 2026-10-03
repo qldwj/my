@@ -147,8 +147,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             label: '推荐',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.category),
-            icon: Icon(Icons.category_outlined),
+            selectedIcon: Icon(Icons.grid_view),
+            icon: Icon(Icons.grid_view),
             label: '分类',
           ),
           NavigationDestination(
@@ -200,8 +200,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
                   label: Text('推荐'),
                 ),
                 NavigationRailDestination(
-                  selectedIcon: Icon(Icons.category),
-                  icon: Icon(Icons.category_outlined),
+                  selectedIcon: Icon(Icons.grid_view),
+                  icon: Icon(Icons.grid_view),
                   label: Text('分类'),
                 ),
                 NavigationRailDestination(
