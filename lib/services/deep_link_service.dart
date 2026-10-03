@@ -303,7 +303,17 @@ class DeepLinkService {
       return;
     }
 
-    // 3️⃣ 规则分享导入
+    // 3️⃣ 规则分享导入 —— 只接受 yhdmgz:// / kazumi:// / https share?gz=
+    //    其他任意链接（普通网页、API、别的协议）一律友好提示，不抛"无效的规则链接"
+    final isRuleLink = url.startsWith('yhdmgz://') ||
+        url.startsWith('kazumi://') ||
+        RegExp(r'^https?://[^/]+/share\?gz=', caseSensitive: false)
+            .hasMatch(url);
+    if (!isRuleLink) {
+      KazumiLogger().w('DeepLink: 非规则链接，忽略: $url');
+      _showToast('无法识别的链接，不是规则分享链接');
+      return;
+    }
     try {
       // 解析 Base64 → JSON
       final jsonStr = kazumiBase64ToJson(url);
