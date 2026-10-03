@@ -112,7 +112,7 @@ class KazumiSyncService {
       if (historyList.isEmpty) data.remove('history');
 
       // 🔧 写死 URL（直接使用完整地址）
-      const uploadUrl = 'https://qlyyz.xyz/api/v1/login.php?action=upload_all';
+      const uploadUrl = 'https://qlyyz.xyz/api/v1/sync?action=upload_all';
       final response = await http.post(
         Uri.parse(uploadUrl),
         headers: {
@@ -148,7 +148,7 @@ class KazumiSyncService {
 
     try {
       // 🔧 写死 URL（直接使用完整地址）
-      const downloadUrl = 'https://qlyyz.xyz/api/v1/login.php?action=download_all';
+      const downloadUrl = 'https://qlyyz.xyz/api/v1/sync?action=download_all';
       final response = await http.get(
         Uri.parse(downloadUrl),
         headers: {
