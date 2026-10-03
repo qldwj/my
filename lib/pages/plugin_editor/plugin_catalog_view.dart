@@ -206,6 +206,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           final status = _controller.pluginStatus(item);
           return RuleCard(
             title: item.name,
+            iconUrl: item.icon.isNotEmpty ? item.icon : null,
             tags: [
               RuleTag(
                 label: item.version,
