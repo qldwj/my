@@ -4,14 +4,14 @@ import 'package:kazumi/utils/http_headers.dart';
 
 /// 次元城分类代理接口数据层（category.php，无签名，30 分钟后端缓存）
 class CategoryApi {
-  static const String base = 'https://qlyyz.xyz/api/v0/category.php';
+  static const String base = 'https://mapi.cycback.org';
 
   static const Duration _connectTimeout = Duration(seconds: 10);
   static const Duration _receiveTimeout = Duration(seconds: 20);
 
   /// 拉取分类列表
   static Future<List<CategoryZone>> fetchZones() async {
-    final uri = Uri.parse('$base?action=zones');
+    final uri = Uri.parse('$base/video-zones');
     final body = await _get(uri);
     if (body == null) return [];
     final data = jsonDecode(body);
@@ -31,7 +31,6 @@ class CategoryApi {
     int limit = 24,
   }) async {
     final query = <String, dynamic>{
-      'action': 'videos',
       'zone_id': zoneId,
       'page': page,
       'limit': limit,
@@ -51,7 +50,7 @@ class CategoryApi {
 
   /// 拉取视频详情（含真实 bangumi_id，用于跳转 Bangumi 详情页）
   static Future<CategoryVideoDetail?> fetchVideoDetail(int videoId) async {
-    final uri = Uri.parse('$base?action=detail&video_id=$videoId');
+    final uri = Uri.parse('$base/videos/$videoId');
     final body = await _get(uri);
     if (body == null) return null;
     final data = jsonDecode(body);
@@ -68,8 +67,8 @@ class CategoryApi {
           final request = await client.getUrl(uri);
           request.headers
             ..set('user-agent', getRandomUA())
-            ..set('referer', 'https://qlyyz.xyz/')
-            ..set('accept', 'application/json');
+            ..set('accept', 'application/json')
+            ..set('X-App-Name', 'cyc_android');
           final response =
               await request.close().timeout(_receiveTimeout);
           if (response.statusCode != 200) {
