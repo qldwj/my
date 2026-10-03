@@ -16,8 +16,23 @@ class PluginCookieManager {
   PluginCookieManager._();
   static final PluginCookieManager instance = PluginCookieManager._();
 
-  /// Cookie 持久化有效期：默认 30 天（超期后提示重新登录获取）。
-  static const Duration cookieTtl = Duration(days: 30);
+  /// Cookie 有效天数（默认 30，可在设置中自定义；超期视为失效需重新登录）。
+  static const int _defaultTtlDays = 30;
+  static const String _ttlDaysKey = 'plugin_cookie_ttl_days';
+
+  /// 读取当前 Cookie 有效天数（默认 30）
+  static int get cookieTtlDays {
+    final v = GStorage.pluginCookies.get(_ttlDaysKey);
+    return (v is int && v > 0) ? v : _defaultTtlDays;
+  }
+
+  /// 自定义 Cookie 有效天数并持久化（超时自动失效）
+  static Future<void> setCookieTtlDays(int days) async {
+    await GStorage.pluginCookies.put(_ttlDaysKey, days);
+  }
+
+  /// Cookie 持久化有效期（默认 30 天，超期后提示重新登录获取）。
+  static Duration get cookieTtl => Duration(days: cookieTtlDays);
 
   static const String _keyPrefix = 'plugin_cookie_';
 
@@ -52,6 +67,18 @@ class PluginCookieManager {
     _jars.remove(pluginName);
     _userAgents.remove(pluginName);
     await GStorage.pluginCookies.delete(_keyPrefix + pluginName);
+  }
+
+  /// 清除所有已保存的 Cookie（一键清理误判的登录态）
+  Future<void> clearAll() async {
+    final keys = GStorage.pluginCookies.keys.toList();
+    for (final key in keys) {
+      if (key is String && key.startsWith(_keyPrefix)) {
+        await GStorage.pluginCookies.delete(key);
+      }
+    }
+    _jars.clear();
+    _userAgents.clear();
   }
 
   Future<void> saveFromWebView(

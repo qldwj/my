@@ -7,6 +7,7 @@ import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/bean/widget/source_rating_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 /// 规则设置页
@@ -204,8 +205,76 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
               ),
             ],
           ),
+          SettingsSectionCard(
+            title: '登录态 Cookie（超时自动失效）',
+            children: [
+              ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                title: const Text('登录态有效天数'),
+                subtitle: const Text('默认 30 天，超期需重新登录获取'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () => _changeTtl(-1),
+                    ),
+                    Text('${PluginCookieManager.cookieTtlDays} 天',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () => _changeTtl(1),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                title: const Text('清除全部已保存登录态'),
+                subtitle: const Text('清空所有规则的 Cookie（误判已登录时可一键清理）'),
+                trailing: TextButton(
+                  onPressed: _clearAllCookies,
+                  child: const Text('全部清除'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _changeTtl(int delta) async {
+    final cur = PluginCookieManager.cookieTtlDays;
+    final next = (cur + delta).clamp(1, 365);
+    await PluginCookieManager.setCookieTtlDays(next);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _clearAllCookies() async {
+    final confirmed = await KazumiDialog.show<bool>(
+      builder: (context) => AlertDialog(
+        title: const Text('清除全部登录态'),
+        content: const Text('将清空所有已保存规则的 Cookie，下次播放会重新要求登录。是否继续？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await PluginCookieManager.instance.clearAll();
+    if (mounted) setState(() {});
+    KazumiDialog.showToast(message: '已清除全部登录态');
   }
 }

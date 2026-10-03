@@ -10,6 +10,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/pages/my/friend_picker.dart';
 import 'package:kazumi/pages/plugin_editor/rule_settings_page.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -1188,6 +1189,17 @@ class _PluginViewPageState extends State<PluginViewPage>
           },
           child: _menuItem(Icons.bug_report_outlined, '测试'),
         ),
+        if (!plugin.isCollection &&
+            PluginCookieManager.instance.hasSaved(plugin.name))
+          MenuItemButton(
+            onPressed: () async {
+              await PluginCookieManager.instance.clear(plugin.name);
+              if (mounted) setState(() {});
+              KazumiDialog.showToast(
+                  message: '已清除「${plugin.name}」的登录态(Cookie)，下次播放会重新要求登录');
+            },
+            child: _menuItem(Icons.cookie_outlined, '清除 Cookie'),
+          ),
         MenuItemButton(
           onPressed: () {
             final pluginJson = json.encode(plugin.toJson());

@@ -90,12 +90,22 @@ class _MyPageState extends State<MyPage> {
   /// 🆕 加载当前称号（追番/打卡/积分/绑定维度，账号区展示）
   /// 未登录也读 Hive 缓存（在线成功会写盘，失败/离线退回缓存），保证称号持久化
   Future<void> _loadTitle() async {
+    // 1) 先读 Hive 缓存立即显示（称号持久化，避免每次进页面先 0 再等网络）
+    final cached = CheckinService.cachedAchievements();
+    if (cached != null) {
+      _applyAchievements(cached);
+    }
+    // 2) 后台异步刷新在线数据
     int collectCount = 0;
     try {
       collectCount = GStorage.collectibles.length;
     } catch (_) {}
     final res = await CheckinService.achievements(collectCount: collectCount);
     if (!mounted || res['error'] != null) return;
+    _applyAchievements(res);
+  }
+
+  void _applyAchievements(Map<String, dynamic> res) {
     final title = res['title'];
     final list = (res['achievements'] as List?)?.map((e) => Map<String, dynamic>.from(e)).toList() ?? [];
     setState(() {
