@@ -391,8 +391,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '番剧搜索：镜像为 kazumi.fyi 时走签名接口，签名凭据由服务器下发，不在源码暴露；'
-                      '镜像为 qlyyz 时走 qlyyz 搜索接口。',
+                      '番剧搜索：强制直连官方 api.kazumi.fyi 签名接口（内置官方凭据，'
+                      '带 X-AppId / X-Timestamp / X-Signature），不走中转。',
                       style: TextStyle(fontSize: 12, color: cs.outline),
                     ),
                   ),
