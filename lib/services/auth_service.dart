@@ -49,6 +49,8 @@ class AuthService {
   static const String baseUrl = 'https://qlyyz.xyz/api/v1/login';
   /// 🆕 邮箱验证码注册/登录/绑定已拆分到独立入口（与第三方 OAuth 分离，降低风控）
   static const String emailBaseUrl = 'https://qlyyz.xyz/api/v1/email_auth';
+  /// 🆕 数据同步已拆分到独立入口
+  static const String syncBaseUrl = 'https://qlyyz.xyz/api/v1/sync';
 
   static String get _appId => bangumiMirrorCredentials['id'] ?? '';
   static String get _appKey => bangumiMirrorCredentials['value'] ?? '';
@@ -290,21 +292,21 @@ class AuthService {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
     return _request('sync', {'type': type, 'data': data},
-        authToken: token, skipSignature: true);
+        authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// 🆕 一次性拉取全部云端数据（收藏/历史/进度）
   static Future<Map<String, dynamic>> getRemoteSync() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    return _request('get_sync', {}, authToken: token, skipSignature: true);
+    return _request('get_sync', {}, authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// 清除云端数据（保留账号）
   static Future<Map<String, dynamic>> clearData() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    return _request('clear_data', {}, authToken: token, skipSignature: true);
+    return _request('clear_data', {}, authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// 注销账号（删除账号 + 全部云端数据）
@@ -318,7 +320,7 @@ class AuthService {
   static Future<Map<String, dynamic>> getRemoteCollect() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    return _request('get_collect', {}, authToken: token, skipSignature: true);
+    return _request('get_collect', {}, authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// ⚠️ 已弃用：此方法会因传入空列表而清空服务器数据，请改用 `getRemoteCollect()`
@@ -326,7 +328,7 @@ class AuthService {
   static Future<Map<String, dynamic>> fetchRemoteCollect() async {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
-    return _request('sync', {'data': {'collect': []}}, authToken: token, skipSignature: true);
+    return _request('sync', {'data': {'collect': []}}, authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// 绑定 Bangumi
@@ -334,7 +336,7 @@ class AuthService {
     final token = getLocalToken();
     if (token == null) return {'error': '未登录'};
     return _request('bind_bangumi', {'bangumi_token': bangumiToken},
-        authToken: token, skipSignature: true);
+        authToken: token, skipSignature: true, url: syncBaseUrl);
   }
 
   /// 获取用户信息（GET）
