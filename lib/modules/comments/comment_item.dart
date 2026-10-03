@@ -113,6 +113,10 @@ class CommentItem {
   /// 🆕 父评论本地 id（樱花服务器回复；>0 表示是某条评论的回复）
   final int parentId;
 
+  /// 🆕 评论者称号（已解锁自选）/ 积分（签到 coins）
+  final String title;
+  final int coins;
+
   CommentItem({
     required this.user,
     required this.comment,
@@ -121,6 +125,8 @@ class CommentItem {
     this.uid = '',
     this.votes = 0,
     this.parentId = 0,
+    this.title = '',
+    this.coins = 0,
   });
 
   factory CommentItem.fromJson(Map<String, dynamic> json) {
@@ -132,6 +138,8 @@ class CommentItem {
       uid: json['uid']?.toString() ?? '',
       votes: (json['votes'] as num?)?.toInt() ?? 0,
       parentId: (json['parentId'] as num?)?.toInt() ?? 0,
+      title: json['title']?.toString() ?? '',
+      coins: (json['coins'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -144,6 +152,8 @@ class CommentItem {
       'uid': uid,
       'votes': votes,
       'parentId': parentId,
+      'title': title,
+      'coins': coins,
     };
   }
 }

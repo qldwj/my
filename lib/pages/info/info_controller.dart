@@ -232,8 +232,15 @@ abstract class _InfoController with Store {
             uid: c.uid,
             votes: c.votes,
             parentId: c.parentId > 0 ? -c.parentId : 0,
+            title: c.title,
+            coins: c.coins,
           )).toList();
       commentsList.insertAll(0, items);
+      // 🆕 合并后统一按时间排序（置顶优先 + 最新在前），不再"樱花优先"
+      commentsList.sort((a, b) {
+        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+        return b.comment.updatedAt.compareTo(a.comment.updatedAt);
+      });
       KazumiLogger().i('InfoController: 合并自建评论 ${items.length} 条');
     } catch (e) {
       KazumiLogger().w('InfoController: 自建评论拉取失败', error: e);
