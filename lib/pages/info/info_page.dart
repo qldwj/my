@@ -279,15 +279,29 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text('评分: '),
-                      for (int i = 1; i <= 10; i++)
-                        GestureDetector(
-                          onTap: () => setDialogState(() => serverRating = i),
-                          child: Icon(
-                            i <= serverRating ? Icons.star : Icons.star_outline,
-                            color: i <= serverRating ? Colors.amber : Colors.grey,
-                            size: 28,
-                          ),
+                      // 🆕 FittedBox 自动缩放，10 颗星不溢出弹窗、都能点
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (int i = 1; i <= 10; i++)
+                              GestureDetector(
+                                onTap: () =>
+                                    setDialogState(() => serverRating = i),
+                                child: Icon(
+                                  i <= serverRating
+                                      ? Icons.star
+                                      : Icons.star_outline,
+                                  color: i <= serverRating
+                                      ? Colors.amber
+                                      : Colors.grey,
+                                  size: 24,
+                                ),
+                              ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
