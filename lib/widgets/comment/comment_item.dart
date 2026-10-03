@@ -72,20 +72,49 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(c.sender, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(c.sender, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    // 🆕 称号徽章（已解锁自选称号）
+                    if (c.title.isNotEmpty) ...[
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(5)),
+                        child: Text(c.title, style: const TextStyle(fontSize: 10, color: Color(0xFF7B3FF2))),
+                      ),
+                    ],
+                  ]),
                   Text(c.timeAgo, style: TextStyle(fontSize: 11, color: cs.outline)),
                 ],
               )),
-              // 来源标签
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: c.isSakura ? cs.primary.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
+              // 来源标签 + 置顶 + 积分
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: c.isSakura ? cs.primary.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(c.isSakura ? '樱花动漫' : 'Bangumi',
+                    style: TextStyle(fontSize: 10, color: c.isSakura ? cs.primary : Colors.orange, fontWeight: FontWeight.w600)),
                 ),
-                child: Text(c.isSakura ? '樱花动漫' : 'Bangumi',
-                  style: TextStyle(fontSize: 10, color: c.isSakura ? cs.primary : Colors.orange, fontWeight: FontWeight.w600)),
-              ),
+                if (c.pinned) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(4)),
+                    child: const Text('📌 置顶', style: TextStyle(fontSize: 10, color: Color(0xFFE65100))),
+                  ),
+                ],
+                if (c.coins > 0) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(4)),
+                    child: Text('💰 ${c.coins}', style: const TextStyle(fontSize: 10, color: Color(0xFF1565C0))),
+                  ),
+                ],
+              ]),
             ]),
             const SizedBox(height: 8),
             // 评论内容

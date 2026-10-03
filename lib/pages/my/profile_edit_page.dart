@@ -8,6 +8,7 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/account_status_cache.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/checkin_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
@@ -27,6 +28,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     'has_telegram': false, 'has_douyin': false,
   };
   bool _uploading = false;
+  String _currentTitle = '';
+  List<Map<String, dynamic>> _unlockedTitles = [];
 
   @override
   void initState() {
@@ -43,6 +46,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       };
     }
     _loadStatus();
+    _loadTitle();
   }
 
   Future<void> _loadStatus() async {
@@ -380,6 +384,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             Clipboard.setData(ClipboardData(text: token));
             KazumiDialog.showToast(message: '已复制 Token');
           }),
+          const Divider(height: 1),
+          // 称号
+          _infoTile('称号', _currentTitle.isNotEmpty ? _currentTitle : '未解锁', onTap: _pickTitle),
           const SizedBox(height: 16),
 
           // 隐私设置（默认全部开启）
@@ -419,8 +426,80 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
-  Future<void> _updatePrivacy(String key, bool v) async {
-    final err = await SocialService.updatePrivacy(
+  Future<void> _loadTitle() async {
+    final cached = CheckinService.cachedAchievements();
+    if (cached != null && mounted) {
+      setState(() {
+        _currentTitle = (cached['title'] is Map
+            ? (cached['title']['name'] as String? ?? '')
+            : '');
+        _unlockedTitles = ((cached['unlockedTitles'] as List?) ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      });
+    }
+    final res = await CheckinService.achievements();
+    if (mounted && res['error'] == null) {
+      setState(() {
+        _currentTitle = (res['title'] is Map
+            ? (res['title']['name'] as String? ?? '')
+            : '');
+        _unlockedTitles = ((res['unlockedTitles'] as List?) ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _pickTitle() async {
+    if (_unlockedTitles.isEmpty) {
+      KazumiDialog.showToast(message: '暂无已解锁称号，去打卡或追番解锁吧');
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: const Text('选择称号'),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView(
+              shrinkWrap: true,
+              children: _unlockedTitles.map((t) {
+                final name = t['name'] as String? ?? '';
+                final icon = t['icon'] as String? ?? '';
+                final selected = name == _currentTitle;
+                return ListTile(
+                  leading: Text(icon, style: const TextStyle(fontSize: 22)),
+                  title: Text(name),
+                  trailing: selected
+                      ? Icon(Icons.check_circle, color: cs.primary)
+                      : null,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    if (name.isEmpty || selected) return;
+                    final res = await CheckinService.setTitle(name);
+                    if (res['success'] == true && mounted) {
+                      setState(() => _currentTitle = name);
+                      await CheckinService.achievements();
+                      KazumiDialog.showToast(message: '称号已更新');
+                    } else {
+                      KazumiDialog.showToast(
+                          message: res['error'] ?? '设置失败');
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updatePrivacy(String key, bool v) async {    final err = await SocialService.updatePrivacy(
       allowViewProfile: key == 'allowViewProfile' ? v : null,
       allowViewInfo: key == 'allowViewInfo' ? v : null,
       allowAddFriend: key == 'allowAddFriend' ? v : null,

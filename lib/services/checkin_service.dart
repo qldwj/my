@@ -104,4 +104,8 @@ class CheckinService {
     }
     return null;
   }
+
+  /// 🆕 设置当前称号（从已解锁的称号中选择一个，云端保存）
+  static Future<Map<String, dynamic>> setTitle(String titleName) =>
+      _post('set_title', {'title': titleName});
 }

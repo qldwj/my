@@ -18,6 +18,8 @@ class CustomCommentItem {
     this.avatar = '',
     this.parentId = 0,
     this.pinned = false,
+    this.title = '',
+    this.coins = 0,
   });
 
   final int id;
@@ -35,6 +37,10 @@ class CustomCommentItem {
   final int parentId;
   final bool pinned;
 
+  /// 🆕 评论者称号（已解锁自选）/ 积分（签到 coins）
+  final String title;
+  final int coins;
+
   factory CustomCommentItem.fromJson(Map<String, dynamic> json) {
     return CustomCommentItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
@@ -47,6 +53,8 @@ class CustomCommentItem {
       avatar: json['avatar']?.toString() ?? '',
       parentId: (json['parentId'] as num?)?.toInt() ?? 0,
       pinned: (json['pinned'] as num?)?.toInt() == 1,
+      title: json['title']?.toString() ?? '',
+      coins: (json['coins'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -111,8 +119,7 @@ class CustomCommentApi {
 
   /// 拉取该番（该集）的服务器评论；返回评论列表 + 管理员昵称
   static Future<({List<CustomCommentItem> items, String adminNickname})>
-      fetch({
-    required int subjectId,
+      fetch({    required int subjectId,
     int episode = 0,
   }) async {
     String body = '';
@@ -145,5 +152,15 @@ class CustomCommentApi {
       KazumiLogger().w('CustomComment: 响应原文: $preview', forceLog: true);
       return (items: const <CustomCommentItem>[], adminNickname: '');
     }
+  }
+
+  /// 🆕 举报评论（长按评论触发）
+  static Future<String?> report({
+    required int commentId,
+    required String reason,
+  }) async {
+    final res = await _post('report', {'commentId': commentId, 'reason': reason});
+    if (res['success'] == true) return null;
+    return res['error']?.toString() ?? '举报失败';
   }
 }

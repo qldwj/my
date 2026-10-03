@@ -48,6 +48,9 @@ class EpisodeComment {
       dislikes: json['dislikes'] ?? 0,
       replyCount: json['reply_count'] ?? 0,
       createdAt: json['created_at'] ?? 0,
+      title: json['title']?.toString() ?? '',
+      coins: (json['coins'] as num?)?.toInt() ?? 0,
+      pinned: json['pinned'] == 1 || json['pinned'] == true,
       replies: (json['replies'] as List?)?.map((e) => EpisodeComment.fromJson(e)).toList() ?? [],
       reactions: (json['reactions'] as List?)?.map((e) => CommentReaction.fromJson(e)).toList() ?? [],
     );
