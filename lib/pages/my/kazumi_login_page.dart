@@ -45,6 +45,14 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     _checkPendingLogin();
   }
 
+  /// 打开官网网页版登录（真实可用）
+  Future<void> _launchWebLogin() async {
+    final url = Uri.parse('https://qlyyz.xyz');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      KazumiDialog.showToast(message: '无法打开浏览器');
+    }
+  }
+
   Future<void> _sendCode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
@@ -330,67 +338,28 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
-          // ========== 未登录：邮箱登录 + 其他方式 ==========
-          // 🆕 邮箱登录区域（直接在页面上）
-          Text('验证码登录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface)),
-          const SizedBox(height: 4),
-          Text('我们将发送一封验证码邮件', style: TextStyle(fontSize: 13, color: cs.outline)),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: '邮箱', hintText: '你的QQ邮箱地址',
-              prefixIcon: Icon(Icons.email_outlined),
-              border: OutlineInputBorder(), isDense: true),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: TextField(
-              controller: _codeController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: const InputDecoration(
-                labelText: '验证码', counterText: '',
-                border: OutlineInputBorder(), isDense: true),
-            )),
-            const SizedBox(width: 12),
-            SizedBox(
-              height: 48,
-              child: FilledButton.tonal(
-                onPressed: _sendingCode ? null : _sendCode,
-                child: _sendingCode
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('获取验证码'),
-              ),
+          // ========== 未登录：网页版登录（真实可用） ==========
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
             ),
-          ]),
-          // 🆕 人机验证输入框
-          if (_captchaChallenge != null) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _captchaController,
-              maxLength: 6,
-              decoration: InputDecoration(
-                labelText: '人机验证', counterText: '',
-                border: const OutlineInputBorder(), isDense: true,
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(_captchaChallenge!,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('网页版登录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface)),
+              const SizedBox(height: 4),
+              Text('打开樱花动漫官网，用微信 / QQ / 抖音等账号登录，即可在 App 内同步使用。',
+                style: TextStyle(fontSize: 13, color: cs.outline)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity, height: 48,
+                child: FilledButton.icon(
+                  onPressed: _launchWebLogin,
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('去官网登录'),
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity, height: 48,
-            child: FilledButton(
-              onPressed: _logging ? null : _loginWithEmail,
-              child: _logging
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('登录 / 注册', style: TextStyle(fontSize: 16)),
-            ),
+            ]),
           ),
           const SizedBox(height: 24),
 

@@ -372,7 +372,7 @@ class _SearchPageState extends State<SearchPage> {
                         GeneralErrorButton(
                           onPressed: () {
                             launchUrl(
-                              Uri.parse('https://qlyyz.top'),
+                              Uri.parse('https://qlyyz.xyz/api/check.php'),
                               mode: LaunchMode.externalApplication,
                             );
                           },

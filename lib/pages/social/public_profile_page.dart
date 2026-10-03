@@ -106,14 +106,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final navigator = Navigator.of(context);
             final popped = await navigator.maybePop();
             if (!popped && context.mounted) {
-              // 深链冷启动时无上一页 → 用根 Navigator 返回「我的」页面
-              // （深链用 rootNavigatorKey push 本页，context.pushNamed 会找不到路由）
-              final rootCtx = rootNavigatorKey.currentContext;
-              if (rootCtx != null) {
-                Navigator.of(rootCtx).pushNamed('/tab/my/');
-              } else {
-                KazumiLogger().w('PublicProfilePage: 无根导航上下文，无法返回');
-              }
+              // 深链冷启动时无上一页 → 用 Modular 全局导航切到「我的」页
+              // （本页用 rootNavigatorKey push 进 root 栈，Navigator.pushNamed 找不到模块化路由）
+              Modular.to.navigate('/tab/my/');
             }
           },
         ),
