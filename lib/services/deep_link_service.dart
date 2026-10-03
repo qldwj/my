@@ -70,15 +70,13 @@ class DeepLinkService {
             await _handleLink('yhdmgz://share/anime?id=$id');
             await Clipboard.setData(const ClipboardData(text: ''));
           }
-        } else if (RegExp(r'\d{3,10}').hasMatch(text.trim())) {
-          // 纯数字 ID（分享只复制 ID 时）：提取第一个连续数字串当作番剧 ID
-          final match = RegExp(r'\d{3,10}').firstMatch(text.trim());
-          final id = match?.group(0);
-          if (id != null && id.isNotEmpty) {
-            KazumiLogger().i('DeepLink: 从剪贴板检测到番剧ID: $id');
-            await _handleLink('yhdmgz://share/anime?id=$id');
-            await Clipboard.setData(const ClipboardData(text: ''));
-          }
+        } else if (RegExp(r'^\d{3,10}$').hasMatch(text.trim())) {
+          // 🎯 只有整段都是纯数字(3-10位)才当作番剧ID跳转；
+          //    剪贴板含任何符号/字母(QQ号带@、文本带标点、混合串)一律终止，不误跳
+          final id = text.trim();
+          KazumiLogger().i('DeepLink: 从剪贴板检测到纯数字番剧ID: $id');
+          await _handleLink('yhdmgz://share/anime?id=$id');
+          await Clipboard.setData(const ClipboardData(text: ''));
         }
       }
     } catch (e) {
