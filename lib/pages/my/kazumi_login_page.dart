@@ -377,8 +377,21 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
-          // ========== 未登录：第三方登录置顶 ==========
-          Text('登录方式', style: TextStyle(fontSize: 14, color: cs.outline)),
+          // ========== 未登录：邮箱登录置顶，第三方登录在下方 ==========
+          // 🆕 邮箱验证码登录（直接在主登录页，无需跳转网页版）
+          SizedBox(
+            width: double.infinity, height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
+                _onAuthResult(r);
+              },
+              icon: const Icon(Icons.email),
+              label: const Text('邮箱验证码登录'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('第三方登录', style: TextStyle(fontSize: 14, color: cs.outline)),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _buildLoginButton('assets/images/icons/wechat.png', '微信', () async {
@@ -417,19 +430,6 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                 foregroundColor: const Color(0xFFED74A4),
                 side: const BorderSide(color: Color(0xFFED74A4)),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // 🆕 邮箱验证码登录（第三方登录下方直接就是邮箱，无网页版登录）
-          SizedBox(
-            width: double.infinity, height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const _EmailLoginPage()));
-                _onAuthResult(r);
-              },
-              icon: const Icon(Icons.email),
-              label: const Text('邮箱验证码登录'),
             ),
           ),
           const SizedBox(height: 10),

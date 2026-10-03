@@ -119,7 +119,7 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         await PluginCredentialStore.instance.save(widget.plugin.name, _usernameCtrl.text, _passwordCtrl.text);
       }
       KazumiDialog.showToast(message: '✅ 登录成功');
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       KazumiLogger().e('[PluginLoginPage] 保存失败', error: e);
       KazumiDialog.showToast(message: '❌ 保存失败: $e');
