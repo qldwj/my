@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/pages/category/category_api.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -27,6 +29,7 @@ class _CategoryPageState extends State<CategoryPage> {
   final List<CategoryVideo> _videos = [];
   int _page = 1;
   bool _hasMore = true;
+  int _openingVideoId = 0;
 
   static const int _pageSize = 24;
 
@@ -128,6 +131,41 @@ class _CategoryPageState extends State<CategoryPage> {
     _loadVideos(reset: true);
   }
 
+  /// 点击分类视频 → 取真实 bangumi_id → 跳转现有 Bangumi 详情页
+  Future<void> _openDetail(CategoryVideo video) async {
+    if (_openingVideoId != 0) return;
+    setState(() => _openingVideoId = video.videoId);
+    final det = await CategoryApi.fetchVideoDetail(video.videoId);
+    if (!mounted) return;
+    setState(() => _openingVideoId = 0);
+    if (det == null || det.bangumiId <= 0) {
+      KazumiDialog.showToast(message: '该视频暂无法获取详情');
+      return;
+    }
+    final item = BangumiItem(
+      id: det.bangumiId,
+      type: 2,
+      name: det.title,
+      nameCn: det.title,
+      summary: det.description,
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: {
+        'large': det.coverUrl,
+        'medium': det.coverUrl,
+        'small': det.coverUrl,
+      },
+      tags: const <BangumiTag>[],
+      alias: const <String>[],
+      ratingScore: det.score,
+      votes: 0,
+      votesCount: const <int>[],
+      info: '',
+    );
+    context.pushNamed('/info/', arguments: item);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingZones) {
@@ -183,7 +221,14 @@ class _CategoryPageState extends State<CategoryPage> {
                               36,
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _CategoryCard(video: _videos[index]),
+                      (context, index) {
+                        final v = _videos[index];
+                        return _CategoryCard(
+                          video: v,
+                          onTap: () => _openDetail(v),
+                          opening: _openingVideoId == v.videoId,
+                        );
+                      },
                       childCount: _videos.length,
                     ),
                   ),
@@ -291,9 +336,15 @@ class _CategoryPageState extends State<CategoryPage> {
 
 /// 分类视频卡片
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.video});
+  const _CategoryCard({
+    required this.video,
+    required this.onTap,
+    this.opening = false,
+  });
 
   final CategoryVideo video;
+  final VoidCallback onTap;
+  final bool opening;
 
   @override
   Widget build(BuildContext context) {
@@ -302,47 +353,62 @@ class _CategoryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: () => KazumiDialog.showToast(
-          message: '次元城视频详情/播放后续适配',
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        onTap: onTap,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            AspectRatio(
-              aspectRatio: 0.7,
-              child: NetworkImgLayer(
-                src: video.coverUrl,
-                width: double.infinity,
-                height: double.infinity,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AspectRatio(
+                  aspectRatio: 0.7,
+                  child: NetworkImgLayer(
+                    src: video.coverUrl,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 3, 5, 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          video.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.5,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${video.year > 0 ? video.year : ''}${video.score > 0 ? '  ·  评分 ${video.score}' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 3, 5, 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.5,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${video.year > 0 ? video.year : ''}${video.score > 0 ? '  ·  评分 ${video.score}' : ''}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
+            if (opening)
+              const ColoredBox(
+                color: Color(0x66000000),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
