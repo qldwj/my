@@ -24,6 +24,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/pages/plugin_login/plugin_login_page.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -560,8 +561,14 @@ class _SourceSheetState extends State<SourceSheet>
       return const Center(child: LoadingIndicator());
     }
     if (status == PluginSearchStatus.login) {
+      // 曾保存过登录态（但有记录且已过期/失效）→ 提示「已过期」；
+      // 从未保存过 → 提示「需要登录」
+      final savedAt = PluginCookieManager.instance.savedAtMs(plugin.name);
+      final isExpired = savedAt != null;
       return GeneralErrorWidget(
-        errMsg: '${plugin.name} 需要验证登录后才能观看（使用内置浏览器登录并保存 Cookie）',
+        errMsg: isExpired
+            ? '${plugin.name} 登录已过期，请重新登录后观看'
+            : '${plugin.name} 需要登录后才能观看（使用内置浏览器登录并保存 Cookie）',
         actions: [
           GeneralErrorButton(
             onPressed: () => _openPluginLogin(plugin),
