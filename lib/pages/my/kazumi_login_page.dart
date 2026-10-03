@@ -285,6 +285,45 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
     KazumiDialog.showToast(message: '已退出登录');
   }
 
+  /// 🆕 销毁账号：直接删除，不可恢复
+  Future<void> _deleteAccount() async {
+    final confirm = await KazumiDialog.show<bool>(
+      builder: (ctx) => AlertDialog(
+        title: const Text('销毁账号', style: TextStyle(color: Colors.red)),
+        content: const Text(
+          '销毁后将删除该账号和全部云端数据（收藏/历史/进度/好友），不可恢复。确定销毁？',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确认销毁'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    KazumiDialog.showLoading(msg: '删除中');
+    final error = await SocialService.requestDeleteAccount();
+    KazumiDialog.dismiss();
+    AuthService.clearLocalToken();
+    AccountStatusCache.clear();
+    SocialService.clearProfileCache();
+    GStorage.putSetting(SettingsKeys.kazumiSyncEnable, false);
+    if (!mounted) return;
+    setState(() {
+      _loggedIn = false;
+      _status = {
+        'has_qq': false, 'has_wechat': false, 'has_telegram': false,
+        'has_douyin': false, 'has_bangumi': false, 'has_email': false,
+      };
+    });
+    KazumiDialog.showToast(message: error != null ? '❌ $error' : '✅ 账号已删除');
+  }
+
   Future<void> _syncCollect() async {
     setState(() => _syncing = true);
     try {
@@ -513,6 +552,18 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
               minimumSize: const Size(double.infinity, 48),
               foregroundColor: cs.error,
               side: BorderSide(color: cs.error),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 🆕 销毁账号：直接删除（后端已去掉 7 天冷静期）
+          OutlinedButton.icon(
+            onPressed: _deleteAccount,
+            icon: const Icon(Icons.delete_forever),
+            label: const Text('销毁账号'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
             ),
           ),
         ],

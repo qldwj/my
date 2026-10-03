@@ -643,13 +643,13 @@ class _MyPageState extends State<MyPage> {
         message: res['error'] != null ? '❌ ${res['error']}' : '✅ 云端数据已清除',
       );
     } else if (action == 'delete') {
-      // 🆕 账号销毁：7 天冷静期，期间登录自动取消
+      // 🆕 账号销毁：直接删除（后端已去掉 7 天冷静期）
       final confirm = await KazumiDialog.show<bool>(
         builder: (context) => AlertDialog(
           title: const Text('账号销毁', style: TextStyle(color: Colors.red)),
           content: const Text(
             '销毁账号后将删除账号和全部云端数据（收藏/历史/进度），不可恢复。\n\n'
-            '有 7 天冷静期：期间再次登录即可取消销毁，7 天后账号自动删除。确定发起销毁？',
+            '将直接删除该账号，不可恢复。确定销毁？',
           ),
           actions: [
             TextButton(
@@ -673,7 +673,7 @@ class _MyPageState extends State<MyPage> {
       KazumiDialog.showToast(
         message: error != null
             ? '❌ $error'
-            : '✅ 已发起账号销毁，7 天内登录可取消',
+            : '✅ 账号已删除',
       );
     }
   }
