@@ -621,6 +621,11 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   setDialogState(() => sending = true);
                   final res = await AuthService.sendCode(emailCtrl.text.trim());
                   setDialogState(() { sending = false; challenge = res['captcha_challenge'] != null ? [res['captcha_challenge'].toString()] : []; });
+                  if (res['success'] == true) {
+                    KazumiDialog.showToast(message: '验证码已发送，请查收邮箱（含垃圾箱）');
+                  } else {
+                    KazumiDialog.showToast(message: res['error'] ?? '发送失败');
+                  }
                 },
                 child: Text(sending ? '发送中...' : '发送验证码')),
             ]),
