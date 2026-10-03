@@ -365,15 +365,21 @@ class BangumiApi {
       weekdays: weekdays,
     );
 
+    // 1) 镜像优先：qlyyz.xyz/api/v0/search.php（带签名，后端 30 分钟 SQLite 缓存，
+    //    快且稳，不再直连 api.bgm.tv（国内经常超时 60 秒导致搜索卡死/搜不到））
+    if (_proxyEnabled) {
+      final mirrorPage = await _mirrorSearchPage(params, limit, offset);
+      if (mirrorPage != null) return mirrorPage;
+    }
+
+    // 2) 直连官方 api.bgm.tv（加 8s 超时，避免长时间卡住）
     try {
-      // 🆕 关键修复：limit/offset 放在 URL 查询参数里（镜像 PHP 端读 URL 参数优先）。
-      // 官方 api.bgm.tv 搜索接口：POST /v0/search/subjects?limit={0}&offset={1}
       final jsonData = await _client.post(
         ApiEndpoints.formatUrl(
             ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
             [limit, offset]),
         data: params,
-      );
+      ).timeout(const Duration(seconds: 8));
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
         if (jsonItem is Map<String, dynamic>) {
@@ -394,6 +400,55 @@ class BangumiApi {
       );
     } catch (e) {
       KazumiLogger().e('Network: unknown search problem', error: e);
+      return null;
+    }
+  }
+
+  /// 走 qlyyz.xyz 镜像搜索（签名 POST /api/v0/search.php）。
+  /// 后端已有 30 分钟 SQLite 缓存，翻页/重复搜索秒切，不重复打上游。
+  static Future<BangumiSearchPage?> _mirrorSearchPage(
+      Map<String, dynamic> params, int limit, int offset) async {
+    final bodyJson = jsonEncode(params);
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final appId = bangumiMirrorCredentials['id'] ?? '';
+    final appKey = bangumiMirrorCredentials['value'] ?? '';
+    // 后端签名串：appId + timestamp + "POST" + "/v0/search/subjects" + sha256(body) + secretKey
+    const reqPath = '/v0/search/subjects';
+    final bodySha = sha256.convert(utf8.encode(bodyJson)).toString();
+    final raw = utf8.encode(
+        appId + timestamp.toString() + 'POST' + reqPath + bodySha + appKey);
+    final signature = base64Encode(sha256.convert(raw).bytes);
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 6);
+      final uri = Uri.parse(
+          'https://qlyyz.xyz/api/v0/search.php?limit=$limit&offset=$offset');
+      final request = await client.postUrl(uri);
+      request.headers.set('Content-Type', 'application/json');
+      request.headers.set('X-AppId', appId);
+      request.headers.set('X-Timestamp', timestamp.toString());
+      request.headers.set('X-Signature', signature);
+      request.add(utf8.encode(bodyJson));
+      final response =
+          await request.close().timeout(const Duration(seconds: 8));
+      final respBody = await response.transform(utf8.decoder).join();
+      client.close();
+      final data = jsonDecode(respBody);
+      final jsonList = data['data'];
+      if (jsonList is! List || jsonList.isEmpty) return null;
+      final items = <BangumiItem>[];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          try {
+            final item = BangumiItem.fromJson(jsonItem);
+            if (item.nameCn != '') items.add(item);
+          } catch (_) {}
+        }
+      }
+      if (items.isEmpty) return null;
+      return BangumiSearchPage(items: items, rawCount: jsonList.length);
+    } catch (e) {
+      KazumiLogger().w('mirror search failed, fallback to direct', error: e);
       return null;
     }
   }
