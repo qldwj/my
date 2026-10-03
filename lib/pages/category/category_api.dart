@@ -48,6 +48,17 @@ class CategoryApi {
         .toList();
   }
 
+  /// 拉取视频详情（含真实 bangumi_id，用于跳转 Bangumi 详情页）
+  static Future<CategoryVideoDetail?> fetchVideoDetail(int videoId) async {
+    final uri = Uri.parse('$base?action=detail&video_id=$videoId');
+    final body = await _get(uri);
+    if (body == null) return null;
+    final data = jsonDecode(body);
+    final d = data['data'];
+    if (d is! Map<String, dynamic>) return null;
+    return CategoryVideoDetail.fromJson(d);
+  }
+
   static Future<String?> _get(Uri uri) async {
     final client = HttpClient()..connectionTimeout = _connectTimeout;
     try {
@@ -128,6 +139,39 @@ class CategoryVideo {
       remarks: (j['remarks'] as String?) ?? '',
       area: (j['area'] as String?) ?? '',
       version: (j['version'] as String?) ?? '',
+    );
+  }
+}
+
+/// 分类视频详情（含真实 bangumi_id，用于跳转 Bangumi 详情页）
+class CategoryVideoDetail {
+  final int videoId;
+  final int bangumiId;
+  final String title;
+  final String coverUrl;
+  final int year;
+  final double score;
+  final String description;
+
+  CategoryVideoDetail({
+    required this.videoId,
+    required this.bangumiId,
+    required this.title,
+    required this.coverUrl,
+    required this.year,
+    required this.score,
+    required this.description,
+  });
+
+  factory CategoryVideoDetail.fromJson(Map<String, dynamic> j) {
+    return CategoryVideoDetail(
+      videoId: (j['id'] as num?)?.toInt() ?? 0,
+      bangumiId: (j['bangumi_id'] as num?)?.toInt() ?? 0,
+      title: (j['title'] as String?) ?? '',
+      coverUrl: (j['cover_url'] as String?) ?? '',
+      year: (j['year'] as num?)?.toInt() ?? 0,
+      score: (j['score'] as num?)?.toDouble() ?? 0,
+      description: (j['description'] as String?) ?? '',
     );
   }
 }
