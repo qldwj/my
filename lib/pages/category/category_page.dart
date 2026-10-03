@@ -15,8 +15,12 @@ class CategoryPage extends StatefulWidget {
   State<CategoryPage> createState() => _CategoryPageState();
 }
 
-class _CategoryPageState extends State<CategoryPage> {
+class _CategoryPageState extends State<CategoryPage>
+    with AutomaticKeepAliveClientMixin {
   final ScrollController _scroll = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
 
   bool _loadingZones = true;
   bool _loading = false;
@@ -169,6 +173,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_loadingZones) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
