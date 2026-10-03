@@ -47,6 +47,8 @@ class SavedAccount {
 /// 见 SocialService。
 class AuthService {
   static const String baseUrl = 'https://qlyyz.xyz/api/v1/login';
+  /// 🆕 邮箱验证码注册/登录/绑定已拆分到独立入口（与第三方 OAuth 分离，降低风控）
+  static const String emailBaseUrl = 'https://qlyyz.xyz/api/v1/email_auth';
 
   static String get _appId => bangumiMirrorCredentials['id'] ?? '';
   static String get _appKey => bangumiMirrorCredentials['value'] ?? '';
@@ -96,6 +98,7 @@ class AuthService {
     Map<String, dynamic> body, {
     String? authToken,
     bool skipSignature = false,
+    String? url,
   }) async {
     final bodyStr = jsonEncode(body);
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -103,7 +106,8 @@ class AuthService {
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 20);
-      final request = await client.postUrl(Uri.parse('$baseUrl?action=$action'));
+      final request = await client.postUrl(
+          Uri.parse('${url ?? baseUrl}?action=$action'));
 
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
       if (authToken != null) {
@@ -148,7 +152,7 @@ class AuthService {
 
   /// 发送验证码
   static Future<Map<String, dynamic>> sendCode(String email) {
-    return _request('send_code', {'email': email});
+    return _request('send_code', {'email': email}, url: emailBaseUrl);
   }
 
   /// 注册
@@ -161,7 +165,7 @@ class AuthService {
       'email': email,
       'code': code,
       'captcha_answer': captchaAnswer,
-    });
+    }, url: emailBaseUrl);
     if (res['bangumi_token'] is String && (res['bangumi_token'] as String).isNotEmpty) {
       await GStorage.putSetting(SettingsKeys.bangumiAccessToken, res['bangumi_token'] as String);
       await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
@@ -181,7 +185,7 @@ class AuthService {
       'email': email,
       'code': code,
       'captcha_answer': captchaAnswer,
-    }, authToken: token, skipSignature: true);
+    }, authToken: token, skipSignature: true, url: emailBaseUrl);
   }
 
   /// 🆕 当前登录邮箱（登录/绑定时记录，用于判断是否 OAuth 一次性账号）
@@ -218,7 +222,7 @@ class AuthService {
       'captcha_answer': captchaAnswer,
       if (inviteCode.trim().isNotEmpty) 'invite_code': inviteCode.trim(),
       if (deviceName.trim().isNotEmpty) 'device_name': deviceName.trim(),
-    });
+    }, url: emailBaseUrl);
     if (res['bangumi_token'] is String && (res['bangumi_token'] as String).isNotEmpty) {
       await GStorage.putSetting(SettingsKeys.bangumiAccessToken, res['bangumi_token'] as String);
       await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
