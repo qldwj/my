@@ -31,7 +31,12 @@ abstract final class BangumiImageUrlRewriter {
     if (uri.host != 'api.bgm.tv') return false;
     final segments = uri.pathSegments;
     if (segments.isEmpty) return false;
-    return _apiImageKinds.contains(segments.first);
+    // 兼容两种路径：/subjects/xxx/image 与 /v0/subjects/xxx/image
+    // （官方图片地址是 api.bgm.tv/v0/subjects/{id}/image，带 v0 前缀，
+    //   旧逻辑只看首段导致 v0 开头被判成非图片，ECH/镜像均不生效）
+    var kind = segments.first;
+    if (kind == 'v0' && segments.length > 1) kind = segments[1];
+    return _apiImageKinds.contains(kind);
   }
 
   /// 镜像重写（Uri 版，给新的图片缓存管线使用）
