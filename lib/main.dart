@@ -391,7 +391,7 @@ void _openServerSite(String message) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       KazumiDialog.showToast(message: '$message，正在跳转...');
       launchUrl(
-        Uri.parse('https://qlyyz.xyz/api/check.php'),
+        Uri.parse('https://qlyyz.xyz/check.php'),
         mode: LaunchMode.externalApplication,
       );
     });
