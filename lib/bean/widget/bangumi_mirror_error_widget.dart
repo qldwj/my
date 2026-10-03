@@ -23,7 +23,7 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
       actions: [
         GeneralErrorButton(
           onPressed: () async {
-            await context.pushNamed('/settings/webdav/');
+            await context.pushNamed('/settings/mirror-proxy');
             onSettingsReturned?.call();
           },
           text: '镜像开关',
