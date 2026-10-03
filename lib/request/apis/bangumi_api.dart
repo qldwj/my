@@ -404,27 +404,25 @@ class BangumiApi {
     }
   }
 
-  /// 番剧搜索：强制直连官方 api.kazumi.fyi 签名接口（不走 qlyyz 中转）。
-  /// 签名 = base64(SHA256(appId + ts + "POST" + /v0/search/subjects + hex(SHA256(body)) + secret))，
-  /// 带上 X-AppId / X-Timestamp / X-Signature 三头。
+  /// 番剧搜索：走 qlyyz.xyz 中转（签名 POST /api/v0/search.php）。
+  /// 后端已有 30 分钟 SQLite 缓存，翻页/重复搜索秒切；后端上游直连 api.kazumi.fyi（更快）。
   static Future<BangumiSearchPage?> _mirrorSearchPage(
       Map<String, dynamic> params, int limit, int offset) async {
     final bodyJson = jsonEncode(params);
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final appId = bangumiMirrorCredentials['id'] ?? '';
+    final appKey = bangumiMirrorCredentials['value'] ?? '';
+    // 后端签名串：appId + timestamp + "POST" + "/v0/search/subjects" + sha256(body) + secretKey
     const reqPath = '/v0/search/subjects';
     final bodySha = sha256.convert(utf8.encode(bodyJson)).toString();
-    // 🆕 官方 api.kazumi.fyi 搜索凭据（发送方）
-    const appId = 'kazumi-hh47hcih6xfodp50';
-    const secret = 'EKlABDVRMb8g5OkCH78SL14riZU4zmkR8TvRmu3GORIeJcdQ';
-    final raw =
-        utf8.encode(appId + timestamp.toString() + 'POST' + reqPath +
-            bodySha + secret);
+    final raw = utf8.encode(
+        appId + timestamp.toString() + 'POST' + reqPath + bodySha + appKey);
     final signature = base64Encode(sha256.convert(raw).bytes);
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 6);
       final uri = Uri.parse(
-          'https://api.kazumi.fyi$reqPath?limit=$limit&offset=$offset');
+          'https://qlyyz.xyz/api/v0/search.php?limit=$limit&offset=$offset');
       final request = await client.postUrl(uri);
       request.headers.set('Content-Type', 'application/json');
       request.headers.set('X-AppId', appId);
@@ -450,7 +448,7 @@ class BangumiApi {
       if (items.isEmpty) return null;
       return BangumiSearchPage(items: items, rawCount: jsonList.length);
     } catch (e) {
-      KazumiLogger().w('kazumi.fyi search failed', error: e);
+      KazumiLogger().w('mirror search failed, fallback to direct', error: e);
       return null;
     }
   }
