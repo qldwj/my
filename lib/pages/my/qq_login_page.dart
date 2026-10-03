@@ -165,6 +165,7 @@ class _QQLoginPageState extends State<QQLoginPage> {
         if (mounted) {
           setState(() => _loading = false);
           KazumiDialog.showToast(message: 'QQ 绑定成功 🎉');
+          AuthService.notifyLoginChanged();
           Navigator.of(context).pop(true);
         }
       } else if (mounted) {

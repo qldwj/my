@@ -164,6 +164,7 @@ class _WechatLoginPageState extends State<WechatLoginPage> {
         if (mounted) {
           setState(() => _loading = false);
           KazumiDialog.showToast(message: '微信绑定成功 🎉');
+          AuthService.notifyLoginChanged();
           Navigator.of(context).pop(true);
         }
       } else if (mounted) {

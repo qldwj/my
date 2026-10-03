@@ -76,6 +76,10 @@ class _MyPageState extends State<MyPage> {
         );
       }
     };
+    // ⭐ 全局登录/绑定状态变化：登录/绑定成功后立即刷新账号区，无需退出页面
+    AuthService.onLoginChanged = () {
+      if (mounted) _refreshAfterLogin();
+    };
     _loadRecentHistories();
     _loadGoal();
     _loadBangumiUser();
@@ -178,6 +182,14 @@ class _MyPageState extends State<MyPage> {
         _chatUnreadCount = unread;
       });
     }
+  }
+
+  /// 🆕 登录/绑定成功后即时刷新账号区（昵称/头像/称号/好友红点）
+  void _refreshAfterLogin() {
+    if (!mounted) return;
+    _loadSocialProfile();
+    _loadTitle();
+    _loadBangumiUser();
   }
 
   /// 已登录 Bangumi 时拉取头像/昵称（走 api.qlyyz.top 镜像）

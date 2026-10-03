@@ -263,6 +263,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               if (res['success'] == true) {
                 Navigator.pop(ctx);
                 await AuthService.saveUserEmail(emailCtrl.text.trim());
+                AuthService.notifyLoginChanged();
                 KazumiDialog.showToast(message: '邮箱绑定成功');
               } else {
                 KazumiDialog.showToast(message: res['error'] ?? '绑定失败');

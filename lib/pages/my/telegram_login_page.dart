@@ -169,6 +169,7 @@ class _TelegramLoginPageState extends State<TelegramLoginPage> {
         if (mounted) {
           setState(() => _loading = false);
           KazumiDialog.showToast(message: 'Telegram 绑定成功 🎉');
+          AuthService.notifyLoginChanged();
           Navigator.of(context).pop(true);
         }
       } else if (mounted) {

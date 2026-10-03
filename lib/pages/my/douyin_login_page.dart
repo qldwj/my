@@ -164,6 +164,7 @@ class _DouyinLoginPageState extends State<DouyinLoginPage> {
         if (mounted) {
           setState(() => _loading = false);
           KazumiDialog.showToast(message: '抖音绑定成功');
+          AuthService.notifyLoginChanged();
           Navigator.of(context).pop(true);
         }
       } else if (mounted) {
