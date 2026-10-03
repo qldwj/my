@@ -22,9 +22,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '测试版版本号（如 2.3.9，会自动加 -beta 后缀）'
+        description: '测试版版本号（如 2.4.3，会自动加 -beta 后缀）'
         required: true
-        default: '2.3.9'
+        default: '2.4.3'
       beta_suffix:
         description: '测试版后缀（如 beta / beta2 / rc1，默认 beta）'
         required: true

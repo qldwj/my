@@ -92,4 +92,16 @@ class CheckinService {
     }
     return {'error': '请求失败'};
   }
+
+  /// 读取 Hive 缓存的称号数据（无网络/未刷新前立即显示，
+  /// 避免每次进「我的」页面称号先 0 再等网络加载）
+  static Map<String, dynamic>? cachedAchievements() {
+    final cached = GStorage.getStringListSettingByName(_achCacheKey);
+    if (cached.isNotEmpty) {
+      try {
+        return Map<String, dynamic>.from(jsonDecode(cached.first) as Map);
+      } catch (_) {}
+    }
+    return null;
+  }
 }

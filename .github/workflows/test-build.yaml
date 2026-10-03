@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号（如 2.4.0）'
+        description: '版本号（如 2.4.3）'
         required: true
-        default: '2.4.0'
+        default: '2.4.3'
       sign_check:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
