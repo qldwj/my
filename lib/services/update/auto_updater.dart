@@ -16,6 +16,14 @@ import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/crypto.dart';
 import 'package:kazumi/utils/version.dart';
 
+// 🆕 拉取发布镜像列表用的浏览器头（Kangle WAF 会把默认 UA 当机器人返回 JS 验证页 cbk_var）
+const Map<String, dynamic> _mirrorBrowserHeaders = {
+  'User-Agent':
+      'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Referer': 'https://qlyyz.xyz/',
+};
+
 /// 安装类型枚举
 enum InstallationType {
   windowsMsix, // Kazumi_windows_1.7.5.msix
@@ -222,7 +230,8 @@ class AutoUpdater {
 
   /// 获取最新正式版
   Future<Map<String, dynamic>> _latestRelease() async {
-    final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
+    final raw = await _downloadClient
+        .getPlain(ApiEndpoints.latestAppMirror, headers: _mirrorBrowserHeaders);
     final data = json.decode(raw);
     if (data is! Map) {
       throw Exception('Invalid update response');
@@ -254,7 +263,9 @@ class AutoUpdater {
 
     // 1) 镜像（已替换 browser_download_url 为 gitcode 直链，国内快）
     try {
-      final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleasesMirror);
+      final raw = await _downloadClient
+          .getPlain(ApiEndpoints.allAppReleasesMirror,
+              headers: _mirrorBrowserHeaders);
       final list = json.decode(raw);
       if (list is List) {
         for (final item in list) {

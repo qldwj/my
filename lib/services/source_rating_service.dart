@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/api_throttle.dart';
 
 /// 🆕 规则源稳定性评分客户端
 ///
@@ -86,16 +87,18 @@ class SourceRatingService {
 
   static Future<Map<String, dynamic>> _get(String action, Map<String, String> q) async {
     try {
+      await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防CC返回 JS 验证页(cbk_var)
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
       final uri = Uri.parse('$baseUrl?action=$action').replace(
           queryParameters: {...Uri.parse('$baseUrl?action=$action').queryParameters, ...q});
       final request = await client.getUrl(uri);
-      // 🆕 带浏览器 UA/Accept，避免被服务器防火墙(WAF)拦成 HTML
+      // 🆕 浏览器 UA/完整头 + Referer，避免被服务器防火墙(WAF)拦成 HTML(cbk_var)
       request.headers.set('User-Agent',
-          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
       request.headers.set('Accept', 'application/json, text/plain, */*');
       request.headers.set('Accept-Language', 'zh-CN,zh;q=0.9');
+      request.headers.set('Referer', 'https://qlyyz.xyz/');
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();
       client.close();
@@ -111,15 +114,17 @@ class SourceRatingService {
 
   static Future<Map<String, dynamic>> _post(String action, Map<String, dynamic> body) async {
     try {
+      await ApiThrottle.wait(); // 🆕 全局限流，避免 Kangle 防CC返回 JS 验证页(cbk_var)
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 15);
       final request =
           await client.postUrl(Uri.parse('$baseUrl?action=$action'));
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
       request.headers.set('User-Agent',
-          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36');
+          'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
       request.headers.set('Accept', 'application/json, text/plain, */*');
       request.headers.set('Accept-Language', 'zh-CN,zh;q=0.9');
+      request.headers.set('Referer', 'https://qlyyz.xyz/');
       request.add(utf8.encode(jsonEncode(body)));
       final response = await request.close();
       final resp = await response.transform(utf8.decoder).join();
