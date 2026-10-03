@@ -154,32 +154,6 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
           child: Text(_statusText, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         ),
         Expanded(child: WebViewWidget(controller: _webViewController)),
-        // 保存账号区域
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(children: [
-                Expanded(child: TextField(controller: _usernameCtrl,
-                  decoration: const InputDecoration(hintText: '账号（邮箱/用户名）', border: OutlineInputBorder(), isDense: true))),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: _passwordCtrl, obscureText: true,
-                  decoration: const InputDecoration(hintText: '密码', border: OutlineInputBorder(), isDense: true))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Checkbox(value: _rememberPassword,
-                  onChanged: (v) => setState(() => _rememberPassword = v ?? false)),
-                Text('保存账号密码（Cookie 过期后自动登录）', style: theme.textTheme.bodySmall),
-              ]),
-            ],
-          ),
-        ),
       ]),
     ));
   }

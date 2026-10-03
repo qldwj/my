@@ -80,8 +80,8 @@ class _SourceSheetState extends State<SourceSheet>
         final sb = widget.infoController.pluginSearchStatus[b.name];
         const order = {
           PluginSearchStatus.success: 0,
-          PluginSearchStatus.captcha: 1,
-          PluginSearchStatus.login: 2,
+          PluginSearchStatus.login: 1,
+          PluginSearchStatus.captcha: 2,
           PluginSearchStatus.noResult: 3,
           PluginSearchStatus.error: 4,
         };
