@@ -570,6 +570,7 @@ class _SourceSheetState extends State<SourceSheet>
       final savedAt = PluginCookieManager.instance.savedAtMs(plugin.name);
       final isExpired = savedAt != null;
       return GeneralErrorWidget(
+        title: '需要登录',
         errMsg: isExpired
             ? '${plugin.name} 登录已过期，请重新登录后观看'
             : '${plugin.name} 需要登录后才能观看（使用内置浏览器登录并保存 Cookie）',
@@ -587,6 +588,7 @@ class _SourceSheetState extends State<SourceSheet>
     }
     if (status == PluginSearchStatus.captcha) {
       return GeneralErrorWidget(
+        title: '需要验证',
         errMsg: '${plugin.name} 需要验证码验证',
         actions: [
           GeneralErrorButton(onPressed: () => showAntiCrawlerDialog(plugin), text: '进行验证'),
