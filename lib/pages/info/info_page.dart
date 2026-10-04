@@ -9,6 +9,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/playlist/playlist_module.dart';
 import 'package:kazumi/services/playlist/playlist_service.dart';
 import 'package:kazumi/pages/info/rating_review_dialog.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -195,13 +196,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     
     // 两个都没登录，不能打开
     if (bangumiToken.isEmpty && !isLoggedIn) {
-      KazumiDialog.showToast(message: '请先登录 Bangumi 或樱花动漫账号');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireLoginBangumiOrSakura);
       return;
     }
 
     final localType = infoController.collectController.getCollectType(infoController.bangumiItem);
     if (localType == 0) {
-      KazumiDialog.showToast(message: '请先追番后再发表评价');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireFollowBeforeReview);
       return;
     }
 
@@ -331,7 +332,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       // 🆕 修复：带 Bearer token 且正确判断成功
                       final token = AuthService.getLocalToken();
                       if (token == null) {
-                        KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                        KazumiDialog.showToast(message: AppLocalizations.of(ctx)!.setIRequireLoginSakura);
                         return;
                       }
                       final user = SocialService.myProfile;

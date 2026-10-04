@@ -9,6 +9,7 @@ import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/friend_service.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 /// 🆕 公开个人主页（分享链接 api/u/{uid} 打开；可一键加好友/关注）
 /// - 展示 TA 的收藏动漫（追番列表）
@@ -77,7 +78,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     if (_busy) return;
     final token = AuthService.getLocalToken();
     if (token == null) {
-      KazumiDialog.showToast(message: '请先登录');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireLogin);
       return;
     }
     setState(() => _busy = true);
@@ -253,7 +254,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           )
         else
           OutlinedButton.icon(
-            onPressed: () => KazumiDialog.showToast(message: '请先登录后再关注'),
+            onPressed: () => KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireLoginToFollow),
             style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14)),
             icon: const Icon(Icons.person_add_alt_1_rounded),

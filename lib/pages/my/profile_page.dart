@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/online_dot.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/auth_service.dart';
 
 /// 个人主页（查看他人主页）
@@ -61,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _addFriend() async {
     if (!AuthService.isLoggedIn) {
-      KazumiDialog.showToast(message: '请先登录');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireLogin);
       return;
     }
     setState(() => _addingFriend = true);
