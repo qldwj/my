@@ -9,9 +9,6 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/video/danmaku_send_sheet.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/pages/video/source_switch_sheet.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/playlist/play_queue_page.dart';
 import 'package:kazumi/pages/my/friend_picker.dart';
 import 'package:kazumi/services/playlist/play_queue_service.dart';
@@ -22,9 +19,6 @@ import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/request/apis/custom_danmaku_api.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/bean/widget/segment_progress_bar.dart';
-import 'package:kazumi/bean/widget/play_recommend_section.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -213,8 +207,6 @@ class _VideoPageState extends State<VideoPage>
   void _initializePlayback() {
     if (videoPageController.isOfflineMode) {
       _initOfflineMode(playerController);
-    } else if (videoPageController.autoResolvePending) {
-      _initAutoResolveMode(playerController);
     } else {
       _initOnlineMode(playerController);
     }
@@ -261,67 +253,6 @@ class _VideoPageState extends State<VideoPage>
         offset: videoPageController.historyOffset,
       );
     });
-  }
-
-  /// ⭐ 自动选源入口（详情页「开始观看」直接进播放页时走这里）：
-  /// 在播放页内并发检索所有规则，自动选择最快可用源并解析分集，随后正常播放首集；
-  /// 成功时右下角提示用户可在播放设置关闭自动选源。
-  void _initAutoResolveMode(PlayerController playerController) {
-    videoPageController.historyOffset = 0;
-    _showTabBodyImmediately(locateEpisode: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final ok = await videoPageController.autoResolveAndPlay();
-      if (!mounted) return;
-      if (!ok) {
-        // 失败：controller 已置错误信息，交由错误态提供重试
-        return;
-      }
-      if (GStorage.getSetting(SettingsKeys.autoSelectSource)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('已自动选择最快可用源'),
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: '关闭自动选源',
-              onPressed: () =>
-                  GStorage.putSetting(SettingsKeys.autoSelectSource, false),
-            ),
-          ),
-        );
-      }
-      await changeEpisode(
-        videoPageController.selectedEpisode.episode,
-        currentRoad: videoPageController.selectedEpisode.road,
-      );
-    });
-  }
-
-  /// ⭐ 打开「切换播放源」底部面板：从底部弹出约 1/2 高，选择其他规则后
-  /// 切换源并用当前集数重新播放。系统返回直接关闭面板回到播放页。
-  Future<void> _openSourceSwitchSheet() async {
-    if (videoPageController.searchInfoController == null) {
-      KazumiDialog.showToast(message: '暂无可切换的播放源');
-      return;
-    }
-    final result = await showModalBottomSheet<(Plugin, SearchItem)>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: false,
-      builder: (_) => SourceSwitchSheet(controller: videoPageController),
-    );
-    if (result == null || !mounted) return;
-    final (plugin, item) = result;
-    final ok = await videoPageController.switchSource(plugin, item);
-    if (!mounted) return;
-    if (!ok) {
-      KazumiDialog.showToast(message: '切换播放源失败');
-      return;
-    }
-    await changeEpisode(
-      videoPageController.selectedEpisode.episode,
-      currentRoad: 0,
-    );
   }
 
   void _initOnlineMode(PlayerController playerController) {
@@ -1337,13 +1268,6 @@ class _VideoPageState extends State<VideoPage>
                     ),
                   ),
                 ),
-                // ⭐ 切换播放源入口：从底部弹出面板
-                IconButton(
-                  tooltip: '切换播放源',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 20),
-                  onPressed: _openSourceSwitchSheet,
-                ),
               ],
             ),
           ),
@@ -1764,22 +1688,9 @@ class _VideoPageState extends State<VideoPage>
                                 ),
                               );
                             }),
-                            // ⭐ 播放页相关推荐：选集上方横排，进入选集 Tab 即见
-                            const PlayRecommendSection(),
                             menuBar,
                             menuBody,
                           ],
-                        ),
-                      ),
-                      // ⭐ 选集加载分段进度条：位于选集列表上方，加载时一段一段往右推进
-                      Positioned(
-                        top: 4,
-                        left: 12,
-                        right: 12,
-                        child: Observer(
-                          builder: (_) => videoPageController.loading
-                              ? const SegmentProgressBar()
-                              : const SizedBox.shrink(),
                         ),
                       ),
                     ],

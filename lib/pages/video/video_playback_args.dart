@@ -27,19 +27,6 @@ class OnlineVideoPlaybackArgs extends VideoPlaybackArgs {
   final List<Road> roads;
 }
 
-/// 详情页「开始观看」直接进入播放页、在播放页内自动搜索并选择最快可用源的入口。
-/// 不携带 plugin/src/roads，播放页首帧通过 [VideoPageController.autoResolveAndPlay]
-/// 并发检索所有规则并自动选择。
-class AutoOnlineVideoPlaybackArgs extends VideoPlaybackArgs {
-  const AutoOnlineVideoPlaybackArgs({
-    required super.bangumiItem,
-    this.episode = 1,
-  });
-
-  /// 目标集数（1 起），默认第 1 集。
-  final int episode;
-}
-
 class OfflineVideoPlaybackArgs extends VideoPlaybackArgs {
   const OfflineVideoPlaybackArgs({
     required super.bangumiItem,

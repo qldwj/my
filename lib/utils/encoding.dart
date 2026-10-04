@@ -38,9 +38,9 @@ String kazumiBase64ToJson(String input) {
     }
   }
 
-  // 匹配 yhdmgz:// 或 kazumi://
+  // 匹配 yhdmgz:// 或 kazumi://（容忍重复前缀 yhdmgzyhdmgz://）
   final schemeMatch = RegExp(
-    r'^(yhdmgz|kazumi):(?://)?',
+    r'^(?:yhdmgz|kazumi){1,3}:(?://)?',
     caseSensitive: false,
   ).firstMatch(trimmed);
   if (schemeMatch == null) {
@@ -68,9 +68,10 @@ String kazumiBase64ToJson(String input) {
   }
 }
 
-/// 解析文本中的 Kazumi / YHDMGZ 规则链接片段（批量导入功能使用）
+/// 解析文本中的 Kazumi / YHDMGZ / HTTP分享 规则链接片段（批量导入功能使用）
+/// 容忍重复前缀 yhdmgzyhdmgz://，并识别 https://.../share?gz=
 final RegExp _kazumiRuleLinkSchemePattern = RegExp(
-  r'(?:yhdmgz|kazumi):(?://)?',
+  r'(?:(?:yhdmgz|kazumi){1,3}:(?://)?|https?://[^/\s]+/share\?gz=)',
   caseSensitive: false,
 );
 
