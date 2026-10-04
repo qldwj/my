@@ -200,7 +200,7 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           path: '/settings/download-settings',
         ),
         SettingsEntrySpec(
-          icon: Icons.extension,
+          icon: Icons.extension_rounded,
           title: l10n.ruleManager,
           description: l10n.ruleManagerDesc,
           path: '/settings/plugin/',
@@ -240,7 +240,7 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
       title: l10n.dataStatsGroup,
       entries: [
         SettingsEntrySpec(
-          icon: Icons.cloud,
+          icon: Icons.cloud_rounded,
           title: l10n.syncSettings,
           description: l10n.syncSettingsDesc,
           path: '/settings/sync',
@@ -257,7 +257,7 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           path: '/settings/theme',
         ),
         SettingsEntrySpec(
-          icon: Icons.color_lens_outlined,
+          icon: Icons.color_lens_rounded,
           title: l10n.themeSkinTitle,
           description: l10n.themeSkinDesc,
           path: '/settings/theme/skin',
