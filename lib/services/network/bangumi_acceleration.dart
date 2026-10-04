@@ -11,7 +11,7 @@ enum BangumiAcceleration {
     'direct' => direct,
     'ech' => ech,
     'mirror' => mirror,
-    _ => GStorage.getSetting(SettingsKeys.enableBangumiProxy) ? mirror : direct,
+    _ => GStorage.getSetting(SettingsKeys.enableBangumiProxy) ? ech : direct,
   };
 
   String get label => switch (this) {

@@ -8,8 +8,9 @@ class RecommendApi {
   static const String _baseUrl =
       'https://qlyyz.xyz/api/v0/recommendations';
 
-  /// 拉取一页推荐，失败返回空列表（调用方静默降级）
-  static Future<List<BangumiItem>> fetchRecommendations({
+  /// 拉取一页推荐。失败静默降级为空列表。
+  /// 返回 (list, hasMore)，供无限分页使用。
+  static Future<({List<BangumiItem> list, bool hasMore})> fetchRecommendations({
     int offset = 0,
     int limit = 20,
   }) async {
@@ -26,17 +27,23 @@ class RecommendApi {
 
       final json = jsonDecode(body);
       if (json is! Map<String, dynamic> || json['data'] == null) {
-        return [];
+        return (list: const [], hasMore: false);
       }
-      final list = json['data']['list'];
-      if (list is! List) return [];
-      return list
+      final data = json['data'];
+      if (data is! Map<String, dynamic>) {
+        return (list: const [], hasMore: false);
+      }
+      final list = data['list'];
+      if (list is! List) return (list: const [], hasMore: false);
+      final items = list
           .whereType<Map>()
           .map((e) => _toBangumiItem(Map<String, dynamic>.from(e)))
           .where((item) => item.id > 0)
           .toList();
+      final hasMore = data['has_more'] == true;
+      return (list: items, hasMore: hasMore);
     } catch (e) {
-      return [];
+      return (list: const [], hasMore: false);
     }
   }
 
@@ -49,8 +56,8 @@ class RecommendApi {
       type: 2,
       name: name,
       nameCn: nameCn.isEmpty ? name : nameCn,
-      summary: '',
-      airDate: '',
+      summary: (e['desc2'] ?? '').toString(),
+      airDate: (e['desc1'] ?? '').toString(),
       airWeekday: 0,
       rank: 0,
       images: {

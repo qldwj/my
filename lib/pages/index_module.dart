@@ -11,6 +11,7 @@ import 'package:kazumi/pages/onboarding/onboarding_page.dart';
 import 'package:kazumi/pages/playlist/playlist_module.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
+import 'package:kazumi/pages/recommend/recommend_module.dart';
 import 'package:kazumi/pages/route_error_page.dart';
 import 'package:kazumi/pages/search/search_module.dart';
 import 'package:kazumi/pages/settings/settings_module.dart';
@@ -61,6 +62,7 @@ final tabModule = createModule(
               child: (context, state) => const SizedBox.shrink(),
             )
             ..module(popularModule)
+            ..module(recommendModule)
             ..module(timelineModule)
             ..module(collectModule)
             ..module(myModule);

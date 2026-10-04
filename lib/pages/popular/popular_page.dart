@@ -60,8 +60,6 @@ class _PopularPageState extends State<PopularPage> {
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
     }
-    // 加载首页"为你推荐"
-    popularController.loadRecommend();
     // 检查上次观看记录
     _checkLastWatch();
   }
@@ -138,8 +136,6 @@ class _PopularPageState extends State<PopularPage> {
                   ),
                 ),
               ),
-              // 🆕 首页"为你推荐"区块（代理 Animeko 官方推荐）
-              SliverToBoxAdapter(child: _recommendSection()),
               SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                       StyleString.cardSpace, 0, StyleString.cardSpace, 0),
@@ -199,48 +195,6 @@ class _PopularPageState extends State<PopularPage> {
     );
   }
 
-  /// 首页顶部"为你推荐"横向滚动卡片区
-  Widget _recommendSection() {
-    return Observer(builder: (_) {
-      if (popularController.recommendList.isEmpty) {
-        return const SizedBox.shrink();
-      }
-      final theme = Theme.of(context);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-            child: Text(
-              '为你推荐',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 208,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              itemCount: popularController.recommendList.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: SizedBox(
-                    width: 110,
-                    child: BangumiCardV(
-                      bangumiItem: popularController.recommendList[index],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      );
-    });
-  }
 
   Widget contentGrid(List<BangumiItem> items) {
     final bangumiList = NsfwFilter.filter(items);

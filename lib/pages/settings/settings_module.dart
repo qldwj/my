@@ -10,6 +10,7 @@ import 'package:kazumi/pages/settings/desktop_settings_page.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/download_settings.dart';
 import 'package:kazumi/pages/settings/interface_settings.dart';
+import 'package:kazumi/pages/settings/language_page.dart';
 import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/notification_settings_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
@@ -58,6 +59,8 @@ final settingsModule = createModule(
                 child: (context, state) => const RendererSettings())
             ..route('/interface',
                 child: (context, state) => const InterfaceSettingsPage())
+            ..route('/language',
+                child: (context, state) => const LanguagePage())
             ..module(proxyModule)
             ..route('/mirror-proxy',
                 child: (context, state) => const ApiProxyPage())
