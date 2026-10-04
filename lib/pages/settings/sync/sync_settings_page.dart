@@ -3,10 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -109,11 +106,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       }
       if (_incGoal) {
         try {
-          // 追番目标走樱花云（上传 / 下载）
+          // 追番目标（每周目标）走 WebDAV
           if (upload) {
-            await KazumiSyncService.syncSettings();
+            await webDav.uploadSettings();
           } else {
-            await KazumiSyncService.downloadSettings();
+            await webDav.downloadSettings();
           }
           done.add('追番目标');
         } catch (_) {
@@ -207,27 +204,6 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                       if (mounted) setState(() {});
                     },
                   ),
-                  const SizedBox(height: 12),
-
-                  _SyncServiceTile(
-                    icon: Icons.wb_twilight_rounded,
-                    title: '樱花动漫',
-                    subtitle: '云端同步你的追番数据',
-                    status: AuthService.isLoggedIn ? '已登录' : '未登录',
-                    statusColor:
-                        AuthService.isLoggedIn ? Colors.green : colors.outline,
-                    iconBg: colors.secondaryContainer,
-                    iconFg: colors.onSecondaryContainer,
-                    onTap: () async {
-                      // 🆕 用 MaterialPageRoute 直接 push，避免跨模块 pushNamed 报"没路由"
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const KazumiLoginPage()),
-                      );
-                      if (mounted) setState(() {});
-                    },
-                  ),
-
                   const SizedBox(height: 24),
 
                   // ══════════ 单向同步 ══════════
