@@ -49,5 +49,10 @@
   "updateSubtitle": "选择获取应用更新的方式",
   "updateGithubDesc": "应用内检查更新，适合大多数用户",
   "updateFdroidDesc": "由 F-Droid 商店管理更新",
-  "initializationFailed": "初始化规则失败"
+  "initializationFailed": "初始化规则失败",
+  "themeAppearance": "外观模式",
+  "themeColorTitle": "主题配色",
+  "darkMode": "深色",
+  "lightMode": "浅色",
+  "themeSkinTitle": "番剧主题"
 }

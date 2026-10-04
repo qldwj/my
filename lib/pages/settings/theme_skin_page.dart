@@ -1,16 +1,21 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/bean/widget/anime_theme_preview.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/theme.dart';
 
-/// 番剧主题皮肤页
+/// 番剧主题页（AnimeFlow 预览卡风格）
 ///
-/// 提供多套以动漫命名的主题配色，点选即应用全局配色。
-/// 返回层级：本页 → 设置页 → 我的页面（标准 pushNamed/pop，不直接跳回我的页）。
+/// 顶部：深色 / 浅色 / 跟随系统 三张迷你预览卡，点击即切换外观模式（带动画）；
+/// 下方：动漫主题配色色圆（选中动画）。
+/// 返回层级：本页 → 设置页 → 我的页面。
 class ThemeSkinPage extends StatefulWidget {
   const ThemeSkinPage({super.key});
 
@@ -49,11 +54,17 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
 
   String _hexOf(Color c) => c.toARGB32().toRadixString(16);
 
-  bool _isSelected(_AnimeSkin skin) {
+  bool _isColorSelected(_AnimeSkin skin) {
     if (_currentColorHex.isEmpty || _currentColorHex == 'default') {
       return skin.name == '默认配色';
     }
     return _hexOf(skin.color) == _currentColorHex;
+  }
+
+  void _setMode(ThemeMode mode) {
+    GStorage.putSetting(SettingsKeys.themeMode, mode.name);
+    context.read<ThemeProvider>().setThemeMode(mode);
+    setState(() {});
   }
 
   void _applySkin(_AnimeSkin skin) {
@@ -83,112 +94,167 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
     KazumiDialog.showToast(message: '已切换主题：${skin.name}');
   }
 
+  Widget glassPanel({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: padding ?? const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.15),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final tp = context.watch<ThemeProvider>();
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: SysAppBar(title: const Text('番剧主题')),
+      appBar: SysAppBar(title: Text(l10n.themeSkinTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text(
-            '选择一套以动漫命名的主题配色，立即应用全局主题',
-            style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
+            l10n.themeAppearance,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.82,
-            children: [
-              for (final skin in _skins)
-                _SkinCard(
-                  skin: skin,
-                  selected: _isSelected(skin),
-                  onTap: () => _applySkin(skin),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => _setMode(ThemeMode.dark),
+                  child: ThemePreviewCard(
+                    bg: const Color(0xFF020617),
+                    primary: const Color(0xFF3B82F6),
+                    icon: Icons.nightlight_round,
+                    title: l10n.darkMode,
+                    subtitle: '',
+                    titleColor: Colors.white,
+                    subtitleColor: const Color(0xFF6B7280),
+                    selected: tp.themeMode == ThemeMode.dark,
+                  ),
                 ),
-            ],
+                const SizedBox(width: 5),
+                GestureDetector(
+                  onTap: () => _setMode(ThemeMode.light),
+                  child: ThemePreviewCard(
+                    bg: const Color(0xFFF8FAFC),
+                    primary: const Color(0xFFFACC15),
+                    icon: Icons.wb_sunny,
+                    title: l10n.lightMode,
+                    subtitle: '',
+                    titleColor: Colors.black,
+                    subtitleColor: Colors.black54,
+                    selected: tp.themeMode == ThemeMode.light,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                GestureDetector(
+                  onTap: () => _setMode(ThemeMode.system),
+                  child: ThemePreviewCard(
+                    bg: const Color(0xFF020617),
+                    primary: colors.primary,
+                    icon: Icons.settings,
+                    title: l10n.languageFollowSystem,
+                    subtitle: '',
+                    titleColor: Colors.white,
+                    subtitleColor: Colors.white60,
+                    overlay: const DiagonalOverlay(),
+                    selected: tp.themeMode == ThemeMode.system,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            l10n.themeColorTitle,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          glassPanel(
+            padding: const EdgeInsets.all(12),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final skin in _skins)
+                  GestureDetector(
+                    onTap: () => _applySkin(skin),
+                    child: SizedBox(
+                      width: 64,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: skin.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _isColorSelected(skin)
+                                    ? colors.primary
+                                    : colors.outlineVariant
+                                        .withValues(alpha: 0.5),
+                                width: _isColorSelected(skin) ? 2.5 : 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: skin.color.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                            child: _isColorSelected(skin)
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    size: 20,
+                                    color:
+                                        skin.color.computeLuminance() > 0.55
+                                            ? Colors.black87
+                                            : Colors.white,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            skin.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SkinCard extends StatelessWidget {
-  const _SkinCard({
-    required this.skin,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final _AnimeSkin skin;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? colors.primary : colors.outlineVariant,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: skin.color,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: skin.color.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: selected
-                  ? const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 24)
-                  : null,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              skin.name,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? colors.primary : colors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              skin.desc,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
-            ),
-          ],
-        ),
       ),
     );
   }

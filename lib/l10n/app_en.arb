@@ -49,5 +49,10 @@
   "updateSubtitle": "Choose how to get app updates",
   "updateGithubDesc": "In-app update check, best for most users",
   "updateFdroidDesc": "Updates managed by the F-Droid store",
-  "initializationFailed": "Failed to initialize rules"
+  "initializationFailed": "Failed to initialize rules",
+  "themeAppearance": "Appearance",
+  "themeColorTitle": "Theme color",
+  "darkMode": "Dark",
+  "lightMode": "Light",
+  "themeSkinTitle": "Anime themes"
 }
