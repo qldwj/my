@@ -15,6 +15,32 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/theme.dart';
 
+/// Resolve a [colorThemeTypes] labelKey to its localized label.
+String _colorLabel(String labelKey, AppLocalizations l10n) {
+  switch (labelKey) {
+    case 'setDColorPink':
+      return l10n.setDColorPink;
+    case 'setDColorDefault':
+      return l10n.setDColorDefault;
+    case 'setDColorTeal':
+      return l10n.setDColorTeal;
+    case 'setDColorBlue':
+      return l10n.setDColorBlue;
+    case 'setDColorIndigo':
+      return l10n.setDColorIndigo;
+    case 'setDColorViolet':
+      return l10n.setDColorViolet;
+    case 'setDColorYellow':
+      return l10n.setDColorYellow;
+    case 'setDColorOrange':
+      return l10n.setDColorOrange;
+    case 'setDColorDeepOrange':
+      return l10n.setDColorDeepOrange;
+    default:
+      return labelKey;
+  }
+}
+
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
 
@@ -303,7 +329,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                                   (defaultThemeColor == 'default' &&
                                                       index == 0)),
                                         ),
-                                        Text(e['label']),
+                                        Text(_colorLabel(e['labelKey'], l10n)),
                                       ],
                                     ),
                                   );

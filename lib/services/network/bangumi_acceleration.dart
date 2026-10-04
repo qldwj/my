@@ -1,3 +1,4 @@
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 enum BangumiAcceleration {
@@ -14,9 +15,15 @@ enum BangumiAcceleration {
     _ => GStorage.getSetting(SettingsKeys.enableBangumiProxy) ? ech : direct,
   };
 
-  String get label => switch (this) {
-    direct => '直连',
+  String label(AppLocalizations l10n) => switch (this) {
+    direct => l10n.setDConnDirect,
     ech => 'ECH',
-    mirror => '镜像',
+    mirror => l10n.setDConnMirror,
+  };
+
+  String description(AppLocalizations l10n) => switch (this) {
+    direct => l10n.setDBangumiDirectDesc,
+    ech => l10n.setDBangumiEchDesc,
+    mirror => l10n.setDBangumiMirrorDesc,
   };
 }
