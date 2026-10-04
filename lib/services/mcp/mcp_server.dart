@@ -72,6 +72,10 @@ class McpServer {
 4. 找到播放地址获取方式
 5. 编写完整规则
 
+## 规则图标（用于 App 规则列表显示）
+每条规则建议带 "icon" 字段：该网站的 logo / favicon 图片 URL（http/https），App 的规则列表会用它显示图标。
+例如："icon": "https://example.com/favicon.ico"。尽量从网站抓取 logo 或 favicon 填入；取不到可留空。
+
 ## 输出格式
 将规则JSON进行base64编码，在前面加上：
 yhdmgz://
@@ -232,9 +236,18 @@ yhdmgz://
     }
 
     final base64Str = base64Encode(utf8.encode(jsonEncode(rule)));
+    final warnings = <String>[];
+    final icon = rule['icon'];
+    if (icon == null || icon.toString().trim().isEmpty) {
+      warnings.add('未提供 icon（网站 logo 图片 URL），App 规则列表将不显示图标');
+    }
     return {
       'ok': errors.isEmpty,
       'errors': errors,
+      'warnings': warnings,
+      'icon': icon == null || icon.toString().trim().isEmpty
+          ? ''
+          : icon.toString(),
       'name': rule['name'],
       'searchMode': searchMode,
       'chapterMode': chapterMode,
