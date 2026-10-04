@@ -9,6 +9,7 @@ import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/pages/popular/recommend_section.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/nsfw_filter.dart';
@@ -126,6 +127,8 @@ class _PopularPageState extends State<PopularPage> {
             controller: scrollController,
             slivers: [
               buildSliverAppBar(),
+              // 🆕 首页顶部横排「为你推荐」
+              const SliverToBoxAdapter(child: RecommendSection()),
               SliverToBoxAdapter(
                 child: Observer(
                   builder: (_) => AnimatedOpacity(
