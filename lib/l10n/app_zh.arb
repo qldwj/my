@@ -914,5 +914,532 @@
   "setCCannotOpenLinkRetry": "无法打开链接，请稍后重试",
   "setCCheckUpdateFailed": "检查更新失败，请稍后重试",
   "setCChecking": "正在检查…",
-  "setCCheckUpdate": "检查更新"
+  "setCCheckUpdate": "检查更新",
+  "setDThemeDefault": "默认配色",
+  "setDThemeClassicGreen": "经典绿",
+  "setDThemeSakura": "次元城·樱",
+  "setDThemeSakuraPink": "樱花粉",
+  "setDThemeGate": "命运·门",
+  "setDThemeTimeBlue": "时间蓝",
+  "setDThemeViolet": "紫罗兰永恒",
+  "setDThemeEternalPurple": "永恒紫",
+  "setDThemeCamp": "露营·晴空",
+  "setDThemeSkyBlue": "晴空蓝",
+  "setDThemeCrimson": "绯红·刀",
+  "setDThemeBladeRed": "刀红",
+  "setDThemeGolden": "金瞳",
+  "setDThemeAmberGold": "琥珀金",
+  "setDThemeMint": "薄荷·凪",
+  "setDThemeMintGreen": "薄荷青",
+  "setDThemeMecha": "黑银·机械",
+  "setDThemeMechaSilver": "机械银",
+  "setDThemeSwitched": "已切换主题：{name}",
+  "@setDThemeSwitched": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setDColorPink": "粉红色",
+  "setDColorDefault": "默认",
+  "setDColorTeal": "青色",
+  "setDColorBlue": "蓝色",
+  "setDColorIndigo": "靛蓝色",
+  "setDColorViolet": "紫罗兰色",
+  "setDColorYellow": "黄色",
+  "setDColorOrange": "橙色",
+  "setDColorDeepOrange": "深橙色",
+  "setDMirrorTitle": "访问加速",
+  "setDBangumiItemAccel": "番剧条目加速",
+  "setDBangumiItemAccelDesc": "番剧信息与评论",
+  "setDRuleRepoMirror": "规则仓库镜像",
+  "setDRuleRepoMirrorDesc": "加速规则的下载与更新",
+  "setDConnDirect": "直连",
+  "setDConnMirror": "镜像",
+  "setDBangumiDirectDesc": "访问官方接口",
+  "setDBangumiEchDesc": "启用加密握手",
+  "setDBangumiMirrorDesc": "镜像接口（默认）",
+  "setDImageDirectDesc": "直接从 Bangumi 加载图片",
+  "setDImageEchDesc": "通过 ECH 加载 Bangumi 图片，推荐使用",
+  "setDImageMirrorDesc": "通过图片镜像服务加载 Bangumi 图片",
+  "setDEndpointCalendar": "每日放送",
+  "setDEndpointTrending": "番剧趋势",
+  "setDEndpointPopular": "热门番剧",
+  "setDEndpointSeason": "季节时间表",
+  "setDEndpointSearch": "番剧搜索",
+  "setDEndpointSubject": "番剧详情",
+  "setDEndpointEpisodes": "剧集列表",
+  "setDEndpointCharacters": "角色列表",
+  "setDEndpointSubjectComments": "条目评论",
+  "setDEndpointEpisodeComments": "剧集评论",
+  "setDEndpointCharacterInfo": "角色详情",
+  "setDEndpointCharacterComments": "角色评论",
+  "setDEndpointStaff": "制作人员",
+  "setDEndpointRelated": "关联条目",
+  "setDMirrorLoadFailEnabled": "无法加载数据\n番剧条目镜像已启用",
+  "setDMirrorLoadFailDisabled": "无法加载数据\n番剧条目镜像已禁用",
+  "setDMirrorToggle": "镜像开关",
+  "setDTapRetry": "点击重试",
+  "setDCheckServerStatus": "检查服务器状态",
+  "setDServiceCollection": "收藏数据服务",
+  "setDServiceComment": "评论服务",
+  "setDServiceYhpdm": "樱花动漫",
+  "setDServiceDanmakuComment": "弹幕,评论服务",
+  "setDServiceCheckFailed": "检测失败: {url}, 错误: {error}",
+  "@setDServiceCheckFailed": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setEInstallCollectionFromRepo": "从仓库安装合集",
+  "setENewXPathRule": "新建 XPath 规则",
+  "setEImportFromRepo": "从规则仓库导入",
+  "setEImportFromClipboard": "从剪贴板导入",
+  "setEImportFromFile": "从文件批量导入",
+  "setEMore": "更多",
+  "setEAIRuleGenerator": "AI规则生成器",
+  "setERuleSettings": "规则设置",
+  "setEUpdateAll": "更新全部",
+  "setESelectAll": "全选",
+  "setEDeleteSelected": "删除选中",
+  "setEAddRule": "添加规则",
+  "setETabAll": "全部",
+  "setESearchRuleHint": "搜索规则名称...",
+  "setEUpdatable": "可更新",
+  "setESearchValid": "搜索有效",
+  "setEUpdate": "更新",
+  "setENoUpdateStatus": "尚未获取规则更新状态",
+  "setENotInCatalog": "规则仓库中没有当前规则",
+  "setEAlreadyLatest": "规则已是最新",
+  "setEShare": "分享",
+  "setEUploadToMarket": "上传到市场",
+  "setFRepoUnreachable": "无法访问规则仓库",
+  "setFSearchRuleOrAuthor": "搜索规则或作者",
+  "setFClearSearch": "清除搜索",
+  "setFCountAll": "全部 ({count})",
+  "@setFCountAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFCountInstalled": "已安装 ({count})",
+  "@setFCountInstalled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFCountUpdates": "可更新 ({count})",
+  "@setFCountUpdates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFNeedLogin": "需要登录",
+  "setFNeedVerification": "需要验证",
+  "setFInstall": "安装",
+  "setFInstalled": "已安装",
+  "setFUpdate": "更新",
+  "setFLastUpdate": "更新时间: {time}",
+  "@setFLastUpdate": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "setFDisableRepoMirror": "禁用规则镜像",
+  "setFEnableRepoMirror": "启用规则镜像",
+  "setFRepoMirrorEnabled": "规则仓库镜像已启用",
+  "setFRepoMirrorDisabled": "规则仓库镜像已禁用",
+  "setFRepoEmpty": "规则仓库中暂无规则",
+  "setFRefreshRuleList": "刷新规则列表",
+  "setFRuleRepository": "规则仓库",
+  "setFRuleMarketUserUpload": "规则市场（用户上传）",
+  "setFSortByName": "按名称排序",
+  "setFSortByUpdatedAt": "按更新时间排序",
+  "setFAll": "全部",
+  "setFLoadingRule": "正在获取规则…",
+  "setFInstallRule": "安装规则",
+  "setFRuleNameVersion": "规则「{name}」v{version}",
+  "@setFRuleNameVersion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "setFRuleOverwriteExisting": "本机已存在同名规则，将覆盖。",
+  "setFRuleManageAfterInstall": "安装后可在规则管理中管理。",
+  "setFInstallSuccess": "安装成功",
+  "setFInstallFail": "安装失败: {error}",
+  "@setFInstallFail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFMarketEmpty": "市场中还没有规则\n\n在规则管理页点「上传到市场」即可分享你的规则",
+  "setFOfficial": "官方",
+  "setFUserUploaded": "用户上传",
+  "setFMarketUnreachable": "无法访问规则市场\n请确认服务器 qlyyz.xyz/json/ 已部署",
+  "setFRuleMarket": "规则市场",
+  "setFRuleSettings": "规则设置",
+  "setFPlayback": "播放",
+  "setFAutoSelectSource": "自动选择视频源",
+  "setFAutoSelectSourceSub": "开始观看时自动用第一个可用源播放",
+  "setFStarredRules": "星标规则（播放时无条件排最前 · WebDAV 同步）",
+  "setFNoRules": "暂无规则",
+  "setFSourceStabilityRating": "源稳定性评分（帮助选源）",
+  "setFSourceSorting": "选源排序（可多选组合，未选则按默认速度）",
+  "setFDefaultSort": "默认（按响应速度）",
+  "setFHighestQuality": "清晰度最高",
+  "setFMostEpisodes": "集数最多",
+  "setFFastestSpeed": "速度最快",
+  "setFLoginCookie": "登录态 Cookie（超时自动失效）",
+  "setFCookieTtlDays": "登录态有效天数",
+  "setFCookieTtlDaysSub": "默认 30 天，超期需重新登录获取",
+  "setFDays": "{count} 天",
+  "@setFDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFClearAllLoginState": "清除全部已保存登录态",
+  "setFClearAllLoginStateSub": "清空所有规则的 Cookie（误判已登录时可一键清理）",
+  "setFClearAll": "全部清除",
+  "setFClearAllLoginStateTitle": "清除全部登录态",
+  "setFClearAllConfirm": "将清空所有已保存规则的 Cookie，下次播放会重新要求登录。是否继续？",
+  "setFClear": "清除",
+  "setFClearAllDone": "已清除全部登录态",
+  "setFWebdavSyncFail": "WebDAV 星标同步失败: {error}",
+  "@setFWebdavSyncFail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFAiRuleGenerator": "AI规则生成器",
+  "setFMcpSubtitle": "MCP服务 · AI帮你写规则",
+  "setFServiceRunning": "服务运行中",
+  "setFServiceStopped": "服务未开启",
+  "setFCopied": "已复制",
+  "setFMcpHelpText": "在AI工具中添加此MCP服务器，AI将自动帮你编写规则",
+  "setFPortLabel": "端口:",
+  "setFPortSettings": "端口设置",
+  "setFOperationFailed": "操作失败: {error}",
+  "@setFOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFStopService": "停止服务",
+  "setFStartService": "开启服务",
+  "setFUpdating": "更新中",
+  "setFUpdateRuleFailed": "更新规则失败",
+  "setFImporting": "导入中",
+  "setFSaveRuleFailed": "保存规则失败",
+  "setFImportSuccess": "导入成功",
+  "setFUpdateSuccess": "更新成功",
+  "setFRequiresNewerClient": "规则需要更高版本客户端",
+  "setFImportRuleFailed": "导入规则失败",
+  "setFNotNewer": "远程规则版本不高于本地，已跳过更新",
+  "setFNoUpdateCandidates": "没有可更新的规则",
+  "setFBatchUpdated": "更新成功 {count} 条",
+  "@setFBatchUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchSucceeded": "成功 {count} 条",
+  "@setFBatchSucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchIncompatible": "不兼容 {count} 条",
+  "@setFBatchIncompatible": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchSkipped": "已跳过 {count} 条",
+  "@setFBatchSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchFailed": "失败 {count} 条",
+  "@setFBatchFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchUpdateDone": "更新完成: {parts}",
+  "@setFBatchUpdateDone": {
+    "placeholders": {
+      "parts": {
+        "type": "String"
+      }
+    }
+  },
+  "setGTabRecommend": "推荐",
+  "setGTabForYou": "为你推荐",
+  "setGTabTimeline": "时间表",
+  "setGTabFollow": "追番",
+  "setGTabMine": "我的",
+  "setGPressBackAgainToExit": "再按一次退出应用",
+  "setGWelcomeTitle": "欢迎使用樱花动漫",
+  "setGWelcomeNoRulesBody": "你还没有添加规则，需要先添加规则才能正常使用。\n\n是否继续添加规则？",
+  "setGBack": "返回",
+  "setGContinueLabel": "继续",
+  "setGLoginExpired": "登录已过期，请重新登录",
+  "setGPleaseLoginFirst": "请先登录樱花动漫账号",
+  "setGProfile": "个人资料",
+  "setGImageTooLarge": "图片过大（最大 2MB）",
+  "setGAvatarUpdated": "头像已更新",
+  "setGNickname": "昵称",
+  "setGNicknameUpdated": "昵称已更新",
+  "setGErrorToast": "错误：{msg}",
+  "@setGErrorToast": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "setGCacheCleanup": "缓存清理",
+  "setGCacheCleanupBody": "图片缓存占用：{size}\n\n清理后，下次浏览图片会重新下载，不影响已下载的视频、收藏和历史记录。",
+  "@setGCacheCleanupBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "setGCacheCleared": "缓存已清理",
+  "setGCleanNow": "立即清理",
+  "setGUploadToCloud": "上传本地数据到云端",
+  "setGUploadLocalOverCloud": "用本地数据覆盖云端（本地优先）",
+  "setGRestoreFromCloud": "从云端恢复数据",
+  "setGDownloadCloudOverLocal": "用云端数据覆盖本地（换设备时使用）",
+  "setGUploading": "正在上传本地数据到云端…",
+  "setGUploadResult": "上传结果",
+  "setGDownloading": "正在从云端下载数据…",
+  "setGDownloadResult": "下载结果",
+  "setGSecurityCenter": "安全中心",
+  "setGLoginRecordsDeviceMgmt": "登录记录 / 设备管理",
+  "setGClearCloudData": "清除云端数据",
+  "setGClearCloudDataSubtitle": "删除服务器上的收藏/历史/进度，保留账号",
+  "setGDeleteAccount": "注销账号",
+  "setGDeleteAccountSubtitle": "删除账号和全部云端数据，不可恢复",
+  "setGClearCloudConfirmBody": "将删除服务器上的收藏/历史/进度，本地数据保留。确定？",
+  "setGClear": "清除",
+  "setGCloudDataCleared": "云端数据已清除",
+  "setGAccountDestruction": "账号销毁",
+  "setGAccountDestructionBody": "销毁账号后将删除账号和全部云端数据（收藏/历史/进度），不可恢复。\n\n将直接删除该账号，不可恢复。确定销毁？",
+  "setGConfirmDestroy": "确认销毁",
+  "setGAccountDeleted": "账号已删除",
+  "setGShareAccount": "分享账号",
+  "setGPrivacySettings": "隐私设置",
+  "setGScanLoginOtherDevice": "扫码登录其他设备",
+  "setGScanLogin": "扫码登录",
+  "setGAllSettings": "全部设置",
+  "setGHistory": "历史记录",
+  "setGViewWatchHistory": "查看观看记录",
+  "setGNoWatchHistory": "暂无观看记录",
+  "setGOfflineDownload": "离线下载",
+  "setGManageOfflineContent": "管理离线内容",
+  "setGDownloadTasks": "{count} 集下载任务",
+  "@setGDownloadTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setGSync": "同步",
+  "setGSyncBackup": "同步备份",
+  "setGCrossDeviceSync": "跨设备同步数据",
+  "setGClearCache": "清除缓存",
+  "setGFreeStorage": "释放存储空间",
+  "setGCheckin": "追番打卡",
+  "setGCheckinCaption": "连看天数 / 打卡日历",
+  "setGStorageManagement": "存储管理",
+  "setGCacheAndLogs": "缓存与日志",
+  "setGAboutApp": "关于樱花动漫",
+  "setGAboutKazumi": "关于 Kazumi",
+  "setGProfileNotReady": "账号资料未就绪，请稍后再试",
+  "setGProfileLinkCopied": "账号链接已复制，可分享给好友",
+  "setGMyTitles": "我的称号",
+  "setGTitlesUnlocked": "{unlocked} / {total} 已解锁",
+  "@setGTitlesUnlocked": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setGUnlocked": "已解锁",
+  "setGNoTitle": "暂无称号",
+  "setGTitleProgress": "已解锁 {unlocked} / {total} 个称号 · 追番/打卡/积分均可获得",
+  "@setGTitleProgress": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setGAccountCenter": "个人中心",
+  "setGWelcomeBack": "欢迎回来，{nickname}",
+  "@setGWelcomeBack": {
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "setGUserFallback": "用户",
+  "setGLoginToSync": "登录以同步数据",
+  "setGUserIdLabel": "UID：{uid}",
+  "@setGUserIdLabel": {
+    "placeholders": {
+      "uid": {
+        "type": "String"
+      }
+    }
+  },
+  "setGFriends": "好友",
+  "setGSwitchAccountShort": "换号",
+  "setGSwitchAccountsTitle": "切换账号",
+  "setGCurrentAccount": "当前账号",
+  "setGCurrentlyActive": "当前使用中",
+  "setGSavedAccounts": "已保存的账号",
+  "setGUnnamedAccount": "未命名账号",
+  "setGLoggedInBefore": "登录过的账号",
+  "setGRemoveFromList": "从列表移除",
+  "setGSwitchedToAccount": "已切换到{name}",
+  "@setGSwitchedToAccount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setGThisAccount": "该账号",
+  "setGLoginNewAccount": "登录新账号",
+  "setGLogoutCurrentAccount": "退出当前账号",
+  "setGLogoutSubtitle": "账号会保留在列表中，可随时切回",
+  "setGLogout": "退出登录",
+  "setGLogoutConfirmBody": "退出后账号仍会保留在「切换账号」列表中，可随时切换回来。",
+  "setGWeeklyGoal": "本周目标",
+  "setGNoWeeklyGoalBody": "本周还没设定目标，本周已看 {episodes} 集",
+  "@setGNoWeeklyGoalBody": {
+    "placeholders": {
+      "episodes": {
+        "type": "int"
+      }
+    }
+  },
+  "setGSetGoal5PerWeek": "设定目标（5 集 / 周）",
+  "setGWeekProgress": "本周已看 {watched} / {goal} 集",
+  "@setGWeekProgress": {
+    "placeholders": {
+      "watched": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "setGWeekGoalComplete": "本周目标已完成",
+  "setGEpisodesToGo": "还差 {remaining} 集达成目标",
+  "@setGEpisodesToGo": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "setGRuleSettings": "规则设置",
+  "setGManageSources": "管理番剧来源",
+  "setGPreferences": "偏好设置",
+  "setGPrefAppearance": "外观",
+  "setGPrefPlayer": "播放",
+  "setGPrefDanmaku": "弹幕",
+  "setGContentAndPreferences": "内容与偏好",
+  "setGAppearanceSettings": "外观设置",
+  "setGPlayerSettings": "播放设置",
+  "setGDanmakuSettings": "弹幕设置",
+  "setGDataAndApp": "数据与应用",
+  "setGWatchingFootprint": "观看足迹",
+  "setGWatchStats": "观看统计",
+  "setGBangumiWatched": "看过番剧",
+  "setGEpisodesWatched": "观看集数",
+  "setHTrending": "热门番组",
+  "setHHistory": "历史",
+  "setHDownload": "离线下载",
+  "setHProfileCenter": "个人中心",
+  "setHLogin": "登录",
+  "setHSakuraUser": "樱花动漫用户",
+  "setHNotLoggedIn": "未登录",
+  "setHEditProfile": "编辑个人资料",
+  "setHWatchHistory": "播放历史",
+  "setHLogout": "退出登录",
+  "setHLogoutConfirm": "确定退出登录吗？",
+  "setHRegisterLogin": "注册 / 登录",
+  "setHGenLoginQr": "生成登录二维码",
+  "setHLoggedIn": "已登录",
+  "setHEmailLogin": "邮箱登录",
+  "setHEmail": "邮箱",
+  "setHCaptcha": "验证码",
+  "setHSendCaptcha": "发送验证码",
+  "setHEmailRequired": "请输入邮箱",
+  "setHBindEmail": "绑定邮箱",
+  "setHQQMail": "QQ 邮箱",
+  "setHCaptchaSentCheckSpam": "验证码已发送，请查收邮箱（含垃圾箱）",
+  "setHBindEmailSuccess": "邮箱绑定成功",
+  "setHEmailCodeLogin": "邮箱验证码登录",
+  "setIRequireLogin": "请先登录",
+  "setIRequireLoginBangumiOrSakura": "请先登录 Bangumi 或樱花动漫账号",
+  "setIRequireFollowBeforeReview": "请先追番后再发表评价",
+  "setIRequireLoginSakura": "请先登录樱花动漫账号",
+  "setIRequireLoginToFollow": "请先登录后再关注"
 }

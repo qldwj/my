@@ -914,5 +914,532 @@
   "setCCannotOpenLinkRetry": "Could not open the link, please try again later",
   "setCCheckUpdateFailed": "Failed to check for updates, please try again later",
   "setCChecking": "Checking…",
-  "setCCheckUpdate": "Check for updates"
+  "setCCheckUpdate": "Check for updates",
+  "setDThemeDefault": "Default",
+  "setDThemeClassicGreen": "Classic Green",
+  "setDThemeSakura": "Dimension City · Sakura",
+  "setDThemeSakuraPink": "Sakura Pink",
+  "setDThemeGate": "Steins · Gate",
+  "setDThemeTimeBlue": "Time Blue",
+  "setDThemeViolet": "Violet · Evergarden",
+  "setDThemeEternalPurple": "Eternal Purple",
+  "setDThemeCamp": "Camp · Clear Sky",
+  "setDThemeSkyBlue": "Sky Blue",
+  "setDThemeCrimson": "Crimson · Blade",
+  "setDThemeBladeRed": "Blade Red",
+  "setDThemeGolden": "Golden Eyes",
+  "setDThemeAmberGold": "Amber Gold",
+  "setDThemeMint": "Mint · Nagi",
+  "setDThemeMintGreen": "Mint",
+  "setDThemeMecha": "Black-Silver · Mecha",
+  "setDThemeMechaSilver": "Mecha Silver",
+  "setDThemeSwitched": "Theme switched: {name}",
+  "@setDThemeSwitched": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setDColorPink": "Pink",
+  "setDColorDefault": "Default",
+  "setDColorTeal": "Teal",
+  "setDColorBlue": "Blue",
+  "setDColorIndigo": "Indigo",
+  "setDColorViolet": "Violet",
+  "setDColorYellow": "Yellow",
+  "setDColorOrange": "Orange",
+  "setDColorDeepOrange": "Deep Orange",
+  "setDMirrorTitle": "Access Acceleration",
+  "setDBangumiItemAccel": "Bangumi Item Acceleration",
+  "setDBangumiItemAccelDesc": "Bangumi metadata and comments",
+  "setDRuleRepoMirror": "Rule Repository Mirror",
+  "setDRuleRepoMirrorDesc": "Download and update acceleration rules",
+  "setDConnDirect": "Direct",
+  "setDConnMirror": "Mirror",
+  "setDBangumiDirectDesc": "Access official API",
+  "setDBangumiEchDesc": "Enable encrypted handshake",
+  "setDBangumiMirrorDesc": "Mirror API (default)",
+  "setDImageDirectDesc": "Load images directly from Bangumi",
+  "setDImageEchDesc": "Load Bangumi images via ECH (recommended)",
+  "setDImageMirrorDesc": "Load Bangumi images via the image mirror service",
+  "setDEndpointCalendar": "Daily Broadcast",
+  "setDEndpointTrending": "Anime Trending",
+  "setDEndpointPopular": "Popular Anime",
+  "setDEndpointSeason": "Season Schedule",
+  "setDEndpointSearch": "Anime Search",
+  "setDEndpointSubject": "Anime Details",
+  "setDEndpointEpisodes": "Episode List",
+  "setDEndpointCharacters": "Character List",
+  "setDEndpointSubjectComments": "Subject Comments",
+  "setDEndpointEpisodeComments": "Episode Comments",
+  "setDEndpointCharacterInfo": "Character Details",
+  "setDEndpointCharacterComments": "Character Comments",
+  "setDEndpointStaff": "Staff",
+  "setDEndpointRelated": "Related Subjects",
+  "setDMirrorLoadFailEnabled": "Unable to load data\nThe bangumi item mirror is enabled",
+  "setDMirrorLoadFailDisabled": "Unable to load data\nThe bangumi item mirror is disabled",
+  "setDMirrorToggle": "Mirror Settings",
+  "setDTapRetry": "Tap to Retry",
+  "setDCheckServerStatus": "Check Server Status",
+  "setDServiceCollection": "Collection Data Service",
+  "setDServiceComment": "Comment Service",
+  "setDServiceYhpdm": "Sakura Anime",
+  "setDServiceDanmakuComment": "Danmaku, Comment Service",
+  "setDServiceCheckFailed": "Detection failed: {url}, error: {error}",
+  "@setDServiceCheckFailed": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setEInstallCollectionFromRepo": "Install collection from repository",
+  "setENewXPathRule": "New XPath rule",
+  "setEImportFromRepo": "Import from rule repository",
+  "setEImportFromClipboard": "Import from clipboard",
+  "setEImportFromFile": "Batch import from file",
+  "setEMore": "More",
+  "setEAIRuleGenerator": "AI rule generator",
+  "setERuleSettings": "Rule settings",
+  "setEUpdateAll": "Update all",
+  "setESelectAll": "Select all",
+  "setEDeleteSelected": "Delete selected",
+  "setEAddRule": "Add rule",
+  "setETabAll": "All",
+  "setESearchRuleHint": "Search rule name...",
+  "setEUpdatable": "Update available",
+  "setESearchValid": "Search valid",
+  "setEUpdate": "Update",
+  "setENoUpdateStatus": "Update status not fetched yet",
+  "setENotInCatalog": "Current rule not found in repository",
+  "setEAlreadyLatest": "Rule is already up to date",
+  "setEShare": "Share",
+  "setEUploadToMarket": "Upload to market",
+  "setFRepoUnreachable": "Unable to reach the rule repository",
+  "setFSearchRuleOrAuthor": "Search rules or authors",
+  "setFClearSearch": "Clear search",
+  "setFCountAll": "All ({count})",
+  "@setFCountAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFCountInstalled": "Installed ({count})",
+  "@setFCountInstalled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFCountUpdates": "Updates ({count})",
+  "@setFCountUpdates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFNeedLogin": "Login required",
+  "setFNeedVerification": "Verification required",
+  "setFInstall": "Install",
+  "setFInstalled": "Installed",
+  "setFUpdate": "Update",
+  "setFLastUpdate": "Last updated: {time}",
+  "@setFLastUpdate": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "setFDisableRepoMirror": "Disable repository mirror",
+  "setFEnableRepoMirror": "Enable repository mirror",
+  "setFRepoMirrorEnabled": "Repository mirror enabled",
+  "setFRepoMirrorDisabled": "Repository mirror disabled",
+  "setFRepoEmpty": "No rules in the repository yet",
+  "setFRefreshRuleList": "Refresh rule list",
+  "setFRuleRepository": "Rule Repository",
+  "setFRuleMarketUserUpload": "Rule Market (user-uploaded)",
+  "setFSortByName": "Sort by name",
+  "setFSortByUpdatedAt": "Sort by last updated",
+  "setFAll": "All",
+  "setFLoadingRule": "Fetching rule…",
+  "setFInstallRule": "Install Rule",
+  "setFRuleNameVersion": "Rule \"{name}\" v{version}",
+  "@setFRuleNameVersion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "setFRuleOverwriteExisting": "A rule with the same name already exists on this device and will be overwritten.",
+  "setFRuleManageAfterInstall": "You can manage the rule in the rule management page after installation.",
+  "setFInstallSuccess": "Installed successfully",
+  "setFInstallFail": "Installation failed: {error}",
+  "@setFInstallFail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFMarketEmpty": "There are no rules in the market yet.\n\nTap \"Upload to Market\" on the rule management page to share your rules.",
+  "setFOfficial": "Official",
+  "setFUserUploaded": "User-uploaded",
+  "setFMarketUnreachable": "Unable to reach the rule market.\nPlease confirm that the server qlyyz.xyz/json/ is deployed.",
+  "setFRuleMarket": "Rule Market",
+  "setFRuleSettings": "Rule Settings",
+  "setFPlayback": "Playback",
+  "setFAutoSelectSource": "Auto-select video source",
+  "setFAutoSelectSourceSub": "When starting playback, automatically play with the first available source.",
+  "setFStarredRules": "Starred rules (always play first · WebDAV sync)",
+  "setFNoRules": "No rules",
+  "setFSourceStabilityRating": "Source stability rating (helps source selection)",
+  "setFSourceSorting": "Source sorting (combine multiple; defaults to speed)",
+  "setFDefaultSort": "Default (by response speed)",
+  "setFHighestQuality": "Highest quality",
+  "setFMostEpisodes": "Most episodes",
+  "setFFastestSpeed": "Fastest speed",
+  "setFLoginCookie": "Login cookie (expires automatically)",
+  "setFCookieTtlDays": "Login session validity (days)",
+  "setFCookieTtlDaysSub": "Default 30 days; re-login is required after expiry.",
+  "setFDays": "{count} days",
+  "@setFDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFClearAllLoginState": "Clear all saved login sessions",
+  "setFClearAllLoginStateSub": "Clears the cookies of all rules (one-tap cleanup when login is misdetected).",
+  "setFClearAll": "Clear all",
+  "setFClearAllLoginStateTitle": "Clear all login sessions",
+  "setFClearAllConfirm": "This will clear the cookies of all saved rules. You will need to log in again the next time you play. Continue?",
+  "setFClear": "Clear",
+  "setFClearAllDone": "All login sessions cleared",
+  "setFWebdavSyncFail": "WebDAV star sync failed: {error}",
+  "@setFWebdavSyncFail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFAiRuleGenerator": "AI Rule Generator",
+  "setFMcpSubtitle": "MCP service · AI writes rules for you",
+  "setFServiceRunning": "Service running",
+  "setFServiceStopped": "Service not started",
+  "setFCopied": "Copied",
+  "setFMcpHelpText": "Add this MCP server in your AI tool, and AI will write rules for you automatically.",
+  "setFPortLabel": "Port:",
+  "setFPortSettings": "Port settings",
+  "setFOperationFailed": "Operation failed: {error}",
+  "@setFOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setFStopService": "Stop service",
+  "setFStartService": "Start service",
+  "setFUpdating": "Updating…",
+  "setFUpdateRuleFailed": "Failed to update rules",
+  "setFImporting": "Importing…",
+  "setFSaveRuleFailed": "Failed to save rule",
+  "setFImportSuccess": "Imported successfully",
+  "setFUpdateSuccess": "Updated successfully",
+  "setFRequiresNewerClient": "The rule requires a newer client version",
+  "setFImportRuleFailed": "Failed to import rule",
+  "setFNotNewer": "The remote rule version is not newer than the local one; update skipped.",
+  "setFNoUpdateCandidates": "No rules available to update",
+  "setFBatchUpdated": "Successfully updated {count} rules",
+  "@setFBatchUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchSucceeded": "{count} succeeded",
+  "@setFBatchSucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchIncompatible": "{count} incompatible",
+  "@setFBatchIncompatible": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchSkipped": "{count} skipped",
+  "@setFBatchSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchFailed": "{count} failed",
+  "@setFBatchFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setFBatchUpdateDone": "Update complete: {parts}",
+  "@setFBatchUpdateDone": {
+    "placeholders": {
+      "parts": {
+        "type": "String"
+      }
+    }
+  },
+  "setGTabRecommend": "Recommendations",
+  "setGTabForYou": "For You",
+  "setGTabTimeline": "Timeline",
+  "setGTabFollow": "Following",
+  "setGTabMine": "My Space",
+  "setGPressBackAgainToExit": "Press back again to exit",
+  "setGWelcomeTitle": "Welcome to Sakura Anime",
+  "setGWelcomeNoRulesBody": "You haven't added any rules yet. You need to add rules before the app can work.\n\nGo to add rules now?",
+  "setGBack": "Back",
+  "setGContinueLabel": "Continue",
+  "setGLoginExpired": "Login expired, please sign in again",
+  "setGPleaseLoginFirst": "Please sign in to your Sakura Anime account first",
+  "setGProfile": "Profile",
+  "setGImageTooLarge": "Image too large (max 2 MB)",
+  "setGAvatarUpdated": "Avatar updated",
+  "setGNickname": "Nickname",
+  "setGNicknameUpdated": "Nickname updated",
+  "setGErrorToast": "Error: {msg}",
+  "@setGErrorToast": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "setGCacheCleanup": "Clear Image Cache",
+  "setGCacheCleanupBody": "Image cache in use: {size}\n\nAfter cleanup, images will be re-downloaded the next time you browse. Downloaded videos, favorites and history are not affected.",
+  "@setGCacheCleanupBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "setGCacheCleared": "Cache cleared",
+  "setGCleanNow": "Clean Now",
+  "setGUploadToCloud": "Upload local data to cloud",
+  "setGUploadLocalOverCloud": "Overwrite cloud with local data (local first)",
+  "setGRestoreFromCloud": "Restore data from cloud",
+  "setGDownloadCloudOverLocal": "Overwrite local with cloud data (use when switching devices)",
+  "setGUploading": "Uploading local data to cloud…",
+  "setGUploadResult": "Upload result",
+  "setGDownloading": "Downloading data from cloud…",
+  "setGDownloadResult": "Download result",
+  "setGSecurityCenter": "Security Center",
+  "setGLoginRecordsDeviceMgmt": "Login history / Device management",
+  "setGClearCloudData": "Clear cloud data",
+  "setGClearCloudDataSubtitle": "Delete favorites, history and progress on the server; keep the account",
+  "setGDeleteAccount": "Delete account",
+  "setGDeleteAccountSubtitle": "Delete the account and all cloud data. This cannot be undone.",
+  "setGClearCloudConfirmBody": "This will delete favorites, history and progress on the server. Local data is kept. Continue?",
+  "setGClear": "Clear",
+  "setGCloudDataCleared": "Cloud data cleared",
+  "setGAccountDestruction": "Delete Account",
+  "setGAccountDestructionBody": "Deleting the account will remove it and all associated cloud data (favorites, history, progress). This cannot be undone.\n\nThe account will be permanently deleted. Continue?",
+  "setGConfirmDestroy": "Confirm Deletion",
+  "setGAccountDeleted": "Account deleted",
+  "setGShareAccount": "Share account",
+  "setGPrivacySettings": "Privacy settings",
+  "setGScanLoginOtherDevice": "Scan to sign in on another device",
+  "setGScanLogin": "Scan to sign in",
+  "setGAllSettings": "All settings",
+  "setGHistory": "History",
+  "setGViewWatchHistory": "View watch history",
+  "setGNoWatchHistory": "No watch history yet",
+  "setGOfflineDownload": "Downloads",
+  "setGManageOfflineContent": "Manage offline content",
+  "setGDownloadTasks": "{count} download tasks",
+  "@setGDownloadTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setGSync": "Sync",
+  "setGSyncBackup": "Sync & Backup",
+  "setGCrossDeviceSync": "Sync data across devices",
+  "setGClearCache": "Clear Cache",
+  "setGFreeStorage": "Free up storage space",
+  "setGCheckin": "Check-in",
+  "setGCheckinCaption": "Streak days / check-in calendar",
+  "setGStorageManagement": "Storage",
+  "setGCacheAndLogs": "Cache and logs",
+  "setGAboutApp": "About Sakura Anime",
+  "setGAboutKazumi": "About Kazumi",
+  "setGProfileNotReady": "Profile is not ready yet, please try again later",
+  "setGProfileLinkCopied": "Profile link copied. You can share it with friends.",
+  "setGMyTitles": "My Titles",
+  "setGTitlesUnlocked": "{unlocked} / {total} unlocked",
+  "@setGTitlesUnlocked": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setGUnlocked": "Unlocked",
+  "setGNoTitle": "No title yet",
+  "setGTitleProgress": "{unlocked} / {total} titles unlocked · Earn them by following shows, checking in, and earning points",
+  "@setGTitleProgress": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "setGAccountCenter": "Account",
+  "setGWelcomeBack": "Welcome back, {nickname}",
+  "@setGWelcomeBack": {
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "setGUserFallback": "User",
+  "setGLoginToSync": "Sign in to sync your data",
+  "setGUserIdLabel": "UID: {uid}",
+  "@setGUserIdLabel": {
+    "placeholders": {
+      "uid": {
+        "type": "String"
+      }
+    }
+  },
+  "setGFriends": "Friends",
+  "setGSwitchAccountShort": "Switch",
+  "setGSwitchAccountsTitle": "Switch Accounts",
+  "setGCurrentAccount": "Current account",
+  "setGCurrentlyActive": "Active now",
+  "setGSavedAccounts": "Saved accounts",
+  "setGUnnamedAccount": "Unnamed account",
+  "setGLoggedInBefore": "Previously signed in",
+  "setGRemoveFromList": "Remove from list",
+  "setGSwitchedToAccount": "Switched to {name}",
+  "@setGSwitchedToAccount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "setGThisAccount": "this account",
+  "setGLoginNewAccount": "Sign in to another account",
+  "setGLogoutCurrentAccount": "Sign out of current account",
+  "setGLogoutSubtitle": "The account stays in the list and you can switch back anytime",
+  "setGLogout": "Sign out",
+  "setGLogoutConfirmBody": "After signing out, the account stays in the \"Switch Accounts\" list and you can switch back anytime.",
+  "setGWeeklyGoal": "Weekly Goal",
+  "setGNoWeeklyGoalBody": "No weekly goal set yet. Episodes watched this week: {episodes}",
+  "@setGNoWeeklyGoalBody": {
+    "placeholders": {
+      "episodes": {
+        "type": "int"
+      }
+    }
+  },
+  "setGSetGoal5PerWeek": "Set goal (5 episodes / week)",
+  "setGWeekProgress": "{watched} / {goal} episodes watched this week",
+  "@setGWeekProgress": {
+    "placeholders": {
+      "watched": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "setGWeekGoalComplete": "Weekly goal reached!",
+  "setGEpisodesToGo": "{remaining} more episodes to reach the goal",
+  "@setGEpisodesToGo": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "setGRuleSettings": "Rules",
+  "setGManageSources": "Manage anime sources",
+  "setGPreferences": "Preferences",
+  "setGPrefAppearance": "Appearance",
+  "setGPrefPlayer": "Player",
+  "setGPrefDanmaku": "Danmaku",
+  "setGContentAndPreferences": "Content & Preferences",
+  "setGAppearanceSettings": "Appearance settings",
+  "setGPlayerSettings": "Player settings",
+  "setGDanmakuSettings": "Danmaku settings",
+  "setGDataAndApp": "Data & App",
+  "setGWatchingFootprint": "Watch Footprint",
+  "setGWatchStats": "Watch Stats",
+  "setGBangumiWatched": "Shows watched",
+  "setGEpisodesWatched": "Episodes watched",
+  "setHTrending": "Trending",
+  "setHHistory": "History",
+  "setHDownload": "Offline Download",
+  "setHProfileCenter": "Profile",
+  "setHLogin": "Log In",
+  "setHSakuraUser": "Sakura User",
+  "setHNotLoggedIn": "Not logged in",
+  "setHEditProfile": "Edit Profile",
+  "setHWatchHistory": "Watch History",
+  "setHLogout": "Log Out",
+  "setHLogoutConfirm": "Are you sure you want to log out?",
+  "setHRegisterLogin": "Sign Up / Log In",
+  "setHGenLoginQr": "Generate login QR code",
+  "setHLoggedIn": "Logged in",
+  "setHEmailLogin": "Email Log In",
+  "setHEmail": "Email",
+  "setHCaptcha": "Verification Code",
+  "setHSendCaptcha": "Send Code",
+  "setHEmailRequired": "Please enter your email",
+  "setHBindEmail": "Bind Email",
+  "setHQQMail": "QQ Mail",
+  "setHCaptchaSentCheckSpam": "Verification code sent. Please check your inbox (including the spam folder).",
+  "setHBindEmailSuccess": "Email bound successfully",
+  "setHEmailCodeLogin": "Email Verification Code Log In",
+  "setIRequireLogin": "Please sign in first.",
+  "setIRequireLoginBangumiOrSakura": "Please sign in to your Bangumi or Sakura account first.",
+  "setIRequireFollowBeforeReview": "Please follow the series before writing a review.",
+  "setIRequireLoginSakura": "Please sign in to your Sakura account first.",
+  "setIRequireLoginToFollow": "Please sign in first before following."
 }
