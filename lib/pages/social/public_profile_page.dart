@@ -109,7 +109,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               // 深链冷启动时无上一页 → 用 Modular 全局导航切到「我的」页
               // （本页用 rootNavigatorKey push 进 root 栈，Navigator.pushNamed 找不到模块化路由）
               // flutter_modular 7.x：Modular 类已移除，导航用 BuildContext.navigate
-              context.navigate('/tab/my/');
+              // ⚠ 路由名无尾斜杠：'/tab/my'（settings_page 同款）；带尾斜杠会报"没路由"
+              context.navigate('/tab/my');
             }
           },
         ),
