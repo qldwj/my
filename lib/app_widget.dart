@@ -147,6 +147,10 @@ class _AppWidgetState extends State<AppWidget>
     );
   }
 
+  Widget _animatedThemeBuilder(BuildContext context, Widget? child) {
+    return _AnimatedTheme(child: child ?? const SizedBox.shrink());
+  }
+
   ThemeMode _storedThemeMode() {
     return switch (GStorage.getSetting(SettingsKeys.themeMode)) {
       'dark' => ThemeMode.dark,
@@ -476,11 +480,67 @@ class _AppWidgetState extends State<AppWidget>
           darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,
           scaffoldMessengerKey: rootScaffoldMessengerKey,
+          builder: _animatedThemeBuilder,
           routerConfig: ModularApp.routerConfigOf(context),
         );
       },
     );
 
     return app;
+  }
+}
+
+/// 让深色/浅色、主题色切换时颜色平滑渐变过渡，而不是瞬时变。
+class _AnimatedTheme extends StatefulWidget {
+  const _AnimatedTheme({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_AnimatedTheme> createState() => _AnimatedThemeState();
+}
+
+class _AnimatedThemeState extends State<_AnimatedTheme>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 400),
+    value: 1,
+  );
+  ThemeData? _from;
+  ThemeData? _last;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final theme = Theme.of(context);
+    if (_last == null) {
+      _last = theme;
+      _controller.value = 1;
+    } else if (!identical(_last, theme) && _last != theme) {
+      _from = _last;
+      _last = theme;
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final to = Theme.of(context);
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final from = _from ?? to;
+        final t = Curves.easeInOutCubic.transform(_controller.value);
+        return Theme(data: ThemeData.lerp(from, to, t), child: child!);
+      },
+    );
   }
 }
