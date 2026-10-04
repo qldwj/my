@@ -130,7 +130,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
           installingBundled = false;
         });
       }
-      KazumiDialog.showToast(message: '初始化规则失败');
+      KazumiDialog.showToast(
+          message: AppLocalizations.of(context)!.initializationFailed);
       return;
     }
     if (!mounted) {

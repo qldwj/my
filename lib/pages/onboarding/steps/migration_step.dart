@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
@@ -46,9 +47,10 @@ class _MigrationStepState extends State<MigrationStep> {
   }
 
   Future<void> _migrate() async {
+    final l10n = AppLocalizations.of(context)!;
     final code = _codeCtrl.text.trim();
     if (code.isEmpty) {
-      KazumiDialog.showToast(message: '请输入迁移码');
+      KazumiDialog.showToast(message: l10n.migrationCodeEmpty);
       return;
     }
     setState(() => _migrating = true);
@@ -56,14 +58,14 @@ class _MigrationStepState extends State<MigrationStep> {
       final done = await AuthService.consumeTransferCode(code);
       if (!mounted) return;
       if (done) {
-        KazumiDialog.showToast(message: '✅ 登录状态已迁移，无需重新登录');
+        KazumiDialog.showToast(message: l10n.migrationSuccess);
         try {
           await SocialService.ensureProfileAfterLogin();
         } catch (_) {}
         await GStorage.putSetting(SettingsKeys.migratePromptDone, true);
         setState(() => _chosen = false);
       } else {
-        KazumiDialog.showToast(message: '迁移未完成，可稍后重试');
+        KazumiDialog.showToast(message: l10n.migrationFailed);
       }
     } finally {
       if (mounted) setState(() => _migrating = false);
@@ -74,11 +76,12 @@ class _MigrationStepState extends State<MigrationStep> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return OnboardingStepLayout(
       leading: const OnboardingStepIcon(icon: Icons.swap_horiz_rounded),
-      title: '账号迁移',
-      subtitle: '旧版樱花动漫账号可一键继承，无需重新登录',
+      title: l10n.migrationTitle,
+      subtitle: l10n.migrationSubtitle,
       child: Align(
         alignment: Alignment.topCenter,
         child: SingleChildScrollView(
@@ -94,7 +97,7 @@ class _MigrationStepState extends State<MigrationStep> {
                           size: 40, color: colorScheme.primary),
                       const SizedBox(height: 12),
                       Text(
-                        '账号无需迁移，直接下一步即可',
+                        l10n.migrationNotNeeded,
                         style: textTheme.bodyLarge,
                       ),
                     ],
@@ -104,13 +107,12 @@ class _MigrationStepState extends State<MigrationStep> {
                 Column(
                   children: [
                     Text(
-                      '是否安装过旧版樱花动漫？',
+                      l10n.migrationAskOld,
                       style: textTheme.titleMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '旧版账号可通过「迁移码」直接继承到新版本，'
-                      '若你从没用过本应用，选「没用过」即可跳过。',
+                      l10n.migrationOldDesc,
                       textAlign: TextAlign.center,
                       style: textTheme.bodySmall
                           ?.copyWith(color: colorScheme.onSurfaceVariant),
@@ -119,12 +121,12 @@ class _MigrationStepState extends State<MigrationStep> {
                     FilledButton.icon(
                       onPressed: () => _choose(true),
                       icon: const Icon(Icons.history_rounded),
-                      label: const Text('用过，我有迁移码'),
+                      label: Text(l10n.migrationHaveCode),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: () => _choose(false),
-                      child: Text('没用过，跳过',
+                      child: Text(l10n.migrationSkipNo,
                           style: TextStyle(color: colorScheme.outline)),
                     ),
                   ],
@@ -134,12 +136,12 @@ class _MigrationStepState extends State<MigrationStep> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '输入迁移码',
+                      l10n.migrationEnterCode,
                       style: textTheme.titleMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '迁移码在旧版 App「账号」页生成，90 秒内有效、只能用一次。',
+                      l10n.migrationCodeDesc,
                       textAlign: TextAlign.center,
                       style: textTheme.bodySmall
                           ?.copyWith(color: colorScheme.onSurfaceVariant),
@@ -151,10 +153,10 @@ class _MigrationStepState extends State<MigrationStep> {
                       maxLength: 8,
                       textCapitalization: TextCapitalization.characters,
                       textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
-                        hintText: '例如 7KQF2M8X',
+                      decoration: InputDecoration(
+                        hintText: l10n.migrationCodeHint,
                         counterText: '',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -167,12 +169,14 @@ class _MigrationStepState extends State<MigrationStep> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.login_rounded),
-                      label: Text(_migrating ? '迁移中…' : '立即迁移'),
+                      label: Text(_migrating
+                          ? l10n.migrationMigrating
+                          : l10n.migrationNow),
                     ),
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => _choose(false),
-                      child: Text('暂不迁移，跳过',
+                      child: Text(l10n.migrationSkipLater,
                           style: TextStyle(color: colorScheme.outline)),
                     ),
                   ],

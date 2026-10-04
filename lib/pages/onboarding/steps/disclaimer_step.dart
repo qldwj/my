@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -45,7 +46,7 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
       text = await rootBundle.loadString('assets/statements/statements.txt');
     } catch (error, stackTrace) {
       KazumiLogger().e('Onboarding: failed to load statements', error: error, stackTrace: stackTrace);
-      text = '免责声明加载失败，请退出后重试。';
+      text = AppLocalizations.of(context)!.disclaimerLoadFailed;
     }
     if (!mounted) return;
     setState(() => statementsText = text);
@@ -61,10 +62,11 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     return OnboardingStepLayout(
       leading: const OnboardingStepIcon(icon: Icons.waving_hand_rounded),
-      title: '欢迎使用',
-      subtitle: '请滑到底部并同意免责声明',
+      title: l10n.disclaimerTitle,
+      subtitle: l10n.disclaimerSubtitle,
       child: Column(
         children: [
           Row(
@@ -72,7 +74,7 @@ class _DisclaimerStepState extends State<DisclaimerStep> {
             children: [
               ActionChip(
                 avatar: const Icon(Icons.language, size: 18),
-                label: const Text('官网'),
+                label: Text(l10n.officialSite),
                 onPressed: () => launchUrl(Uri.parse(ApiEndpoints.projectUrl), mode: LaunchMode.externalApplication),
               ),
               const SizedBox(width: 12),
