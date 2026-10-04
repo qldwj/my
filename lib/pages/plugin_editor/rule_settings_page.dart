@@ -6,9 +6,9 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/bean/widget/source_rating_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 
 /// 规则设置页
 ///
@@ -57,10 +57,24 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
   }
 
   Future<void> _loadStars() async {
-    final stars = await SocialService.getStarRules();
+    // 本地星标为即时权威
+    final stars = GStorage.getStringListSettingByName('starRules').toSet();
+    // 配置了 WebDAV 时尝试从云端拉取并合并（跨设备保留两边标星）
+    if (GStorage.getSetting(SettingsKeys.webDavURL).toString().isNotEmpty) {
+      try {
+        final webDav = WebDav();
+        await webDav.init();
+        final remote = await webDav.downloadStarRules();
+        if (remote != null && remote.isNotEmpty) {
+          stars.addAll(remote);
+          await GStorage.putStringListSettingByName(
+              'starRules', stars.toList());
+        }
+      } catch (_) {}
+    }
     if (!mounted) return;
     setState(() {
-      _starred = stars.toSet();
+      _starred = stars;
       _loadingStar = false;
     });
   }
@@ -73,11 +87,20 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
         _starred.add(name);
       }
     });
-    // 保存到服务器 + 本地
-    final error =
-        await SocialService.saveStarRules(_starred.toList());
-    if (error != null && mounted) {
-      KazumiDialog.showToast(message: '❌ 星标同步失败：$error');
+    // 保存到本地（即时权威）
+    final list = _starred.toList();
+    await GStorage.putStringListSettingByName('starRules', list);
+    // 配置了 WebDAV 时同步上传到云端
+    if (GStorage.getSetting(SettingsKeys.webDavURL).toString().isNotEmpty) {
+      try {
+        final webDav = WebDav();
+        await webDav.init();
+        await webDav.uploadStarRules(list);
+      } catch (e) {
+        if (mounted) {
+          KazumiDialog.showToast(message: '❌ WebDAV 星标同步失败：$e');
+        }
+      }
     }
   }
 
@@ -118,7 +141,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
             ],
           ),
           SettingsSectionCard(
-            title: '星标规则（播放时无条件排最前）',
+            title: '星标规则（播放时无条件排最前 · WebDAV 同步）',
             children: [
               if (_loadingStar)
                 const Padding(

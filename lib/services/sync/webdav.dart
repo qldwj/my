@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
@@ -19,6 +20,9 @@ class WebDav {
   static const String _historySnapshotPath = '$_historyRootPath/snapshot.json';
   // 🆕 弹幕屏蔽词（关键词）云端同步目录（恢复官方 2.3.3）
   static const String _danmakuShieldPath = '$_syncRootPath/danmakuShield';
+  // 🆕 星标规则 + 设置（每周目标）跨设备同步（WebDAV）
+  static const String _starRulesPath = '$_syncRootPath/starRules.json';
+  static const String _settingsPath = '$_syncRootPath/settings.json';
 
   late String webDavURL;
   late String webDavUsername;
@@ -207,6 +211,116 @@ class WebDav {
         } catch (e) {
           KazumiLogger()
               .w('WebDav: failed to clean danmaku shield sync files', error: e);
+        }
+      }
+    });
+  }
+
+  /// 🆕 星标规则：把本机星标列表上传到 WebDAV（覆盖云端）
+  Future<void> uploadStarRules(List<String> rules) {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('star-rules-upload-');
+      try {
+        final localFile = File('${runDirectory.path}/starRules.json');
+        await localFile.writeAsString(
+            jsonEncode({'rules': rules}), flush: true);
+        await _publishRemoteFile(
+          sourceFilePath: localFile.path,
+          destinationPath: _starRulesPath,
+          temporaryPath: '$_starRulesPath.cache',
+        );
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean star rules upload files', error: e);
+        }
+      }
+    });
+  }
+
+  /// 🆕 星标规则：从 WebDAV 下载星标列表（云端无则返回 null）
+  Future<List<String>?> downloadStarRules() {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('star-rules-download-');
+      try {
+        final file = File('${runDirectory.path}/remote.json');
+        await client.read2File(_starRulesPath, file.path);
+        final map = jsonDecode(await file.readAsString());
+        if (map is Map && map['rules'] is List) {
+          return (map['rules'] as List).map((e) => e.toString()).toList();
+        }
+        return null;
+      } catch (_) {
+        return null;
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean star rules download files',
+                  error: e);
+        }
+      }
+    });
+  }
+
+  /// 🆕 设置（每周目标）：上传到 WebDAV
+  Future<void> uploadSettings() {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      final weeklyGoal = GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('settings-upload-');
+      try {
+        final localFile = File('${runDirectory.path}/settings.json');
+        await localFile.writeAsString(
+            jsonEncode({'weeklyWatchGoal': weeklyGoal}), flush: true);
+        await _publishRemoteFile(
+          sourceFilePath: localFile.path,
+          destinationPath: _settingsPath,
+          temporaryPath: '$_settingsPath.cache',
+        );
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean settings upload files', error: e);
+        }
+      }
+    });
+  }
+
+  /// 🆕 设置（每周目标）：从 WebDAV 下载并应用
+  Future<void> downloadSettings() {
+    return _runWebDavExclusive(() async {
+      if (!initialized) await init();
+      await _ensureLocalTempDirectory();
+      final runDirectory =
+          await webDavLocalTempDirectory.createTemp('settings-download-');
+      try {
+        final file = File('${runDirectory.path}/settings.json');
+        await client.read2File(_settingsPath, file.path);
+        final map = jsonDecode(await file.readAsString());
+        if (map is Map && map['weeklyWatchGoal'] is num) {
+          await GStorage.putSetting(SettingsKeys.weeklyWatchGoal,
+              (map['weeklyWatchGoal'] as num).toInt());
+        }
+      } finally {
+        try {
+          await runDirectory.delete(recursive: true);
+        } catch (e) {
+          KazumiLogger()
+              .w('WebDav: failed to clean settings download files', error: e);
         }
       }
     });

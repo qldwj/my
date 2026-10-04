@@ -6,7 +6,6 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/services/playlist/play_queue_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
@@ -125,10 +124,11 @@ class _SourceSheetState extends State<SourceSheet>
       pluginsController: pluginsController,
     );
     pluginSearchService?.queryAllSource(keyword);
-    SocialService.getStarRules().then((stars) {
-      if (!mounted) return;
-      setState(() => _starred.addAll(stars));
-    });
+    // 星标规则：读取本地（由 WebDAV 同步维护）
+    final localStars = GStorage.getStringListSettingByName('starRules');
+    if (localStars.isNotEmpty) {
+      setState(() => _starred.addAll(localStars));
+    }
     if (GStorage.getSetting(SettingsKeys.autoSelectSource)) {
       _autoSelectTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
         _maybeAutoSelectSource();
