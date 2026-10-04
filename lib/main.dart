@@ -325,6 +325,10 @@ Future<void> _openAnimeDetail(int id, {String? fallbackName}) async {
 
 /// 🆕 第三方登录 token 深链回调处理
 Future<void> _handleThirdPartyToken(String appToken, String providerName) async {
+  // 🔧 已登录时不覆盖本地正式 token：绑定场景用户已有主账号正式 token，
+  // 深链回调返回的是临时用户的临时 token，若覆盖会导致绑定成功后 token 失效（重启"登录已过期"）。
+  // 绑定应由绑定页 _bindToken 完成，未登录场景才走这里正常登录保存 token。
+  if (AuthService.getLocalToken() != null) return;
   try {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
