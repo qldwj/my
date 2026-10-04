@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/image_cache_service.dart';
 
 class StorageSettingsPage extends StatefulWidget {
@@ -28,56 +29,62 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
     if (_clearing) return;
     final confirmed = await KazumiDialog.show<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.cleaning_services_rounded),
-        title: const Text('清除图片缓存？'),
-        content: const Text('图片会在下次加载时重新下载。视频、记录和设置不会删除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('清除缓存'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          icon: const Icon(Icons.cleaning_services_rounded),
+          title: Text(l10n.setAClearCacheAsk),
+          content: Text(l10n.setAClearCacheDesc),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.setAClearCacheAction),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     setState(() => _clearing = true);
     try {
       await _cache.clear();
       if (!mounted) return;
-      _message('图片缓存已清除');
+      _message(AppLocalizations.of(context)!.setACacheCleared);
       _refreshSize();
     } catch (_) {
-      if (mounted) _message('清除失败，请稍后重试');
+      if (mounted) _message(AppLocalizations.of(context)!.setAClearCacheFail);
     } finally {
       if (mounted) setState(() => _clearing = false);
     }
   }
 
   String _cacheDescription(AsyncSnapshot<int> snapshot) {
-    if (_clearing) return '正在清除…';
-    if (snapshot.connectionState != ConnectionState.done) return '正在统计…';
-    if (snapshot.hasError) return '统计失败';
+    final l10n = AppLocalizations.of(context)!;
+    if (_clearing) return l10n.setAClearing;
+    if (snapshot.connectionState != ConnectionState.done) return l10n.setAStatting;
+    if (snapshot.hasError) return l10n.setAStatFailed;
     return '${(snapshot.requireData / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
   @override
-  Widget build(BuildContext context) => SettingsDetailScaffold(
-        title: const Text('存储与日志'),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SettingsDetailScaffold(
+        title: Text(l10n.setAStorageLogs),
         body: FutureBuilder<int>(
           future: _cacheSize,
           builder: (context, snapshot) => SettingsList(
             sections: [
               SettingsSection(
-                title: const Text('缓存'),
+                title: Text(l10n.setACache),
                 tiles: [
                   SettingsTile(
                     leading: Icons.image_outlined,
-                    title: const Text('清除图片缓存'),
+                    title: Text(l10n.setAClearImageCache),
                     description: Text(_cacheDescription(snapshot)),
                     enabled: snapshot.connectionState == ConnectionState.done &&
                         !_clearing,
@@ -87,7 +94,7 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                                 snapshot.hasError &&
                                 !_clearing
                             ? IconButton(
-                                tooltip: '重新统计',
+                                tooltip: l10n.setARestat,
                                 onPressed: _refreshSize,
                                 icon: const Icon(Icons.refresh_rounded),
                               )
@@ -96,11 +103,11 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
                 ],
               ),
               SettingsSection(
-                title: const Text('诊断'),
+                title: Text(l10n.setADiagnostics),
                 tiles: [
                   SettingsTile(
                     leading: Icons.receipt_long_rounded,
-                    title: const Text('错误日志'),
+                    title: Text(l10n.setAErrorLogs),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onPressed: (_) =>
                         context.pushNamed('/settings/storage/logs'),
@@ -111,4 +118,5 @@ class _StorageSettingsPageState extends State<StorageSettingsPage> {
           ),
         ),
       );
+}
 }

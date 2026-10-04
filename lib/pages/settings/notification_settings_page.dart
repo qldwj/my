@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/notification/anime_update_notification_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/date_time.dart';
@@ -79,7 +80,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       _checking = false;
       _lastCheck = GStorage.getSetting(SettingsKeys.animeUpdateLastCheck);
     });
-    KazumiDialog.showToast(message: '检查完成，有新番会推送通知');
+    KazumiDialog.showToast(message: AppLocalizations.of(context)!.setACheckDone);
   }
 
   /// 🆕 立即发送一条测试通知（验证通知通道）
@@ -89,19 +90,21 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     await AnimeUpdateNotificationService.sendTestNotification();
     if (!mounted) return;
     setState(() => _checking = false);
-    KazumiDialog.showToast(message: '已发送测试通知，请看通知栏');
+    KazumiDialog.showToast(message: AppLocalizations.of(context)!.setATestNotifSent);
   }
 
   String _formatLastCheck(int ts) {
-    if (ts <= 0) return '尚未检查';
-    return '上次检查：${dateFormat(ts)}';
+    final l10n = AppLocalizations.of(context)!;
+    if (ts <= 0) return l10n.setANeverChecked;
+    return l10n.setALastCheck(time: dateFormat(ts));
   }
 
   /// 🆕 显示已屏蔽更新提醒的番剧列表，可取消屏蔽
   void _showMutedList() {
+    final l10n = AppLocalizations.of(context)!;
     final muted = GStorage.notifyMuted.toMap();
     if (muted.isEmpty) {
-      KazumiDialog.showToast(message: '暂无已屏蔽的番剧');
+      KazumiDialog.showToast(message: l10n.setANoMuted);
       return;
     }
     showModalBottomSheet(
@@ -110,12 +113,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
+        final sheetL10n = AppLocalizations.of(ctx)!;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-              Text('已屏蔽更新提醒的番剧（${muted.length}）',
+              Text(sheetL10n.setAMutedListTitle(count: muted.length),
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Divider(),
@@ -128,16 +132,16 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       leading: const Icon(Icons.notifications_off_outlined,
                         color: Colors.grey),
                       title: Text(e.value, style: const TextStyle(fontSize: 14)),
-                      subtitle: const Text('已屏蔽更新提醒', style: TextStyle(fontSize: 12)),
+                      subtitle: Text(sheetL10n.setAMutedSubtitle, style: const TextStyle(fontSize: 12)),
                       trailing: TextButton(
                         onPressed: () {
                           GStorage.notifyMuted.delete(e.key);
                           GStorage.notifyMuted.flush();
                           setState(() {});
                           Navigator.pop(ctx);
-                          KazumiDialog.showToast(message: '已取消屏蔽「${e.value}」');
+                          KazumiDialog.showToast(message: sheetL10n.setAUnmutedDone(name: e.value));
                         },
-                        child: const Text('取消屏蔽', style: TextStyle(fontSize: 12)),
+                        child: Text(sheetL10n.setAUnmute, style: const TextStyle(fontSize: 12)),
                       ),
                     );
                   }).toList(),
@@ -154,8 +158,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: SysAppBar(title: const Text('追番提醒')),
+      appBar: SysAppBar(title: Text(l10n.followNotify)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -163,23 +168,23 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             padding: const EdgeInsets.all(16),
             children: [
               SettingsSectionCard(
-                title: '追番更新提醒',
+                title: l10n.setANotifSectionTitle,
                 children: [
                   SwitchListTile(
-                    title: const Text('开启追番提醒'),
-                    subtitle: const Text('收藏的番剧有新集未看时推送通知'),
+                    title: Text(l10n.setAEnableFollowNotify),
+                    subtitle: Text(l10n.setAEnableFollowNotifyDesc),
                     value: _enabled,
                     onChanged: _toggleEnabled,
                   ),
                   if (_enabled) ...[
                     const Divider(height: 1),
                     ListTile(
-                      title: const Text('检查间隔'),
+                      title: Text(l10n.setACheckInterval),
                       trailing: SegmentedButton<int>(
-                        segments: const [
-                          ButtonSegment(value: 8, label: Text('8小时')),
-                          ButtonSegment(value: 12, label: Text('12小时')),
-                          ButtonSegment(value: 24, label: Text('24小时')),
+                        segments: [
+                          ButtonSegment(value: 8, label: Text(l10n.setAHours(hours: 8))),
+                          ButtonSegment(value: 12, label: Text(l10n.setAHours(hours: 12))),
+                          ButtonSegment(value: 24, label: Text(l10n.setAHours(hours: 24))),
                         ],
                         selected: {_intervalHours},
                         onSelectionChanged: (s) => _setInterval(s.first),
@@ -187,22 +192,22 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      title: const Text('仅提醒"在看"'),
-                      subtitle: const Text('关闭后"想看"的番剧也会提醒'),
+                      title: Text(l10n.setAOnlyWatching),
+                      subtitle: Text(l10n.setAOnlyWatchingDesc),
                       value: _onlyWatching,
                       onChanged: _toggleOnlyWatching,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      title: const Text('续作开播提醒'),
-                      subtitle: const Text('收藏番剧的续作 45 天内开播时通知'),
+                      title: Text(l10n.setASequelNotify),
+                      subtitle: Text(l10n.setASequelNotifyDesc),
                       value: _sequelNotify,
                       onChanged: _toggleSequelNotify,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      title: const Text('桌面角标'),
-                      subtitle: const Text('有新通知时应用图标显示小红点（iOS 生效，Android 视桌面启动器支持）'),
+                      title: Text(l10n.setABadge),
+                      subtitle: Text(l10n.setABadgeDesc),
                       value: _badgeNotify,
                       onChanged: _toggleBadgeNotify,
                     ),
@@ -210,11 +215,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 ],
               ),
               SettingsSectionCard(
-                title: '手动操作',
+                title: l10n.setAManualOps,
                 children: [
                   ListTile(
                     leading: const Icon(Icons.refresh_rounded),
-                    title: const Text('立即检查一次'),
+                    title: Text(l10n.setACheckNow),
                     subtitle: Text(_formatLastCheck(_lastCheck)),
                     trailing: _checking
                         ? const SizedBox(
@@ -228,8 +233,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.notifications_rounded),
-                    title: const Text('发送测试通知'),
-                    subtitle: const Text('立即弹出一条通知，验证通知通道是否正常'),
+                    title: Text(l10n.setASendTest),
+                    subtitle: Text(l10n.setASendTestDesc),
                     trailing: _checking
                         ? const SizedBox(
                             width: 20,
@@ -244,11 +249,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.notifications_off_outlined),
-                      title: const Text('已屏蔽更新提醒的番剧'),
+                      title: Text(l10n.setAMutedTitle),
                       subtitle: Text(
                         GStorage.notifyMuted.isEmpty
-                            ? '没有屏蔽任何番剧'
-                            : '已屏蔽 ${GStorage.notifyMuted.length} 部番剧',
+                            ? l10n.setAMutedEmpty
+                            : l10n.setAMutedCount(count: GStorage.notifyMuted.length),
                       ),
                       onTap: _showMutedList,
                     ),
@@ -258,10 +263,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  '检查原理：通过 Bangumi 数据对比"已放送集数"与"本地已看集数"，'
-                  '有未看新集才会推送（完结超过 30 天的老番不会打扰你）。\n\n'
-                  '说明：目前仅在 App 运行期间自动检查（每小时触发一次，按间隔执行）；'
-                  '如需手机熄屏/App 被清理后也能提醒，可后续接入系统级后台任务（workmanager）。',
+                  l10n.setANotifFootnote,
                   style: TextStyle(fontSize: 12, color: colorScheme.outline),
                 ),
               ),
