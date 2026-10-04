@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/platform/global_hotkey_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
@@ -30,8 +31,9 @@ class _DesktopSettingsPageState extends State<DesktopSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: SysAppBar(title: const Text('桌面端设置')),
+      appBar: SysAppBar(title: Text(l10n.setADesktopSettings)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -39,11 +41,11 @@ class _DesktopSettingsPageState extends State<DesktopSettingsPage> {
             padding: const EdgeInsets.all(16),
             children: [
               SettingsSectionCard(
-                title: '系统托盘',
+                title: l10n.setASystemTray,
                 children: [
                   SwitchListTile(
-                    title: const Text('启用系统托盘'),
-                    subtitle: const Text('关闭后最小化/退出行为不受托盘影响'),
+                    title: Text(l10n.setAEnableTray),
+                    subtitle: Text(l10n.setAEnableTrayDesc),
                     value: _trayEnabled,
                     onChanged: (value) async {
                       setState(() => _trayEnabled = value);
@@ -51,18 +53,20 @@ class _DesktopSettingsPageState extends State<DesktopSettingsPage> {
                           SettingsKeys.desktopTrayEnabled, value);
                       if (mounted) {
                         KazumiDialog.showToast(
-                            message: value ? '托盘已启用（重启生效）' : '托盘已关闭（重启生效）');
+                            message: value
+                                ? AppLocalizations.of(context)!.setATrayEnabledRestart
+                                : AppLocalizations.of(context)!.setATrayDisabledRestart);
                       }
                     },
                   ),
                 ],
               ),
               SettingsSectionCard(
-                title: '窗口',
+                title: l10n.setAWindow,
                 children: [
                   SwitchListTile(
-                    title: const Text('记住窗口位置和大小'),
-                    subtitle: const Text('下次启动恢复上次的窗口位置和大小'),
+                    title: Text(l10n.setARememberGeometry),
+                    subtitle: Text(l10n.setARememberGeometryDesc),
                     value: _rememberGeometry,
                     onChanged: (value) async {
                       setState(() => _rememberGeometry = value);
@@ -73,11 +77,11 @@ class _DesktopSettingsPageState extends State<DesktopSettingsPage> {
                 ],
               ),
               SettingsSectionCard(
-                title: '全局快捷键',
+                title: l10n.setAGlobalHotkey,
                 children: [
                   SwitchListTile(
-                    title: const Text('启用全局快捷键'),
-                    subtitle: const Text('Ctrl + Alt + K 显示/隐藏主窗口（需重启生效）'),
+                    title: Text(l10n.setAEnableHotkey),
+                    subtitle: Text(l10n.setAHotkeyDesc),
                     value: _hotkeyEnabled,
                     onChanged: (value) async {
                       setState(() => _hotkeyEnabled = value);
@@ -91,7 +95,7 @@ class _DesktopSettingsPageState extends State<DesktopSettingsPage> {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        '该页面仅桌面端（Windows / macOS / Linux）生效。',
+                        l10n.setADesktopOnlyNote,
                         style: TextStyle(
                             fontSize: 12, color: colorScheme.outline),
                       ),

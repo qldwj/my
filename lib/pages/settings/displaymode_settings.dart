@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -69,15 +70,16 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('屏幕帧率设置')),
+      appBar: AppBar(title: Text(l10n.setARefreshRate)),
       body: (modes.isEmpty)
           ? const LoadingIndicator()
           : SettingsList(
               maxWidth: 1000,
               sections: [
                 SettingsSection(
-                  title: Text('没有生效? 重启app试试',
+                  title: Text(l10n.setARefreshRateHint,
                       style: TextStyle(fontFamily: fontFamily)),
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
@@ -92,9 +94,9 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
                               await fetchAll();
                             },
                             title: e == DisplayMode.auto
-                                ? Text('自动',
+                                ? Text(l10n.setAAutoMode,
                                     style: TextStyle(fontFamily: fontFamily))
-                                : Text('$e${e == active ? "  [系统]" : ""}',
+                                : Text('$e${e == active ? l10n.setASystemSuffix : ""}',
                                     style: TextStyle(fontFamily: fontFamily)),
                           ))
                       .toList(),

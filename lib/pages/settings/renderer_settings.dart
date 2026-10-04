@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
@@ -17,12 +18,13 @@ class _RendererSettingsState extends State<RendererSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SettingsDetailScaffold(
-      title: const Text('视频渲染器'),
+      title: Text(l10n.setARenderer),
       body: SettingsList(
         sections: [
           SettingsRadioSection<String>(
-            title: Text('选择合适的渲染器以获得最佳播放体验'),
+            title: Text(l10n.setARendererPickHint),
             groupValue: _renderer,
             onChanged: (String? value) {
               if (value != null) {

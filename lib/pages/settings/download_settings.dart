@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/platform/secure_bookmark_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
@@ -56,8 +57,9 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   }
 
   Future<void> _selectDownloadDirectory() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_canPickDirectory) {
-      KazumiDialog.showToast(message: '当前平台不支持手动选择目录');
+      KazumiDialog.showToast(message: l10n.setAPlatformNoDir);
       return;
     }
     if (isSelectingDirectory) return;
@@ -83,7 +85,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             ? effectiveDirectory
             : null;
         selectedPath = await FilePicker.platform.getDirectoryPath(
-          dialogTitle: '选择下载位置',
+          dialogTitle: l10n.setAPickDir,
           initialDirectory: initialDirectory,
         );
       }
@@ -94,7 +96,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       if (!Platform.isAndroid) {
         // 桌面平台需要持久访问权限
         if (!await SecureBookmarkService.persist(selectedPath)) {
-          KazumiDialog.showToast(message: '无法获得该目录的持久访问权限，请更换目录');
+          KazumiDialog.showToast(message: l10n.setAPersistPermFail);
           return;
         }
       }
@@ -105,11 +107,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       if (mounted) {
         setState(() => downloadDirectory = selectedPath!);
       }
-      KazumiDialog.showToast(message: '下载位置已更新，仅对新下载生效');
+      KazumiDialog.showToast(message: l10n.setADirUpdated);
     } on FileSystemException catch (e) {
-      KazumiDialog.showToast(message: '无法写入该目录: ${e.message}');
+      KazumiDialog.showToast(message: l10n.setADirWriteFail(msg: e.message));
     } catch (e) {
-      KazumiDialog.showToast(message: '选择下载位置失败: $e');
+      KazumiDialog.showToast(message: l10n.setAPickDirFail(err: e.toString()));
     } finally {
       if (mounted) {
         setState(() => isSelectingDirectory = false);
@@ -123,27 +125,28 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     if (mounted) {
       setState(() => downloadDirectory = '');
     }
-    KazumiDialog.showToast(message: '已恢复默认下载位置，仅对新下载生效');
+    KazumiDialog.showToast(message: AppLocalizations.of(context)!.setADirResetDone);
   }
 
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('下载设置')),
+      appBar: SysAppBar(title: Text(l10n.downloadSettings)),
       body: SettingsList(
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('并发设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text(l10n.setAConcurrency, style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('同时下载集数', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setAParallelEpisodes, style: TextStyle(fontFamily: fontFamily)),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '同时下载 $parallelEpisodes 集',
+                      l10n.setAParallelEpisodesValue(count: parallelEpisodes),
                       style: TextStyle(fontFamily: fontFamily),
                     ),
                     Slider(
@@ -164,12 +167,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 ),
               ),
               SettingsTile(
-                title: Text('分片并发数', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setAParallelSegments, style: TextStyle(fontFamily: fontFamily)),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '每集同时下载 $parallelSegments 个分片',
+                      l10n.setAParallelSegmentsValue(count: parallelSegments),
                       style: TextStyle(fontFamily: fontFamily),
                     ),
                     Slider(
@@ -192,24 +195,24 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             ],
           ),
           SettingsSection(
-            title: Text('缓存设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text(l10n.setACacheSettings, style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('下载位置', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setADownloadDir, style: TextStyle(fontFamily: fontFamily)),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _effectiveDownloadDirectory.isEmpty
-                          ? '正在读取默认位置...'
+                          ? l10n.setAReadingDefaultDir
                           : _effectiveDownloadDirectory,
                       style: TextStyle(fontFamily: fontFamily),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _hasCustomDirectory
-                          ? '当前使用自定义下载位置，修改后仅对新下载生效'
-                          : '当前使用默认下载位置，修改后仅对新下载生效',
+                          ? l10n.setACustomDirHint
+                          : l10n.setADefaultDirHint,
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodySmall?.color,
                         fontFamily: fontFamily,
@@ -225,7 +228,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       )
                     : _hasCustomDirectory
                         ? IconButton(
-                            tooltip: '恢复默认',
+                            tooltip: l10n.setARestoreDefault,
                             icon: const Icon(Icons.restore_rounded),
                             onPressed: _resetDownloadDirectory,
                           )
@@ -238,9 +241,9 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                   GStorage.putSetting(
                       SettingsKeys.downloadDanmaku, downloadDanmaku);
                 },
-                title: Text('缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setACacheDanmaku, style: TextStyle(fontFamily: fontFamily)),
                 description: Text(
-                  '下载视频时同时缓存弹幕数据',
+                  l10n.setACacheDanmakuDesc,
                   style: TextStyle(fontFamily: fontFamily),
                 ),
                 initialValue: downloadDanmaku,
@@ -251,10 +254,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                   GStorage.putSetting(
                       SettingsKeys.downloadCompleteNotify, downloadNotify);
                 },
-                title: Text('下载完成通知',
+                title: Text(l10n.setADownloadDoneNotify,
                     style: TextStyle(fontFamily: fontFamily)),
                 description: Text(
-                  '每集下载完成后发送系统通知，点击直达下载管理',
+                  l10n.setADownloadDoneNotifyDesc,
                   style: TextStyle(fontFamily: fontFamily),
                 ),
                 initialValue: downloadNotify,
@@ -262,15 +265,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             ],
           ),
           SettingsSection(
-            title: Text('说明', style: TextStyle(fontFamily: fontFamily)),
+            title: Text(l10n.setANotes, style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('关于并发设置', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setAAboutConcurrency, style: TextStyle(fontFamily: fontFamily)),
                 description: Text(
-                  '• 集数并发：同时下载多少集视频\n'
-                  '• 分片并发：每集内同时下载多少个视频片段\n'
-                  '• 较高的并发可提升速度，但可能被服务器限制\n'
-                  '• 修改后对新开始的下载生效',
+                  l10n.setAConcurrencyHelp,
                   style: TextStyle(fontFamily: fontFamily),
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/services/player/low_memory_mode.dart';
 
@@ -10,12 +11,13 @@ class LowMemoryModeSettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _ModeBuilder(builder: (context, mode, isMetered) {
       return SettingsTile(
         leading: Icons.data_saver_on_rounded,
-        title: const Text('低内存模式'),
-        description: Text(mode.statusDescription(isMetered)),
-        value: Text(mode.label),
+        title: Text(l10n.setALowMemoryMode),
+        description: Text(mode.statusDescription(l10n, isMetered)),
+        value: Text(mode.label(l10n)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onPressed: (_) => KazumiDialog.show<void>(
           builder: (_) => const _LowMemoryModeDialog(),
@@ -45,16 +47,17 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      KazumiDialog.showToast(context: context, message: '设置保存失败，请重试');
+      KazumiDialog.showToast(context: context, message: AppLocalizations.of(context)!.setASaveFailed);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return AlertDialog(
-      title: const Text('低内存模式'),
+      title: Text(l10n.setALowMemoryMode),
       scrollable: true,
       content: SizedBox(
         width: 440,
@@ -86,7 +89,7 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          mode.statusDescription(isMetered),
+                          mode.statusDescription(l10n, isMetered),
                           style: textTheme.bodyMedium?.copyWith(
                             color: foreground,
                           ),
@@ -105,9 +108,9 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
                     for (final option in LowMemoryMode.values)
                       SettingsTile<LowMemoryMode>.radioTile(
                         title: Text(option == LowMemoryMode.auto
-                            ? '${option.label}（默认）'
-                            : option.label),
-                        description: Text(option.description),
+                            ? l10n.setAModeDefault(label: option.label(l10n))
+                            : option.label(l10n)),
+                        description: Text(option.description(l10n)),
                         radioValue: option,
                         enabled: !_saving,
                       ),
@@ -116,8 +119,7 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
               ),
               const SizedBox(height: 16),
               Text(
-                '减少缓存可降低内存占用和额外流量，网络不稳定时可能更容易缓冲。'
-                '\n选择后立即生效并记住选择；跟随网络仅影响在线播放。',
+                l10n.setALmmFootnote,
                 style: textTheme.bodySmall
                     ?.copyWith(color: colors.onSurfaceVariant),
               ),
@@ -128,7 +130,7 @@ class _LowMemoryModeDialogState extends State<_LowMemoryModeDialog> {
       actions: [
         TextButton(
           onPressed: () => KazumiDialog.dismiss(context: context),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -145,24 +147,24 @@ class _ModeBuilder extends StatefulWidget {
 }
 
 extension _ModePresentation on LowMemoryMode {
-  String get label => switch (this) {
-        LowMemoryMode.auto => '跟随网络',
-        LowMemoryMode.always => '始终开启',
-        LowMemoryMode.never => '始终关闭',
+  String label(AppLocalizations l10n) => switch (this) {
+        LowMemoryMode.auto => l10n.setALmmAuto,
+        LowMemoryMode.always => l10n.setALmmAlways,
+        LowMemoryMode.never => l10n.setALmmNever,
       };
 
-  String get description => switch (this) {
-        LowMemoryMode.auto => '移动数据自动开启，WLAN / 有线网络自动关闭',
-        LowMemoryMode.always => '所有网络均减少缓存，降低内存占用',
-        LowMemoryMode.never => '使用完整缓存，移动数据下也不自动开启',
+  String description(AppLocalizations l10n) => switch (this) {
+        LowMemoryMode.auto => l10n.setALmmAutoDesc,
+        LowMemoryMode.always => l10n.setALmmAlwaysDesc,
+        LowMemoryMode.never => l10n.setALmmNeverDesc,
       };
 
-  String statusDescription(bool isMetered) => switch (this) {
+  String statusDescription(AppLocalizations l10n, bool isMetered) => switch (this) {
         LowMemoryMode.auto =>
-          isMetered ? '已自动开启 · 移动数据下减少缓存' : '已自动关闭 · 非移动网络使用完整缓存',
-        LowMemoryMode.always => '已手动开启 · 所有网络均减少缓存',
+          isMetered ? l10n.setALmmStatusAutoOn : l10n.setALmmStatusAutoOff,
+        LowMemoryMode.always => l10n.setALmmStatusAlwaysOn,
         LowMemoryMode.never =>
-          isMetered ? '已手动关闭 · 移动数据使用完整缓存' : '已手动关闭 · 使用完整缓存',
+          isMetered ? l10n.setALmmStatusNeverMetered : l10n.setALmmStatusNever,
       };
 }
 

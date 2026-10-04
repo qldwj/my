@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class UpdateSettingsPage extends StatefulWidget {
@@ -17,16 +18,18 @@ class _UpdateSettingsPageState extends State<UpdateSettingsPage> {
       GStorage.getSetting(SettingsKeys.checkPluginUpdateOnStartup);
 
   @override
-  Widget build(BuildContext context) => SettingsDetailScaffold(
-        title: const Text('更新设置'),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SettingsDetailScaffold(
+        title: Text(l10n.setAUpdateSettings),
         body: SettingsList(
           sections: [
             SettingsSection(
-              title: const Text('启动时检查更新'),
+              title: Text(l10n.setACheckOnStartup),
               tiles: [
                 SettingsTile.switchTile(
                   leading: Icons.update_rounded,
-                  title: const Text('应用更新'),
+                  title: Text(l10n.setAAppUpdate),
                   initialValue: _autoUpdate,
                   onToggle: (value) {
                     setState(() => _autoUpdate = value ?? !_autoUpdate);
@@ -35,7 +38,7 @@ class _UpdateSettingsPageState extends State<UpdateSettingsPage> {
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.extension_rounded,
-                  title: const Text('规则更新'),
+                  title: Text(l10n.setARuleUpdate),
                   initialValue: _pluginUpdate,
                   onToggle: (value) {
                     setState(() => _pluginUpdate = value ?? !_pluginUpdate);
@@ -50,4 +53,5 @@ class _UpdateSettingsPageState extends State<UpdateSettingsPage> {
           ],
         ),
       );
+}
 }

@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -39,7 +40,7 @@ class _WebviewEmbedPageState extends State<WebviewEmbedPage> {
       canPop: true,
       child: Scaffold(
         appBar: SysAppBar(
-          title: const Text('网页版'),
+          title: Text(AppLocalizations.of(context)!.setAWebVersion),
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
