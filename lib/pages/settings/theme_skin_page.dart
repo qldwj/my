@@ -62,6 +62,8 @@ String _skinName(String id, AppLocalizations l10n) {
       return l10n.setDThemeMint;
     case 'mecha':
       return l10n.setDThemeMecha;
+    default:
+      return id;
   }
 }
 
