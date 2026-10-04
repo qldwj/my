@@ -86,7 +86,7 @@ class McpServer {
 📌 API 选集分隔符格式（maccms 常见，非嵌套 JSON）：
 - 使用 chapterApiConfig.format = "delimited"；
 - roadNamesPath 取线路名列表、roadEpisodesPath 取线路分集字符串列表；
-- 配 roadSeparator（默认 $$$）、episodeSeparator（默认 #）、fieldSeparator（默认 $）。
+- 配 roadSeparator（默认 \$\$\$）、episodeSeparator（默认 #）、fieldSeparator（默认 \$）。
 ''';
 
   Future<void> start({int? port}) async {
@@ -538,10 +538,13 @@ class McpServer {
         }
       } else {
         final searchUrlTpl = (r['searchURL'] ?? '').toString();
-        searchUrl = (searchUrlTpl.contains('@keyword')
-                ? searchUrlTpl.replaceAll('@keyword', Uri.encodeQueryComponent(keyword))
-                : searchUrlTpl + Uri(queryParameters: {'wd': keyword}))
-            .replaceFirst(RegExp(r'^\.?/'), '');
+        searchUrl = searchUrlTpl.contains('@keyword')
+            ? searchUrlTpl.replaceAll('@keyword', Uri.encodeQueryComponent(keyword))
+            : searchUrlTpl +
+                (searchUrlTpl.contains('?') ? '&' : '?') +
+                'wd=' +
+                Uri.encodeQueryComponent(keyword);
+        searchUrl = searchUrl.replaceFirst(RegExp(r'^\.?/'), '');
         final finalSearchUrl = searchUrl.startsWith('http') ? searchUrl : base + searchUrl;
         searchUrl = finalSearchUrl;
         final resp = await http.get(Uri.parse(finalSearchUrl), headers: ua)
