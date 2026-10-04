@@ -68,7 +68,7 @@ class _DanmakuShieldSettingsSheetState
                 const SizedBox(height: 16),
                 Observer(builder: (context) {
                   return MaterialBottomSheetSection(
-                    title: l10n.setBKeywordCount(myController.shieldList.length),
+                    title: l10n.setBKeywordCount(count: myController.shieldList.length),
                     icon: Icons.shield_outlined,
                     child: Wrap(
                       runSpacing: 12,

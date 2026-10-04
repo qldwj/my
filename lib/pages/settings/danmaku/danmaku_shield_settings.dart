@@ -59,7 +59,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
           ),
           Observer(builder: (context) {
             return Text(
-              l10n.setBKeywordCount(myController.shieldList.length),
+              l10n.setBKeywordCount(count: myController.shieldList.length),
             );
           }),
           SizedBox(height: 12),

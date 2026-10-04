@@ -101,7 +101,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                       Text(l10n.setBConnectionSettings, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _isVerified ? l10n.setBConnectedUser(_bangumi.username) : l10n.setBNotConnected,
+                                        _isVerified ? l10n.setBConnectedUser(user: _bangumi.username) : l10n.setBNotConnected,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: _isVerified ? Colors.green : colors.outline,
@@ -170,7 +170,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                         } catch (e) {
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text(l10n.setBConnectFailed(e.toString()))),
+                                              SnackBar(content: Text(l10n.setBConnectFailed(error: e.toString()))),
                                             );
                                           }
                                         }
@@ -230,7 +230,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.setBSyncFailedMsg(e.toString()))),
+                              SnackBar(content: Text(l10n.setBSyncFailedMsg(error: e.toString()))),
                             );
                           }
                         }
