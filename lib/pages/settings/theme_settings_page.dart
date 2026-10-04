@@ -94,31 +94,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void resetTheme() {
-    var lightTheme = ThemeData(
-      useMaterial3: true,
-      fontFamily: themeProvider.currentFontFamily,
-      brightness: Brightness.light,
-      colorSchemeSeed: Colors.green,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-      sliderTheme: sliderTheme2024,
-      pageTransitionsTheme: pageTransitionsTheme2024,
-    );
-    var defaultDarkTheme = ThemeData(
-      useMaterial3: true,
-      fontFamily: themeProvider.currentFontFamily,
-      brightness: Brightness.dark,
-      colorSchemeSeed: Colors.green,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-      sliderTheme: sliderTheme2024,
-      pageTransitionsTheme: pageTransitionsTheme2024,
-    );
-    var oledTheme = oledDarkTheme(defaultDarkTheme);
-    themeProvider.setTheme(
-      lightTheme,
-      oledEnhance ? oledTheme : defaultDarkTheme,
-    );
-    defaultThemeColor = 'default';
-    GStorage.putSetting(SettingsKeys.themeColor, 'default');
+    // 默认配色 = 绿色；统一走 setTheme 存具体 ARGB，不再使用 'default' 特例
+    setTheme(Colors.green);
   }
 
   void updateTheme(String theme) async {
@@ -309,9 +286,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                   final index = colorThemes.indexOf(e);
                                   return GestureDetector(
                                     onTap: () {
-                                      index == 0
-                                          ? resetTheme()
-                                          : setTheme(e['color']);
+                                      setTheme(e['color']);
                                       KazumiDialog.dismiss();
                                     },
                                     child: Column(
