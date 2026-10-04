@@ -24,6 +24,7 @@ import 'package:kazumi/pages/my/profile_edit_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({
@@ -277,7 +278,7 @@ class _PopularPageState extends State<PopularPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    isTrend ? '热门番组' : popularController.currentTag,
+                                    isTrend ? AppLocalizations.of(context)!.setHTrending : popularController.currentTag,
                                     style: theme.textTheme.headlineMedium!.copyWith(
                                       fontWeight: fontWeight,
                                       fontSize: fontSize,
@@ -306,25 +307,26 @@ class _PopularPageState extends State<PopularPage> {
 
   List<Widget> buildActions() {
     final isLoggedIn = AuthService.isLoggedIn;
+    final l10n = AppLocalizations.of(context)!;
     final actions = <Widget>[];
     // 搜索 / 历史 / 离线下载 三个图标并排放在右上角
     actions.add(
       IconButton(
-        tooltip: '搜索',
+        tooltip: l10n.search,
         onPressed: () => context.pushNamed('/search/'),
         icon: const Icon(Icons.search),
       ),
     );
     actions.add(
       IconButton(
-        tooltip: '历史',
+        tooltip: l10n.setHHistory,
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
     );
     actions.add(
       IconButton(
-        tooltip: '离线下载',
+        tooltip: l10n.setHDownload,
         onPressed: () => context.pushNamed('/settings/download/'),
         icon: const Icon(Icons.download_outlined),
       ),
@@ -332,7 +334,7 @@ class _PopularPageState extends State<PopularPage> {
     // 🆕 已登录显示头像，未登录显示登录图标
     actions.add(
       IconButton(
-        tooltip: isLoggedIn ? '个人中心' : '登录',
+        tooltip: isLoggedIn ? l10n.setHProfileCenter : l10n.setHLogin,
         onPressed: () => _showUserMenu(context),
         icon: isLoggedIn
             ? FutureBuilder<SocialProfile?>(
@@ -361,7 +363,7 @@ class _PopularPageState extends State<PopularPage> {
       if (!showWindowButton()) {
         actions.add(
           IconButton(
-            tooltip: '退出',
+            tooltip: l10n.exit,
             onPressed: () => windowManager.close(),
             icon: const Icon(Icons.close),
           ),
@@ -375,6 +377,7 @@ class _PopularPageState extends State<PopularPage> {
   void _showUserMenu(BuildContext context) {
     final isLoggedIn = AuthService.isLoggedIn;
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -388,7 +391,7 @@ class _PopularPageState extends State<PopularPage> {
           future: SocialService.getProfile(),
           builder: (ctx, snap) {
             final profile = snap.data;
-            final displayName = profile?.nickname ?? (isLoggedIn ? '樱花动漫用户' : '未登录');
+            final displayName = profile?.nickname ?? (isLoggedIn ? l10n.setHSakuraUser : l10n.setHNotLoggedIn);
             final avatar = profile?.avatar ?? '';
 
             return Padding(
@@ -418,29 +421,29 @@ class _PopularPageState extends State<PopularPage> {
                   const SizedBox(height: 20),
 
                   if (isLoggedIn) ...[
-                    _menuTile(ctx, Icons.edit, '编辑个人资料', () {
+                    _menuTile(ctx, Icons.edit, l10n.setHEditProfile, () {
                       Navigator.pop(ctx);
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const ProfileEditPage()));
                     }),
-                    _menuTile(ctx, Icons.history, '播放历史', () {
+                    _menuTile(ctx, Icons.history, l10n.setHWatchHistory, () {
                       Navigator.pop(ctx);
                       context.pushNamed('/settings/history/');
                     }),
-                    _menuTile(ctx, Icons.settings, '设置', () {
+                    _menuTile(ctx, Icons.settings, l10n.settings, () {
                       Navigator.pop(ctx);
                       context.pushNamed('/settings/');
                     }),
-                    _menuTile(ctx, Icons.logout, '退出登录', () async {
+                    _menuTile(ctx, Icons.logout, l10n.setHLogout, () async {
                       Navigator.pop(ctx);
                       final confirm = await KazumiDialog.show<bool>(
                         builder: (c) => AlertDialog(
-                          title: const Text('退出登录'),
-                          content: const Text('确定退出登录吗？'),
+                          title: Text(l10n.setHLogout),
+                          content: Text(l10n.setHLogoutConfirm),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
+                            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l10n.cancel)),
                             TextButton(onPressed: () => Navigator.pop(c, true),
-                              child: Text('确定', style: TextStyle(color: cs.error))),
+                              child: Text(l10n.setAOk, style: TextStyle(color: cs.error))),
                           ],
                         ),
                       );
@@ -451,16 +454,16 @@ class _PopularPageState extends State<PopularPage> {
                       }
                     }),
                   ] else ...[
-                    _menuTile(ctx, Icons.login, '注册 / 登录', () {
+                    _menuTile(ctx, Icons.login, l10n.setHRegisterLogin, () {
                       Navigator.pop(ctx);
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const KazumiLoginPage()));
                     }),
-                    _menuTile(ctx, Icons.history, '播放历史', () {
+                    _menuTile(ctx, Icons.history, l10n.setHWatchHistory, () {
                       Navigator.pop(ctx);
                       context.pushNamed('/settings/history/');
                     }),
-                    _menuTile(ctx, Icons.settings, '设置', () {
+                    _menuTile(ctx, Icons.settings, l10n.settings, () {
                       Navigator.pop(ctx);
                       context.pushNamed('/settings/');
                     }),
@@ -509,7 +512,7 @@ class _PopularPageState extends State<PopularPage> {
               '',
               ...defaultAnimeTags,
             ],
-            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
+            itemBuilder: (item) => item.isEmpty ? AppLocalizations.of(context)!.setHTrending : item,
           );
         },
         transitionDuration: const Duration(milliseconds: 200),
