@@ -29,6 +29,7 @@ import 'package:kazumi/request/clients/plugin_site_client.dart';
 import 'package:kazumi/request/apis/plugin_market_api.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:kazumi/services/plugin/plugin_import_parser.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 /// 默认 Animeko 规则仓库地址
 const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/yhdmgf/anisubs/main/';
@@ -129,7 +130,7 @@ class _PluginViewPageState extends State<PluginViewPage>
             children: [
               ListTile(
                 leading: const Icon(Icons.cloud_download),
-                title: const Text('从仓库安装合集'),
+                title: Text(AppLocalizations.of(context)!.setEInstallCollectionFromRepo),
                 onTap: () {
                   KazumiDialog.dismiss();
                   Navigator.of(context).push(
@@ -146,7 +147,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               const SizedBox(height: 10),
               ListTile(
                 leading: const Icon(Icons.add_box),
-                title: const Text('新建 XPath 规则'),
+                title: Text(AppLocalizations.of(context)!.setENewXPathRule),
                 onTap: () {
                   KazumiDialog.dismiss();
                   context.pushNamed('/settings/plugin/editor',
@@ -156,7 +157,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               const SizedBox(height: 10),
               ListTile(
                 leading: const Icon(Icons.store),
-                title: const Text('从规则仓库导入'),
+                title: Text(AppLocalizations.of(context)!.setEImportFromRepo),
                 onTap: () {
                   KazumiDialog.dismiss();
                   context.pushNamed('/settings/plugin/shop',
@@ -166,7 +167,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               const SizedBox(height: 10),
               ListTile(
                 leading: const Icon(Icons.content_paste),
-                title: const Text('从剪贴板导入'),
+                title: Text(AppLocalizations.of(context)!.setEImportFromClipboard),
                 onTap: () {
                   KazumiDialog.dismiss();
                   _showInputDialog();
@@ -175,7 +176,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               const SizedBox(height: 10),
               ListTile(
                 leading: const Icon(Icons.file_open),
-                title: const Text('从文件批量导入'),
+                title: Text(AppLocalizations.of(context)!.setEImportFromFile),
                 onTap: () {
                   KazumiDialog.dismiss();
                   _importFromFile();
@@ -808,17 +809,17 @@ class _PluginViewPageState extends State<PluginViewPage>
                     ? _selectAll
                     : null,
                 icon: const Icon(Icons.select_all),
-                tooltip: '全选',
+                tooltip: AppLocalizations.of(context)!.setESelectAll,
               ),
               IconButton(
                 onPressed: selectedNames.isEmpty ? null : _deleteSelected,
                 icon: const Icon(Icons.delete),
-                tooltip: '删除选中',
+                tooltip: AppLocalizations.of(context)!.setEDeleteSelected,
               ),
             ] else ...[
               // 收纳进「更多」菜单，右上角不再图标堆叠（AI生成器/规则设置/更新全部 全保留）
               PopupMenuButton<String>(
-                tooltip: '更多',
+                tooltip: AppLocalizations.of(context)!.setEMore,
                 icon: const Icon(Icons.more_vert),
                 onSelected: (v) {
                   switch (v) {
@@ -836,33 +837,33 @@ class _PluginViewPageState extends State<PluginViewPage>
                       break;
                   }
                 },
-                itemBuilder: (ctx) => const [
+                itemBuilder: (ctx) => [
                   PopupMenuItem(
                     value: 'ai',
                     child: ListTile(
                       leading: Icon(Icons.smart_toy_rounded),
-                      title: Text('AI规则生成器'),
+                      title: Text(AppLocalizations.of(ctx)!.setEAIRuleGenerator),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'settings',
                     child: ListTile(
                       leading: Icon(Icons.tune_rounded),
-                      title: Text('规则设置'),
+                      title: Text(AppLocalizations.of(ctx)!.setERuleSettings),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'update',
                     child: ListTile(
                       leading: Icon(Icons.update),
-                      title: Text('更新全部'),
+                      title: Text(AppLocalizations.of(ctx)!.setEUpdateAll),
                     ),
                   ),
                 ],
               ),
               IconButton(
                 onPressed: _handleAdd,
-                tooltip: '添加规则',
+                tooltip: AppLocalizations.of(context)!.setEAddRule,
                 icon: const Icon(Icons.add),
               ),
             ],
@@ -871,8 +872,8 @@ class _PluginViewPageState extends State<PluginViewPage>
               ? null
               : TabBar(
                   controller: _tabController,
-                  tabs: const [
-                    Tab(text: '全部'),
+                  tabs: [
+                    Tab(text: AppLocalizations.of(context)!.setETabAll),
                     Tab(text: 'XPath'),
                     Tab(text: 'Animeko'),
                   ],
@@ -889,7 +890,7 @@ class _PluginViewPageState extends State<PluginViewPage>
                       controller: _searchController,
                       onChanged: (v) => setState(() => _searchKeyword = v.trim()),
                       decoration: InputDecoration(
-                        hintText: '搜索规则名称...',
+                        hintText: AppLocalizations.of(context)!.setESearchRuleHint,
                         isDense: true,
                         prefixIcon: const Icon(Icons.search, size: 20),
                         suffixIcon: _searchKeyword.isEmpty
@@ -994,14 +995,14 @@ class _PluginViewPageState extends State<PluginViewPage>
             ),
           if (canUpdate)
             RuleTag(
-              label: '可更新',
+              label: AppLocalizations.of(context)!.setEUpdatable,
               background: colorScheme.errorContainer,
               foreground: colorScheme.onErrorContainer,
             ),
           if (pluginsController.validityTracker
               .isSearchValid(plugin.name))
             RuleTag(
-              label: '搜索有效',
+              label: AppLocalizations.of(context)!.setESearchValid,
               background: colorScheme.tertiaryContainer,
               foreground: colorScheme.onTertiaryContainer,
             ),
@@ -1155,6 +1156,7 @@ class _PluginViewPageState extends State<PluginViewPage>
       menuChildren: [
         MenuItemButton(
           onPressed: () async {
+            final l10n = AppLocalizations.of(context)!;
             try {
               await pluginsController.ensurePluginCatalog();
               if (mounted) setState(() {});
@@ -1165,23 +1167,23 @@ class _PluginViewPageState extends State<PluginViewPage>
             final state = pluginsController.pluginUpdateStatus(plugin);
             switch (state) {
               case PluginUpdateAvailability.unknown:
-                KazumiDialog.showToast(message: '尚未获取规则更新状态');
+                KazumiDialog.showToast(message: l10n.setENoUpdateStatus);
               case PluginUpdateAvailability.notInCatalog:
-                KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+                KazumiDialog.showToast(message: l10n.setENotInCatalog);
               case PluginUpdateAvailability.latest:
-                KazumiDialog.showToast(message: '规则已是最新');
+                KazumiDialog.showToast(message: l10n.setEAlreadyLatest);
               case PluginUpdateAvailability.updatable:
                 await updatePluginWithFeedback(
                     pluginsController, plugin.name, installing: false);
             }
           },
-          child: _menuItem(Icons.update_rounded, '更新'),
+          child: _menuItem(Icons.update_rounded, AppLocalizations.of(context)!.setEUpdate),
         ),
         MenuItemButton(
           onPressed: () {
             context.pushNamed('/settings/plugin/editor', arguments: plugin);
           },
-          child: _menuItem(Icons.edit, '编辑'),
+          child: _menuItem(Icons.edit, AppLocalizations.of(context)!.setCEdit),
         ),
         MenuItemButton(
           onPressed: () {
@@ -1247,7 +1249,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               );
             });
           },
-          child: _menuItem(Icons.share, '分享'),
+          child: _menuItem(Icons.share, AppLocalizations.of(context)!.setEShare),
         ),
         MenuItemButton(
           onPressed: () async {
@@ -1329,7 +1331,7 @@ class _PluginViewPageState extends State<PluginViewPage>
               KazumiDialog.showToast(message: result);
             }
           },
-          child: _menuItem(Icons.cloud_upload_outlined, '上传到市场'),
+          child: _menuItem(Icons.cloud_upload_outlined, AppLocalizations.of(context)!.setEUploadToMarket),
         ),
         MenuItemButton(
           onPressed: () async {
