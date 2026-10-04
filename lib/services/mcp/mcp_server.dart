@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
+import 'package:kazumi/services/plugin/api_rule_strategy.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 class McpServer {
@@ -73,6 +74,19 @@ class McpServer {
 - 输出完整 JSON，并在最后附上 yhdmgz:// base64 导入链接。
 - 若道路与分集在 DOM 中不嵌套，用单一 road 处理。
 - 若站点有验证码，加 antiCrawlerConfig。
+
+✅ 客户端测试闭环（交付前必须）：
+- 生成规则后，用应用内置的 test_rule 工具真实抓站验证：
+  1. 搜索结果数 > 0；
+  2. chapterRoads 匹配线路数 > 0；
+  3. 每条线路 chapterResult 都有集数；
+  4. 实际播放页能嗅探到播放地址。
+- 全部通过才能交付给用户；不通过则回查对应 XPath / JSONPath 修正。
+
+📌 API 选集分隔符格式（maccms 常见，非嵌套 JSON）：
+- 使用 chapterApiConfig.format = "delimited"；
+- roadNamesPath 取线路名列表、roadEpisodesPath 取线路分集字符串列表；
+- 配 roadSeparator（默认 $$$）、episodeSeparator（默认 #）、fieldSeparator（默认 $）。
 ''';
 
   Future<void> start({int? port}) async {
@@ -215,12 +229,13 @@ class McpServer {
       }
     }
 
-    // 字段白名单：未知顶级字段提示（可能是幻觉字段）
+    // 字段白名单：未知顶级字段提示（可能是幻觉字段）。来源：KazumiRules 官方字段 + 本 App 扩展。
     const allowedFields = <String>{
       'api', 'type', 'name', 'version', 'muliSources', 'useWebview',
       'useNativePlayer', 'usePost', 'useLegacyParser', 'adBlocker',
-      'userAgent', 'baseURL', 'searchURL', 'searchList', 'searchName',
-      'searchResult', 'chapterRoads', 'chapterResult', 'searchMode',
+      'userAgent', 'baseURL', 'referer', 'cookie', 'updateURL',
+      'searchURL', 'searchList', 'searchName', 'searchResult',
+      'chapterRoads', 'chapterResult', 'chapterResultURL', 'searchMode',
       'chapterMode', 'icon', 'antiCrawlerConfig', 'searchApiConfig',
       'chapterApiConfig', 'useProxy', 'variables',
     };
@@ -377,71 +392,280 @@ class McpServer {
     }
   }
 
+  String _attr(dynamic node, String name) {
+    try {
+      return node.attributes[name]?.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// 生成脱敏 curl 命令：Cookie/Token/Authorization 等凭据替换为 <redacted>
+  String _sanitizeCurl(String method, String url, Map<String, String> headers, Object? body) {
+    final buf = StringBuffer('curl -X $method "$url"');
+    headers.forEach((k, v) {
+      final lower = k.toLowerCase();
+      if (lower == 'cookie' ||
+          lower == 'authorization' ||
+          lower.contains('token') ||
+          lower == 'x-api-key') {
+        buf.write(" -H '$k: <redacted>'");
+      } else {
+        buf.write(" -H '$k: $v'");
+      }
+    });
+    if (body is Map && body.isNotEmpty) {
+      buf.write(" -d '${jsonEncode(body)}'");
+    }
+    return buf.toString();
+  }
+
+  String _replaceVars(String s, Map<String, String> vars) {
+    vars.forEach((k, v) => s = s.replaceAll(k, v));
+    return s;
+  }
+
+  Map<String, dynamic> _replaceVarsMap(Map m, Map<String, String> vars) {
+    final out = <String, dynamic>{};
+    m.forEach((k, v) {
+      out[k.toString()] = v is String ? _replaceVars(v, vars) : v;
+    });
+    return out;
+  }
+
+  /// API 模式请求：构造并发送 searchApiConfig/chapterApiConfig 请求，
+  /// 返回解码 JSON + 实际 URL + 脱敏 curl。
+  Future<({dynamic json, String url, String curl})?> _apiFetch(
+    Map<String, dynamic> request, {
+    required String method,
+    required Map<String, String> vars,
+  }) async {
+    var url = (request['url'] ?? '').toString();
+    vars.forEach((k, v) => url = url.replaceAll(k, Uri.encodeQueryComponent(v)));
+    final headers = <String, String>{
+      'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)',
+      'Accept': 'application/json',
+    };
+    final reqHeaders = request['headers'];
+    if (reqHeaders is Map) {
+      reqHeaders.forEach((k, v) => headers[k.toString()] = v.toString());
+    }
+    var uri = Uri.parse(url);
+    final query = request['query'];
+    if (query is Map) {
+      final q = <String, String>{};
+      query.forEach((k, v) => q[k.toString()] = v.toString());
+      final q2 = <String, String>{};
+      q.forEach((k, v) => q2[k] = _replaceVars(v, vars));
+      uri = uri.replace(queryParameters: q2);
+    }
+    final fullUrl = uri.toString();
+    Object? curlBody;
+    http.Response resp;
+    if (method.toUpperCase() == 'POST') {
+      final rawBody = request['body'];
+      if (rawBody is Map) {
+        final replaced = _replaceVarsMap(rawBody, vars);
+        curlBody = replaced;
+        headers['Content-Type'] = 'application/json';
+        resp = await http.post(uri, headers: headers, body: jsonEncode(replaced))
+            .timeout(const Duration(seconds: 20));
+      } else {
+        resp = await http.post(uri, headers: headers).timeout(const Duration(seconds: 20));
+      }
+    } else {
+      resp = await http.get(uri, headers: headers).timeout(const Duration(seconds: 20));
+    }
+    final curl = _sanitizeCurl(method, fullUrl, headers, curlBody);
+    try {
+      return (json: jsonDecode(resp.body), url: fullUrl, curl: curl);
+    } catch (e) {
+      throw FormatException('API 响应非 JSON: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> _testRule(String raw, String keyword) async {
     final r = _decodeRule(raw);
     if (r == null) {
       return {'ok': false, 'errors': ['无法解析规则：需为规则JSON、Base64 或 yhdmgz:// 链接']};
     }
-    final base = (r['baseURL'] ?? '').toString().trim().replaceAll(RegExp(r'/$'), '');
-    final searchUrlTpl = (r['searchURL'] ?? '').toString();
-    final searchUrl = (searchUrlTpl.contains('@keyword')
-            ? searchUrlTpl.replaceAll('@keyword', Uri.encodeQueryComponent(keyword))
-            : searchUrlTpl + Uri(queryParameters: {'wd': keyword}))
-        .replaceFirst(RegExp(r'^\.?/'), '');
-    final finalSearchUrl = searchUrl.startsWith('http') ? searchUrl : base + searchUrl;
-
+    final searchMode = (r['searchMode'] ?? 'xpath').toString();
+    final chapterMode = (r['chapterMode'] ?? 'xpath').toString();
     final warnings = <String>[];
-    const headers = {'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'};
+    final base = (r['baseURL'] ?? '').toString().trim().replaceAll(RegExp(r'/$'), '');
+    const ua = {'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'};
 
-    // 1. 搜索
+    // 1. 搜索（支持 XPath / API 双模式）
     final items = <Map<String, String>>[];
+    String searchUrl = '';
+    String searchCurl = '';
     try {
-      final resp = await http.get(Uri.parse(finalSearchUrl), headers: headers)
-          .timeout(const Duration(seconds: 20));
-      final doc = html_parser.parse(resp.body);
-      final listNodes = _xpathNodes(doc, r['searchList']?.toString());
-      if (listNodes.isEmpty) {
-        warnings.add('searchList 未匹配到任何节点，请检查 XPath（搜索可能无结果或选择器错误）');
-      }
-      for (final node in listNodes) {
-        final name = _xpathText(node, r['searchName']?.toString());
-        final href = _xpathHref(node, r['searchResult']?.toString());
-        if (name.isEmpty && href.isEmpty) continue;
-        items.add({
-          'name': name,
-          'url': href.startsWith('http') ? href : base + href,
-        });
+      if (searchMode == 'api') {
+        final cfg = r['searchApiConfig'];
+        if (cfg is! Map) {
+          return {'ok': false, 'errors': ['searchMode=api 但缺少 searchApiConfig']};
+        }
+        final request = cfg['request'];
+        if (request is! Map) {
+          return {'ok': false, 'errors': ['searchApiConfig 缺少 request']};
+        }
+        final method = (request['method'] ?? 'GET').toString();
+        final fetched = await _apiFetch(
+          Map<String, dynamic>.from(request),
+          method: method,
+          vars: {'@keyword': keyword},
+        );
+        if (fetched == null) {
+          return {'ok': false, 'errors': ['API 搜索请求失败'], 'warnings': warnings};
+        }
+        searchUrl = fetched.url;
+        searchCurl = fetched.curl;
+        final listPath = (cfg['listPath'] ?? '').toString();
+        final namePath = (cfg['namePath'] ?? '').toString();
+        final sourcePath = (cfg['sourcePath'] ?? '').toString();
+        final list = listPath.isEmpty ? <Object?>[] : RestrictedJsonPath.read(fetched.json, listPath);
+        if (list.isEmpty) {
+          warnings.add('API searchApiConfig.listPath 未匹配到任何结果（请检查 JSONPath 与返回结构）');
+        }
+        for (final item in list) {
+          if (item is! Map) continue;
+          final name = namePath.isEmpty ? '' : (RestrictedJsonPath.readFirst(item, namePath)?.toString() ?? '');
+          final source = sourcePath.isEmpty ? '' : (RestrictedJsonPath.readFirst(item, sourcePath)?.toString() ?? '');
+          if (name.isEmpty && source.isEmpty) continue;
+          items.add({'name': name, 'url': source.startsWith('http') ? source : base + source});
+        }
+      } else {
+        final searchUrlTpl = (r['searchURL'] ?? '').toString();
+        searchUrl = (searchUrlTpl.contains('@keyword')
+                ? searchUrlTpl.replaceAll('@keyword', Uri.encodeQueryComponent(keyword))
+                : searchUrlTpl + Uri(queryParameters: {'wd': keyword}))
+            .replaceFirst(RegExp(r'^\.?/'), '');
+        final finalSearchUrl = searchUrl.startsWith('http') ? searchUrl : base + searchUrl;
+        searchUrl = finalSearchUrl;
+        final resp = await http.get(Uri.parse(finalSearchUrl), headers: ua)
+            .timeout(const Duration(seconds: 20));
+        searchCurl = _sanitizeCurl('GET', finalSearchUrl, ua, null);
+        final doc = html_parser.parse(resp.body);
+        final listNodes = _xpathNodes(doc, r['searchList']?.toString());
+        if (listNodes.isEmpty) {
+          warnings.add('searchList 未匹配到任何节点，请检查 XPath（搜索可能无结果或选择器错误）');
+        }
+        for (final node in listNodes) {
+          final name = _xpathText(node, r['searchName']?.toString());
+          final href = _xpathHref(node, r['searchResult']?.toString());
+          if (name.isEmpty && href.isEmpty) continue;
+          items.add({'name': name, 'url': href.startsWith('http') ? href : base + href});
+        }
       }
     } catch (e) {
-      return {'ok': false, 'errors': ['搜索请求失败: $e'], 'warnings': warnings};
+      return {'ok': false, 'errors': ['搜索阶段失败: $e'], 'warnings': warnings};
     }
 
-    // 2. 选集
+    // 2. 选集（支持 XPath / API 双模式）
     final chapter = <String, dynamic>{
       'detailUrl': '',
       'roads': 0,
       'episodes': <Map<String, dynamic>>[],
+      'curl': '',
     };
     if (items.isNotEmpty) {
-      final detailUrl = items.first['url'] ?? '';
-      chapter['detailUrl'] = detailUrl;
+      final first = items.first;
+      chapter['detailUrl'] = first['url'] ?? '';
       try {
-        final resp = await http.get(Uri.parse(detailUrl), headers: headers)
+        if (chapterMode == 'api') {
+          final cfg = r['chapterApiConfig'];
+          if (cfg is Map) {
+            final request = cfg['request'];
+            if (request is Map) {
+              final method = (request['method'] ?? 'GET').toString();
+              final fetched = await _apiFetch(
+                Map<String, dynamic>.from(request),
+                method: method,
+                vars: {'@source': first['url'] ?? '', '@keyword': keyword},
+              );
+              if (fetched != null) {
+                chapter['curl'] = fetched.curl;
+                final fmt = (cfg['format'] ?? 'nested').toString();
+                final epsList = <Map<String, dynamic>>[];
+                if (fmt == 'delimited') {
+                  final roadNames = (cfg['roadNamesPath'] ?? '').toString();
+                  final roadEps = (cfg['roadEpisodesPath'] ?? '').toString();
+                  final epSep = (cfg['episodeSeparator'] ?? '#').toString();
+                  if (roadNames.isNotEmpty || roadEps.isNotEmpty) {
+                    final names = roadNames.isEmpty ? <Object?>[] : RestrictedJsonPath.read(fetched.json, roadNames);
+                    final epsAll = roadEps.isEmpty ? <Object?>[] : RestrictedJsonPath.read(fetched.json, roadEps);
+                    for (var i = 0; i < names.length; i++) {
+                      final raw = epsAll.length > i && epsAll[i] is String ? epsAll[i].toString() : '';
+                      epsList.add({'road': names[i].toString(), 'episodes': raw.split(epSep).length});
+                    }
+                  }
+                  if (epsList.isEmpty) warnings.add('API chapterApiConfig（delimited）未解析到线路');
+                  chapter['roads'] = epsList.length;
+                  chapter['episodes'] = epsList;
+                } else {
+                  final roads = (cfg['roadsPath'] ?? '').toString();
+                  final epsPath = (cfg['episodesPath'] ?? '').toString();
+                  final rnPath = (cfg['roadNamePath'] ?? '').toString();
+                  final roadNodes = roads.isEmpty ? <Object?>[] : RestrictedJsonPath.read(fetched.json, roads);
+                  if (roadNodes.isEmpty) {
+                    warnings.add('API chapterApiConfig.roadsPath 未匹配到任何线路（请检查 JSONPath）');
+                  }
+                  for (var i = 0; i < roadNodes.length; i++) {
+                    final road = roadNodes[i];
+                    final cnt = (road is Map && epsPath.isNotEmpty)
+                        ? RestrictedJsonPath.read(road, epsPath).length
+                        : 0;
+                    final roadName = (rnPath.isEmpty || road is! Map)
+                        ? 'road${i + 1}'
+                        : (RestrictedJsonPath.readFirst(road, rnPath)?.toString() ?? 'road${i + 1}');
+                    epsList.add({'road': roadName, 'episodes': cnt});
+                  }
+                  chapter['roads'] = roadNodes.length;
+                  chapter['episodes'] = epsList;
+                }
+              }
+            }
+          }
+        } else {
+          final resp = await http.get(Uri.parse(first['url'] ?? ''), headers: ua)
+              .timeout(const Duration(seconds: 20));
+          final doc = html_parser.parse(resp.body);
+          final roads = _xpathNodes(doc, r['chapterRoads']?.toString());
+          if (roads.isEmpty) {
+            warnings.add('chapterRoads 未匹配到任何节点，请检查 XPath（或为单一 road，可直接用 chapterResult 统计集数）');
+          }
+          final epsList = <Map<String, dynamic>>[];
+          for (var i = 0; i < roads.length; i++) {
+            final eps = _xpathNodes(roads[i], r['chapterResult']?.toString());
+            epsList.add({'road': 'road${i + 1}', 'episodes': eps.length});
+          }
+          chapter['roads'] = roads.length;
+          chapter['episodes'] = epsList;
+        }
+      } catch (e) {
+        warnings.add('详情/选集阶段失败: $e');
+      }
+    }
+
+    // 3. iframe / video 播放页嗅探（基础版）
+    final detailUrl = chapter['detailUrl'] as String;
+    if (items.isNotEmpty && detailUrl.isNotEmpty) {
+      try {
+        final resp = await http.get(Uri.parse(detailUrl), headers: ua)
             .timeout(const Duration(seconds: 20));
         final doc = html_parser.parse(resp.body);
-        final roads = _xpathNodes(doc, r['chapterRoads']?.toString());
-        if (roads.isEmpty) {
-          warnings.add('chapterRoads 未匹配到任何节点，请检查 XPath（或为单一 road，可直接用 chapterResult 统计集数）');
+        final srcs = <String>[];
+        for (final f in _xpathNodes(doc, '//iframe')) {
+          final s = _attr(f, 'src');
+          if (s.isNotEmpty) srcs.add(s);
         }
-        final epsList = <Map<String, dynamic>>[];
-        for (var i = 0; i < roads.length; i++) {
-          final eps = _xpathNodes(roads[i], r['chapterResult']?.toString());
-          epsList.add({'road': 'road${i + 1}', 'episodes': eps.length});
+        for (final v in _xpathNodes(doc, '//video')) {
+          final s = _attr(v, 'src');
+          if (s.isNotEmpty) srcs.add(s);
         }
-        chapter['roads'] = roads.length;
-        chapter['episodes'] = epsList;
+        if (srcs.isNotEmpty) chapter['iframe_src'] = srcs.take(3).toList();
       } catch (e) {
-        warnings.add('详情页请求失败: $e');
+        warnings.add('iframe 嗅探失败: $e');
       }
     }
 
@@ -449,8 +673,11 @@ class McpServer {
       'ok': items.isNotEmpty,
       'name': r['name'],
       'version': r['version'],
+      'searchMode': searchMode,
+      'chapterMode': chapterMode,
       'search': {
-        'url': finalSearchUrl,
+        'url': searchUrl,
+        'curl': searchCurl,
         'count': items.length,
         'items': items.take(5).toList(),
       },
