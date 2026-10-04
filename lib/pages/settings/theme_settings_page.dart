@@ -9,6 +9,7 @@ import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/services/font_service.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/device.dart';
@@ -42,7 +43,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     }
     themeProvider.setFontFamily(useSystemFont);
     setState(() {});
-    KazumiDialog.showToast(message: '✅ 字体已更换');
+    KazumiDialog.showToast(message: AppLocalizations.of(context)!.setBFontChanged);
   }
 
   @override
@@ -134,18 +135,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('外观设置')),
+        appBar: SysAppBar(title: Text(l10n.appearanceSettings)),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('外观', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.themeAppearance,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -155,15 +158,16 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       menuController.open();
                     }
                   },
-                  title: Text('深色模式', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDarkModeTitle,
+                      style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
                     builder: (_, __, ___) {
                       return Text(
                         defaultThemeMode == 'light'
-                            ? '浅色'
-                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                            ? l10n.lightMode
+                            : (defaultThemeMode == 'dark' ? l10n.darkMode : l10n.languageFollowSystem),
                         style: TextStyle(fontFamily: fontFamily),
                       );
                     },
@@ -186,7 +190,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '跟随系统',
+                                  l10n.languageFollowSystem,
                                   style: TextStyle(
                                     color: defaultThemeMode == 'system'
                                         ? Theme.of(context).colorScheme.primary
@@ -217,7 +221,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '浅色',
+                                  l10n.lightMode,
                                   style: TextStyle(
                                       color: defaultThemeMode == 'light'
                                           ? Theme.of(context)
@@ -249,7 +253,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '深色',
+                                  l10n.darkMode,
                                   style: TextStyle(
                                     color: defaultThemeMode == 'dark'
                                         ? Theme.of(context).colorScheme.primary
@@ -270,7 +274,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
                       return AlertDialog(
-                        title: Text('配色方案',
+                        title: Text(l10n.setBColorScheme,
                             style: TextStyle(fontFamily: fontFamily)),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
@@ -311,7 +315,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       );
                     });
                   },
-                  title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBColorScheme, style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.switchTile(
                   enabled: !Platform.isIOS,
@@ -322,7 +326,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setDynamic(useDynamicColor);
                     setState(() {});
                   },
-                  title: Text('动态配色', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDynamicColor, style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useDynamicColor,
                 ),
                 SettingsTile.switchTile(
@@ -341,20 +345,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setState(() {});
                   },
                   title:
-                      Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('关闭后使用 MI Sans 字体',
+                      Text(l10n.setBUseSystemFont, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBUseSystemFontDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useSystemFont,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) => _pickCustomFont(),
                   title:
-                      Text('自定义字体文件', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('选择 .ttf/.otf 字体文件，全局更换字体',
+                      Text(l10n.setBCustomFont, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBCustomFontDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
-              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台',
+              bottomInfo: Text(l10n.setBDynamicColorNote,
                   style: TextStyle(fontFamily: fontFamily)),
             ),
             SettingsSection(
@@ -368,8 +372,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setState(() {});
                   },
                   title:
-                      Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('深色模式下使用纯黑背景',
+                      Text(l10n.setBOledOptimize, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBOledOptimizeDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: oledEnhance,
                 ),
@@ -385,9 +389,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           SettingsKeys.showWindowButton, showWindowButton);
                       setState(() {});
                     },
-                    title: Text('使用系统标题栏',
+                    title: Text(l10n.setBSystemTitleBar,
                         style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('重启应用生效',
+                    description: Text(l10n.setBRestartToApply,
                         style: TextStyle(fontFamily: fontFamily)),
                     initialValue: showWindowButton,
                   ),
@@ -401,7 +405,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       context.pushNamed('/settings/theme/display');
                     },
                     title:
-                        Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
+                        Text(l10n.setBRefreshRate, style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],
               ),

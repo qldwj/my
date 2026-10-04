@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 const double _minDanmakuTimeOffset = -180;
@@ -13,11 +14,11 @@ double normalizeDanmakuTimeOffset(double value) {
       .toDouble();
 }
 
-String formatDanmakuTimeOffset(double value) {
+String formatDanmakuTimeOffset(AppLocalizations l10n, double value) {
   if (value == 0) {
-    return '无偏移';
+    return l10n.setBNoOffset;
   }
-  return '${value > 0 ? '延后' : '提前'} ${_formatDanmakuOffsetDuration(value)}';
+  return '${value > 0 ? l10n.setBOffsetLater : l10n.setBOffsetEarlier} ${_formatDanmakuOffsetDuration(value)}';
 }
 
 String _formatDanmakuOffsetDuration(double value) {
@@ -76,7 +77,10 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final fontFamily = theme.textTheme.bodyMedium?.fontFamily;
-    final direction = _offset == 0 ? '无偏移' : (_offset > 0 ? '延后' : '提前');
+    final l10n = AppLocalizations.of(context)!;
+    final direction = _offset == 0
+        ? l10n.setBNoOffset
+        : (_offset > 0 ? l10n.setBOffsetLater : l10n.setBOffsetEarlier);
 
     return SafeArea(
       top: false,
@@ -84,8 +88,8 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
         body: Column(
           children: [
             MaterialBottomSheetHeader(
-              title: '弹幕时间轴偏移',
-              description: '校准弹幕相对于视频画面的显示时间',
+              title: l10n.setBTimeOffsetTitle,
+              description: l10n.setBTimeOffsetDesc,
               onClose: () => Navigator.of(context).pop(),
             ),
             Expanded(
@@ -132,7 +136,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                     Row(
                       children: [
                         Text(
-                          '提前 3:00',
+                          l10n.setBEarlier3Min,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontFamily: fontFamily,
@@ -140,7 +144,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                         ),
                         const Spacer(),
                         Text(
-                          '延后 3:00',
+                          l10n.setBLater3Min,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontFamily: fontFamily,
@@ -153,7 +157,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                       min: _minDanmakuTimeOffset,
                       max: _maxDanmakuTimeOffset,
                       divisions: _danmakuTimeOffsetDivisions,
-                      label: formatDanmakuTimeOffset(_offset),
+                      label: formatDanmakuTimeOffset(l10n, _offset),
                       onChanged: _updateOffset,
                     ),
                     const SizedBox(height: 12),
@@ -167,7 +171,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                                 ? () => _updateOffset(_offset - 1)
                                 : null,
                             icon: const Icon(Icons.remove_rounded),
-                            label: const Text('提前 1 秒'),
+                            label: Text(l10n.setBEarlier1Sec),
                           ),
                         );
                         final delayButton = SizedBox(
@@ -178,7 +182,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                                 ? () => _updateOffset(_offset + 1)
                                 : null,
                             icon: const Icon(Icons.add_rounded),
-                            label: const Text('延后 1 秒'),
+                            label: Text(l10n.setBLater1Sec),
                           ),
                         );
 
@@ -207,7 +211,7 @@ class _DanmakuTimeOffsetSheetState extends State<DanmakuTimeOffsetSheet> {
                       child: OutlinedButton.icon(
                         onPressed: _offset != 0 ? () => _updateOffset(0) : null,
                         icon: const Icon(Icons.restart_alt_rounded),
-                        label: const Text('恢复无偏移'),
+                        label: Text(l10n.setBResetNoOffset),
                       ),
                     ),
                   ],

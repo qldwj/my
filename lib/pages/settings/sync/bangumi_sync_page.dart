@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -38,12 +39,13 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: SysAppBar(
         toolbarHeight: 72,
         title: Text(
-          'Bangumi 同步',
+          l10n.setBBangumiSync,
           style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         needTopOffset: false,
@@ -67,10 +69,10 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('让追番保持同步',
+                        Text(l10n.setBBangumiKeepTitle,
                             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
-                        Text('与 Bangumi 保持相同的追番状态，支持想看/在看/看过/搁置/抛弃。',
+                        Text(l10n.setBBangumiKeepDesc,
                             style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
                       ],
                     ),
@@ -96,10 +98,10 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('连接配置', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                      Text(l10n.setBConnectionSettings, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _isVerified ? '已连接 · ${_bangumi.username}' : '未连接',
+                                        _isVerified ? l10n.setBConnectedUser(_bangumi.username) : l10n.setBNotConnected,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: _isVerified ? Colors.green : colors.outline,
@@ -130,7 +132,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                   controller: _tokenController,
                                   decoration: InputDecoration(
                                     labelText: 'Access Token',
-                                    hintText: '从 Bangumi 获取',
+                                    hintText: l10n.setBGetFromBangumi,
                                     filled: true,
                                     fillColor: colors.surfaceContainerHighest,
                                     border: OutlineInputBorder(
@@ -148,7 +150,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                         final token = _tokenController.text.trim();
                                         if (token.isEmpty) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('请输入Access Token')),
+                                            SnackBar(content: Text(l10n.setBEnterToken)),
                                           );
                                           return;
                                         }
@@ -162,18 +164,18 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                           await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('连接成功，已自动开启同步')),
+                                              SnackBar(content: Text(l10n.setBConnectSuccess)),
                                             );
                                           }
                                         } catch (e) {
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('连接失败: $e')),
+                                              SnackBar(content: Text(l10n.setBConnectFailed(e.toString()))),
                                             );
                                           }
                                         }
                                       },
-                                      child: Text(_isVerified ? '已验证' : '验证并保存'),
+                                      child: Text(_isVerified ? l10n.setBVerified : l10n.setBVerifySave),
                                     ),
                                     const SizedBox(width: 8),
                                     TextButton(
@@ -183,7 +185,7 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                                           await launchUrl(uri, mode: LaunchMode.externalApplication);
                                         }
                                       },
-                                      child: const Text('获取授权码'),
+                                      child: Text(l10n.setBGetAuthCode),
                                     ),
                                   ],
                                 ),
@@ -203,8 +205,8 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                     color: colors.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(28),
                     child: SwitchListTile(
-                      title: const Text('自动同步'),
-                      subtitle: const Text('修改追番状态时自动同步到 Bangumi'),
+                      title: Text(l10n.setBAutoSync),
+                      subtitle: Text(l10n.setBAutoSyncDesc),
                       value: _syncEnabled,
                       onChanged: (value) {
                         setState(() => _syncEnabled = value);
@@ -222,19 +224,19 @@ class _BangumiSyncPageState extends State<BangumiSyncPage> {
                           await _bangumi.syncCollectibles();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('同步完成')),
+                              SnackBar(content: Text(l10n.setBSyncComplete)),
                             );
                           }
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('同步失败: $e')),
+                              SnackBar(content: Text(l10n.setBSyncFailedMsg(e.toString()))),
                             );
                           }
                         }
                       },
                       icon: const Icon(Icons.sync_rounded),
-                      label: const Text('立即同步追番'),
+                      label: Text(l10n.setBSyncTrackingNow),
                     ),
                 ],
               ),

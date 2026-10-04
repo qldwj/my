@@ -6,6 +6,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_time_offset_sheet.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/utils/device.dart';
 
 enum _DanmakuSettingsDestination {
@@ -68,14 +69,15 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       bottom: false,
       child: Scaffold(
         body: Column(
           children: [
             MaterialBottomSheetHeader(
-              title: '弹幕设置',
-              description: '调整弹幕显示、样式与屏蔽规则',
+              title: l10n.danmakuSettings,
+              description: l10n.setBSheetAdjustDesc,
               onClose: () => Navigator.of(context).pop(),
             ),
             Expanded(
@@ -83,23 +85,23 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                 sections: [
                   SettingsSection(
                     title:
-                        Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
+                        Text(l10n.setBDanmakuFilter, style: TextStyle(fontFamily: fontFamily)),
                     tiles: [
                       SettingsTile.navigation(
                         onPressed: (_) {
                           _showDanmakuShieldSheet();
                         },
-                        title: Text('关键词屏蔽',
+                        title: Text(l10n.setBKeywordFilter,
                             style: TextStyle(fontFamily: fontFamily)),
                       ),
                     ],
                   ),
                   SettingsSection(
                     title:
-                        Text('弹幕样式', style: TextStyle(fontFamily: fontFamily)),
+                        Text(l10n.setBDanmakuStyle, style: TextStyle(fontFamily: fontFamily)),
                     tiles: [
                       SettingsTile(
-                        title: Text('字体大小',
+                        title: Text(l10n.setBFontSize,
                             style: TextStyle(fontFamily: fontFamily)),
                         description: Slider(
                           value: widget.danmakuController.option.fontSize,
@@ -121,7 +123,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
-                        title: Text('弹幕不透明度',
+                        title: Text(l10n.setBDanmakuOpacity,
                             style: TextStyle(fontFamily: fontFamily)),
                         description: Slider(
                           value: widget.danmakuController.option.opacity,
@@ -146,17 +148,18 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                   ),
                   SettingsSection(
                     title:
-                        Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
+                        Text(l10n.setBDanmakuDisplay, style: TextStyle(fontFamily: fontFamily)),
                     tiles: [
                       SettingsTile.navigation(
                         onPressed: (context) {
                           Navigator.of(context)
                               .pop(_DanmakuSettingsDestination.timeOffset);
                         },
-                        title: Text('时间轴偏移',
+                        title: Text(l10n.setBTimelineOffset,
                             style: TextStyle(fontFamily: fontFamily)),
                         value: Text(
                           formatDanmakuTimeOffset(
+                            l10n,
                             normalizeDanmakuTimeOffset(
                               GStorage.getSetting<double>(
                                   SettingsKeys.danmakuTimeOffset),
@@ -166,7 +169,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
-                        title: Text('弹幕区域',
+                        title: Text(l10n.setBDanmakuArea,
                             style: TextStyle(fontFamily: fontFamily)),
                         description: Slider(
                           value: widget.danmakuController.option.area,
@@ -188,7 +191,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
-                        title: Text('持续时间',
+                        title: Text(l10n.setBDurationShort,
                             style: TextStyle(fontFamily: fontFamily)),
                         description: Slider(
                           value: widget.danmakuController.option.duration
@@ -212,7 +215,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                         ),
                       ),
                       SettingsTile(
-                        title: Text('行高',
+                        title: Text(l10n.setBLineHeightShort,
                             style: TextStyle(fontFamily: fontFamily)),
                         description: Slider(
                           value: widget.danmakuController.option.lineHeight,
@@ -247,7 +250,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuTop, show);
                         },
-                        title: Text('顶部弹幕',
+                        title: Text(l10n.setBTopDanmaku,
                             style: TextStyle(fontFamily: fontFamily)),
                         initialValue: !widget.danmakuController.option.hideTop,
                       ),
@@ -263,7 +266,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuBottom, show);
                         },
-                        title: Text('底部弹幕',
+                        title: Text(l10n.setBBottomDanmaku,
                             style: TextStyle(fontFamily: fontFamily)),
                         initialValue:
                             !widget.danmakuController.option.hideBottom,
@@ -280,7 +283,7 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                           GStorage.putSetting<bool>(
                               SettingsKeys.danmakuScroll, show);
                         },
-                        title: Text('滚动弹幕',
+                        title: Text(l10n.setBScrollDanmaku,
                             style: TextStyle(fontFamily: fontFamily)),
                         initialValue:
                             !widget.danmakuController.option.hideScroll,
@@ -295,9 +298,9 @@ class _DanmakuSettingsSheetState extends State<_DanmakuSettingsSheet> {
                           widget.onUpdateDanmakuSpeed?.call();
                           setState(() {});
                         },
-                        title: Text('跟随视频倍速',
+                        title: Text(l10n.setBFollowSpeedShort,
                             style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('弹幕速度随视频倍速变化',
+                        description: Text(l10n.setBFollowSpeedShortDesc,
                             style: TextStyle(fontFamily: fontFamily)),
                         initialValue: GStorage.getSetting<bool>(
                             SettingsKeys.danmakuFollowSpeed),

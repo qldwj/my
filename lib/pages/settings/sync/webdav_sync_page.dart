@@ -5,6 +5,7 @@ import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
@@ -26,10 +27,11 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
 
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _busy = true;
       _failed = false;
-      _message = '正在连接 WebDAV…';
+      _message = l10n.setBConnectingWebdav;
     });
     try {
       await action();
@@ -37,7 +39,7 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
       KazumiLogger().w('WebDAV settings operation failed', error: e);
       if (mounted) {
         _failed = true;
-        _message = '未能完成，请检查网络或服务器配置后重试。';
+        _message = l10n.setBSyncFailedGeneric;
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -49,17 +51,20 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
         _message = null;
       });
 
-  Future<void> _syncHistory() => _run(() async {
-        final webDav = WebDav();
-        if (!webDav.initialized) {
-          await webDav.init();
-        } else if (!webDav.isHistorySyncing) {
-          await webDav.ping();
-        }
-        if (mounted) setState(() => _message = '正在同步观看记录…');
-        await webDav.syncHistory();
-        _message = '观看记录已同步';
-      });
+  Future<void> _syncHistory() async {
+    final l10n = AppLocalizations.of(context)!;
+    await _run(() async {
+      final webDav = WebDav();
+      if (!webDav.initialized) {
+        await webDav.init();
+      } else if (!webDav.isHistorySyncing) {
+        await webDav.ping();
+      }
+      if (mounted) setState(() => _message = l10n.setBSyncingHistory);
+      await webDav.syncHistory();
+      _message = l10n.setBHistorySynced;
+    });
+  }
 
   Future<void> _configure() async {
     await context.pushNamed('/settings/webdav/editor');
@@ -71,14 +76,18 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
     }
   }
 
-  Future<void> _syncDanmakuShield() => _run(() async {
-        if (mounted) setState(() => _message = '正在同步弹幕屏蔽词…');
-        await widget.danmakuShieldSync.sync();
-        _message = '弹幕屏蔽词已同步';
-      });
+  Future<void> _syncDanmakuShield() async {
+    final l10n = AppLocalizations.of(context)!;
+    await _run(() async {
+      if (mounted) setState(() => _message = l10n.setBSyncingKeywords);
+      await widget.danmakuShieldSync.sync();
+      _message = l10n.setBKeywordsSynced;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final enabled = GStorage.getSetting(SettingsKeys.webDavEnable);
     final history = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     final collect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
@@ -89,34 +98,34 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
     return PopScope(
       canPop: !_busy,
       child: SettingsDetailScaffold(
-        title: const Text('多设备同步'),
+        title: Text(l10n.setBMultiDeviceSync),
         body: SyncPageBody(
           maxWidth: 720,
           children: [
-            const SyncPageIntro(
+            SyncPageIntro(
               icon: Icons.devices_rounded,
               title: 'WebDAV',
-              description: '连接自己的云盘，同步观看记录、收藏与弹幕屏蔽词。',
+              description: l10n.setBWebdavIntro,
             ),
             SettingsSection(
               margin: EdgeInsets.zero,
               tiles: [
                 SettingsTile(
                   leading: Icons.dns_rounded,
-                  title: Text(configured ? '同步服务器' : '连接你的云盘'),
+                  title: Text(configured ? l10n.setBSyncServer : l10n.setBConnectCloud),
                   description: Text(configured
-                      ? (host == null || host.isEmpty ? '已保存服务器地址' : host)
-                      : '需要支持 WebDAV 的云盘或服务器'),
+                      ? (host == null || host.isEmpty ? l10n.setBServerSaved : host)
+                      : l10n.setBNeedsWebdav),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   enabled: !_busy,
                   onPressed: (_) => _configure(),
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.cloud_sync_rounded,
-                  title: const Text('启用 WebDAV'),
+                  title: Text(l10n.setBEnableWebdav),
                   description: Text(configured
-                      ? (enabled ? '已开启，选择下方要同步的内容' : '开启后选择要同步的内容')
-                      : '请先配置服务器'),
+                      ? (enabled ? l10n.setBEnabledChoose : l10n.setBEnableThenChoose)
+                      : l10n.setBConfigureServerFirst),
                   initialValue: enabled,
                   enabled: configured && !_busy,
                   onToggle: (value) => _setEnabled(value ?? !enabled),
@@ -124,13 +133,13 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
               ],
             ),
             SettingsSection(
-              title: const Text('同步内容'),
+              title: Text(l10n.setBSyncedContent),
               margin: EdgeInsets.zero,
               tiles: [
                 SettingsTile.switchTile(
                   leading: Icons.history_rounded,
-                  title: const Text('观看记录'),
-                  description: const Text('自动同步播放进度与历史记录'),
+                  title: Text(l10n.setBWatchHistory),
+                  description: Text(l10n.setBHistoryAutoDesc),
                   initialValue: history,
                   enabled: enabled && !_busy,
                   onToggle: (value) async {
@@ -141,8 +150,8 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.favorite_rounded,
-                  title: const Text('收藏'),
-                  description: const Text('在收藏页同步所有追番分类'),
+                  title: Text(l10n.setBFavorites),
+                  description: Text(l10n.setBFavoritesAutoDesc),
                   initialValue: collect,
                   enabled: enabled && !_busy,
                   onToggle: (value) async {
@@ -153,8 +162,8 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
                 ),
                 SettingsTile.switchTile(
                   leading: Icons.filter_alt_rounded,
-                  title: const Text('弹幕屏蔽词'),
-                  description: const Text('启动和修改规则后自动同步，包含关键词与正则表达式'),
+                  title: Text(l10n.setBDanmakuKeywords),
+                  description: Text(l10n.setBKeywordsAutoDesc),
                   initialValue: shield,
                   enabled: enabled && !_busy,
                   onToggle: (value) async {
@@ -170,13 +179,13 @@ class _WebDavSyncPageState extends State<WebDavSyncPage> {
             ),
             StateActionButton(
               onPressed: enabled && !_busy ? _syncHistory : null,
-              text: _busy ? '请稍候…' : '立即同步观看记录',
+              text: _busy ? l10n.setBPleaseWait : l10n.setBSyncHistoryNow,
               icon: Icons.sync_rounded,
             ),
             StateActionButton.tonal(
               onPressed:
                   enabled && shield && !_busy ? _syncDanmakuShield : null,
-              text: '立即同步弹幕屏蔽词',
+              text: l10n.setBSyncKeywordsNow,
               icon: Icons.sync_rounded,
             ),
             if (_message != null)

@@ -4,6 +4,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/repositories/danmaku_shield_repository.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -45,11 +46,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   /// 一键同步：upload=true 本机→云端（覆盖云端）；false 云端→本机（覆盖本机）
   Future<void> _oneWaySync({required bool upload}) async {
     if (_busy) return;
+    final l10n = AppLocalizations.of(context)!;
     if (!_webdavHasConfig) {
-      KazumiDialog.showToast(message: '请先配置 WebDAV');
+      KazumiDialog.showToast(message: l10n.setBConfigureWebdavFirst);
       return;
     }
-    final dirLabel = upload ? '上传' : '下载';
+    final dirLabel = upload ? l10n.setBUpload : l10n.setBDownload;
     // 🛡️ 「下载=云端覆盖本机」前先快照，避免误点导致收藏丢失
     if (!upload) {
       await GStorage.snapshotBeforeOverwrite();
@@ -68,9 +70,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           } else {
             await webDav.downloadHistory();
           }
-          done.add('历史');
+          done.add(l10n.setBHistoryItem);
         } catch (_) {
-          failed.add('历史');
+          failed.add(l10n.setBHistoryItem);
         }
       }
       if (_incCollect) {
@@ -80,9 +82,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           } else {
             await webDav.downloadCollectibles();
           }
-          done.add('收藏');
+          done.add(l10n.setBFavorites);
         } catch (_) {
-          failed.add('收藏');
+          failed.add(l10n.setBFavorites);
         }
       }
       if (_incDanmaku) {
@@ -99,9 +101,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             }
             await repo.mergeSyncState(remote);
           }
-          done.add('弹幕规则');
+          done.add(l10n.setBDanmakuRules);
         } catch (_) {
-          failed.add('弹幕规则');
+          failed.add(l10n.setBDanmakuRules);
         }
       }
       if (_incGoal) {
@@ -112,9 +114,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           } else {
             await webDav.downloadSettings();
           }
-          done.add('追番目标');
+          done.add(l10n.setBWeeklyGoal);
         } catch (_) {
-          failed.add('追番目标');
+          failed.add(l10n.setBWeeklyGoal);
         }
       }
       // 下载完成后刷新本地列表
@@ -124,18 +126,20 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         } catch (_) {}
       }
     } catch (e) {
-      failed.add('初始化失败');
+      failed.add(l10n.setBInitFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
     if (mounted) {
       final msg = StringBuffer();
-      if (done.isNotEmpty) msg.write('✅ 已$dirLabel：${done.join('、')}');
+      if (done.isNotEmpty) {
+        msg.write(l10n.setBSyncDone(dirLabel, done.join('、')));
+      }
       if (failed.isNotEmpty) {
         if (msg.isNotEmpty) msg.write('\n');
-        msg.write('❌ 失败：${failed.join('、')}');
+        msg.write(l10n.setBSyncFailed(failed.join('、')));
       }
-      if (msg.isEmpty) msg.write('未选择任何同步项');
+      if (msg.isEmpty) msg.write(l10n.setBSyncNothingSelected);
       KazumiDialog.showToast(message: msg.toString());
     }
   }
@@ -144,11 +148,12 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: SysAppBar(
         toolbarHeight: 72,
-        title: Text('同步设置',
+        title: Text(l10n.syncSettings,
             style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         needTopOffset: false,
       ),
@@ -161,22 +166,22 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('选择需要的服务',
+                  Text(l10n.setBChooseServices,
                       style: text.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text('也可以同时使用多个服务来同步数据',
+                  Text(l10n.setBMultiServicesHint,
                       style: text.bodyMedium
                           ?.copyWith(color: colors.onSurfaceVariant)),
                   const SizedBox(height: 16),
 
                   _SyncServiceTile(
                     icon: Icons.brightness_6_rounded,
-                    title: 'Bangumi 追番同步',
-                    subtitle: '与Bangumi保持相同的追番状态',
+                    title: l10n.setBBangumiSyncTitle,
+                    subtitle: l10n.setBBangumiSyncSub,
                     status: _bangumiHasToken
-                        ? (_bangumiEnabled ? '已开启' : '已配置')
-                        : '未配置',
+                        ? (_bangumiEnabled ? l10n.setBSyncOn : l10n.setBSyncConfigured)
+                        : l10n.setBSyncNotConfigured,
                     statusColor:
                         _bangumiHasToken ? Colors.green : colors.outline,
                     iconBg: colors.primaryContainer,
@@ -190,11 +195,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
                   _SyncServiceTile(
                     icon: Icons.cloud_sync_rounded,
-                    title: 'WebDAV 多端同步',
-                    subtitle: '通过自己的网盘与其他设备接着看',
+                    title: l10n.setBWebdavSyncTitle,
+                    subtitle: l10n.setBWebdavSyncSub,
                     status: _webdavHasConfig
-                        ? (_webdavEnabled ? '已开启' : '已配置')
-                        : '未配置',
+                        ? (_webdavEnabled ? l10n.setBSyncOn : l10n.setBSyncConfigured)
+                        : l10n.setBSyncNotConfigured,
                     statusColor:
                         _webdavHasConfig ? Colors.green : colors.outline,
                     iconBg: colors.tertiaryContainer,
@@ -232,11 +237,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('单向同步',
+                                    Text(l10n.setBOneWaySync,
                                         style: text.titleMedium?.copyWith(
                                             fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 2),
-                                    Text('上传：本机→云端；下载：云端→本机（均覆盖）',
+                                    Text(l10n.setBOneWaySyncDesc,
                                         style: text.bodySmall?.copyWith(
                                             color: colors.onSurfaceVariant)),
                                   ],
@@ -267,7 +272,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                     ? null
                                     : () => _oneWaySync(upload: true),
                                 icon: const Icon(Icons.upload_rounded, size: 16),
-                                label: const Text('上传'),
+                                label: Text(l10n.setBUpload),
                               ),
                               const SizedBox(width: 8),
                               FilledButton.tonalIcon(
@@ -275,7 +280,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                     ? null
                                     : () => _oneWaySync(upload: false),
                                 icon: const Icon(Icons.download_rounded, size: 16),
-                                label: const Text('下载'),
+                                label: Text(l10n.setBDownload),
                               ),
                             ],
                           ),
@@ -293,7 +298,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                     contentPadding: EdgeInsets.zero,
                                     leading: const Icon(Icons.restore_rounded, size: 18),
                                     title: Text(
-                                      '上一次覆盖前备份过本机收藏，点此恢复（当前快照 ${GStorage.snapshotCollectCount} 条）',
+                                      l10n.setBRestoreSnapshot(GStorage.snapshotCollectCount),
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                     onTap: () async {
@@ -301,14 +306,14 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                           .restoreCollectiblesFromSnapshot();
                                       if (!mounted) return;
                                       KazumiDialog.showToast(
-                                          message: '已恢复 $n 条收藏');
+                                          message: l10n.setBRestoredFavorites(n));
                                       setState(() {});
                                     },
                                   ),
                                 const Divider(height: 1),
                                 _switchTile(
-                                  title: '观看记录',
-                                  subtitle: '观看进度与历史',
+                                  title: l10n.setBWatchHistory,
+                                  subtitle: l10n.setBWatchHistorySub,
                                   value: _incHistory,
                                   onChanged: (v) {
                                     setState(() => _incHistory = v);
@@ -317,8 +322,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                   },
                                 ),
                                 _switchTile(
-                                  title: '收藏',
-                                  subtitle: '所有追番分类',
+                                  title: l10n.setBFavorites,
+                                  subtitle: l10n.setBFavoritesSub,
                                   value: _incCollect,
                                   onChanged: (v) {
                                     setState(() => _incCollect = v);
@@ -327,8 +332,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                   },
                                 ),
                                 _switchTile(
-                                  title: '弹幕规则',
-                                  subtitle: '弹幕屏蔽词',
+                                  title: l10n.setBDanmakuRules,
+                                  subtitle: l10n.setBDanmakuKeywords,
                                   value: _incDanmaku,
                                   onChanged: (v) {
                                     setState(() => _incDanmaku = v);
@@ -337,8 +342,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                   },
                                 ),
                                 _switchTile(
-                                  title: '追番目标',
-                                  subtitle: '本周观看目标',
+                                  title: l10n.setBWeeklyGoal,
+                                  subtitle: l10n.setBWeeklyGoalSub,
                                   value: _incGoal,
                                   onChanged: (v) {
                                     setState(() => _incGoal = v);

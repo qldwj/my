@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_dropdown_tile.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/modules/danmaku/danmaku_ch_convert.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 extension _ConversionLabel on DanmakuChConvert {
-  String get label => switch (this) {
-    DanmakuChConvert.none => '不转换',
-    DanmakuChConvert.simplified => '转为简体',
-    DanmakuChConvert.traditional => '转为繁体',
-  };
+  String label(AppLocalizations l10n) => switch (this) {
+        DanmakuChConvert.none => l10n.setBChConvertNone,
+        DanmakuChConvert.simplified => l10n.setBChConvertToSimplified,
+        DanmakuChConvert.traditional => l10n.setBChConvertToTraditional,
+      };
 }
 
 class DanmakuChConvertTile extends StatefulWidget {
@@ -32,7 +33,8 @@ class _DanmakuChConvertTileState extends State<DanmakuChConvertTile> {
       await GStorage.putSetting(SettingsKeys.danmakuChConvert, mode.value);
     } catch (_) {
       if (mounted) {
-        KazumiDialog.showToast(context: context, message: '简繁转换设置保存失败，请重试');
+        KazumiDialog.showToast(
+            context: context, message: AppLocalizations.of(context)!.setBChConvertSaveFailed);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -41,6 +43,7 @@ class _DanmakuChConvertTileState extends State<DanmakuChConvertTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<void>(
       stream: _settingsChanges,
       builder: (context, _) {
@@ -49,12 +52,12 @@ class _DanmakuChConvertTileState extends State<DanmakuChConvertTile> {
         );
         return SettingsDropdownTile<DanmakuChConvert>(
           leading: Icons.translate_rounded,
-          title: const Text('简繁转换'),
-          description: const Text('下次联网加载弹幕时生效，已缓存弹幕保留下载时的文字'),
+          title: Text(l10n.setBChConvert),
+          description: Text(l10n.setBChConvertDesc),
           enabled: !_saving,
           value: mode,
           options: {
-            for (final option in DanmakuChConvert.values) option: option.label,
+            for (final option in DanmakuChConvert.values) option: option.label(l10n),
           },
           onChanged: _selectMode,
         );
