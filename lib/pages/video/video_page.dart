@@ -9,6 +9,9 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/video/danmaku_send_sheet.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/pages/video/source_switch_sheet.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/playlist/play_queue_page.dart';
 import 'package:kazumi/pages/my/friend_picker.dart';
 import 'package:kazumi/services/playlist/play_queue_service.dart';
@@ -292,6 +295,33 @@ class _VideoPageState extends State<VideoPage>
         currentRoad: videoPageController.selectedEpisode.road,
       );
     });
+  }
+
+  /// ⭐ 打开「切换播放源」底部面板：从底部弹出约 1/2 高，选择其他规则后
+  /// 切换源并用当前集数重新播放。系统返回直接关闭面板回到播放页。
+  Future<void> _openSourceSwitchSheet() async {
+    if (videoPageController.searchInfoController == null) {
+      KazumiDialog.showToast(message: '暂无可切换的播放源');
+      return;
+    }
+    final result = await showModalBottomSheet<(Plugin, SearchItem)>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: false,
+      builder: (_) => SourceSwitchSheet(controller: videoPageController),
+    );
+    if (result == null || !mounted) return;
+    final (plugin, item) = result;
+    final ok = await videoPageController.switchSource(plugin, item);
+    if (!mounted) return;
+    if (!ok) {
+      KazumiDialog.showToast(message: '切换播放源失败');
+      return;
+    }
+    await changeEpisode(
+      videoPageController.selectedEpisode.episode,
+      currentRoad: 0,
+    );
   }
 
   void _initOnlineMode(PlayerController playerController) {
@@ -1307,6 +1337,13 @@ class _VideoPageState extends State<VideoPage>
                     ),
                   ),
                 ),
+                // ⭐ 切换播放源入口：从底部弹出面板
+                IconButton(
+                  tooltip: '切换播放源',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                  onPressed: _openSourceSwitchSheet,
+                ),
               ],
             ),
           ),
@@ -1727,10 +1764,10 @@ class _VideoPageState extends State<VideoPage>
                                 ),
                               );
                             }),
+                            // ⭐ 播放页相关推荐：选集上方横排，进入选集 Tab 即见
+                            const PlayRecommendSection(),
                             menuBar,
                             menuBody,
-                            // ⭐ 播放页相关推荐：选集列表末尾横排推荐
-                            const PlayRecommendSection(),
                           ],
                         ),
                       ),

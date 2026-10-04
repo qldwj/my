@@ -335,6 +335,11 @@ abstract class _VideoPageController with Store implements Disposable {
 
   bool get autoResolvePending => _autoResolvePending;
 
+  /// ⭐ 自动选源/源切换复用的检索上下文：保存最近一次并发检索的规则搜索结果与控制器，
+  /// 供播放页「切换播放源」面板直接读取，无需重新检索。
+  InfoController? searchInfoController;
+  PluginsController? searchPluginsController;
+
   @observable
   var roadList = ObservableList<Road>();
 
@@ -399,6 +404,8 @@ abstract class _VideoPageController with Store implements Disposable {
       final collectController = inject<CollectController>();
       final pluginsController = inject<PluginsController>();
       final infoController = InfoController(collectController);
+      searchInfoController = infoController;
+      searchPluginsController = pluginsController;
       final searchService = PluginSearchService(
         infoController: infoController,
         pluginsController: pluginsController,
@@ -486,6 +493,26 @@ abstract class _VideoPageController with Store implements Disposable {
       score += 1;
     }
     return score;
+  }
+
+  /// ⭐ 播放页内切换播放源：重新查询目标源的分集，替换当前 `currentPlugin`/`src`/`roadList`。
+  /// 返回 `true` 表示源已就绪，调用方随后触发 [changeEpisode] 用当前集数重新播放。
+  Future<bool> switchSource(Plugin plugin, SearchItem searchItem) async {
+    try {
+      final roads = await plugin.queryChapterRoads(searchItem.src);
+      if (roads.isEmpty) {
+        KazumiLogger().w('VideoPageController: 切换源失败，分集为空 ${plugin.name}');
+        return false;
+      }
+      currentPlugin = plugin;
+      src = searchItem.src;
+      roadList.clear();
+      roadList.addAll(roads);
+      return true;
+    } catch (e) {
+      KazumiLogger().w('VideoPageController: 切换源异常', error: e);
+      return false;
+    }
   }
 
   @action
