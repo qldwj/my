@@ -85,227 +85,280 @@
   "feedbackDesc": "查看所有反馈及处理情况",
   "about": "关于",
   "backTooltip": "返回",
-  "setCSaved": "已保存",
-  "setCEnterMirrorDomainFirst": "请先填写镜像域名",
-  "setCTestingConnection": "正在测试连接...",
-  "setCConnectionTestPassed": "✅ 连接测试通过",
-  "setCConnectionFailed": "连接失败: {statusCode}",
-  "@setCConnectionFailed": {
+  "setBDanmakuSources": "弹幕来源",
+  "setBCustomDanmaku": "自建弹幕",
+  "setBCustomDanmakuDesc": "发送弹幕同步到自己服务器(需审核)，并显示已审核弹幕",
+  "setBDanmakuFilter": "弹幕屏蔽",
+  "setBKeywordFilter": "关键词屏蔽",
+  "setBLocalCache": "本地弹幕库",
+  "setBClearCache": "清空本地弹幕库",
+  "setBClearCacheContent": "将删除所有已缓存的弹幕（约 {size}）。\n\n清空后，弹幕源不可用时就无法离线观看弹幕了。",
+  "@setBClearCacheContent": {
     "placeholders": {
-      "statusCode": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "setBClear": "清空",
+  "setBCacheCleared": "已清空本地弹幕库",
+  "setBCacheDesc": "弹幕会自动缓存到本地，弹幕源不可用时也能看",
+  "setBDanmakuDisplay": "弹幕显示",
+  "setBDanmakuArea": "弹幕区域",
+  "setBDanmakuDuration": "弹幕持续时间",
+  "setBDanmakuLineHeight": "弹幕行高",
+  "setBFollowVideoSpeed": "弹幕跟随视频倍速",
+  "setBFollowVideoSpeedDesc": "开启后弹幕速度会随视频倍速而改变",
+  "setBTopDanmaku": "顶部弹幕",
+  "setBBottomDanmaku": "底部弹幕",
+  "setBScrollDanmaku": "滚动弹幕",
+  "setBMassiveDanmaku": "海量弹幕",
+  "setBMassiveDanmakuDesc": "弹幕过多时进行叠加绘制",
+  "setBDanmakuDedup": "弹幕去重",
+  "setBDanmakuDedupDesc": "相同内容弹幕过多时合并为一条弹幕",
+  "setBDanmakuStyle": "弹幕样式",
+  "setBDanmakuOutline": "弹幕描边",
+  "setBDanmakuOutlineWidth": "弹幕描边粗细",
+  "setBDanmakuColor": "弹幕颜色",
+  "setBFontSize": "字体大小",
+  "setBFontWeight": "字体字重",
+  "setBDanmakuOpacity": "弹幕不透明度",
+  "setBRestoreDefaults": "恢复默认设置",
+  "setBRestoreDefaultsDesc": "将弹幕相关设置恢复为默认值",
+  "setBResetDanmakuTitle": "恢复默认弹幕设置",
+  "setBResetDanmakuContent": "弹幕来源、显示和样式设置将恢复为默认值，关键词屏蔽列表不会被清空。",
+  "setBResetDefaults": "恢复默认",
+  "setBDanmakuResetDone": "已恢复默认弹幕设置",
+  "setBSheetAdjustDesc": "调整弹幕显示、样式与屏蔽规则",
+  "setBDurationShort": "持续时间",
+  "setBLineHeightShort": "行高",
+  "setBTimelineOffset": "时间轴偏移",
+  "setBFollowSpeedShort": "跟随视频倍速",
+  "setBFollowSpeedShortDesc": "弹幕速度随视频倍速变化",
+  "setBTimeOffsetTitle": "弹幕时间轴偏移",
+  "setBTimeOffsetDesc": "校准弹幕相对于视频画面的显示时间",
+  "setBNoOffset": "无偏移",
+  "setBOffsetLater": "延后",
+  "setBOffsetEarlier": "提前",
+  "setBEarlier3Min": "提前 3:00",
+  "setBLater3Min": "延后 3:00",
+  "setBEarlier1Sec": "提前 1 秒",
+  "setBLater1Sec": "延后 1 秒",
+  "setBResetNoOffset": "恢复无偏移",
+  "setBAddRule": "添加规则",
+  "setBKeywordOrRegex": "关键词或 /正则表达式/",
+  "setBAddRuleHint": "包含关键词的弹幕会被隐藏。用 / / 包裹正则表达式。",
+  "setBNoRulesYet": "还没有屏蔽规则",
+  "setBAddedCount": "已添加 · {count}",
+  "@setBAddedCount": {
+    "placeholders": {
+      "count": {
         "type": "int"
       }
     }
   },
-  "setCConnectionTestFailed": "连接测试失败: {error}",
-  "@setCConnectionTestFailed": {
+  "setBRegexLabel": "正则表达式",
+  "setBDeleteRule": "删除规则",
+  "setBShieldDesc": "使用关键词或正则表达式过滤弹幕",
+  "setBAddShieldRule": "添加屏蔽规则",
+  "setBShieldRegexHint": "以“/”开头和结尾将视作正则表达式，如“/\\d+/”表示屏蔽所有数字",
+  "setBKeywordOrRegexHint": "输入关键词或正则表达式",
+  "setBAdd": "添加",
+  "setBKeywordCount": "已添加{count}个关键词",
+  "@setBKeywordCount": {
     "placeholders": {
-      "error": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setBChConvertNone": "不转换",
+  "setBChConvertToSimplified": "转为简体",
+  "setBChConvertToTraditional": "转为繁体",
+  "setBChConvertSaveFailed": "简繁转换设置保存失败，请重试",
+  "setBChConvert": "简繁转换",
+  "setBChConvertDesc": "下次联网加载弹幕时生效，已缓存弹幕保留下载时的文字",
+  "setBChooseServices": "选择需要的服务",
+  "setBMultiServicesHint": "也可以同时使用多个服务来同步数据",
+  "setBBangumiSyncTitle": "Bangumi 追番同步",
+  "setBBangumiSyncSub": "与Bangumi保持相同的追番状态",
+  "setBSyncOn": "已开启",
+  "setBSyncConfigured": "已配置",
+  "setBSyncNotConfigured": "未配置",
+  "setBWebdavSyncTitle": "WebDAV 多端同步",
+  "setBWebdavSyncSub": "通过自己的网盘与其他设备接着看",
+  "setBOneWaySync": "单向同步",
+  "setBOneWaySyncDesc": "上传：本机→云端；下载：云端→本机（均覆盖）",
+  "setBUpload": "上传",
+  "setBDownload": "下载",
+  "setBRestoreSnapshot": "上一次覆盖前备份过本机收藏，点此恢复（当前快照 {count} 条）",
+  "@setBRestoreSnapshot": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "setBRestoredFavorites": "已恢复 {n} 条收藏",
+  "@setBRestoredFavorites": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "setBWatchHistory": "观看记录",
+  "setBWatchHistorySub": "观看进度与历史",
+  "setBFavorites": "收藏",
+  "setBFavoritesSub": "所有追番分类",
+  "setBDanmakuRules": "弹幕规则",
+  "setBDanmakuKeywords": "弹幕屏蔽词",
+  "setBWeeklyGoal": "追番目标",
+  "setBWeeklyGoalSub": "本周观看目标",
+  "setBConfigureWebdavFirst": "请先配置 WebDAV",
+  "setBHistoryItem": "历史",
+  "setBInitFailed": "初始化失败",
+  "setBSyncDone": "✅ 已{dir}：{items}",
+  "@setBSyncDone": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      },
+      "items": {
         "type": "String"
       }
     }
   },
-  "setCImageAcceleration": "图片加速",
-  "setCChoosePresetDomain": "选择预设域名",
-  "setCKazumiOfficialMirror": "Kazumi 官方镜像",
-  "setCQlyyzMirror": "Qlyyz 镜像",
-  "setCMirrorSettings": "镜像设置",
-  "setCEnableApiMirror": "启用 API 镜像代理",
-  "setCEnableApiMirrorDesc": "开启后将通过自定义镜像域名请求数据",
-  "setCBangumiMirror": "Bangumi 镜像",
-  "setCBangumiMirrorDesc": "同步Bangumi时使用镜像",
-  "setCRuleRepoMirror": "规则仓库镜像",
-  "setCRuleRepoMirrorDesc": "获取规则列表时使用镜像",
-  "setCImageAccelerationDesc": "加速 Bangumi 封面与头像加载",
-  "setCMirrorMainDomain": "镜像主域名",
-  "setCDomainHint": "填写后所有 API 请求将通过此域名代理（自动补全 https://）",
-  "setCEndpointPaths": "端点路径配置",
-  "setCEndpointPathsDesc": "每个端点的原始地址和自定义镜像路径",
-  "setCAnimeSearchNote": "番剧搜索：App 走 qlyyz 中转签名接口（qlyyz 凭据），后端上游直连官方 api.kazumi.fyi（带官方签名）。",
-  "setCTest": "测试",
-  "setCOriginal": "原始: {original}",
-  "@setCOriginal": {
+  "setBSyncFailed": "❌ 失败：{items}",
+  "@setBSyncFailed": {
     "placeholders": {
-      "original": {
+      "items": {
         "type": "String"
       }
     }
   },
-  "setCMirrorPath": "镜像路径",
-  "setCProxy": "代理",
-  "setCCheckingConnection": "正在检测连接，请稍后",
-  "setCAllServicesOk": "所有服务连接正常",
-  "setCSomeServicesAbnormal": "部分服务连接异常",
-  "setCProxyNotEnabled": "未启用代理",
-  "setCRecheck": "重新检测",
-  "setCEdit": "编辑",
-  "setCEnterProxyAddress": "请输入代理地址",
-  "setCTestSuccess": "测试成功",
-  "setCProxyConnectionFailed": "代理连接失败",
-  "setCProxyConfig": "代理配置",
-  "setCProxyAddress": "代理地址",
-  "setCProxyFormatError": "格式错误，请使用 http://host:port 格式",
-  "setCTestAddress": "测试地址",
-  "setCSaveAndTest": "保存并测试",
-  "setCPleaseTestInProxyConfig": "请先在代理配置中完成测试",
-  "setCNetworkSettings": "网络设置",
-  "setCEnableProxy": "启用代理",
-  "setCEnableProxyDesc": "启用后网络请求将通过代理服务器",
-  "setCProxyConfigDesc": "配置代理服务器地址和认证信息",
-  "setCEnableBangumiSyncFirst": "请先开启 Bangumi 同步",
-  "setCBangumiSyncFailed": "Bangumi同步失败 {error}",
-  "@setCBangumiSyncFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "setCBangumiConfig": "Bangumi 配置",
-  "setCImmediateSyncToast": "即时同步提示",
-  "setCImmediateSyncToastDesc": "点击追番按钮触发即时同步时显示提示框",
-  "setCSyncPriority": "同步优先级",
-  "setCSyncPriorityDesc": "当本地与 Bangumi 状态不一致时优先使用哪个状态",
-  "setCSyncNow": "立即同步状态",
-  "setCSyncNowDesc": "同步状态不一致或仅存在于本地/远端的条目",
-  "setCCannotOpenLink": "无法打开链接",
-  "setCGetTokenHint": "你可以点击此处前往 Bangumi 生成 Access Token",
-  "setCTokenEmpty": "Access Token 不能为空",
-  "setCBangumiTokenEmpty": "Bangumi Token 为空，请检查",
-  "setCTestingBangumiToken": "正在测试 Bangumi Token...",
-  "setCVerifyFailed": "验证失败：{error}",
-  "@setCVerifyFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "setCTestSuccessUser": "测试成功，用户名：{user}",
-  "@setCTestSuccessUser": {
+  "setBSyncNothingSelected": "未选择任何同步项",
+  "setBConnectingWebdav": "正在连接 WebDAV…",
+  "setBSyncFailedGeneric": "未能完成，请检查网络或服务器配置后重试。",
+  "setBSyncingHistory": "正在同步观看记录…",
+  "setBHistorySynced": "观看记录已同步",
+  "setBSyncingKeywords": "正在同步弹幕屏蔽词…",
+  "setBKeywordsSynced": "弹幕屏蔽词已同步",
+  "setBMultiDeviceSync": "多设备同步",
+  "setBWebdavIntro": "连接自己的云盘，同步观看记录、收藏与弹幕屏蔽词。",
+  "setBSyncServer": "同步服务器",
+  "setBConnectCloud": "连接你的云盘",
+  "setBServerSaved": "已保存服务器地址",
+  "setBNeedsWebdav": "需要支持 WebDAV 的云盘或服务器",
+  "setBEnableWebdav": "启用 WebDAV",
+  "setBEnabledChoose": "已开启，选择下方要同步的内容",
+  "setBEnableThenChoose": "开启后选择要同步的内容",
+  "setBConfigureServerFirst": "请先配置服务器",
+  "setBSyncedContent": "同步内容",
+  "setBHistoryAutoDesc": "自动同步播放进度与历史记录",
+  "setBFavoritesAutoDesc": "在收藏页同步所有追番分类",
+  "setBKeywordsAutoDesc": "启动和修改规则后自动同步，包含关键词与正则表达式",
+  "setBPleaseWait": "请稍候…",
+  "setBSyncHistoryNow": "立即同步观看记录",
+  "setBSyncKeywordsNow": "立即同步弹幕屏蔽词",
+  "setBBangumiSync": "Bangumi 同步",
+  "setBBangumiKeepTitle": "让追番保持同步",
+  "setBBangumiKeepDesc": "与 Bangumi 保持相同的追番状态，支持想看/在看/看过/搁置/抛弃。",
+  "setBConnectionSettings": "连接配置",
+  "setBConnectedUser": "已连接 · {user}",
+  "@setBConnectedUser": {
     "placeholders": {
       "user": {
         "type": "String"
       }
     }
   },
-  "setCPreparingSync": "准备同步 Bangumi 状态...",
-  "setCBangumiSyncing": "Bangumi 同步进行中",
-  "setCMax4Files": "最多只能选择4个文件",
-  "setCEnterFeedbackContent": "请填写反馈内容",
-  "setCFileOverLimit": "文件 {name} 超过 20MB 限制",
-  "@setCFileOverLimit": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "setCSubmitSuccess": "反馈提交成功，感谢您的支持！",
-  "setCUnknownError": "未知错误",
-  "setCSubmitFailed": "提交失败：{error}",
-  "@setCSubmitFailed": {
+  "setBNotConnected": "未连接",
+  "setBGetFromBangumi": "从 Bangumi 获取",
+  "setBEnterToken": "请输入Access Token",
+  "setBConnectSuccess": "连接成功，已自动开启同步",
+  "setBConnectFailed": "连接失败: {error}",
+  "@setBConnectFailed": {
     "placeholders": {
       "error": {
         "type": "String"
       }
     }
   },
-  "setCServerError": "服务器响应异常 ({code})",
-  "@setCServerError": {
+  "setBVerified": "已验证",
+  "setBVerifySave": "验证并保存",
+  "setBGetAuthCode": "获取授权码",
+  "setBAutoSync": "自动同步",
+  "setBAutoSyncDesc": "修改追番状态时自动同步到 Bangumi",
+  "setBSyncComplete": "同步完成",
+  "setBSyncFailedMsg": "同步失败: {error}",
+  "@setBSyncFailedMsg": {
     "placeholders": {
-      "code": {
-        "type": "int"
-      }
-    }
-  },
-  "setCNetworkRequestFailed": "网络请求失败，请检查网络连接",
-  "setCResolved": "已处理",
-  "setCPending": "待处理",
-  "setCOfficialReply": "官方回复：",
-  "setCSubmitFeedback": "提交反馈",
-  "setCFeedbackHint": "请描述您的问题或建议...",
-  "setCSelectImages": "选择图片",
-  "setCSelectVideo": "选择视频",
-  "setCAllFeedback": "所有反馈",
-  "setCRefresh": "刷新",
-  "setCNoFeedback": "暂无反馈，快来提交第一条吧！",
-  "setCTapToPlay": "点击播放：{url}",
-  "@setCTapToPlay": {
-    "placeholders": {
-      "url": {
+      "error": {
         "type": "String"
       }
     }
   },
-  "setCExitKazumi": "退出 Kazumi",
-  "setCMinimizeToTray": "最小化至托盘",
-  "setCAskEveryTime": "每次都询问",
-  "setCCacheManagement": "缓存管理",
-  "setCCacheClearConfirm": "缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?",
-  "setCChooseUpdateChannel": "选择更新渠道",
-  "setCStable": "稳定版",
-  "setCBeta": "预览版",
-  "setCClose": "关闭",
-  "setCSpecialThanks": "特别感谢 Kazumi 2.2.3",
-  "setCOpenSourceLicense": "开源许可证",
-  "setCOpenSourceLicenseDesc": "查看所有开源许可证",
-  "setCExternalLinks": "外部链接",
-  "setCProjectHomepage": "项目主页",
-  "setCCodeRepo": "代码仓库",
-  "setCLoginApi": "登录接口",
-  "setCAggregatedLogin": "聚合登录",
-  "setCIconArtwork": "图标创作",
-  "setCBangumiIndex": "番剧索引",
-  "setCReverseSearch": "以图搜番",
-  "setCDanmakuSource": "弹幕来源",
-  "setCDanmakuId": "ID: {id}",
-  "@setCDanmakuId": {
+  "setBSyncTrackingNow": "立即同步追番",
+  "setBTestingConnection": "正在测试连接…",
+  "setBTestSuccess": "连接成功，配置已保存",
+  "setBTestFailed": "连接失败，同步已关闭。请检查服务器地址、账号和密码后重试。",
+  "setBConnectWebdav": "连接 WebDAV",
+  "setBConnectWebdavDesc": "填写云盘或服务器提供的连接信息。",
+  "setBServerAddress": "服务器地址",
+  "setBUrlInvalid": "请输入完整的 http:// 或 https:// 地址",
+  "setBUsername": "用户名",
+  "setBPasswordOrToken": "密码或应用授权码",
+  "setBHidePassword": "隐藏密码",
+  "setBShowPassword": "显示密码",
+  "setBSaveTest": "保存并测试",
+  "setBBackToSync": "返回同步设置",
+  "setBStartupPage": "启动界面设置",
+  "setBStartupPageDesc": "设置应用开启时的默认页面",
+  "setBPageRecommended": "推荐",
+  "setBPageTimeline": "时间表",
+  "setBPageFollow": "追番",
+  "setBPageMine": "我的",
+  "setBShowRating": "显示评分",
+  "setBShowRatingDesc": "关闭后隐藏概览和番剧列表中的评分信息",
+  "setBShowFollowStats": "显示追番统计",
+  "setBShowFollowStatsDesc": "启用后将在追番页面下方显示追番统计",
+  "setBContentFilter": "内容过滤",
+  "setBAgeConfirmTitle": "⚠️ 年龄确认",
+  "setBAgeConfirmContent": "关闭未成年人保护模式后，您将能看到包含 18+ 内容的番剧。\n\n请确认您已年满 18 周岁。\n\n本软件仅提供番剧索引和播放功能，所有内容均来自第三方数据源，与本软件无关。请用户自行判断并承担相应责任。",
+  "setBIAmAdult": "我已年满 18 周岁",
+  "setBMinorMode": "未成年人保护模式",
+  "setBMinorOn": "已开启，18+ 内容已隐藏",
+  "setBMinorOff": "已关闭，将显示 18+ 内容",
+  "setBShortcutPlayback": "播放控制",
+  "setBShortcutVolume": "音量",
+  "setBShortcutScreen": "画面与弹幕",
+  "setBShortcutSpeed": "倍速",
+  "setBShortcutOther": "其他",
+  "setBKeyTaken": "按键已被【{name}】占用，请重新输入",
+  "@setBKeyTaken": {
     "placeholders": {
-      "id": {
+      "name": {
         "type": "String"
       }
     }
   },
-  "setCDandanOpenPlatform": "弹弹play开放平台",
-  "setCCommunity": "社区",
-  "setCTapToJoin": "点击加入",
-  "setCDefaultBehavior": "默认行为",
-  "setCOnClose": "关闭时",
-  "setCErrorLogs": "错误日志",
-  "setCAppUpdate": "应用更新",
-  "setCCheckUpdateOnStartup": "启动时检查应用更新",
-  "setCSilentDownload": "静默下载更新",
-  "setCSilentDownloadDesc": "开启后后台自动下载新版本，下次打开时提示安装",
-  "setCUpdateChannel": "更新渠道",
-  "setCCheckAppUpdate": "检查应用更新",
-  "setCCurrentVersion": "当前版本 {version}",
-  "@setCCurrentVersion": {
-    "placeholders": {
-      "version": {
-        "type": "String"
-      }
-    }
-  },
-  "setCRuleUpdate": "规则更新",
-  "setCCheckRuleUpdateOnStartup": "启动时检查规则更新",
-  "setCAcknowledgements": "致谢",
-  "setCContribution": "贡献",
-  "setCContributors": "贡献者",
-  "setCIconAuthor": "图标作者",
-  "setCServices": "服务",
-  "setCAnimeInfo": "番剧信息",
-  "setCDanmaku": "弹幕",
-  "setCOpenSourceProjects": "开源项目",
-  "setCAppFramework": "应用框架",
-  "setCVideoPlayback": "视频播放",
-  "setCRealTimeUpscaling": "实时超分辨率",
-  "setCPlaybackSync": "播放同步",
-  "setCXpathParsing": "XPath 解析",
-  "setCNonStandardStream": "非标准视频流支持",
-  "setCLocalStorage": "本地存储",
-  "setCCannotOpenLinkRetry": "无法打开链接，请稍后重试",
-  "setCCheckUpdateFailed": "检查更新失败，请稍后重试",
-  "setCChecking": "正在检查…",
-  "setCCheckUpdate": "检查更新"
+  "setBShortcutsReset": "已恢复默认快捷键",
+  "setBTapKeyHint": "点按按键标签，再按下新按键完成修改",
+  "setBPressAnyKey": "按任意键",
+  "setBAddBinding": "添加按键",
+  "setBDarkModeTitle": "深色模式",
+  "setBColorScheme": "配色方案",
+  "setBDynamicColor": "动态配色",
+  "setBUseSystemFont": "使用系统字体",
+  "setBUseSystemFontDesc": "关闭后使用 MI Sans 字体",
+  "setBCustomFont": "自定义字体文件",
+  "setBCustomFontDesc": "选择 .ttf/.otf 字体文件，全局更换字体",
+  "setBDynamicColorNote": "动态配色仅支持安卓12及以上和桌面平台",
+  "setBOledOptimize": "OLED优化",
+  "setBOledOptimizeDesc": "深色模式下使用纯黑背景",
+  "setBSystemTitleBar": "使用系统标题栏",
+  "setBRestartToApply": "重启应用生效",
+  "setBRefreshRate": "屏幕帧率",
+  "setBFontChanged": "✅ 字体已更换"
 }

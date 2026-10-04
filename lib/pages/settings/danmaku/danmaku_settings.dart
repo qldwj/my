@@ -5,6 +5,7 @@ import 'package:kazumi/services/player/danmaku_cache_service.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_ch_convert_tile.dart';
 import 'package:kazumi/utils/device.dart';
 
@@ -79,18 +80,19 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   }
 
   Future<void> resetDanmakuSettings() async {
+    final l10n = AppLocalizations.of(context)!;
     final bool shouldReset = await KazumiDialog.show<bool>(
           builder: (context) => AlertDialog(
-            title: const Text('恢复默认弹幕设置'),
-            content: const Text('弹幕来源、显示和样式设置将恢复为默认值，关键词屏蔽列表不会被清空。'),
+            title: Text(l10n.setBResetDanmakuTitle),
+            content: Text(l10n.setBResetDanmakuContent),
             actions: [
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
-                child: Text('取消'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(popWith: true),
-                child: Text('恢复默认'),
+                child: Text(l10n.setBResetDefaults),
               ),
             ],
           ),
@@ -101,7 +103,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     await GStorage.resetDanmakuSettings();
     if (!mounted) return;
     setState(_loadSettingsFromStorage);
-    KazumiDialog.showToast(message: '已恢复默认弹幕设置');
+    KazumiDialog.showToast(message: l10n.setBDanmakuResetDone);
   }
 
   void onBackPressed(BuildContext context) {
@@ -170,18 +172,20 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('弹幕设置')),
+        appBar: SysAppBar(title: Text(l10n.danmakuSettings)),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setBDanmakuSources,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -224,27 +228,30 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.customDanmakuEnabled, danmakuCustom);
                     setState(() {});
                   },
-                  title: Text('自建弹幕', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('发送弹幕同步到自己服务器(需审核)，并显示已审核弹幕',
+                  title: Text(l10n.setBCustomDanmaku,
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBCustomDanmakuDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuCustom,
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setBDanmakuFilter,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile(
                   onPressed: (_) {
                     context.pushNamed('/settings/danmaku/shield');
                   },
                   title:
-                      Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),
+                      Text(l10n.setBKeywordFilter, style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('本地弹幕库', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setBLocalCache,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile(
                   onPressed: (_) async {
@@ -252,18 +259,17 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     if (!context.mounted) return;
                     final ok = await KazumiDialog.show<bool>(
                       builder: (ctx) => AlertDialog(
-                        title: const Text('清空本地弹幕库'),
+                        title: Text(l10n.setBClearCache),
                         content: Text(
-                            '将删除所有已缓存的弹幕（约 ${_fmtSize(size)}）。\n\n'
-                            '清空后，弹幕源不可用时就无法离线观看弹幕了。'),
+                            l10n.setBClearCacheContent(_fmtSize(size))),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('取消'),
+                            child: Text(l10n.cancel),
                           ),
                           FilledButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('清空'),
+                            child: Text(l10n.setBClear),
                           ),
                         ],
                       ),
@@ -271,14 +277,14 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     if (ok == true) {
                       await DanmakuCacheService.clearAll();
                       if (context.mounted) {
-                        KazumiDialog.showToast(message: '已清空本地弹幕库');
+                        KazumiDialog.showToast(message: l10n.setBCacheCleared);
                         setState(() {});
                       }
                     }
                   },
-                  title: Text('清空本地弹幕库',
+                  title: Text(l10n.setBClearCache,
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('弹幕会自动缓存到本地，弹幕源不可用时也能看',
+                  description: Text(l10n.setBCacheDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   value: FutureBuilder<int>(
                     future: DanmakuCacheService.totalSize(),
@@ -291,11 +297,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               ],
             ),
             SettingsSection(
-              title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setBDanmakuDisplay,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 const DanmakuChConvertTile(),
                 SettingsTile(
-                  title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDanmakuArea,
+                      style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuArea,
                     min: 0,
@@ -309,7 +317,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕持续时间', style: TextStyle(fontFamily: fontFamily)),
+                      Text(l10n.setBDanmakuDuration, style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuDuration,
                     min: 2,
@@ -322,7 +330,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title: Text('弹幕行高', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDanmakuLineHeight,
+                      style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuLineHeight,
                     min: 0,
@@ -342,9 +351,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuFollowSpeed, danmakuFollowSpeed);
                     setState(() {});
                   },
-                  title: Text('弹幕跟随视频倍速',
+                  title: Text(l10n.setBFollowVideoSpeed,
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('开启后弹幕速度会随视频倍速而改变',
+                  description: Text(l10n.setBFollowVideoSpeedDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuFollowSpeed,
                 ),
@@ -355,7 +364,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuTop, danmakuTop);
                     setState(() {});
                   },
-                  title: Text('顶部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBTopDanmaku,
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuTop,
                 ),
                 SettingsTile.switchTile(
@@ -365,7 +375,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuBottom, danmakuBottom);
                     setState(() {});
                   },
-                  title: Text('底部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBBottomDanmaku,
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuBottom,
                 ),
                 SettingsTile.switchTile(
@@ -375,7 +386,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuScroll, danmakuScroll);
                     setState(() {});
                   },
-                  title: Text('滚动弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBScrollDanmaku,
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuScroll,
                 ),
                 SettingsTile.switchTile(
@@ -385,8 +397,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuMassive, danmakuMassive);
                     setState(() {});
                   },
-                  title: Text('海量弹幕', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('弹幕过多时进行叠加绘制',
+                  title: Text(l10n.setBMassiveDanmaku,
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBMassiveDanmakuDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuMassive,
                 ),
@@ -398,15 +411,17 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         danmakuDeduplication);
                     setState(() {});
                   },
-                  title: Text('弹幕去重', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('相同内容弹幕过多时合并为一条弹幕',
+                  title: Text(l10n.setBDanmakuDedup,
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBDanmakuDedupDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDeduplication,
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('弹幕样式', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setBDanmakuStyle,
+                  style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -415,12 +430,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuBorder, danmakuBorder);
                     setState(() {});
                   },
-                  title: Text('弹幕描边', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDanmakuOutline,
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuBorder,
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕描边粗细', style: TextStyle(fontFamily: fontFamily)),
+                      Text(l10n.setBDanmakuOutlineWidth, style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultdanmakuBorderSize,
                     min: 0.1,
@@ -440,11 +456,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingsKeys.danmakuColor, danmakuColor);
                     setState(() {});
                   },
-                  title: Text('弹幕颜色', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBDanmakuColor,
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuColor,
                 ),
                 SettingsTile(
-                  title: Text('字体大小', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBFontSize,
+                      style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuFontSize,
                     min: 10,
@@ -456,7 +474,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title: Text('字体字重', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setBFontWeight,
+                      style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuFontWeight.toDouble(),
                     min: 1,
@@ -470,7 +489,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕不透明度', style: TextStyle(fontFamily: fontFamily)),
+                      Text(l10n.setBDanmakuOpacity, style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuOpacity,
                     min: 0.1,
@@ -489,8 +508,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 SettingsTile(
                   onPressed: (_) => resetDanmakuSettings(),
                   title:
-                      Text('恢复默认设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('将弹幕相关设置恢复为默认值',
+                      Text(l10n.setBRestoreDefaults, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setBRestoreDefaultsDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

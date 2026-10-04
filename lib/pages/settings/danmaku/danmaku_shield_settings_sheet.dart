@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -25,12 +26,13 @@ class _DanmakuShieldSettingsSheetState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Column(
         children: [
           MaterialBottomSheetHeader(
-            title: '弹幕屏蔽',
-            description: '使用关键词或正则表达式过滤弹幕',
+            title: l10n.setBDanmakuFilter,
+            description: l10n.setBShieldDesc,
             onClose: () => Navigator.of(context).pop(),
           ),
           Expanded(
@@ -38,14 +40,14 @@ class _DanmakuShieldSettingsSheetState
               padding: materialBottomSheetContentPadding,
               children: [
                 MaterialBottomSheetSection(
-                  title: '添加屏蔽规则',
-                  description: '以“/”开头和结尾将视作正则表达式，如“/\\d+/”表示屏蔽所有数字',
+                  title: l10n.setBAddShieldRule,
+                  description: l10n.setBShieldRegexHint,
                   icon: Icons.add_circle_outline_rounded,
                   child: TextField(
                     controller: textEditingController,
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(),
-                      hintText: '输入关键词或正则表达式',
+                      hintText: l10n.setBKeywordOrRegexHint,
                       suffixIcon: TextButton.icon(
                         onPressed: () {
                           myController.addShieldList(
@@ -53,7 +55,7 @@ class _DanmakuShieldSettingsSheetState
                           );
                         },
                         icon: const Icon(Icons.add),
-                        label: const Text('添加'),
+                        label: Text(l10n.setBAdd),
                       ),
                     ),
                     onSubmitted: (_) {
@@ -66,7 +68,7 @@ class _DanmakuShieldSettingsSheetState
                 const SizedBox(height: 16),
                 Observer(builder: (context) {
                   return MaterialBottomSheetSection(
-                    title: '已添加${myController.shieldList.length}个关键词',
+                    title: l10n.setBKeywordCount(myController.shieldList.length),
                     icon: Icons.shield_outlined,
                     child: Wrap(
                       runSpacing: 12,

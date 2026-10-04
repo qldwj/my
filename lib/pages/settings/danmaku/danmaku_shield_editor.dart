@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 
 import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 
 class DanmakuShieldEditor extends StatefulWidget {
@@ -40,21 +41,22 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: widget.padding,
       children: [
         ContentSection(
-          title: '添加规则',
+          title: l10n.setBAddRule,
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             TextField(
               controller: textEditingController,
               decoration: InputDecoration(
-                hintText: '关键词或 /正则表达式/',
+                hintText: l10n.setBKeywordOrRegex,
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 suffixIcon: IconButton(
-                  tooltip: '添加规则',
+                  tooltip: l10n.setBAddRule,
                   onPressed: _addRule,
                   icon: const Icon(Icons.add_rounded),
                 ),
@@ -62,7 +64,7 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
               onSubmitted: (_) => _addRule(),
             ),
             const SizedBox(height: 8),
-            Text('包含关键词的弹幕会被隐藏。用 / / 包裹正则表达式。',
+            Text(l10n.setBAddRuleHint,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     )),
@@ -72,23 +74,23 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
         Observer(builder: (context) {
           final rules = myController.shieldList.toList();
           if (rules.isEmpty) {
-            return const GeneralEmptyState(
+            return GeneralEmptyState(
               icon: Icons.filter_alt_off_rounded,
-              title: '还没有屏蔽规则',
+              title: l10n.setBNoRulesYet,
               compact: true,
             );
           }
           return ContentSection.group(
-            title: '已添加 · ${rules.length}',
+            title: l10n.setBAddedCount(rules.length),
             children: [
               for (final rule in rules)
                 ListTile(
                   title: Text(rule),
                   subtitle: rule.startsWith('/') && rule.endsWith('/')
-                      ? const Text('正则表达式')
+                      ? Text(l10n.setBRegexLabel)
                       : null,
                   trailing: IconButton(
-                    tooltip: '删除规则',
+                    tooltip: l10n.setBDeleteRule,
                     icon: const Icon(Icons.close_rounded, size: 20),
                     onPressed: () => myController.removeShieldList(rule),
                   ),

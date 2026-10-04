@@ -3,6 +3,7 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class DanmakuShieldSettings extends StatefulWidget {
   const DanmakuShieldSettings({super.key});
@@ -23,9 +24,10 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: SysAppBar(
-        title: const Text("弹幕屏蔽"),
+        title: Text(l10n.setBDanmakuFilter),
       ),
       body: ListView(
         padding: EdgeInsets.all(12),
@@ -34,7 +36,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
             controller: textEditingController,
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
-              hintText: "输入关键词或正则表达式",
+              hintText: l10n.setBKeywordOrRegexHint,
               suffixIcon: TextButton.icon(
                 onPressed: () {
                   myController.addShieldList(
@@ -42,7 +44,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text("添加"),
+                label: Text(l10n.setBAdd),
               ),
             ),
             onSubmitted: (_) {
@@ -53,11 +55,11 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
           ),
           SizedBox(height: 12),
           Text(
-            '以"/"开头和结尾将视作正则表达式, 如"/\\d+/"表示屏蔽所有数字',
+            l10n.setBShieldRegexHint,
           ),
           Observer(builder: (context) {
             return Text(
-              "已添加${myController.shieldList.length}个关键词",
+              l10n.setBKeywordCount(myController.shieldList.length),
             );
           }),
           SizedBox(height: 12),

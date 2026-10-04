@@ -5,6 +5,7 @@ import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/bean/widget/tonal_card.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_widgets.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
@@ -44,11 +45,12 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
 
   Future<void> _save() async {
     if (_busy || !_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _busy = true;
       _failed = false;
-      _message = '正在测试连接…';
+      _message = l10n.setBTestingConnection;
     });
     try {
       await GStorage.putSetting(SettingsKeys.webDavURL, _url.text.trim());
@@ -56,29 +58,31 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
           SettingsKeys.webDavUsername, _username.text.trim());
       await GStorage.putSetting(SettingsKeys.webDavPassword, _password.text);
       await WebDav().init();
-      _message = '连接成功，配置已保存';
+      _message = l10n.setBTestSuccess;
     } catch (e) {
       KazumiLogger().w('WebDAV configuration failed', error: e);
       await WebDav().setEnabled(false);
       _failed = true;
-      _message = '连接失败，同步已关闭。请检查服务器地址、账号和密码后重试。';
+      _message = l10n.setBTestFailed;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return PopScope(
         canPop: !_busy,
         child: SettingsDetailScaffold(
-          title: const Text('同步服务器'),
+          title: Text(l10n.setBSyncServer),
           body: SyncPageBody(
             maxWidth: 640,
             children: [
-              const SyncPageIntro(
+              SyncPageIntro(
                 icon: Icons.dns_rounded,
-                title: '连接 WebDAV',
-                description: '填写云盘或服务器提供的连接信息。',
+                title: l10n.setBConnectWebdav,
+                description: l10n.setBConnectWebdavDesc,
               ),
               TonalCard(
                 padding: const EdgeInsets.all(20),
@@ -98,10 +102,10 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
                         keyboardType: TextInputType.url,
                         textInputAction: TextInputAction.next,
                         autocorrect: false,
-                        decoration: const InputDecoration(
-                          labelText: '服务器地址',
+                        decoration: InputDecoration(
+                          labelText: l10n.setBServerAddress,
                           hintText: 'https://example.com/dav/',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                           errorMaxLines: 3,
                         ),
                         validator: (value) {
@@ -109,7 +113,7 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
                           if (uri == null ||
                               !['http', 'https'].contains(uri.scheme) ||
                               uri.host.isEmpty) {
-                            return '请输入完整的 http:// 或 https:// 地址';
+                            return l10n.setBUrlInvalid;
                           }
                           return null;
                         },
@@ -119,9 +123,9 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
                         enabled: !_busy,
                         textInputAction: TextInputAction.next,
                         autocorrect: false,
-                        decoration: const InputDecoration(
-                          labelText: '用户名',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.setBUsername,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       TextFormField(
@@ -132,10 +136,10 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
                         enableSuggestions: false,
                         onFieldSubmitted: (_) => _save(),
                         decoration: InputDecoration(
-                          labelText: '密码或应用授权码',
+                          labelText: l10n.setBPasswordOrToken,
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
-                            tooltip: _passwordVisible ? '隐藏密码' : '显示密码',
+                            tooltip: _passwordVisible ? l10n.setBHidePassword : l10n.setBShowPassword,
                             onPressed: () => setState(
                                 () => _passwordVisible = !_passwordVisible),
                             icon: Icon(_passwordVisible
@@ -150,7 +154,7 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
               ),
               StateActionButton(
                 onPressed: _busy ? null : _save,
-                text: _busy ? '正在测试连接…' : '保存并测试',
+                text: _busy ? l10n.setBTestingConnection : l10n.setBSaveTest,
                 icon: Icons.cloud_done_rounded,
               ),
               if (_message != null)
@@ -158,10 +162,11 @@ class _WebDavServerPageState extends State<WebDavServerPage> {
               if (_message != null && !_busy && !_failed)
                 TextButton(
                   onPressed: () => context.maybePop(),
-                  child: const Text('返回同步设置'),
+                  child: Text(l10n.setBBackToSync),
                 ),
             ],
           ),
         ),
       );
+  }
 }
