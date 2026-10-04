@@ -310,7 +310,7 @@ class _SettingsList extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            for (final group in widget.groups)
+            for (final group in groups)
               SettingsSectionCard(
                 title: group.title,
                 children: [
@@ -371,7 +371,7 @@ class _SettingsRail extends StatelessWidget {
             ],
           ),
         ),
-        for (final group in widget.groups) ...[
+        for (final group in groups) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
             child: Text(

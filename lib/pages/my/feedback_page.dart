@@ -474,7 +474,7 @@ class VideoPlayerFullscreen extends StatelessWidget {
         children: [
           const Icon(Icons.play_circle_fill, size: 60),
           const SizedBox(height: 8),
-          Text(l10n.setCTapToPlay(widget.url)),
+          Text(l10n.setCTapToPlay(url)),
         ],
       ),
     );
