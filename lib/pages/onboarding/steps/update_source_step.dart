@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
 
 class UpdateSourceStep extends StatelessWidget {
@@ -14,10 +15,11 @@ class UpdateSourceStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return OnboardingStepLayout(
       leading: const OnboardingStepIcon(icon: Icons.system_update_rounded),
-      title: '更新来源',
-      subtitle: '选择获取应用更新的方式',
+      title: l10n.updateTitle,
+      subtitle: l10n.updateSubtitle,
       child: Align(
         alignment: Alignment.topCenter,
         child: Column(
@@ -26,14 +28,14 @@ class UpdateSourceStep extends StatelessWidget {
             _OptionCard(
               icon: Icons.rocket_launch_rounded,
               title: 'Github',
-              description: '应用内检查更新，适合大多数用户',
+              description: l10n.updateGithubDesc,
               selected: useGithubUpdate,
               onTap: () => onChanged(true),
             ),
             _OptionCard(
               icon: Icons.storefront_rounded,
               title: 'F-Droid',
-              description: '由 F-Droid 商店管理更新',
+              description: l10n.updateFdroidDesc,
               selected: !useGithubUpdate,
               onTap: () => onChanged(false),
             ),
