@@ -6,6 +6,7 @@ import 'package:kazumi/bean/settings/network_mirror_settings.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class ProxySettingsPage extends StatefulWidget {
   const ProxySettingsPage({super.key});
@@ -34,7 +35,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     if (value) {
       final proxyConfigured = GStorage.getSetting(SettingsKeys.proxyConfigured);
       if (!proxyConfigured) {
-        KazumiDialog.showToast(message: '请先在代理配置中完成测试');
+        KazumiDialog.showToast(message: AppLocalizations.of(context)!.setCPleaseTestInProxyConfig);
         return;
       }
       await GStorage.putSetting(SettingsKeys.proxyEnable, true);
@@ -50,26 +51,27 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('网络设置')),
+        appBar: SysAppBar(title: Text(l10n.setCNetworkSettings)),
         body: SettingsList(
           maxWidth: 800,
           sections: [
             const NetworkMirrorSettings(),
             SettingsSection(
-              title: const Text('代理'),
+              title: Text(l10n.setCProxy),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     await updateProxyEnable(value ?? !proxyEnable);
                   },
-                  title: const Text('启用代理'),
-                  description: const Text('启用后网络请求将通过代理服务器'),
+                  title: Text(l10n.setCEnableProxy),
+                  description: Text(l10n.setCEnableProxyDesc),
                   initialValue: proxyEnable,
                 ),
                 SettingsTile(
@@ -80,8 +82,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                           GStorage.getSetting(SettingsKeys.proxyEnable);
                     });
                   },
-                  title: const Text('代理配置'),
-                  description: const Text('配置代理服务器地址和认证信息'),
+                  title: Text(l10n.setCProxyConfig),
+                  description: Text(l10n.setCProxyConfigDesc),
                 ),
               ],
             ),

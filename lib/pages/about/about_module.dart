@@ -5,6 +5,7 @@ import 'package:kazumi/pages/about/credits_page.dart';
 import 'package:kazumi/pages/logs/logs_page.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 final aboutModule = createModule(
   path: '/about',
@@ -20,10 +21,11 @@ final aboutModule = createModule(
       ..route('/credits', child: (context, state) => const CreditsPage())
       ..route(
         '/license',
-        child: (context, state) => const LicensePage(
+        child: (context, state) => LicensePage(
           applicationName: 'YHDM',
           applicationVersion: ApiEndpoints.version,
-          applicationLegalese: '开源许可证',
+          applicationLegalese:
+              AppLocalizations.of(context)!.setCOpenSourceLicense,
         ),
       );
   },

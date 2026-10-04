@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
 /// 代理/服务状态检测页
@@ -228,11 +229,12 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final allChecked = _services.every((s) => !s.checking);
     final allOk = allChecked && _services.every((s) => s.ok);
 
     return Scaffold(
-      appBar: SysAppBar(title: const Text('代理')),
+      appBar: SysAppBar(title: Text(l10n.setCProxy)),
       body: SafeArea(
         child: Column(
           children: [
@@ -244,8 +246,8 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
               switchOutCurve: Curves.easeIn,
               child: Text(
                 !allChecked
-                    ? '正在检测连接，请稍后'
-                    : (allOk ? '所有服务连接正常' : '部分服务连接异常'),
+                    ? l10n.setCCheckingConnection
+                    : (allOk ? l10n.setCAllServicesOk : l10n.setCSomeServicesAbnormal),
                 key: ValueKey(allChecked ? (allOk ? 'ok' : 'fail') : 'checking'),
                 style: TextStyle(
                   fontSize: 17,
@@ -290,7 +292,7 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
               child: Row(
                 children: [
                   Text(
-                    '未启用代理',
+                    l10n.setCProxyNotEnabled,
                     style: TextStyle(
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
@@ -299,13 +301,13 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
                   const Spacer(),
                   // 重新检测按钮
                   TextButton(
-                    onPressed: _services.any((s) => s.checking) 
-                        ? null 
+                    onPressed: _services.any((s) => s.checking)
+                        ? null
                         : _checkAllServices,
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.blue.shade600,
                     ),
-                    child: const Text('重新检测'),
+                    child: Text(l10n.setCRecheck),
                   ),
                   const SizedBox(width: 8),
                   TextButton(
@@ -315,7 +317,7 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.blue.shade600,
                     ),
-                    child: const Text('编辑'),
+                    child: Text(l10n.setCEdit),
                   ),
                 ],
               ),

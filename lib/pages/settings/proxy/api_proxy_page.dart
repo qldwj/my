@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/network/image_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 镜像代理设置页面
@@ -150,7 +151,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     }
     ProxyManager.applyProxy();
     if (mounted) {
-      KazumiDialog.showToast(message: '已保存');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setCSaved);
     }
   }
 
@@ -158,10 +159,11 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     final domain = _normalizeDomain(_domainController.text);
     _domainController.text = domain;
     if (domain.isEmpty) {
-      KazumiDialog.showToast(message: '请先填写镜像域名');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setCEnterMirrorDomainFirst);
       return;
     }
-    KazumiDialog.showToast(message: '正在测试连接...');
+    final l10n = AppLocalizations.of(context)!;
+    KazumiDialog.showToast(message: l10n.setCTestingConnection);
     try {
       // 测试首页播放推送接口
       final url = '$domain/kazumi/v1/popular/subjects?limit=1';
@@ -172,12 +174,12 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
       final response = await request.close().timeout(const Duration(seconds: 10));
       client.close();
       if (response.statusCode == 200) {
-        KazumiDialog.showToast(message: '✅ 连接测试通过');
+        KazumiDialog.showToast(message: l10n.setCConnectionTestPassed);
       } else {
-        KazumiDialog.showToast(message: '连接失败: ${response.statusCode}');
+        KazumiDialog.showToast(message: l10n.setCConnectionFailed(response.statusCode));
       }
     } catch (e) {
-      KazumiDialog.showToast(message: '连接测试失败: $e');
+      KazumiDialog.showToast(message: l10n.setCConnectionTestFailed(e.toString()));
     }
   }
 
@@ -189,7 +191,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     final selected = await KazumiDialog.show<ImageAcceleration>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('图片加速'),
+        title: Text(AppLocalizations.of(context)!.setCImageAcceleration),
         children: [
           RadioGroup<ImageAcceleration>(
             groupValue: current,
@@ -217,6 +219,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   }
 
   void _showDomainPicker() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
@@ -227,13 +230,13 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('选择预设域名', style: Theme.of(ctx).textTheme.titleMedium),
+                child: Text(l10n.setCChoosePresetDomain, style: Theme.of(ctx).textTheme.titleMedium),
               ),
               ..._presetDomains.map((domain) => ListTile(
                 leading: Icon(Icons.language, color: cs.primary),
                 title: Text(domain),
                 subtitle: Text(
-                  domain == 'https://api.kazumi.fyi' ? 'Kazumi 官方镜像' : 'Qlyyz 镜像',
+                  domain == 'https://api.kazumi.fyi' ? l10n.setCKazumiOfficialMirror : l10n.setCQlyyzMirror,
                   style: TextStyle(fontSize: 12, color: cs.outline),
                 ),
                 onTap: () {
@@ -252,8 +255,9 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('镜像代理')),
+      appBar: SysAppBar(title: Text(l10n.mirrorProxy)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -268,21 +272,21 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                     children: [
                       Icon(Icons.dns_rounded, color: cs.primary),
                       const SizedBox(width: 8),
-                      const Text('镜像设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(l10n.setCMirrorSettings, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
-                    title: const Text('启用 API 镜像代理'),
-                    subtitle: const Text('开启后将通过自定义镜像域名请求数据'),
+                    title: Text(l10n.setCEnableApiMirror),
+                    subtitle: Text(l10n.setCEnableApiMirrorDesc),
                     value: _proxyEnabled,
                     onChanged: (v) => setState(() => _proxyEnabled = v),
                     contentPadding: EdgeInsets.zero,
                   ),
                   const Divider(),
                   SwitchListTile(
-                    title: const Text('Bangumi 镜像'),
-                    subtitle: const Text('同步Bangumi时使用镜像'),
+                    title: Text(l10n.setCBangumiMirror),
+                    subtitle: Text(l10n.setCBangumiMirrorDesc),
                     value: GStorage.getSetting(SettingsKeys.enableBangumiProxy),
                     onChanged: (v) {
                       GStorage.putSetting(SettingsKeys.enableBangumiProxy, v);
@@ -291,8 +295,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   SwitchListTile(
-                    title: const Text('规则仓库镜像'),
-                    subtitle: const Text('获取规则列表时使用镜像'),
+                    title: Text(l10n.setCRuleRepoMirror),
+                    subtitle: Text(l10n.setCRuleRepoMirrorDesc),
                     value: GStorage.getSetting(SettingsKeys.enableGitProxy),
                     onChanged: (v) {
                       GStorage.putSetting(SettingsKeys.enableGitProxy, v);
@@ -305,8 +309,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.image_rounded),
-                    title: const Text('图片加速'),
-                    subtitle: const Text('加速 Bangumi 封面与头像加载'),
+                    title: Text(l10n.setCImageAcceleration),
+                    subtitle: Text(l10n.setCImageAccelerationDesc),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -327,11 +331,11 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                       Expanded(
                         child: TextField(
                           controller: _domainController,
-                          decoration: const InputDecoration(
-                            labelText: '镜像主域名',
+                          decoration: InputDecoration(
+                            labelText: l10n.setCMirrorMainDomain,
                             hintText: 'api.qlyyz.top',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.language),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.language),
                           ),
                           onSubmitted: (_) => _save(),
                         ),
@@ -340,13 +344,13 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                       IconButton(
                         onPressed: _showDomainPicker,
                         icon: const Icon(Icons.arrow_drop_down_circle),
-                        tooltip: '选择预设域名',
+                        tooltip: l10n.setCChoosePresetDomain,
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '填写后所有 API 请求将通过此域名代理（自动补全 https://）',
+                    l10n.setCDomainHint,
                     style: TextStyle(fontSize: 12, color: cs.outline),
                   ),
                 ],
@@ -366,12 +370,12 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                     children: [
                       Icon(Icons.api_rounded, color: cs.primary),
                       const SizedBox(width: 8),
-                      const Text('端点路径配置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(l10n.setCEndpointPaths, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '每个端点的原始地址和自定义镜像路径',
+                    l10n.setCEndpointPathsDesc,
                     style: TextStyle(fontSize: 12, color: cs.outline),
                   ),
                 ],
@@ -391,8 +395,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '番剧搜索：App 走 qlyyz 中转签名接口（qlyyz 凭据），'
-                      '后端上游直连官方 api.kazumi.fyi（带官方签名）。',
+                      l10n.setCAnimeSearchNote,
                       style: TextStyle(fontSize: 12, color: cs.outline),
                     ),
                   ),
@@ -414,14 +417,14 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
             onPressed: _testConnection,
             heroTag: 'test',
             icon: const Icon(Icons.wifi_find),
-            label: const Text('测试'),
+            label: Text(l10n.setCTest),
           ),
           const SizedBox(width: 12),
           FloatingActionButton.extended(
             onPressed: _save,
             heroTag: 'save',
             icon: const Icon(Icons.save),
-            label: const Text('保存'),
+            label: Text(l10n.save),
           ),
         ],
       ),
@@ -430,6 +433,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
 
   Widget _buildEndpointCard(String key, _ApiEndpoint endpoint) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -448,7 +452,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                 launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
               },
               child: Text(
-                '原始: ${endpoint.original}',
+                l10n.setCOriginal(endpoint.original),
                 style: TextStyle(fontSize: 11, color: cs.outline, decoration: TextDecoration.underline),
               ),
             ),
@@ -456,7 +460,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
             TextField(
               controller: _pathControllers[key],
               decoration: InputDecoration(
-                labelText: '镜像路径',
+                labelText: l10n.setCMirrorPath,
                 hintText: endpoint.defaultMirrorPath,
                 border: const OutlineInputBorder(),
                 isDense: true,

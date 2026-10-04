@@ -12,6 +12,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({
@@ -26,7 +27,6 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -119,18 +119,19 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _showCacheDialog() {
+    final l10n = AppLocalizations.of(context)!;
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('缓存管理'),
-          content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
+          title: Text(l10n.setCCacheManagement),
+          content: Text(l10n.setCCacheClearConfirm),
           actions: [
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '取消',
+                l10n.cancel,
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -141,7 +142,7 @@ class _AboutPageState extends State<AboutPage> {
                 } catch (_) {}
                 KazumiDialog.dismiss();
               },
-              child: const Text('确认'),
+              child: Text(l10n.confirm),
             ),
           ],
         );
@@ -151,15 +152,16 @@ class _AboutPageState extends State<AboutPage> {
 
   // 🔥 新增：更新渠道选择对话框
   void _showUpdateChannelDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('选择更新渠道'),
+        title: Text(l10n.setCChooseUpdateChannel),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('稳定版'),
+              title: Text(l10n.setCStable),
               leading: Radio<String>(
                 value: 'stable',
                 groupValue: updateChannel,
@@ -173,7 +175,7 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ),
             ListTile(
-              title: const Text('预览版'),
+              title: Text(l10n.setCBeta),
               leading: Radio<String>(
                 value: 'beta',
                 groupValue: updateChannel,
@@ -191,7 +193,7 @@ class _AboutPageState extends State<AboutPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('关闭'),
+            child: Text(l10n.setCClose),
           ),
         ],
       ),
@@ -201,13 +203,19 @@ class _AboutPageState extends State<AboutPage> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
+    final exitBehaviorTitles = [
+      l10n.setCExitKazumi,
+      l10n.setCMinimizeToTray,
+      l10n.setCAskEveryTime,
+    ];
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('关于')),
+        appBar: SysAppBar(title: Text(l10n.about)),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
@@ -232,7 +240,7 @@ class _AboutPageState extends State<AboutPage> {
                               color: Colors.pink, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            '特别感谢 Kazumi 2.2.3',
+                            l10n.setCSpecialThanks,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -257,28 +265,28 @@ class _AboutPageState extends State<AboutPage> {
                     context.pushNamed('/settings/about/license');
                   },
                   title:
-                      Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看所有开源许可证',
+                      Text(l10n.setCOpenSourceLicense, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setCOpenSourceLicenseDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setCExternalLinks, style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCProjectHomepage, style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCCodeRepo, style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Github', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -287,15 +295,15 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse('https://open.juhedenglu.cn/'),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('登录接口', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('聚合登录', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCLoginApi, style: TextStyle(fontFamily: fontFamily)),
+                  value: Text(l10n.setCAggregatedLogin, style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCIconArtwork, style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -304,7 +312,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCBangumiIndex, style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -313,7 +321,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse('https://trace.moe'),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCReverseSearch, style: TextStyle(fontFamily: fontFamily)),
                   value: Text('trace.moe',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -322,16 +330,16 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('ID: ${dandanCredentials['id']}',
+                  title: Text(l10n.setCDanmakuSource, style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(l10n.setCDanmakuId(dandanCredentials['id']),
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('弹弹play开放平台',
+                  value: Text(l10n.setCDandanOpenPlatform,
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setCCommunity, style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -340,13 +348,13 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('Telegram',
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text(l10n.setCTapToJoin, style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
-                title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+                title: Text(l10n.setCDefaultBehavior, style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
                   SettingsTile.navigation(
                     onPressed: (_) {
@@ -357,7 +365,7 @@ class _AboutPageState extends State<AboutPage> {
                       }
                     },
                     title:
-                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                        Text(l10n.setCOnClose, style: TextStyle(fontFamily: fontFamily)),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
                       controller: menuController,
@@ -400,12 +408,12 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     context.pushNamed('/settings/about/logs');
                   },
-                  title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCErrorLogs, style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('应用更新', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setCAppUpdate, style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -414,7 +422,7 @@ class _AboutPageState extends State<AboutPage> {
                         SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: Text('启动时检查应用更新',
+                  title: Text(l10n.setCCheckUpdateOnStartup,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
@@ -425,10 +433,10 @@ class _AboutPageState extends State<AboutPage> {
                         SettingsKeys.silentDownload, silentDownload);
                     setState(() {});
                   },
-                  title: Text('静默下载更新',
+                  title: Text(l10n.setCSilentDownload,
                       style: TextStyle(fontFamily: fontFamily)),
                   description: Text(
-                    '开启后后台自动下载新版本，下次打开时提示安装',
+                    l10n.setCSilentDownloadDesc,
                     style: TextStyle(fontFamily: fontFamily),
                   ),
                   initialValue: silentDownload,
@@ -436,9 +444,9 @@ class _AboutPageState extends State<AboutPage> {
                 // 更新渠道行
                 SettingsTile.navigation(
                   onPressed: (_) => _showUpdateChannelDialog(),
-                  title: Text('更新渠道', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text(l10n.setCUpdateChannel, style: TextStyle(fontFamily: fontFamily)),
                   value: Text(
-                    updateChannel == 'beta' ? '预览版' : '稳定版',
+                    updateChannel == 'beta' ? l10n.setCBeta : l10n.setCStable,
                     style: TextStyle(fontFamily: fontFamily),
                   ),
                 ),
@@ -447,14 +455,14 @@ class _AboutPageState extends State<AboutPage> {
                     myController.checkUpdate();
                   },
                   title:
-                      Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('当前版本 ${ApiEndpoints.version}',
+                      Text(l10n.setCCheckAppUpdate, style: TextStyle(fontFamily: fontFamily)),
+                  value: Text(l10n.setCCurrentVersion(ApiEndpoints.version),
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('规则更新', style: TextStyle(fontFamily: fontFamily)),
+              title: Text(l10n.setCRuleUpdate, style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -466,7 +474,7 @@ class _AboutPageState extends State<AboutPage> {
                     );
                     setState(() {});
                   },
-                  title: Text('启动时检查规则更新',
+                  title: Text(l10n.setCCheckRuleUpdateOnStartup,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: checkPluginUpdateOnStartup,
                 ),
