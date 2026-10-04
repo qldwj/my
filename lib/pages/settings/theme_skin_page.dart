@@ -86,6 +86,8 @@ String _skinDesc(String id, AppLocalizations l10n) {
       return l10n.setDThemeMintGreen;
     case 'mecha':
       return l10n.setDThemeMechaSilver;
+    default:
+      return id;
   }
 }
 
