@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -80,6 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // NavigatorPopHandler 是嵌套导航的官方做法：只有右栏还能回退时才接管返回键，
     // 右栏已到底则正常退出设置（不会像 PopScope(canPop:false) 那样递归）
     return NavigatorPopHandler<Object?>(
@@ -98,6 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   SizedBox(
                     width: 260,
                     child: _SettingsRail(
+                      groups: _buildGroups(l10n),
                       selectedPath: _location,
                       onSelect: _selectEntry,
                       onBack: _goBack,
@@ -129,13 +132,17 @@ class SettingsIndexPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // 宽屏分栏时，右栏直接展示常用的「播放设置」，避免出现空白栏
     if (SettingsPaneScope.of(context)?.embedded ?? false) {
       return const PlayerSettingsPage();
     }
     return Scaffold(
-      appBar: SysAppBar(title: const Text('设置')),
-      body: _SettingsList(onSelect: (entry) => _openEntry(context, entry)),
+      appBar: SysAppBar(title: Text(l10n.settings)),
+      body: _SettingsList(
+        groups: _buildGroups(l10n),
+        onSelect: (entry) => _openEntry(context, entry),
+      ),
     );
   }
 }
@@ -181,125 +188,119 @@ class _SettingsGroup {
   final List<SettingsEntrySpec> entries;
 }
 
-const List<_SettingsGroup> _settingsGroups = [
-  // ── 下载与规则 ──
-  _SettingsGroup(
-    title: '下载与规则',
-    entries: [
-      SettingsEntrySpec(
-        icon: Icons.settings_rounded,
-        title: '下载设置',
-        description: '配置下载并发数等参数',
-        path: '/settings/download-settings',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.extension,
-        title: '规则管理',
-        description: '管理番剧资源规则',
-        path: '/settings/plugin/',
-      ),
-    ],
-  ),
-
-  // ── 播放器设置 ──
-  _SettingsGroup(
-    title: '播放器设置',
-    entries: [
-      SettingsEntrySpec(
-        icon: Icons.display_settings_rounded,
-        title: '播放设置',
-        description: '设置播放器相关参数',
-        path: '/settings/player',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.subtitles_rounded,
-        title: '弹幕设置',
-        description: '设置弹幕相关参数',
-        path: '/settings/danmaku/',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.notifications_active_rounded,
-        title: '追番提醒',
-        description: '收藏番剧更新时推送通知',
-        path: '/settings/notification',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.keyboard_rounded,
-        title: '操作设置',
-        description: '设置播放器按键映射',
-        path: '/settings/keyboard',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.vpn_key_rounded,
-        title: '镜像代理',
-        description: '配置镜像域名、端点路径与图片加速',
-        path: '/settings/mirror-proxy',
-      ),
-    ],
-  ),
-
-  // ── 数据与统计 ──
-  _SettingsGroup(
-    title: '数据与统计',
-    entries: [
-      SettingsEntrySpec(
-        icon: Icons.cloud,
-        title: '同步设置',
-        description: 'Bangumi / WebDAV / 樱花动漫',
-        path: '/settings/sync',
-      ),
-    ],
-  ),
-
-  // ── 应用与外观 ──
-  _SettingsGroup(
-    title: '应用与外观',
-    entries: [
-      SettingsEntrySpec(
-        icon: Icons.palette_rounded,
-        title: '外观设置',
-        description: '设置应用主题和刷新率',
-        path: '/settings/theme',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.color_lens_outlined,
-        title: '番剧主题',
-        description: '动漫主题配色皮肤',
-        path: '/settings/theme/skin',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.pages_rounded,
-        title: '界面设置',
-        description: '设置应用界面样式',
-        path: '/settings/interface',
-      ),
-    ],
-  ),
-
-  // ── 其他 ──
-  _SettingsGroup(
-    title: '其他',
-    entries: [
-      SettingsEntrySpec(
-        icon: Icons.feedback_rounded,
-        title: '意见反馈',
-        description: '查看所有反馈及处理情况',
-        path: '/settings/feedback',
-      ),
-      SettingsEntrySpec(
-        icon: Icons.info_outline_rounded,
-        title: '关于',
-        path: '/settings/about/',
-      ),
-    ],
-  ),
-];
+List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
+  return [
+    _SettingsGroup(
+      title: l10n.settingsGroupDownloadRules,
+      entries: [
+        SettingsEntrySpec(
+          icon: Icons.settings_rounded,
+          title: l10n.downloadSettings,
+          description: l10n.downloadSettingsDesc,
+          path: '/settings/download-settings',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.extension,
+          title: l10n.ruleManager,
+          description: l10n.ruleManagerDesc,
+          path: '/settings/plugin/',
+        ),
+      ],
+    ),
+    _SettingsGroup(
+      title: l10n.playerSettingsGroup,
+      entries: [
+        SettingsEntrySpec(
+          icon: Icons.display_settings_rounded,
+          title: l10n.playbackSettings,
+          description: l10n.playbackSettingsDesc,
+          path: '/settings/player',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.subtitles_rounded,
+          title: l10n.danmakuSettings,
+          description: l10n.danmakuSettingsDesc,
+          path: '/settings/danmaku/',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.notifications_active_rounded,
+          title: l10n.followNotify,
+          description: l10n.followNotifyDesc,
+          path: '/settings/notification',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.keyboard_rounded,
+          title: l10n.operationSettings,
+          description: l10n.operationSettingsDesc,
+          path: '/settings/keyboard',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.vpn_key_rounded,
+          title: l10n.mirrorProxy,
+          description: l10n.mirrorProxyDesc,
+          path: '/settings/mirror-proxy',
+        ),
+      ],
+    ),
+    _SettingsGroup(
+      title: l10n.dataStatsGroup,
+      entries: [
+        SettingsEntrySpec(
+          icon: Icons.cloud,
+          title: l10n.syncSettings,
+          description: l10n.syncSettingsDesc,
+          path: '/settings/sync',
+        ),
+      ],
+    ),
+    _SettingsGroup(
+      title: l10n.appAppearanceGroup,
+      entries: [
+        SettingsEntrySpec(
+          icon: Icons.palette_rounded,
+          title: l10n.appearanceSettings,
+          description: l10n.appearanceSettingsDesc,
+          path: '/settings/theme',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.color_lens_outlined,
+          title: l10n.themeSkinTitle,
+          description: l10n.themeSkinDesc,
+          path: '/settings/theme/skin',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.pages_rounded,
+          title: l10n.interfaceSettings,
+          description: l10n.interfaceSettingsDesc,
+          path: '/settings/interface',
+        ),
+      ],
+    ),
+    _SettingsGroup(
+      title: l10n.othersGroup,
+      entries: [
+        SettingsEntrySpec(
+          icon: Icons.feedback_rounded,
+          title: l10n.feedback,
+          description: l10n.feedbackDesc,
+          path: '/settings/feedback',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.info_outline_rounded,
+          title: l10n.about,
+          path: '/settings/about/',
+        ),
+      ],
+    ),
+  ];
+}
 
 /// 窄屏设置列表（与原设置页视觉一致）
 class _SettingsList extends StatelessWidget {
-  const _SettingsList({required this.onSelect});
+  const _SettingsList({required this.onSelect, required this.groups});
 
   final ValueChanged<SettingsEntrySpec> onSelect;
+  final List<_SettingsGroup> groups;
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +310,7 @@ class _SettingsList extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            for (final group in _settingsGroups)
+            for (final group in widget.groups)
               SettingsSectionCard(
                 title: group.title,
                 children: [
@@ -332,11 +333,13 @@ class _SettingsList extends StatelessWidget {
 /// 宽屏左栏：分组 + 条目
 class _SettingsRail extends StatelessWidget {
   const _SettingsRail({
+    required this.groups,
     required this.selectedPath,
     required this.onSelect,
     required this.onBack,
   });
 
+  final List<_SettingsGroup> groups;
   final String selectedPath;
   final ValueChanged<SettingsEntrySpec> onSelect;
   final VoidCallback onBack;
@@ -345,6 +348,7 @@ class _SettingsRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
       children: [
@@ -354,12 +358,12 @@ class _SettingsRail extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: '返回',
+                tooltip: l10n.backTooltip,
                 onPressed: onBack,
               ),
               const SizedBox(width: 4),
               Text(
-                '设置',
+                l10n.settings,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -367,7 +371,7 @@ class _SettingsRail extends StatelessWidget {
             ],
           ),
         ),
-        for (final group in _settingsGroups) ...[
+        for (final group in widget.groups) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
             child: Text(
