@@ -13,6 +13,7 @@ import 'package:kazumi/services/network/metered_network_service.dart';
 import 'package:kazumi/services/platform/window_state_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -458,15 +459,19 @@ class _AppWidgetState extends State<AppWidget>
             ? oledDarkTheme(dynamicDarkTheme)
             : dynamicDarkTheme;
 
+        final appLocalePref =
+            GStorage.getSetting(SettingsKeys.appLocale).toString();
+        final appLocale = appLocalePref == 'zh'
+            ? const Locale('zh')
+            : appLocalePref == 'en'
+                ? const Locale('en')
+                : null;
+
         return MaterialApp.router(
           title: "YHDM",
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          supportedLocales: const [
-            Locale.fromSubtags(
-                languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-          ],
-          locale: const Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: appLocale,
           theme: lightTheme,
           darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,

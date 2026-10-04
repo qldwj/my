@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/onboarding/steps/disclaimer_step.dart';
 import 'package:kazumi/pages/onboarding/steps/migration_step.dart';
@@ -72,11 +74,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
     ];
   }
 
-  String get primaryLabel {
+  String _primaryLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (currentIndex == 0 && !agreed) {
-      return _disclaimerScrolled ? '同意并继续' : '请滑到底部';
+      return _disclaimerScrolled ? l10n.agreeAndContinue : l10n.scrollToBottom;
     }
-    return currentIndex == stepCount - 1 ? '完成' : '下一步';
+    return currentIndex == stepCount - 1 ? l10n.finish : l10n.next;
   }
 
   bool get _primaryEnabled {
@@ -159,8 +162,57 @@ class _OnboardingPageState extends State<OnboardingPage> {
     context.navigate(GStorage.getSetting(SettingsKeys.defaultStartupPage));
   }
 
+  void _setLocale(String locale) {
+    GStorage.putSetting(SettingsKeys.appLocale, locale);
+    context.read<ThemeProvider>().notifyListeners();
+    if (mounted) setState(() {});
+  }
+
+  void _showLanguagePicker(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final current = GStorage.getSetting(SettingsKeys.appLocale).toString();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          title: Text(l10n.languageTitle),
+          children: [
+            RadioListTile<String>(
+              value: 'system',
+              groupValue: current,
+              title: Text(l10n.languageFollowSystem),
+              onChanged: (v) {
+                _setLocale('system');
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            RadioListTile<String>(
+              value: 'zh',
+              groupValue: current,
+              title: Text(l10n.languageChinese),
+              onChanged: (v) {
+                _setLocale('zh');
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            RadioListTile<String>(
+              value: 'en',
+              groupValue: current,
+              title: Text(l10n.languageEnglish),
+              onChanged: (v) {
+                _setLocale('en');
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildBottomBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       top: false,
       child: Padding(
@@ -171,14 +223,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
               TextButton(
                 onPressed: () => exit(0),
                 child: Text(
-                  '退出',
+                  l10n.exit,
                   style: TextStyle(color: colorScheme.outline),
                 ),
               )
             else
               TextButton(
                 onPressed: _previousPage,
-                child: const Text('上一步'),
+                child: Text(l10n.previous),
               ),
             Expanded(
               child: Center(
@@ -196,7 +248,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(primaryLabel),
+                  : Text(_primaryLabel(context)),
             ),
           ],
         ),
@@ -215,7 +267,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _previousPage();
       },
       child: Scaffold(
-        appBar: const SysAppBar(),
+        appBar: SysAppBar(
+          actions: [
+            Builder(builder: (context) {
+              return IconButton(
+                icon: const Icon(Icons.language_rounded),
+                tooltip: AppLocalizations.of(context)?.languageTitle,
+                onPressed: () => _showLanguagePicker(context),
+              );
+            }),
+          ],
+        ),
         body: Column(
           children: [
             Expanded(

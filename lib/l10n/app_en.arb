@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "appName": "次元城动画",
+  "languageTitle": "Language",
+  "languageFollowSystem": "Follow system",
+  "languageChinese": "中文",
+  "languageEnglish": "English",
+  "languageHint": "Language follows your device. You can change it anytime.",
+  "next": "Next",
+  "previous": "Back",
+  "finish": "Finish",
+  "exit": "Exit",
+  "agreeAndContinue": "Agree & Continue",
+  "scrollToBottom": "Scroll to bottom",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "settings": "Settings",
+  "search": "Search",
+  "loading": "Loading…",
+  "retry": "Retry",
+  "startup": "First-time setup"
+}

@@ -1,0 +1,23 @@
+{
+  "@@locale": "zh",
+  "appName": "次元城动画",
+  "languageTitle": "语言",
+  "languageFollowSystem": "跟随系统",
+  "languageChinese": "中文",
+  "languageEnglish": "English",
+  "languageHint": "语言跟随手机系统，可随时修改。",
+  "next": "下一步",
+  "previous": "上一步",
+  "finish": "完成",
+  "exit": "退出",
+  "agreeAndContinue": "同意并继续",
+  "scrollToBottom": "请滑到底部",
+  "save": "保存",
+  "cancel": "取消",
+  "confirm": "确认",
+  "settings": "设置",
+  "search": "搜索",
+  "loading": "加载中…",
+  "retry": "重试",
+  "startup": "首次使用设置"
+}
