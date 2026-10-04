@@ -581,7 +581,7 @@ class SettingsKeys {
   );
   static const useSystemFont = SettingKey<bool>(
     _SettingBoxKey.useSystemFont,
-    false,
+    true,
     group: SettingGroup.interface,
   );
   /// 自定义字体文件路径（选择 .ttf/.otf 后保存，重启后加载）
