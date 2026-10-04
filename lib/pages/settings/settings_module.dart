@@ -11,7 +11,6 @@ import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/download_settings.dart';
 import 'package:kazumi/pages/settings/interface_settings.dart';
 import 'package:kazumi/pages/settings/language_page.dart';
-import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/notification_settings_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
@@ -49,8 +48,6 @@ final settingsModule = createModule(
                 child: (context, state) => const WebviewEmbedPage())
             ..route('/theme/display',
                 child: (context, state) => const SetDisplayMode())
-            ..route('/keyboard',
-                child: (context, state) => const KeyboardSettingsPage())
             ..route('/player',
                 child: (context, state) => const PlayerSettingsPage())
             ..route('/player/decoder',
