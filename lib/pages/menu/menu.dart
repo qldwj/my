@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/menu/route_visibility.dart';
 import 'package:kazumi/pages/router.dart';
 
@@ -88,7 +89,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     if (lastPromptAt == null ||
         now.difference(lastPromptAt) > const Duration(seconds: 2)) {
       _lastExitPromptAt = now;
-      KazumiDialog.showToast(message: '再按一次退出应用', context: context);
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setGPressBackAgainToExit, context: context);
       return;
     }
 
@@ -137,34 +138,35 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: _outlet(context),
       bottomNavigationBar: NavigationBar(
-        destinations: const <Widget>[
+        destinations: <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Icons.home),
             icon: Icon(Icons.home_outlined),
-            label: '推荐',
+            label: l10n.setGTabRecommend,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.auto_awesome),
             icon: Icon(Icons.auto_awesome_outlined),
-            label: '为你推荐',
+            label: l10n.setGTabForYou,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.timeline),
             icon: Icon(Icons.timeline_outlined),
-            label: '时间表',
+            label: l10n.setGTabTimeline,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.favorite),
             icon: Icon(Icons.favorite_outlined),
-            label: '追番',
+            label: l10n.setGTabFollow,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings),
-            label: '我的',
+            label: l10n.setGTabMine,
           ),
         ],
         selectedIndex: selectedIndex,
@@ -174,6 +176,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 
   Widget _sideMenu(BuildContext context, int selectedIndex) {
+    final l10n = AppLocalizations.of(context)!;
     const borderRadius = BorderRadius.only(
       topLeft: Radius.circular(16),
       bottomLeft: Radius.circular(16),
@@ -193,31 +196,31 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
                 child: const Icon(Icons.search),
               ),
               labelType: NavigationRailLabelType.selected,
-              destinations: const <NavigationRailDestination>[
+              destinations: <NavigationRailDestination>[
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.home),
                   icon: Icon(Icons.home_outlined),
-                  label: Text('推荐'),
+                  label: Text(l10n.setGTabRecommend),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.auto_awesome),
                   icon: Icon(Icons.auto_awesome_outlined),
-                  label: Text('为你推荐'),
+                  label: Text(l10n.setGTabForYou),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.timeline),
                   icon: Icon(Icons.timeline_outlined),
-                  label: Text('时间表'),
+                  label: Text(l10n.setGTabTimeline),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.favorite),
                   icon: Icon(Icons.favorite_border),
-                  label: Text('追番'),
+                  label: Text(l10n.setGTabFollow),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.settings),
                   icon: Icon(Icons.settings_outlined),
-                  label: Text('我的'),
+                  label: Text(l10n.setGTabMine),
                 ),
               ],
               selectedIndex: selectedIndex,

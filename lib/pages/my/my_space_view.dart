@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
@@ -65,6 +66,7 @@ class _WideSpaceLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -82,18 +84,18 @@ class _WideSpaceLayout extends StatelessWidget {
           second: _AdaptivePair(
             first: _ToolTile(
               icon: Icons.history_rounded,
-              title: '历史记录',
-              caption: stats.watchedBangumiCount == 0 ? '暂无观看记录' : '查看观看记录',
+              title: l10n.setGHistory,
+              caption: stats.watchedBangumiCount == 0 ? l10n.setGNoWatchHistory : l10n.setGViewWatchHistory,
               color: colors.secondaryContainer,
               foreground: colors.onSecondaryContainer,
               onTap: () => onOpen(MyDestination.history),
             ),
             second: _ToolTile(
               icon: Icons.download_rounded,
-              title: '离线下载',
+              title: l10n.setGOfflineDownload,
               caption: stats.downloadTaskCount == 0
-                  ? '管理离线内容'
-                  : '${stats.downloadTaskCount} 集下载任务',
+                  ? l10n.setGManageOfflineContent
+                  : l10n.setGDownloadTasks(count: stats.downloadTaskCount),
               color: colors.tertiaryContainer,
               foreground: colors.onTertiaryContainer,
               onTap: () => onOpen(MyDestination.downloads),
@@ -106,16 +108,16 @@ class _WideSpaceLayout extends StatelessWidget {
           second: _AdaptivePair(
             first: _ToolTile(
               icon: Icons.cloud_sync_rounded,
-              title: '同步备份',
-              caption: '跨设备同步数据',
+              title: l10n.setGSyncBackup,
+              caption: l10n.setGCrossDeviceSync,
               color: colors.surfaceContainer,
               foreground: colors.onSurface,
               onTap: () => onOpen(MyDestination.sync),
             ),
             second: _ToolTile(
               icon: Icons.cleaning_services_rounded,
-              title: '存储管理',
-              caption: '缓存与日志',
+              title: l10n.setGStorageManagement,
+              caption: l10n.setGCacheAndLogs,
               color: colors.surfaceContainer,
               foreground: colors.onSurface,
               onTap: () => onOpen(MyDestination.storage),
@@ -129,14 +131,14 @@ class _WideSpaceLayout extends StatelessWidget {
             color: colors.surfaceContainerLow,
             foreground: colors.onSurfaceVariant,
             onTap: () => onOpen(MyDestination.about),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.info_outline_rounded, size: 20),
-                  SizedBox(width: 8),
-                  Flexible(child: Text('关于 Kazumi')),
+                  const Icon(Icons.info_outline_rounded, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(l10n.setGAboutKazumi)),
                 ],
               ),
             ),
@@ -161,6 +163,7 @@ class _CompactSpaceLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -174,8 +177,8 @@ class _CompactSpaceLayout extends StatelessWidget {
           stack: stackTools,
           first: _ToolTile(
             icon: Icons.history_rounded,
-            title: '历史记录',
-            caption: stats.watchedBangumiCount == 0 ? '暂无观看记录' : '查看观看记录',
+            title: l10n.setGHistory,
+            caption: stats.watchedBangumiCount == 0 ? l10n.setGNoWatchHistory : l10n.setGViewWatchHistory,
             color: colors.secondaryContainer,
             foreground: colors.onSecondaryContainer,
             compact: true,
@@ -183,10 +186,10 @@ class _CompactSpaceLayout extends StatelessWidget {
           ),
           second: _ToolTile(
             icon: Icons.download_rounded,
-            title: '离线下载',
+            title: l10n.setGOfflineDownload,
             caption: stats.downloadTaskCount == 0
-                ? '管理离线内容'
-                : '${stats.downloadTaskCount} 集下载任务',
+                ? l10n.setGManageOfflineContent
+                : l10n.setGDownloadTasks(count: stats.downloadTaskCount),
             color: colors.secondaryContainer,
             foreground: colors.onSecondaryContainer,
             compact: true,
@@ -195,23 +198,23 @@ class _CompactSpaceLayout extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         ContentSection.group(
-          title: '内容与偏好',
+          title: l10n.setGContentAndPreferences,
           children: [
-            _entry('规则设置', Icons.extension_rounded, MyDestination.rules),
-            _entry('外观设置', Icons.palette_rounded, MyDestination.theme),
-            _entry('播放设置', Icons.play_circle_rounded, MyDestination.player),
-            _entry('弹幕设置', Icons.subtitles_rounded, MyDestination.danmaku),
+            _entry(l10n.setGRuleSettings, Icons.extension_rounded, MyDestination.rules),
+            _entry(l10n.setGAppearanceSettings, Icons.palette_rounded, MyDestination.theme),
+            _entry(l10n.setGPlayerSettings, Icons.play_circle_rounded, MyDestination.player),
+            _entry(l10n.setGDanmakuSettings, Icons.subtitles_rounded, MyDestination.danmaku),
           ],
         ),
         const SizedBox(height: 24),
         ContentSection.group(
-          title: '数据与应用',
+          title: l10n.setGDataAndApp,
           children: [
-            _entry('同步备份', Icons.cloud_sync_rounded, MyDestination.sync),
+            _entry(l10n.setGSyncBackup, Icons.cloud_sync_rounded, MyDestination.sync),
             _entry(
-                '存储管理', Icons.cleaning_services_rounded, MyDestination.storage),
+                l10n.setGStorageManagement, Icons.cleaning_services_rounded, MyDestination.storage),
             _entry(
-                '关于 Kazumi', Icons.info_outline_rounded, MyDestination.about),
+                l10n.setGAboutKazumi, Icons.info_outline_rounded, MyDestination.about),
           ],
         ),
       ],
@@ -241,6 +244,7 @@ class _WatchStatsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: compact ? colors.primaryContainer : colors.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(compact ? 28 : 48),
@@ -263,7 +267,7 @@ class _WatchStatsPanel extends StatelessWidget {
                   Expanded(
                     child: Semantics(
                       header: true,
-                      child: Text('观看足迹',
+                      child: Text(l10n.setGWatchingFootprint,
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
@@ -275,7 +279,7 @@ class _WatchStatsPanel extends StatelessWidget {
                 ],
               )
             else
-              Text('观看统计',
+              Text(l10n.setGWatchStats,
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium
@@ -286,7 +290,7 @@ class _WatchStatsPanel extends StatelessWidget {
                 Expanded(
                   child: _StatCount(
                     value: bangumiCount,
-                    label: '看过番剧',
+                    label: l10n.setGBangumiWatched,
                     foreground: compact ? colors.onPrimaryContainer : null,
                   ),
                 ),
@@ -307,7 +311,7 @@ class _WatchStatsPanel extends StatelessWidget {
                 Expanded(
                   child: _StatCount(
                     value: episodeCount,
-                    label: '观看集数',
+                    label: l10n.setGEpisodesWatched,
                     foreground: compact ? colors.onPrimaryContainer : null,
                   ),
                 ),
@@ -357,11 +361,12 @@ class _SpaceHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: Text(
-            '个人中心',
+            l10n.setGAccountCenter,
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: colors.onSurface,
@@ -391,6 +396,7 @@ class _RulesTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     return _ExpressiveAction(
       color: colors.primary,
       foreground: colors.onPrimary,
@@ -410,12 +416,12 @@ class _RulesTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('规则设置',
+                  Text(l10n.setGRuleSettings,
                       style: text.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: colors.onPrimary)),
                   const SizedBox(height: 6),
-                  Text('管理番剧来源',
+                  Text(l10n.setGManageSources,
                       style:
                           text.bodyMedium?.copyWith(color: colors.onPrimary)),
                   const SizedBox(height: 20),
@@ -498,15 +504,15 @@ class _PreferencesPanel extends StatelessWidget {
 
   final ValueChanged<MyDestination> onOpen;
 
-  static const _entries = [
-    ('外观', Icons.palette_rounded, MyDestination.theme),
-    ('播放', Icons.play_circle_rounded, MyDestination.player),
-    ('弹幕', Icons.subtitles_rounded, MyDestination.danmaku),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final entries = [
+      (l10n.setGPrefAppearance, Icons.palette_rounded, MyDestination.theme),
+      (l10n.setGPrefPlayer, Icons.play_circle_rounded, MyDestination.player),
+      (l10n.setGPrefDanmaku, Icons.subtitles_rounded, MyDestination.danmaku),
+    ];
     return Material(
       color: colors.surfaceContainerLow,
       borderRadius: _tileRadius,
@@ -518,7 +524,7 @@ class _PreferencesPanel extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text('偏好设置',
+              child: Text(l10n.setGPreferences,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700, color: colors.onSurface)),
             ),
@@ -527,9 +533,9 @@ class _PreferencesPanel extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (var i = 0; i < _entries.length; i++) ...[
+                  for (var i = 0; i < entries.length; i++) ...[
                     if (i > 0) const SizedBox(width: 4),
-                    Expanded(child: _button(i)),
+                    Expanded(child: _button(entries[i], i == 0, i == entries.length - 1)),
                   ],
                 ],
               ),
@@ -540,13 +546,13 @@ class _PreferencesPanel extends StatelessWidget {
     );
   }
 
-  Widget _button(int index) {
-    final (label, icon, destination) = _entries[index];
+  Widget _button((String, IconData, MyDestination) entry, bool first, bool last) {
+    final (label, icon, destination) = entry;
     return _PreferenceAction(
       icon: icon,
       label: label,
-      first: index == 0,
-      last: index == _entries.length - 1,
+      first: first,
+      last: last,
       onTap: () => onOpen(destination),
     );
   }
@@ -605,8 +611,9 @@ class MySettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Tooltip(
-      message: '全部设置',
+      message: l10n.setGAllSettings,
       child: FilledButton.tonalIcon(
         style: StateActionButton.styleOf(context).copyWith(
           backgroundColor: WidgetStatePropertyAll(colors.surfaceContainerHigh),
@@ -617,7 +624,7 @@ class MySettingsButton extends StatelessWidget {
         ),
         onPressed: onTap,
         icon: const Icon(Icons.tune_rounded, size: 20),
-        label: const Text('设置'),
+        label: Text(l10n.settings),
       ),
     );
   }
