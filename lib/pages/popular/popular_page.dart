@@ -263,7 +263,7 @@ class _PopularPageState extends State<PopularPage> {
               return Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 16),
+                  padding: const EdgeInsets.only(left: 16, top: 2, bottom: 4, right: 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
