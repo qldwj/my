@@ -12,6 +12,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/bean/widget/bangumi_avatar.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/navigation.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
@@ -71,7 +72,7 @@ class _MyPageState extends State<MyPage> {
       if (mounted) {
         setState(() {});
         KazumiDialog.showToast(
-          message: '登录已过期，请重新登录',
+          message: AppLocalizations.of(context)!.setGLoginExpired,
           duration: const Duration(seconds: 3),
         );
       }
@@ -126,24 +127,25 @@ class _MyPageState extends State<MyPage> {
     try {
       final controller = inject<PluginsController>();
       if (controller.pluginList.isEmpty && mounted) {
+        final l10n = AppLocalizations.of(context)!;
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             icon: Icon(Icons.extension_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
-            title: const Text('欢迎使用樱花动漫'),
-            content: const Text('你还没有添加规则，需要先添加规则才能正常使用。\n\n是否继续添加规则？'),
+            title: Text(l10n.setGWelcomeTitle),
+            content: Text(l10n.setGWelcomeNoRulesBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('返回'),
+                child: Text(l10n.setGBack),
               ),
               FilledButton(
                 onPressed: () {
                   Navigator.pop(ctx);
                   context.pushNamed('/settings/plugin/');
                 },
-                child: const Text('继续'),
+                child: Text(l10n.setGContinueLabel),
               ),
             ],
           ),
@@ -245,6 +247,7 @@ class _MyPageState extends State<MyPage> {
   Future<void> _showProfileEditor(BuildContext context) async {
     final profile = _socialProfile;
     if (profile == null) return;
+    final l10n = AppLocalizations.of(context)!;
     final nicknameController = TextEditingController(text: profile.nickname);
     var currentAvatar = profile.avatar;
     var uploading = false;
@@ -264,8 +267,8 @@ class _MyPageState extends State<MyPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('个人资料',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+              Text(l10n.setGProfile,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
               Center(
                 child: GestureDetector(
@@ -277,7 +280,7 @@ class _MyPageState extends State<MyPage> {
                           if (picked == null) return;
                           final bytes = await picked.readAsBytes();
                           if (bytes.length > 2 * 1024 * 1024) {
-                            KazumiDialog.showToast(message: '图片过大（最大 2MB）');
+                            KazumiDialog.showToast(message: l10n.setGImageTooLarge);
                             return;
                           }
                           // 🆕 头像不保存在本机，直接 base64 上传服务器
@@ -295,9 +298,9 @@ class _MyPageState extends State<MyPage> {
                               setState(() =>
                                   _socialProfile = SocialService.myProfile);
                             }
-                            KazumiDialog.showToast(message: '✅ 头像已更新');
+                            KazumiDialog.showToast(message: l10n.setGAvatarUpdated);
                           } else {
-                            KazumiDialog.showToast(message: '❌ $error');
+                            KazumiDialog.showToast(message: l10n.setGErrorToast(msg: error));
                           }
                         },
                   child: Stack(
@@ -352,10 +355,10 @@ class _MyPageState extends State<MyPage> {
               TextField(
                 controller: nicknameController,
                 maxLength: 20,
-                decoration: const InputDecoration(
-                  labelText: '昵称',
+                decoration: InputDecoration(
+                  labelText: l10n.setGNickname,
                   isDense: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 8),
@@ -364,7 +367,7 @@ class _MyPageState extends State<MyPage> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('取消'),
+                      child: Text(l10n.cancel),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -385,12 +388,12 @@ class _MyPageState extends State<MyPage> {
                             setState(() =>
                                 _socialProfile = SocialService.myProfile);
                           }
-                          KazumiDialog.showToast(message: '✅ 昵称已更新');
+                          KazumiDialog.showToast(message: l10n.setGNicknameUpdated);
                         } else {
-                          KazumiDialog.showToast(message: '❌ $error');
+                          KazumiDialog.showToast(message: l10n.setGErrorToast(msg: error));
                         }
                       },
-                      child: const Text('保存'),
+                      child: Text(l10n.save),
                     ),
                   ),
                 ],
@@ -404,21 +407,20 @@ class _MyPageState extends State<MyPage> {
 
   /// 缓存清理弹窗：显示图片缓存占用 + 一键清理（物理删除缓存目录，与关于页一致）
   Future<void> _showCacheCleanup(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final cacheSize = await _getCacheSize();
     if (!mounted) return;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('缓存清理'),
+        title: Text(l10n.setGCacheCleanup),
         content: Text(
-          '图片缓存占用：${_formatSize(cacheSize)}\n\n'
-          '清理后，下次浏览图片会重新下载，'
-          '不影响已下载的视频、收藏和历史记录。',
+          l10n.setGCacheCleanupBody(size: _formatSize(cacheSize)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: cacheSize == 0
@@ -436,10 +438,10 @@ class _MyPageState extends State<MyPage> {
                       KazumiLogger().e('缓存清理失败', error: e);
                     }
                     if (mounted) {
-                      KazumiDialog.showToast(message: '缓存已清理 ✅');
+                      KazumiDialog.showToast(message: l10n.setGCacheCleared);
                     }
                   },
-            child: const Text('立即清理'),
+            child: Text(l10n.setGCleanNow),
           ),
         ],
       ),
@@ -450,8 +452,9 @@ class _MyPageState extends State<MyPage> {
 
   /// 弹出菜单让用户选择上传或下载
   Future<void> _syncCloud(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     if (!AuthService.isLoggedIn) {
-      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+      KazumiDialog.showToast(message: l10n.setGPleaseLoginFirst);
       return;
     }
     final action = await showModalBottomSheet<String>(
@@ -462,19 +465,19 @@ class _MyPageState extends State<MyPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.cloud_upload_rounded, color: Colors.green),
-              title: const Text('上传本地数据到云端'),
-              subtitle: const Text('用本地数据覆盖云端（本地优先）'),
+              title: Text(l10n.setGUploadToCloud),
+              subtitle: Text(l10n.setGUploadLocalOverCloud),
               onTap: () => Navigator.pop(context, 'upload'),
             ),
             ListTile(
               leading: const Icon(Icons.cloud_download_rounded, color: Colors.blue),
-              title: const Text('从云端恢复数据'),
-              subtitle: const Text('用云端数据覆盖本地（换设备时使用）'),
+              title: Text(l10n.setGRestoreFromCloud),
+              subtitle: Text(l10n.setGDownloadCloudOverLocal),
               onTap: () => Navigator.pop(context, 'download'),
             ),
             ListTile(
               leading: const Icon(Icons.close),
-              title: const Text('取消'),
+              title: Text(l10n.cancel),
               onTap: () => Navigator.pop(context),
             ),
           ],
@@ -491,22 +494,23 @@ class _MyPageState extends State<MyPage> {
 
   /// 上传本地数据到云端（覆盖云端）
   Future<void> _uploadToCloud(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_syncingCloud) return;
     _syncingCloud = true;
     try {
       KazumiDialog.show(
         clickMaskDismiss: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 3),
               ),
-              SizedBox(width: 16),
-              Flexible(child: Text('正在上传本地数据到云端…')),
+              const SizedBox(width: 16),
+              Flexible(child: Text(l10n.setGUploading)),
             ],
           ),
         ),
@@ -517,12 +521,12 @@ class _MyPageState extends State<MyPage> {
       KazumiDialog.dismiss();
       KazumiDialog.show(
         builder: (context) => AlertDialog(
-          title: const Text('上传结果'),
+          title: Text(l10n.setGUploadResult),
           content: Text(results.join('\n')),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(),
-              child: const Text('好的'),
+              child: Text(l10n.setAOk),
             ),
           ],
         ),
@@ -536,22 +540,23 @@ class _MyPageState extends State<MyPage> {
 
   /// 从云端下载数据覆盖本地
   Future<void> _downloadFromCloud(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_syncingCloud) return;
     _syncingCloud = true;
     try {
       KazumiDialog.show(
         clickMaskDismiss: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 3),
               ),
-              SizedBox(width: 16),
-              Flexible(child: Text('正在从云端下载数据…')),
+              const SizedBox(width: 16),
+              Flexible(child: Text(l10n.setGDownloading)),
             ],
           ),
         ),
@@ -562,12 +567,12 @@ class _MyPageState extends State<MyPage> {
       KazumiDialog.dismiss();
       KazumiDialog.show(
         builder: (context) => AlertDialog(
-          title: const Text('下载结果'),
+          title: Text(l10n.setGDownloadResult),
           content: Text(results.join('\n')),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(),
-              child: const Text('好的'),
+              child: Text(l10n.setAOk),
             ),
           ],
         ),
@@ -585,8 +590,9 @@ class _MyPageState extends State<MyPage> {
 
   /// 账号与数据管理：清除云端数据 / 注销账号
   Future<void> _manageAccountData(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     if (!AuthService.isLoggedIn) {
-      KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+      KazumiDialog.showToast(message: l10n.setGPleaseLoginFirst);
       return;
     }
     final action = await showModalBottomSheet<String>(
@@ -597,8 +603,8 @@ class _MyPageState extends State<MyPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.security_rounded, color: Colors.blue),
-              title: const Text('安全中心'),
-              subtitle: const Text('登录记录 / 设备管理'),
+              title: Text(l10n.setGSecurityCenter),
+              subtitle: Text(l10n.setGLoginRecordsDeviceMgmt),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.of(context).push(
@@ -608,21 +614,21 @@ class _MyPageState extends State<MyPage> {
             ),
             ListTile(
               leading: const Icon(Icons.cloud_off_rounded),
-              title: const Text('清除云端数据'),
-              subtitle: const Text('删除服务器上的收藏/历史/进度，保留账号'),
+              title: Text(l10n.setGClearCloudData),
+              subtitle: Text(l10n.setGClearCloudDataSubtitle),
               onTap: () => Navigator.pop(context, 'clear'),
             ),
             ListTile(
               leading: const Icon(Icons.delete_forever_rounded,
                   color: Colors.red),
-              title: const Text('注销账号',
-                  style: TextStyle(color: Colors.red)),
-              subtitle: const Text('删除账号和全部云端数据，不可恢复'),
+              title: Text(l10n.setGDeleteAccount,
+                  style: const TextStyle(color: Colors.red)),
+              subtitle: Text(l10n.setGDeleteAccountSubtitle),
               onTap: () => Navigator.pop(context, 'delete'),
             ),
             ListTile(
               leading: const Icon(Icons.close),
-              title: const Text('取消'),
+              title: Text(l10n.cancel),
               onTap: () => Navigator.pop(context),
             ),
           ],
@@ -634,16 +640,16 @@ class _MyPageState extends State<MyPage> {
     if (action == 'clear') {
       final confirm = await KazumiDialog.show<bool>(
         builder: (context) => AlertDialog(
-          title: const Text('清除云端数据'),
-          content: const Text('将删除服务器上的收藏/历史/进度，本地数据保留。确定？'),
+          title: Text(l10n.setGClearCloudData),
+          content: Text(l10n.setGClearCloudConfirmBody),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(popWith: false),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => KazumiDialog.dismiss(popWith: true),
-              child: const Text('清除'),
+              child: Text(l10n.setGClear),
             ),
           ],
         ),
@@ -652,26 +658,26 @@ class _MyPageState extends State<MyPage> {
       final res = await AuthService.clearData();
       if (!mounted) return;
       KazumiDialog.showToast(
-        message: res['error'] != null ? '❌ ${res['error']}' : '✅ 云端数据已清除',
+        message: res['error'] != null
+            ? l10n.setGErrorToast(msg: res['error'].toString())
+            : l10n.setGCloudDataCleared,
       );
     } else if (action == 'delete') {
       // 🆕 账号销毁：直接删除（后端已去掉 7 天冷静期）
       final confirm = await KazumiDialog.show<bool>(
         builder: (context) => AlertDialog(
-          title: const Text('账号销毁', style: TextStyle(color: Colors.red)),
-          content: const Text(
-            '销毁账号后将删除账号和全部云端数据（收藏/历史/进度），不可恢复。\n\n'
-            '将直接删除该账号，不可恢复。确定销毁？',
-          ),
+          title: Text(l10n.setGAccountDestruction,
+              style: const TextStyle(color: Colors.red)),
+          content: Text(l10n.setGAccountDestructionBody),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(popWith: false),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => KazumiDialog.dismiss(popWith: true),
-              child: const Text('确认销毁'),
+              child: Text(l10n.setGConfirmDestroy),
             ),
           ],
         ),
@@ -684,8 +690,8 @@ class _MyPageState extends State<MyPage> {
       if (!mounted) return;
       KazumiDialog.showToast(
         message: error != null
-            ? '❌ $error'
-            : '✅ 账号已删除',
+            ? l10n.setGErrorToast(msg: error)
+            : l10n.setGAccountDeleted,
       );
     }
   }
@@ -722,6 +728,7 @@ class _MyPageState extends State<MyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final bangumiLoggedIn =
@@ -731,20 +738,20 @@ class _MyPageState extends State<MyPage> {
       appBar: SysAppBar(
         toolbarHeight: 72,
         title: Text(
-          '我的',
+          l10n.setGTabMine,
           style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         needTopOffset: false,
         actions: [
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: '分享账号',
+              tooltip: l10n.setGShareAccount,
               icon: const Icon(Icons.share_rounded, size: 22),
               onPressed: _shareProfile,
             ),
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: '隐私设置',
+              tooltip: l10n.setGPrivacySettings,
               icon: const Icon(Icons.privacy_tip_outlined, size: 22),
               onPressed: () {
                 final navContext = rootNavigatorKey.currentContext;
@@ -756,7 +763,7 @@ class _MyPageState extends State<MyPage> {
             ),
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: '扫码登录其他设备',
+              tooltip: l10n.setGScanLoginOtherDevice,
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 22),
               onPressed: () {
                 Navigator.of(context).push(
@@ -766,7 +773,7 @@ class _MyPageState extends State<MyPage> {
             ),
           if (!AuthService.isLoggedIn)
             IconButton(
-              tooltip: '扫码登录',
+              tooltip: l10n.setGScanLogin,
               icon: const Icon(Icons.qr_code_2_rounded, size: 22),
               onPressed: () {
                 Navigator.of(context).push(
@@ -777,7 +784,7 @@ class _MyPageState extends State<MyPage> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
-              tooltip: '全部设置',
+              tooltip: l10n.setGAllSettings,
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
@@ -789,7 +796,7 @@ class _MyPageState extends State<MyPage> {
                   children: [
                     Icon(Icons.tune_rounded, size: 18, color: colorScheme.onSurface),
                     const SizedBox(width: 6),
-                    Text('设置', style: TextStyle(fontSize: 13, color: colorScheme.onSurface)),
+                    Text(l10n.settings, style: TextStyle(fontSize: 13, color: colorScheme.onSurface)),
                   ],
                 ),
               ),
@@ -824,7 +831,7 @@ class _MyPageState extends State<MyPage> {
                       // ── 规则设置（紧挨着偏好设置，无间距）──
                       _buildRulesTile(colorScheme, textTheme),
                       // ── 偏好设置（紧挨着规则，无间距）──
-                      _buildPreferencesPanel(colorScheme, textTheme),
+                      _buildPreferencesPanel(context, colorScheme, textTheme),
                       const SizedBox(height: 12),
                       // ── 历史记录 + 离线下载（一行）──
                       Row(
@@ -833,8 +840,8 @@ class _MyPageState extends State<MyPage> {
                             child: _buildToolTile(
                               colorScheme, textTheme,
                               icon: Icons.history_rounded,
-                              title: '历史记录',
-                              caption: '查看观看记录',
+                              title: l10n.setGHistory,
+                              caption: l10n.setGViewWatchHistory,
                               color: colorScheme.secondaryContainer,
                               foreground: colorScheme.onSecondaryContainer,
                               onTap: () => context.pushNamed('/settings/history/'),
@@ -845,8 +852,8 @@ class _MyPageState extends State<MyPage> {
                             child: _buildToolTile(
                               colorScheme, textTheme,
                               icon: Icons.download_rounded,
-                              title: '离线下载',
-                              caption: '管理离线内容',
+                              title: l10n.setGOfflineDownload,
+                              caption: l10n.setGManageOfflineContent,
                               color: colorScheme.tertiaryContainer,
                               foreground: colorScheme.onTertiaryContainer,
                               onTap: () => context.pushNamed('/settings/download/'),
@@ -862,8 +869,8 @@ class _MyPageState extends State<MyPage> {
                             child: _buildToolTile(
                               colorScheme, textTheme,
                               icon: Icons.cloud_sync_rounded,
-                              title: '同步',
-                              caption: '跨设备同步数据',
+                              title: l10n.setGSync,
+                              caption: l10n.setGCrossDeviceSync,
                               color: colorScheme.surfaceContainer,
                               foreground: colorScheme.onSurface,
                               onTap: () => context.pushNamed('/settings/sync'),
@@ -874,8 +881,8 @@ class _MyPageState extends State<MyPage> {
                             child: _buildToolTile(
                               colorScheme, textTheme,
                               icon: Icons.cleaning_services_rounded,
-                              title: '清除缓存',
-                              caption: '释放存储空间',
+                              title: l10n.setGClearCache,
+                              caption: l10n.setGFreeStorage,
                               color: colorScheme.surfaceContainer,
                               foreground: colorScheme.onSurface,
                               onTap: () => _showCacheCleanup(context),
@@ -888,8 +895,8 @@ class _MyPageState extends State<MyPage> {
                       _buildToolTile(
                         colorScheme, textTheme,
                         icon: Icons.local_fire_department_rounded,
-                        title: '追番打卡',
-                        caption: '连看天数 / 打卡日历',
+                        title: l10n.setGCheckin,
+                        caption: l10n.setGCheckinCaption,
                         color: colorScheme.tertiaryContainer,
                         foreground: colorScheme.onTertiaryContainer,
                         onTap: () => Navigator.of(context).push(
@@ -902,7 +909,7 @@ class _MyPageState extends State<MyPage> {
                         child: TextButton.icon(
                           onPressed: () => context.pushNamed('/settings/about/'),
                           icon: const Icon(Icons.info_outline_rounded, size: 18),
-                          label: const Text('关于樱花动漫'),
+                          label: Text(l10n.setGAboutApp),
                           style: TextButton.styleFrom(
                             foregroundColor: colorScheme.onSurfaceVariant,
                           ),
@@ -921,19 +928,21 @@ class _MyPageState extends State<MyPage> {
 
   /// 🆕 分享账号：复制公开主页链接
   Future<void> _shareProfile() async {
+    final l10n = AppLocalizations.of(context)!;
     final uid = _socialProfile?.uid ?? '';
     if (uid.isEmpty) {
-      KazumiDialog.showToast(message: '账号资料未就绪，请稍后再试');
+      KazumiDialog.showToast(message: l10n.setGProfileNotReady);
       return;
     }
     final link = 'https://qlyyz.xyz/api/u.php?uid=$uid&html=1';
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
-    KazumiDialog.showToast(message: '账号链接已复制，可分享给好友');
+    KazumiDialog.showToast(message: l10n.setGProfileLinkCopied);
   }
 
   /// 🆕 我的称号卡片 + 成就列表
   void _showTitleList(ColorScheme cs) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: cs.surface,
@@ -952,10 +961,10 @@ class _MyPageState extends State<MyPage> {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Row(
                     children: [
-                      Text('我的称号',
+                      Text(l10n.setGMyTitles,
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
                       const SizedBox(width: 8),
-                      Text('$_titleUnlocked / $_titleTotal 已解锁',
+                      Text(l10n.setGTitlesUnlocked(unlocked: _titleUnlocked, total: _titleTotal),
                           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                     ],
                   ),
@@ -1002,7 +1011,7 @@ class _MyPageState extends State<MyPage> {
                                   color: unlocked ? cs.onSurface : cs.onSurfaceVariant,
                                 )),
                             const SizedBox(height: 2),
-                            Text(unlocked ? '已解锁' : '$cur/$target',
+                            Text(unlocked ? l10n.setGUnlocked : '$cur/$target',
                                 maxLines: 1,
                                 style: TextStyle(
                                   fontSize: 10,
@@ -1029,6 +1038,7 @@ class _MyPageState extends State<MyPage> {
 
   // 🆕 我的称号卡片：显示当前称号 + 已解锁数，点击展开成就列表
   Widget _buildTitleCard(ColorScheme colorScheme, TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: () => _showTitleList(colorScheme),
       borderRadius: BorderRadius.circular(14),
@@ -1060,7 +1070,7 @@ class _MyPageState extends State<MyPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_titleName.isEmpty ? '暂无称号' : _titleName,
+                  Text(_titleName.isEmpty ? l10n.setGNoTitle : _titleName,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
@@ -1068,7 +1078,7 @@ class _MyPageState extends State<MyPage> {
                         color: colorScheme.onSurface,
                       )),
                   const SizedBox(height: 2),
-                  Text('已解锁 $_titleUnlocked / $_titleTotal 个称号 · 追番/打卡/积分均可获得',
+                  Text(l10n.setGTitleProgress(unlocked: _titleUnlocked, total: _titleTotal),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
                 ],
@@ -1084,6 +1094,7 @@ class _MyPageState extends State<MyPage> {
 
   // ── 个人中心头部（头像可点击管理）──
   Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme, bool bangumiLoggedIn) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
@@ -1091,7 +1102,7 @@ class _MyPageState extends State<MyPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '个人中心',
+                l10n.setGAccountCenter,
                 style: textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: colorScheme.onSurface,
@@ -1101,8 +1112,8 @@ class _MyPageState extends State<MyPage> {
               const SizedBox(height: 8),
               Text(
                 AuthService.isLoggedIn
-                    ? '欢迎回来，${_socialProfile?.nickname ?? '用户'}'
-                    : '登录以同步数据',
+                    ? l10n.setGWelcomeBack(nickname: _socialProfile?.nickname ?? l10n.setGUserFallback)
+                    : l10n.setGLoginToSync,
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -1111,7 +1122,7 @@ class _MyPageState extends State<MyPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
-                    'UID：${_socialProfile!.uid}',
+                    l10n.setGUserIdLabel(uid: _socialProfile!.uid),
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
@@ -1165,12 +1176,12 @@ class _MyPageState extends State<MyPage> {
         _buildAccountAction(
           colorScheme: colorScheme,
           icon: Icons.people_rounded,
-          title: '好友',
+          title: l10n.setGFriends,
           color: colorScheme.tertiary,
           badge: _friendRequestCount,
           onTap: () {
             if (!AuthService.isLoggedIn) {
-              KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+              KazumiDialog.showToast(message: l10n.setGPleaseLoginFirst);
               return;
             }
             final navContext = rootNavigatorKey.currentContext;
@@ -1184,7 +1195,7 @@ class _MyPageState extends State<MyPage> {
         _buildAccountAction(
           colorScheme: colorScheme,
           icon: Icons.switch_account_rounded,
-          title: '换号',
+          title: l10n.setGSwitchAccountShort,
           color: colorScheme.primary,
           onTap: () => _showAccountSwitcher(),
         ),
@@ -1194,6 +1205,7 @@ class _MyPageState extends State<MyPage> {
 
   /// 🆕 账号快速切换面板
   void _showAccountSwitcher() {
+    final l10n = AppLocalizations.of(context)!;
     final currentToken = AuthService.getLocalToken();
     final saved = AuthService.getSavedAccounts();
     showModalBottomSheet<void>(
@@ -1211,7 +1223,7 @@ class _MyPageState extends State<MyPage> {
                   Icon(Icons.switch_account_rounded,
                       color: theme.colorScheme.primary),
                   const SizedBox(width: 10),
-                  Text('切换账号',
+                  Text(l10n.setGSwitchAccountsTitle,
                       style: theme.textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w700)),
                 ],
@@ -1223,17 +1235,17 @@ class _MyPageState extends State<MyPage> {
                       const CircleAvatar(child: Icon(Icons.person_rounded)),
                   title: Text(_socialProfile?.nickname?.isNotEmpty == true
                       ? _socialProfile!.nickname
-                      : '当前账号'),
-                  subtitle: const Text('当前使用中'),
+                      : l10n.setGCurrentAccount),
+                  subtitle: Text(l10n.setGCurrentlyActive),
                   trailing: const Icon(Icons.check_circle_rounded,
                       color: Colors.green),
                 ),
               if (saved.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Text('已保存的账号',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text(l10n.setGSavedAccounts,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey)),
                 ),
               for (final acc in saved.where((a) => a.token != currentToken)) ...[
                 ListTile(
@@ -1242,8 +1254,8 @@ class _MyPageState extends State<MyPage> {
                         ? String.fromCharCode(acc.nickname.runes.first)
                         : '?'),
                   ),
-                  title: Text(acc.nickname.isNotEmpty ? acc.nickname : '未命名账号'),
-                  subtitle: Text(acc.uid.isNotEmpty ? 'UID ${acc.uid}' : '登录过的账号'),
+                  title: Text(acc.nickname.isNotEmpty ? acc.nickname : l10n.setGUnnamedAccount),
+                  subtitle: Text(acc.uid.isNotEmpty ? l10n.setGUserIdLabel(uid: acc.uid) : l10n.setGLoggedInBefore),
                   trailing: PopupMenuButton<String>(
                     onSelected: (v) async {
                       if (v == 'remove') {
@@ -1253,8 +1265,8 @@ class _MyPageState extends State<MyPage> {
                         if (mounted) setState(() {});
                       }
                     },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'remove', child: Text('从列表移除')),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'remove', child: Text(l10n.setGRemoveFromList)),
                     ],
                   ),
                   onTap: () async {
@@ -1263,7 +1275,7 @@ class _MyPageState extends State<MyPage> {
                     await _loadSocialProfile();
                     if (mounted) {
                       KazumiDialog.showToast(
-                          message: '已切换到${acc.nickname.isNotEmpty ? acc.nickname : '该账号'}');
+                          message: l10n.setGSwitchedToAccount(name: acc.nickname.isNotEmpty ? acc.nickname : l10n.setGThisAccount));
                     }
                   },
                 ),
@@ -1271,7 +1283,7 @@ class _MyPageState extends State<MyPage> {
               const Divider(height: 24),
               ListTile(
                 leading: const Icon(Icons.person_add_alt_1_rounded),
-                title: const Text('登录新账号'),
+                title: Text(l10n.setGLoginNewAccount),
                 onTap: () {
                   Navigator.pop(ctx);
                   final navContext = rootNavigatorKey.currentContext;
@@ -1285,23 +1297,22 @@ class _MyPageState extends State<MyPage> {
               if (AuthService.isLoggedIn)
                 ListTile(
                   leading: const Icon(Icons.logout_rounded),
-                  title: const Text('退出当前账号'),
-                  subtitle: const Text('账号会保留在列表中，可随时切回'),
+                  title: Text(l10n.setGLogoutCurrentAccount),
+                  subtitle: Text(l10n.setGLogoutSubtitle),
                   onTap: () async {
                     Navigator.pop(ctx);
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (dctx) => AlertDialog(
-                        title: const Text('退出登录'),
-                        content: const Text(
-                            '退出后账号仍会保留在「切换账号」列表中，可随时切换回来。'),
+                        title: Text(l10n.setGLogout),
+                        content: Text(l10n.setGLogoutConfirmBody),
                         actions: [
                           TextButton(
                               onPressed: () => Navigator.pop(dctx, false),
-                              child: const Text('取消')),
+                              child: Text(l10n.cancel)),
                           FilledButton(
                               onPressed: () => Navigator.pop(dctx, true),
-                              child: const Text('退出')),
+                              child: Text(l10n.exit)),
                         ],
                       ),
                     );
@@ -1366,6 +1377,7 @@ class _MyPageState extends State<MyPage> {
 
   // ── 本周目标 ──
   Widget _buildWeeklyGoal(ColorScheme colorScheme, TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(28),
@@ -1378,14 +1390,14 @@ class _MyPageState extends State<MyPage> {
               children: [
                 Icon(Icons.flag_rounded, size: 20, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('本周目标', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                Text(l10n.setGWeeklyGoal, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 12),
             if (weeklyGoal <= 0)
               Column(
                 children: [
-                  Text('本周还没设定目标，本周已看 $thisWeekEpisodes 集',
+                  Text(l10n.setGNoWeeklyGoalBody(episodes: thisWeekEpisodes),
                       style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   FilledButton.tonal(
@@ -1393,7 +1405,7 @@ class _MyPageState extends State<MyPage> {
                       setState(() => weeklyGoal = 5);
                       GStorage.putSetting(SettingsKeys.weeklyWatchGoal, 5);
                     },
-                    child: const Text('设定目标（5 集 / 周）'),
+                    child: Text(l10n.setGSetGoal5PerWeek),
                   ),
                 ],
               )
@@ -1404,7 +1416,7 @@ class _MyPageState extends State<MyPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('本周已看 $thisWeekEpisodes / $weeklyGoal 集',
+                        child: Text(l10n.setGWeekProgress(watched: thisWeekEpisodes, goal: weeklyGoal),
                             style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                       IconButton(
@@ -1437,7 +1449,7 @@ class _MyPageState extends State<MyPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    thisWeekEpisodes >= weeklyGoal ? '🎉 本周目标已完成！' : '还差 ${weeklyGoal - thisWeekEpisodes} 集达成目标',
+                    thisWeekEpisodes >= weeklyGoal ? l10n.setGWeekGoalComplete : l10n.setGEpisodesToGo(remaining: weeklyGoal - thisWeekEpisodes),
                     style: TextStyle(
                       fontSize: 12,
                       color: thisWeekEpisodes >= weeklyGoal ? Colors.green : colorScheme.onSurfaceVariant,
@@ -1453,6 +1465,7 @@ class _MyPageState extends State<MyPage> {
 
   // ── 规则设置大卡片 ──
   Widget _buildRulesTile(ColorScheme colorScheme, TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: colorScheme.primary,
       borderRadius: const BorderRadius.only(
@@ -1469,10 +1482,10 @@ class _MyPageState extends State<MyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('规则设置',
+              Text(l10n.setGRuleSettings,
                   style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimary)),
               const SizedBox(height: 6),
-              Text('管理番剧来源', style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary)),
+              Text(l10n.setGManageSources, style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary)),
               const SizedBox(height: 32),
               Container(
                 width: 52,
@@ -1534,12 +1547,13 @@ class _MyPageState extends State<MyPage> {
 
   // ── 偏好设置面板（全宽一行）──
   // 🆕 使用次数排序：点击入口使用次数 +1，次数越多的排越靠前（相同次数保持默认顺序）。
-  Widget _buildPreferencesPanel(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildPreferencesPanel(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context)!;
     final counts = _readPreferenceUsage();
     final entries = [
-      ('theme', Icons.palette_rounded, '外观', '/settings/theme'),
-      ('player', Icons.play_circle_rounded, '播放', '/settings/player'),
-      ('danmaku', Icons.subtitles_rounded, '弹幕', '/settings/danmaku/'),
+      ('theme', Icons.palette_rounded, l10n.setGPrefAppearance, '/settings/theme'),
+      ('player', Icons.play_circle_rounded, l10n.setGPrefPlayer, '/settings/player'),
+      ('danmaku', Icons.subtitles_rounded, l10n.setGPrefDanmaku, '/settings/danmaku/'),
     ];
     // 按使用次数降序排列，次数相同保持默认顺序（稳定排序）
     final sorted = [...entries]..sort((a, b) {
@@ -1556,7 +1570,7 @@ class _MyPageState extends State<MyPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('偏好设置',
+            Text(l10n.setGPreferences,
                 style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             Row(
