@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/utils/bgm_sticker.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
@@ -335,7 +336,7 @@ class _CommentEditorState extends State<CommentEditor> {
   Future<void> _submit() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
+    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin))); return; }
     setState(() => _sending = true);
     final res = await EpisodeCommentService.addComment(
       subjectId: widget.subjectId,

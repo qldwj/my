@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/pages/social/public_profile_page.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
@@ -245,12 +246,12 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
   static final Set<int> _likedIds = <int>{};
   bool _showReplyInput = false;
   void _toggleReplyInput() {
-    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
+    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin))); return; }
     setState(() => _showReplyInput = !_showReplyInput);
   }
 
   Future<void> _vote(int value) async {
-    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
+    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin))); return; }
     await EpisodeCommentService.vote(commentId: widget.comment.id, value: value);
     widget.onRefresh?.call();
   }
@@ -276,7 +277,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
 
   Future<void> _toggleLike() async {
     if (!AuthService.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin)));
       return;
     }
     final liked = _likedIds.contains(widget.comment.id);
@@ -295,7 +296,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
   }
 
   Future<void> _toggleReaction(String sticker) async {
-    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录'))); return; }
+    if (!AuthService.isLoggedIn) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin))); return; }
     await EpisodeCommentService.react(commentId: widget.comment.id, sticker: sticker);
     widget.onRefresh?.call();
   }
@@ -316,7 +317,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
 
   Future<void> _deleteComment() async {
     if (!AuthService.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin)));
       return;
     }
     final ok = await showDialog<bool>(
@@ -340,7 +341,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
 
   Future<void> _reportComment() async {
     if (!AuthService.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先登录')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.setIRequireLogin)));
       return;
     }
     final controller = TextEditingController();

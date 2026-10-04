@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/checkin_service.dart';
 
 /// 🆕 追番打卡 / 连看天数页面
@@ -35,7 +36,7 @@ class _CheckinPageState extends State<CheckinPage> {
     if (res['error'] != null) {
       setState(() => _loading = false);
       if (res['error'] == '未登录') {
-        KazumiDialog.showToast(message: '请先登录');
+        KazumiDialog.showToast(message: AppLocalizations.of(context)!.setIRequireLogin);
       } else {
         KazumiDialog.showToast(message: '加载失败：${res['error']}');
       }
