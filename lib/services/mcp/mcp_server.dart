@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as html_parser;
+import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
 class McpServer {
@@ -17,72 +20,59 @@ class McpServer {
   String get url => 'http://127.0.0.1:$_port/mcp';
 
   static const String _rulePrompt = '''
-你是一个番剧网站规则编写专家。请根据用户提供的网站URL，编写一个Kazumi兼容的解析规则。
+你是 Kazumi 番剧规则编写专家。请严格按以下官方规范生成规则。
 
-## 规则结构（JSON）
-规则支持两种模式：xpath模式和api模式。
+📖 官方文档（必读，优先于任何记忆）：
+- 官网：https://kazumi.app/
+- 下载页：https://kazumi.app/download.html
+- GitHub：https://github.com/Predidit/Kazumi
+- XPath 规则开发：https://kazumi.app/docs/rules/develop-rules
+- 规则介绍（总览）：https://kazumi.app/docs/rules/introduce-rules
+- XPath 规则示例：https://kazumi.app/docs/rules/develop-rules-example
+- 社区教程：https://www.kshare.top
+- API 规则开发：https://kazumi.app/docs/rules/develop-api-rules
+- 官方规则仓库（含 API Level 说明）：https://github.com/Predidit/KazumiRules
+- 视频嗅探原理：https://kazumi.app/docs/architecture/video-parser
+- 技术博客：https://www.cnblogs.com/1288blog/p/19506033
 
-### xpath模式示例：
+⚠️ 关键提醒（我踩过的坑，务必避免）：
+1. 规则字段是【扁平结构】，不是嵌套结构。禁止使用 search.mode / search.url / detail.titlePath 这类字段名。
+2. 搜索占位符是 @keyword，不是 {keyword}。相关占位符还有 @source / @roadIndex / @episodeIndex（从0开始）/ @roadNumber / @episodeNumber（从1开始）。
+3. searchList / searchName / searchResult / chapterRoads / chapterResult 一律用【绝对路径】，以 // 开头。
+4. contains() 在官方规则里可以用（dalvdm、MXdm 都在用），不要禁止。
+5. type 字段是站点类型（"anime"），不是 "xpath"。
+6. api 是版本兼容级别（字符串），取值 "1"~"8"，对应不同 Kazumi 版本。
+7. searchURL 末尾常有 &submit=（maccms 站点常见）。
+8. 规则在 KazumiRules 仓库【根目录】，不在 rules/ 子目录下。
+
+✅ 规则模板（以此为基准，字段名和结构照抄）：
 {
-  "name": "规则名称",
+  "api": "5",
+  "type": "anime",
+  "name": "站点名称",
   "version": "1.0",
-  "search": {
-    "mode": "xpath",
-    "method": "GET",
-    "url": "https://example.com/search?keyword={keyword}",
-    "listPath": "//div[@class='item']",
-    "namePath": ".//a/text()",
-    "sourcePath": ".//a/@href"
-  },
-  "detail": {
-    "titlePath": "//h1/text()",
-    "coverPath": "//img/@src",
-    "descPath": "//div[@class='desc']/text()",
-    "episodePath": "//div[@class='episodes']/a"
-  }
+  "muliSources": true,
+  "useWebview": true,
+  "useNativePlayer": true,
+  "usePost": false,
+  "useLegacyParser": false,
+  "adBlocker": true,
+  "userAgent": "",
+  "baseURL": "https://example.com",
+  "searchURL": "https://example.com/search/-------------.html?wd=@keyword&submit=",
+  "searchList": "//ul[@class*='v_list']/li/div[@class='item']",
+  "searchName": "//a[@class='title']",
+  "searchResult": "//a[@class='title']",
+  "chapterRoads": "//div[@id='play_list']//ul[@class='play_list']",
+  "chapterResult": "//ul[@class='play_list']/li/a"
 }
 
-### API模式示例：
-{
-  "name": "规则名称",
-  "version": "1.0",
-  "mode": "api",
-  "search": {
-    "mode": "api",
-    "request": {"method": "GET", "url": "https://api.example.com/search?keyword={keyword}"},
-    "listPath": "\$.data[*]",
-    "namePath": "\$.name",
-    "sourcePath": "\$.url"
-  },
-  "chapter": {
-    "request": {"method": "GET", "url": "https://api.example.com/episodes/{id}"},
-    "format": "nested",
-    "roadsPath": "\$.data.roads[*]",
-    "roadNamePath": "\$.name",
-    "episodesPath": "\$.episodes[*]",
-    "episodeNamePath": "\$.name",
-    "episodeUrlPath": "\$.url"
-  }
-}
-
-## 分析步骤
-1. 访问网站主页，分析页面结构和API
-2. 找到搜索功能，分析搜索接口（URL/参数/返回格式）
-3. 找到番剧详情页，分析HTML结构或API
-4. 找到播放地址获取方式
-5. 编写完整规则
-
-## 规则图标（用于 App 规则列表显示）
-每条规则建议带 "icon" 字段：该网站的 logo / favicon 图片 URL（http/https），App 的规则列表会用它显示图标。
-例如："icon": "https://example.com/favicon.ico"。尽量从网站抓取 logo 或 favicon 填入；取不到可留空。
-
-## 输出格式
-将规则JSON进行base64编码，在前面加上：
-yhdmgz://
-
-例如：yhdmgz://eyJuYW1lIjoiVGVzdCIs...
-
-最终输出完整链接，用户可直接复制导入。
+📋 输出要求：
+- 先实际访问目标网站，分析搜索页/详情页/播放页的真实 HTML 结构，再写 XPath。
+- 不要凭猜测写 XPath，必须基于真实 DOM。
+- 输出完整 JSON，并在最后附上 yhdmgz:// base64 导入链接。
+- 若道路与分集在 DOM 中不嵌套，用单一 road 处理。
+- 若站点有验证码，加 antiCrawlerConfig。
 ''';
 
   Future<void> start({int? port}) async {
@@ -132,7 +122,8 @@ yhdmgz://
         case 'tools/list':
           _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'tools': [
             {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}},
-            {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}}
+            {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}},
+            {'name': 'test_rule', 'description': '真实抓站验证XPath规则是否可用：实际请求搜索页与详情页，统计搜索结果数、线路数、各线路集数。输入规则与测试关键词。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rule', 'keyword']}}
           ]}});
           break;
         case 'tools/call':
@@ -141,6 +132,12 @@ yhdmgz://
           if (name == 'validate_rule') {
             final result = _validateRule((args['rule'] ?? '').toString());
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else if (name == 'test_rule') {
+            final rule = (args['rule'] ?? '').toString();
+            final keyword = (args['keyword'] ?? '').toString();
+            _testRule(rule, keyword).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
           } else {
             final url = args['url'] ?? '';
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
@@ -190,6 +187,7 @@ yhdmgz://
     }
 
     final errors = <String>[];
+    final warnings = <String>[];
 
     // 必填字段
     for (final f in ['api', 'type', 'name', 'version', 'baseURL']) {
@@ -213,7 +211,22 @@ yhdmgz://
         if (f != 'searchURL' && !v.trimLeft().startsWith('//')) {
           errors.add('$f 选择器必须以 // 开头');
         }
-        _checkUnsupportedXpath(v, f, errors);
+        _checkUnsupportedXpath(v, f, errors, warnings);
+      }
+    }
+
+    // 字段白名单：未知顶级字段提示（可能是幻觉字段）
+    const allowedFields = <String>{
+      'api', 'type', 'name', 'version', 'muliSources', 'useWebview',
+      'useNativePlayer', 'usePost', 'useLegacyParser', 'adBlocker',
+      'userAgent', 'baseURL', 'searchURL', 'searchList', 'searchName',
+      'searchResult', 'chapterRoads', 'chapterResult', 'searchMode',
+      'chapterMode', 'icon', 'antiCrawlerConfig', 'searchApiConfig',
+      'chapterApiConfig', 'useProxy', 'variables',
+    };
+    for (final k in rule.keys) {
+      if (!allowedFields.contains(k)) {
+        warnings.add('未知/非官方顶级字段: "$k"（官方字段见模板：name/version/api/type/baseURL/searchURL/searchList/searchName/searchResult/chapterRoads/chapterResult 等）');
       }
     }
 
@@ -236,7 +249,6 @@ yhdmgz://
     }
 
     final base64Str = base64Encode(utf8.encode(jsonEncode(rule)));
-    final warnings = <String>[];
     final icon = rule['icon'];
     if (icon == null || icon.toString().trim().isEmpty) {
       warnings.add('未提供 icon（网站 logo 图片 URL），App 规则列表将不显示图标');
@@ -256,15 +268,18 @@ yhdmgz://
     };
   }
 
-  void _checkUnsupportedXpath(String s, String field, List<String> errors) {
+  void _checkUnsupportedXpath(String s, String field, List<String> errors, List<String> warnings) {
     const pats = [
-      ['contains(', 'contains() 不兼容，用 [@attr*="value"]'],
+      // contains() 官方规则 dalvdm/MXdm 都在用，仅警告不阻断
       ['starts-with(', 'starts-with() 不兼容，用 [@attr^="value"]'],
       ['text()', 'text() 不支持'],
       ['normalize-space(', 'normalize-space() 不支持'],
       ['substring(', 'substring() 不支持'],
       ['::', 'XPath 轴 :: 不支持'],
     ];
+    if (s.contains('contains(')) {
+      warnings.add('$field: 使用了 contains()（官方 dalvdm/MXdm 也在用，兼容；如遇兼容问题可改用 [@attr*="value"]）');
+    }
     for (final p in pats) {
       if (s.contains(p[0])) errors.add('$field: ${p[1]}');
     }
@@ -282,5 +297,133 @@ yhdmgz://
     if (p.contains('\$..')) errors.add('$field: 递归 \$.. 不支持');
     if (RegExp(r'\[\?').hasMatch(p)) errors.add('$field: 过滤 [?()] 不支持');
     if (RegExp(r'\[[^\]\[]*:').hasMatch(p)) errors.add('$field: 切片 [a:b] 不支持');
+  }
+
+  // ============ test_rule：真实抓站验证 XPath 规则 ============
+  Map<String, dynamic>? _decodeRule(String raw) {
+    var source = raw.trim();
+    try {
+      if (source.startsWith('yhdmgz://') || source.startsWith('kazumi://')) {
+        source = utf8.decode(base64Decode(base64.normalize(source.substring(9))));
+      } else if (!source.startsWith('{')) {
+        try {
+          source = utf8.decode(base64Decode(base64.normalize(source)));
+        } catch (_) {}
+      }
+      final decoded = jsonDecode(source);
+      if (decoded is! Map) return null;
+      return Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<dynamic> _xpathNodes(dynamic node, String? expr) {
+    if (expr == null || expr.trim().isEmpty) return const [];
+    try {
+      return List<dynamic>.from(node.queryXPath(expr).nodes);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  String _xpathText(dynamic node, String? expr) {
+    if (expr == null || expr.trim().isEmpty) return '';
+    try {
+      return node.queryXPath(expr).node?.text?.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _xpathHref(dynamic node, String? expr) {
+    if (expr == null || expr.trim().isEmpty) return '';
+    try {
+      return node.queryXPath(expr).node?.attributes['href']?.trim() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<Map<String, dynamic>> _testRule(String raw, String keyword) async {
+    final r = _decodeRule(raw);
+    if (r == null) {
+      return {'ok': false, 'errors': ['无法解析规则：需为规则JSON、Base64 或 yhdmgz:// 链接']};
+    }
+    final base = (r['baseURL'] ?? '').toString().trim().replaceAll(RegExp(r'/$'), '');
+    final searchUrlTpl = (r['searchURL'] ?? '').toString();
+    final searchUrl = (searchUrlTpl.contains('@keyword')
+            ? searchUrlTpl.replaceAll('@keyword', Uri.encodeQueryComponent(keyword))
+            : searchUrlTpl + Uri(queryParameters: {'wd': keyword}))
+        .replaceFirst(RegExp(r'^\.?/'), '');
+    final finalSearchUrl = searchUrl.startsWith('http') ? searchUrl : base + searchUrl;
+
+    final warnings = <String>[];
+    const headers = {'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'};
+
+    // 1. 搜索
+    final items = <Map<String, String>>[];
+    try {
+      final resp = await http.get(Uri.parse(finalSearchUrl), headers: headers)
+          .timeout(const Duration(seconds: 20));
+      final doc = html_parser.parse(resp.body);
+      final listNodes = _xpathNodes(doc, r['searchList']?.toString());
+      if (listNodes.isEmpty) {
+        warnings.add('searchList 未匹配到任何节点，请检查 XPath（搜索可能无结果或选择器错误）');
+      }
+      for (final node in listNodes) {
+        final name = _xpathText(node, r['searchName']?.toString());
+        final href = _xpathHref(node, r['searchResult']?.toString());
+        if (name.isEmpty && href.isEmpty) continue;
+        items.add({
+          'name': name,
+          'url': href.startsWith('http') ? href : base + href,
+        });
+      }
+    } catch (e) {
+      return {'ok': false, 'errors': ['搜索请求失败: $e'], 'warnings': warnings};
+    }
+
+    // 2. 选集
+    final chapter = <String, dynamic>{
+      'detailUrl': '',
+      'roads': 0,
+      'episodes': <Map<String, dynamic>>[],
+    };
+    if (items.isNotEmpty) {
+      final detailUrl = items.first['url'] ?? '';
+      chapter['detailUrl'] = detailUrl;
+      try {
+        final resp = await http.get(Uri.parse(detailUrl), headers: headers)
+            .timeout(const Duration(seconds: 20));
+        final doc = html_parser.parse(resp.body);
+        final roads = _xpathNodes(doc, r['chapterRoads']?.toString());
+        if (roads.isEmpty) {
+          warnings.add('chapterRoads 未匹配到任何节点，请检查 XPath（或为单一 road，可直接用 chapterResult 统计集数）');
+        }
+        final epsList = <Map<String, dynamic>>[];
+        for (var i = 0; i < roads.length; i++) {
+          final eps = _xpathNodes(roads[i], r['chapterResult']?.toString());
+          epsList.add({'road': 'road${i + 1}', 'episodes': eps.length});
+        }
+        chapter['roads'] = roads.length;
+        chapter['episodes'] = epsList;
+      } catch (e) {
+        warnings.add('详情页请求失败: $e');
+      }
+    }
+
+    return {
+      'ok': items.isNotEmpty,
+      'name': r['name'],
+      'version': r['version'],
+      'search': {
+        'url': finalSearchUrl,
+        'count': items.length,
+        'items': items.take(5).toList(),
+      },
+      'chapter': chapter,
+      'warnings': warnings,
+    };
   }
 }
