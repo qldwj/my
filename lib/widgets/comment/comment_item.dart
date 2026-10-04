@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/models/episode_comment.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/l10n/app_localizations.dart';
@@ -374,6 +375,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
   void _showStickerPicker() {
     showModalBottomSheet(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (ctx) => FutureBuilder<List<Map<String, String>>>(
         future: EpisodeCommentService.getStickers(),
         builder: (ctx, snap) {

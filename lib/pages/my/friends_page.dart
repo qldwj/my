@@ -1,4 +1,5 @@
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -101,6 +102,7 @@ class _FriendsPageState extends State<FriendsPage> {
     if (!mounted) return;
     showModalBottomSheet<void>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,

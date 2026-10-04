@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/mcp/mcp_server.dart';
 
@@ -11,6 +12,7 @@ void showMcpServerDialog(BuildContext context) {
 
   showModalBottomSheet(
     context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
     isScrollControlled: true,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setSheetState) {

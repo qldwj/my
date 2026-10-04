@@ -37,7 +37,8 @@ const ShapeBorder _materialSheetShape = RoundedRectangleBorder(
 );
 
 // Native route motion and the extra surface entrance spring are separate.
-const AnimationStyle _materialSheetAnimationStyle = AnimationStyle(
+// Shared so plain showModalBottomSheet call sites get the same entrance motion.
+const AnimationStyle kSheetAnimationStyle = AnimationStyle(
   duration: Duration(milliseconds: 250),
   reverseDuration: Duration(milliseconds: 200),
   curve: Easing.legacyDecelerate,
@@ -71,7 +72,7 @@ Future<T?> showAdaptiveBottomSheet<T>({
     useSafeArea: true,
     sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
         ? AnimationStyle.noAnimation
-        : _materialSheetAnimationStyle,
+        : kSheetAnimationStyle,
     builder: (context) => _MaterialSheetSurface(
       child: Builder(builder: builder),
     ),

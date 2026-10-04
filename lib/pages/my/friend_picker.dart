@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/social/social_service.dart';
 
@@ -22,6 +23,7 @@ class FriendPicker {
     }
     final selected = await showModalBottomSheet<SocialProfile>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,

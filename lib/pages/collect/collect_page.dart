@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:flutter/material.dart';
@@ -104,6 +105,7 @@ class _CollectPageState extends State<CollectPage>
   Future<void> _showShortcutMenu(BangumiItem bangumiItem) async {
     final action = await showModalBottomSheet<String>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -164,6 +166,7 @@ class _CollectPageState extends State<CollectPage>
     }
     final selected = await showModalBottomSheet<String>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -318,6 +321,7 @@ class _CollectPageState extends State<CollectPage>
 
     showModalBottomSheet(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
