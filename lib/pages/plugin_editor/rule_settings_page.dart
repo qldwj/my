@@ -5,6 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/settings_section_card.dart';
 import 'package:kazumi/bean/widget/source_rating_widget.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -98,7 +99,9 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
         await webDav.uploadStarRules(list);
       } catch (e) {
         if (mounted) {
-          KazumiDialog.showToast(message: '❌ WebDAV 星标同步失败：$e');
+          KazumiDialog.showToast(
+              message: AppLocalizations.of(context)!
+                  .setFWebdavSyncFail(error: e.toString()));
         }
       }
     }
@@ -106,6 +109,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final plugins = pluginsController.pluginList.toList()
       ..sort((a, b) {
@@ -116,7 +120,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
       });
     return Scaffold(
       appBar: SysAppBar(
-        title: const Text('规则设置'),
+        title: Text(l10n.setFRuleSettings),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.maybePop(),
@@ -126,11 +130,11 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           SettingsSectionCard(
-            title: '播放',
+            title: l10n.setFPlayback,
             children: [
               SwitchListTile(
-                title: const Text('自动选择视频源'),
-                subtitle: const Text('开始观看时自动用第一个可用源播放'),
+                title: Text(l10n.setFAutoSelectSource),
+                subtitle: Text(l10n.setFAutoSelectSourceSub),
                 value: _autoSelectSource,
                 onChanged: (value) async {
                   setState(() => _autoSelectSource = value);
@@ -141,7 +145,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
             ],
           ),
           SettingsSectionCard(
-            title: '星标规则（播放时无条件排最前 · WebDAV 同步）',
+            title: l10n.setFStarredRules,
             children: [
               if (_loadingStar)
                 const Padding(
@@ -149,9 +153,9 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                   child: Center(child: LoadingIndicator()),
                 )
               else if (plugins.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('暂无规则'),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l10n.setFNoRules),
                 )
               else
                 for (final p in plugins)
@@ -172,12 +176,12 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
             ],
           ),
           SettingsSectionCard(
-            title: '源稳定性评分（帮助选源）',
+            title: l10n.setFSourceStabilityRating,
             children: [
               if (plugins.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('暂无规则'),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l10n.setFNoRules),
                 )
               else
                 for (final p in plugins)
@@ -191,10 +195,10 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
             ],
           ),
           SettingsSectionCard(
-            title: '选源排序（可多选组合，未选则按默认速度）',
+            title: l10n.setFSourceSorting,
             children: [
               SwitchListTile(
-                title: const Text('默认（按响应速度）'),
+                title: Text(l10n.setFDefaultSort),
                 value: _useDefaultSort,
                 onChanged: (value) async {
                   setState(() => _useDefaultSort = value);
@@ -203,7 +207,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
               ),
               const Divider(height: 1),
               SwitchListTile(
-                title: const Text('清晰度最高'),
+                title: Text(l10n.setFHighestQuality),
                 value: _sortByQuality,
                 onChanged: (value) async {
                   setState(() => _sortByQuality = value);
@@ -211,7 +215,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                 },
               ),
               SwitchListTile(
-                title: const Text('集数最多'),
+                title: Text(l10n.setFMostEpisodes),
                 value: _sortByEpisodes,
                 onChanged: (value) async {
                   setState(() => _sortByEpisodes = value);
@@ -219,7 +223,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                 },
               ),
               SwitchListTile(
-                title: const Text('速度最快'),
+                title: Text(l10n.setFFastestSpeed),
                 value: _sortBySpeed,
                 onChanged: (value) async {
                   setState(() => _sortBySpeed = value);
@@ -229,13 +233,13 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
             ],
           ),
           SettingsSectionCard(
-            title: '登录态 Cookie（超时自动失效）',
+            title: l10n.setFLoginCookie,
             children: [
               ListTile(
                 dense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                title: const Text('登录态有效天数'),
-                subtitle: const Text('默认 30 天，超期需重新登录获取'),
+                title: Text(l10n.setFCookieTtlDays),
+                subtitle: Text(l10n.setFCookieTtlDaysSub),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -244,7 +248,7 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                       icon: const Icon(Icons.remove_circle_outline),
                       onPressed: () => _changeTtl(-1),
                     ),
-                    Text('${PluginCookieManager.cookieTtlDays} 天',
+                    Text(l10n.setFDays(count: PluginCookieManager.cookieTtlDays),
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     IconButton(
                       visualDensity: VisualDensity.compact,
@@ -257,11 +261,11 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
               ListTile(
                 dense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                title: const Text('清除全部已保存登录态'),
-                subtitle: const Text('清空所有规则的 Cookie（误判已登录时可一键清理）'),
+                title: Text(l10n.setFClearAllLoginState),
+                subtitle: Text(l10n.setFClearAllLoginStateSub),
                 trailing: TextButton(
                   onPressed: _clearAllCookies,
-                  child: const Text('全部清除'),
+                  child: Text(l10n.setFClearAll),
                 ),
               ),
             ],
@@ -280,24 +284,28 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
 
   Future<void> _clearAllCookies() async {
     final confirmed = await KazumiDialog.show<bool>(
-      builder: (context) => AlertDialog(
-        title: const Text('清除全部登录态'),
-        content: const Text('将清空所有已保存规则的 Cookie，下次播放会重新要求登录。是否继续？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final dl10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(dl10n.setFClearAllLoginStateTitle),
+          content: Text(dl10n.setFClearAllConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(dl10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(dl10n.setFClear),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true) return;
     await PluginCookieManager.instance.clearAll();
     if (mounted) setState(() {});
-    KazumiDialog.showToast(message: '已清除全部登录态');
+    KazumiDialog.showToast(
+        message: AppLocalizations.of(context)!.setFClearAllDone);
   }
 }

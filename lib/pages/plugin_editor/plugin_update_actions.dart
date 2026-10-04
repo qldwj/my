@@ -1,20 +1,32 @@
+import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:kazumi/navigation.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+
+/// 解析本地化实例：优先使用调用方传入的 context，否则回退到全局 navigator context。
+/// （经验判断：本函数被范围外页面以无 context 形式调用，回退保证其在运行期仍可本地化。）
+AppLocalizations _l10nOf(BuildContext? context) {
+  final ctx = context ?? rootNavigatorKey.currentContext;
+  return AppLocalizations.of(ctx!)!;
+}
 
 Future<void> updateAllPluginsWithFeedback(
   PluginsController controller, {
   required bool ensureCatalog,
+  BuildContext? context,
 }) async {
-  KazumiDialog.showLoading(msg: '更新中');
+  final l10n = _l10nOf(context);
+  KazumiDialog.showLoading(msg: l10n.setFUpdating);
   try {
     final result = await controller.tryUpdateAllPlugin(
       ensureCatalog: ensureCatalog,
     );
     KazumiDialog.dismiss();
-    KazumiDialog.showToast(message: _batchUpdateMessage(result));
+    KazumiDialog.showToast(message: _batchUpdateMessage(result, l10n));
   } catch (_) {
     KazumiDialog.dismiss();
-    KazumiDialog.showToast(message: '更新规则失败');
+    KazumiDialog.showToast(message: l10n.setFUpdateRuleFailed);
   }
 }
 
@@ -22,44 +34,46 @@ Future<PluginUpdateResult> updatePluginWithFeedback(
   PluginsController controller,
   String name, {
   required bool installing,
+  BuildContext? context,
 }) async {
-  KazumiDialog.showToast(message: installing ? '导入中' : '更新中');
+  final l10n = _l10nOf(context);
+  KazumiDialog.showToast(message: installing ? l10n.setFImporting : l10n.setFUpdating);
   late final PluginUpdateResult result;
   try {
     result = await controller.tryUpdatePluginByName(name);
   } catch (_) {
-    KazumiDialog.showToast(message: '保存规则失败');
+    KazumiDialog.showToast(message: l10n.setFSaveRuleFailed);
     return PluginUpdateResult.failed;
   }
   final message = switch (result) {
-    PluginUpdateResult.updated => installing ? '导入成功' : '更新成功',
-    PluginUpdateResult.requiresNewerClient => '规则需要更高版本客户端',
-    PluginUpdateResult.failed => installing ? '导入规则失败' : '更新规则失败',
-    PluginUpdateResult.notNewer => '远程规则版本不高于本地，已跳过更新',
+    PluginUpdateResult.updated => installing ? l10n.setFImportSuccess : l10n.setFUpdateSuccess,
+    PluginUpdateResult.requiresNewerClient => l10n.setFRequiresNewerClient,
+    PluginUpdateResult.failed => installing ? l10n.setFImportRuleFailed : l10n.setFUpdateRuleFailed,
+    PluginUpdateResult.notNewer => l10n.setFNotNewer,
   };
   KazumiDialog.showToast(message: message);
   return result;
 }
 
-String _batchUpdateMessage(PluginBatchUpdateResult result) {
+String _batchUpdateMessage(PluginBatchUpdateResult result, AppLocalizations l10n) {
   if (result.hasNoCandidates) {
-    return '没有可更新的规则';
+    return l10n.setFNoUpdateCandidates;
   }
   if (result.failed == 0 &&
       result.requiresNewerClient == 0 &&
       result.notNewer == 0) {
-    return '更新成功 ${result.updated} 条';
+    return l10n.setFBatchUpdated(count: result.updated);
   }
 
-  final parts = <String>['成功 ${result.updated} 条'];
+  final parts = <String>[l10n.setFBatchSucceeded(count: result.updated)];
   if (result.requiresNewerClient > 0) {
-    parts.add('不兼容 ${result.requiresNewerClient} 条');
+    parts.add(l10n.setFBatchIncompatible(count: result.requiresNewerClient));
   }
   if (result.notNewer > 0) {
-    parts.add('已跳过 ${result.notNewer} 条');
+    parts.add(l10n.setFBatchSkipped(count: result.notNewer));
   }
   if (result.failed > 0) {
-    parts.add('失败 ${result.failed} 条');
+    parts.add(l10n.setFBatchFailed(count: result.failed));
   }
-  return '更新完成：${parts.join('，')}';
+  return l10n.setFBatchUpdateDone(parts: parts.join(', '));
 }

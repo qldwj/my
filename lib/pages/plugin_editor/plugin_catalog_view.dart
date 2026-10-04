@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/source_rating_widget.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
@@ -24,7 +25,7 @@ class PluginCatalogView extends StatefulWidget {
     this.listPadding = const EdgeInsets.symmetric(horizontal: 8),
     this.showRefreshButton = false,
     this.compactLastUpdate = false,
-    this.errorMessage = '无法访问规则仓库',
+    this.errorMessage,
     this.showRating = true,
   });
 
@@ -33,7 +34,7 @@ class PluginCatalogView extends StatefulWidget {
   final EdgeInsetsGeometry listPadding;
   final bool showRefreshButton;
   final bool compactLastUpdate;
-  final String errorMessage;
+  final String? errorMessage;
 
   /// 是否在源卡片上显示稳定性评分（规则仓/首页向导显示，规则管理页可关）
   final bool showRating;
@@ -137,6 +138,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
   /// 仅在独立规则仓库页（showRefreshButton=false）展示；onboarding 紧凑页
   /// （showRefreshButton=true）保持 my 原有紧凑列表，不挤压引导布局。
   Widget _buildCatalogHeader() {
+    final l10n = AppLocalizations.of(context)!;
     final catalog = _controller.pluginHTTPList;
     final installedCount = catalog
         .where((p) =>
@@ -156,12 +158,12 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
               controller: _search,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: '搜索规则或作者',
+                hintText: l10n.setFSearchRuleOrAuthor,
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _search.text.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: '清除搜索',
+                        tooltip: l10n.setFClearSearch,
                         onPressed: () => setState(_search.clear),
                         icon: const Icon(Icons.close_rounded),
                       ),
@@ -175,9 +177,15 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
                 runSpacing: 4,
                 children: [
                   for (final entry in [
-                    (_CatalogFilter.all, '全部 ${catalog.length}'),
-                    (_CatalogFilter.installed, '已安装 $installedCount'),
-                    (_CatalogFilter.updates, '可更新 $updateCount'),
+                    (_CatalogFilter.all, l10n.setFCountAll(count: catalog.length)),
+                    (
+                      _CatalogFilter.installed,
+                      l10n.setFCountInstalled(count: installedCount),
+                    ),
+                    (
+                      _CatalogFilter.updates,
+                      l10n.setFCountUpdates(count: updateCount),
+                    ),
                   ])
                     FilterChip(
                       label: Text(entry.$2),
@@ -195,6 +203,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
 
   Widget _buildPluginList() {
     return Observer(builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       final colorScheme = Theme.of(context).colorScheme;
       final items = _visibleItems();
 
@@ -215,25 +224,25 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
               ),
               if (item.needLogin)
                 RuleTag(
-                  label: '需要登录',
+                  label: l10n.setFNeedLogin,
                   background: colorScheme.errorContainer,
                   foreground: colorScheme.onErrorContainer,
                 ),
               if (item.antiCrawlerEnabled)
                 RuleTag(
-                  label: '需要验证',
+                  label: l10n.setFNeedVerification,
                   background: colorScheme.tertiaryContainer,
                   foreground: colorScheme.onTertiaryContainer,
                 ),
             ],
             caption:
-                item.lastUpdate > 0 ? _formatLastUpdate(item.lastUpdate) : null,
+                item.lastUpdate > 0 ? _formatLastUpdate(item.lastUpdate, l10n) : null,
             ratingSourceId: widget.showRating ? item.name : null,
             trailing: RuleCardActionButton(
               label: switch (status) {
-                PluginCatalogItemStatus.install => '安装',
-                PluginCatalogItemStatus.installed => '已安装',
-                PluginCatalogItemStatus.update => '更新',
+                PluginCatalogItemStatus.install => l10n.setFInstall,
+                PluginCatalogItemStatus.installed => l10n.setFInstalled,
+                PluginCatalogItemStatus.update => l10n.setFUpdate,
               },
               onPressed: status == PluginCatalogItemStatus.installed
                   ? null
@@ -242,6 +251,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
                         _controller,
                         item.name,
                         installing: status == PluginCatalogItemStatus.install,
+                        context: context,
                       );
                       if (result == PluginUpdateResult.updated && mounted) {
                         setState(() {});
@@ -265,27 +275,30 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
     });
   }
 
-  String _formatLastUpdate(int millisecondsSinceEpoch) {
+  String _formatLastUpdate(
+      int millisecondsSinceEpoch, AppLocalizations l10n) {
     final value =
         DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch).toString();
     if (widget.compactLastUpdate) {
       return value.split(' ')[0];
     }
-    return '更新时间: ${value.split('.')[0]}';
+    return l10n.setFLastUpdate(time: value.split('.')[0]);
   }
 
   Widget _buildLoadError() {
+    final l10n = AppLocalizations.of(context)!;
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
+    final repoMsg = widget.errorMessage ?? l10n.setFRepoUnreachable;
     return Center(
       child: GeneralErrorWidget(
         errMsg:
-            '${widget.errorMessage}\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
+            '${repoMsg}\n${enableGitProxy ? l10n.setFRepoMirrorEnabled : l10n.setFRepoMirrorDisabled}',
         actions: [
           GeneralErrorButton(
             onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
-            text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
+            text: enableGitProxy ? l10n.setFDisableRepoMirror : l10n.setFEnableRepoMirror,
           ),
-          GeneralErrorButton(onPressed: refresh, text: '刷新'),
+          GeneralErrorButton(onPressed: refresh, text: l10n.setCRefresh),
         ],
       ),
     );
@@ -299,7 +312,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
       return _buildLoadError();
     }
     if (_controller.pluginHTTPList.isEmpty) {
-      return const Center(child: Text('规则仓库中暂无规则'));
+      return Center(child: Text(AppLocalizations.of(context)!.setFRepoEmpty));
     }
     return _buildPluginList();
   }
@@ -316,7 +329,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           children: [
             IconButton(
               onPressed: refresh,
-              tooltip: '刷新规则列表',
+              tooltip: AppLocalizations.of(context)!.setFRefreshRuleList,
               icon: const Icon(Icons.refresh_rounded),
             ),
           ],

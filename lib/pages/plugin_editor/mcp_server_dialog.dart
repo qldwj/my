@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/mcp/mcp_server.dart';
 
 /// MCP AI规则生成器弹窗
@@ -13,6 +14,7 @@ void showMcpServerDialog(BuildContext context) {
     isScrollControlled: true,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setSheetState) {
+        final l10n = AppLocalizations.of(ctx)!;
         final colors = Theme.of(ctx).colorScheme;
         final text = Theme.of(ctx).textTheme;
         isRunning = McpServer.instance.isRunning;
@@ -46,8 +48,8 @@ void showMcpServerDialog(BuildContext context) {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('AI规则生成器', style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                          Text('MCP服务 · AI帮你写规则', style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+                          Text(l10n.setFAiRuleGenerator, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                          Text(l10n.setFMcpSubtitle, style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
                         ],
                       ),
                     ),
@@ -74,7 +76,7 @@ void showMcpServerDialog(BuildContext context) {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            isRunning ? '服务运行中' : '服务未开启',
+                            isRunning ? l10n.setFServiceRunning : l10n.setFServiceStopped,
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: isRunning ? Colors.green : colors.onSurfaceVariant,
@@ -103,7 +105,7 @@ void showMcpServerDialog(BuildContext context) {
                                 icon: const Icon(Icons.copy_rounded),
                                 onPressed: () {
                                   Clipboard.setData(ClipboardData(text: McpServer.instance.url));
-                                  KazumiDialog.showToast(message: '已复制');
+                                  KazumiDialog.showToast(message: l10n.setFCopied);
                                 },
                               ),
                             ],
@@ -111,7 +113,7 @@ void showMcpServerDialog(BuildContext context) {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '在AI工具中添加此MCP服务器，AI将自动帮你编写规则',
+                          l10n.setFMcpHelpText,
                           style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                         ),
                       ],
@@ -123,7 +125,7 @@ void showMcpServerDialog(BuildContext context) {
                 // 端口设置
                 Row(
                   children: [
-                    Text('端口: ', style: text.bodyMedium),
+                    Text(l10n.setFPortLabel, style: text.bodyMedium),
                     SizedBox(
                       width: 80,
                       child: TextField(
@@ -157,7 +159,7 @@ void showMcpServerDialog(BuildContext context) {
                           // 端口已经在上面设置了
                         },
                         icon: const Icon(Icons.settings_rounded, size: 18),
-                        label: const Text('端口设置'),
+                        label: Text(l10n.setFPortSettings),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -173,11 +175,11 @@ void showMcpServerDialog(BuildContext context) {
                             }
                             setSheetState(() {});
                           } catch (e) {
-                            KazumiDialog.showToast(message: '操作失败: $e');
+                            KazumiDialog.showToast(message: l10n.setFOperationFailed(error: e.toString()));
                           }
                         },
                         icon: Icon(isRunning ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 20),
-                        label: Text(isRunning ? '停止服务' : '开启服务'),
+                        label: Text(isRunning ? l10n.setFStopService : l10n.setFStartService),
                         style: FilledButton.styleFrom(
                           backgroundColor: isRunning ? colors.error : colors.primary,
                         ),
