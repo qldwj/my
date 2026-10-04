@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/request/apis/recommend_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/nsfw_filter.dart';
@@ -22,6 +23,22 @@ abstract class _PopularController with Store {
 
   @observable
   ObservableList<BangumiItem> trendList = ObservableList.of([]);
+
+  /// 首页"为你推荐"（代理 Animeko 官方推荐）
+  @observable
+  ObservableList<BangumiItem> recommendList = ObservableList.of([]);
+
+  @observable
+  bool recommendLoaded = false;
+
+  @action
+  Future<void> loadRecommend() async {
+    if (recommendLoaded) return;
+    final result = await RecommendApi.fetchRecommendations();
+    recommendList.clear();
+    recommendList.addAll(result);
+    recommendLoaded = true;
+  }
 
   double scrollOffset = 0.0;
 
