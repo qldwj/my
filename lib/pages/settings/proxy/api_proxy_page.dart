@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/network/image_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -259,6 +260,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (ctx) {
         final cs = Theme.of(ctx).colorScheme;
         return SafeArea(

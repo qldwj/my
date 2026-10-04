@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -164,6 +165,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     // 显示分享选项
     showModalBottomSheet(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

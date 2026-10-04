@@ -6,6 +6,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -254,6 +255,7 @@ class _MyPageState extends State<MyPage> {
 
     await showModalBottomSheet<void>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
@@ -459,6 +461,7 @@ class _MyPageState extends State<MyPage> {
     }
     final action = await showModalBottomSheet<String>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -597,6 +600,7 @@ class _MyPageState extends State<MyPage> {
     }
     final action = await showModalBottomSheet<String>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -945,6 +949,7 @@ class _MyPageState extends State<MyPage> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       backgroundColor: cs.surface,
       showDragHandle: true,
       isScrollControlled: true,
@@ -1210,6 +1215,7 @@ class _MyPageState extends State<MyPage> {
     final saved = AuthService.getSavedAccounts();
     showModalBottomSheet<void>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       useRootNavigator: true,
       builder: (ctx) {
         final theme = Theme.of(ctx);

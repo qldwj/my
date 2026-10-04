@@ -1,4 +1,5 @@
 import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -108,6 +109,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _showPlusMenu() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -152,6 +154,7 @@ class _ChatPageState extends State<ChatPage> {
     }
     final picked = await showModalBottomSheet<CollectedBangumi>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
@@ -225,6 +228,7 @@ class _ChatPageState extends State<ChatPage> {
     }
     final picked = await showModalBottomSheet<Plugin>(
       context: context,
+sheetAnimationStyle: kSheetAnimationStyle,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
