@@ -149,11 +149,6 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
             label: l10n.setGTabRecommend,
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.auto_awesome),
-            icon: Icon(Icons.auto_awesome_outlined),
-            label: l10n.setGTabForYou,
-          ),
-          NavigationDestination(
             selectedIcon: Icon(Icons.timeline),
             icon: Icon(Icons.timeline_outlined),
             label: l10n.setGTabTimeline,
@@ -201,11 +196,6 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
                   selectedIcon: Icon(Icons.home),
                   icon: Icon(Icons.home_outlined),
                   label: Text(l10n.setGTabRecommend),
-                ),
-                NavigationRailDestination(
-                  selectedIcon: Icon(Icons.auto_awesome),
-                  icon: Icon(Icons.auto_awesome_outlined),
-                  label: Text(l10n.setGTabForYou),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.timeline),
