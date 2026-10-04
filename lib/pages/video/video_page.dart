@@ -12,6 +12,7 @@ import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/pages/playlist/play_queue_page.dart';
 import 'package:kazumi/pages/my/friend_picker.dart';
 import 'package:kazumi/services/playlist/play_queue_service.dart';
+import 'package:kazumi/services/level_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
@@ -103,6 +104,8 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     videoPageController.applyPlaybackArgs(widget.args);
+    // 🆕 打开播放页即上报看番经验（+10/集，服务端每日上限 30）
+    unawaited(LevelService.addExp('watch'));
     // 🆕 预热连播队列（保证最后一集接播时 length 同步可用）
     unawaited(PlayQueueService.instance.getAll());
     // 🆕 连播队列：跳到记录的起始集

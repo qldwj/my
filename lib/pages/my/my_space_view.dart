@@ -3,6 +3,7 @@ import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/bean/widget/content_section.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/my/watch_stats.dart';
+import 'package:kazumi/pages/ticket/ticket_page.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 
 enum MyDestination {
@@ -210,6 +211,13 @@ class _CompactSpaceLayout extends StatelessWidget {
             _entry('同步备份', Icons.cloud_sync_rounded, MyDestination.sync),
             _entry(
                 '存储管理', Icons.cleaning_services_rounded, MyDestination.storage),
+            SettingsTile(
+              title: const Text('工单反馈'),
+              leading: Icons.report_problem_rounded,
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              onPressed: (_) => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TicketPage())),
+            ),
             _entry(
                 '关于 Kazumi', Icons.info_outline_rounded, MyDestination.about),
           ],

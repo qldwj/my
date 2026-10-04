@@ -19,6 +19,7 @@ import 'package:kazumi/pages/my/checkin_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/friends_page.dart';
+import 'package:kazumi/widgets/level/level_panel.dart';
 import 'package:kazumi/pages/my/chat_list_page.dart';
 import 'package:kazumi/pages/my/privacy_settings_page.dart';
 import 'package:kazumi/pages/my/security_center_page.dart';
@@ -1117,6 +1118,8 @@ class _MyPageState extends State<MyPage> {
                     ),
                   ),
                 ),
+              // 🆕 等级面板（登录时显示）
+              if (AuthService.isLoggedIn) const LevelPanel(),
             ],
           ),
         ),

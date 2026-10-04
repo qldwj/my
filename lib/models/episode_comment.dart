@@ -17,6 +17,7 @@ class EpisodeComment {
   final String title;
   final int coins;
   final bool pinned;
+  final int level;
 
   EpisodeComment({
     required this.id,
@@ -37,6 +38,7 @@ class EpisodeComment {
     this.title = '',
     this.coins = 0,
     this.pinned = false,
+    this.level = 1,
   });
 
   factory EpisodeComment.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class EpisodeComment {
       title: json['title']?.toString() ?? '',
       coins: (json['coins'] as num?)?.toInt() ?? 0,
       pinned: json['pinned'] == 1 || json['pinned'] == true,
+      level: (json['level'] as num?)?.toInt() ?? 1,
       replies: (json['replies'] as List?)?.map((e) => EpisodeComment.fromJson(e)).toList() ?? [],
       reactions: (json['reactions'] as List?)?.map((e) => CommentReaction.fromJson(e)).toList() ?? [],
     );

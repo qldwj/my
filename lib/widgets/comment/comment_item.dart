@@ -3,6 +3,7 @@ import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/comment/episode_comment_service.dart';
 import 'package:kazumi/services/auth_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
+import 'package:kazumi/services/level_service.dart';
 import 'package:kazumi/pages/social/public_profile_page.dart';
 import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
 
@@ -81,6 +82,16 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                         decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(5)),
                         child: Text(c.title, style: const TextStyle(fontSize: 10, color: Color(0xFF7B3FF2))),
+                      ),
+                    ],
+                    // 🆕 等级图标
+                    if (c.level > 0) ...[
+                      const SizedBox(width: 5),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(LevelService.levelIconUrl(c.level), width: 18, height: 18,
+                          errorBuilder: (_, __, ___) => Text('Lv${c.level}',
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF7B3FF2)))),
                       ),
                     ],
                   ]),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:kazumi/models/episode_comment.dart';
 import 'package:kazumi/services/auth_service.dart';
+import 'package:kazumi/services/level_service.dart';
 import 'package:kazumi/services/social/social_service.dart';
 import 'package:kazumi/utils/api_throttle.dart';
 
@@ -32,7 +33,10 @@ class EpisodeCommentService {
     final res = await http.post(Uri.parse('$_baseUrl?action=add'),
       headers: {..._browserHeaders, 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode(body));
-    return jsonDecode(res.body);
+    final j = jsonDecode(res.body);
+    // 🆕 评论成功 → 加经验（不阻塞）
+    if (j is Map && j['success'] == true) LevelService.addExp('comment');
+    return Map<String, dynamic>.from(j);
   }
 
   static Future<Map<String, dynamic>> replyComment({required int commentId, required String content}) async {

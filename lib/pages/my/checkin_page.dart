@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/services/checkin_service.dart';
+import 'package:kazumi/services/level_service.dart';
 
 /// 🆕 追番打卡 / 连看天数页面
 class CheckinPage extends StatefulWidget {
@@ -64,6 +65,8 @@ class _CheckinPageState extends State<CheckinPage> {
     }
     KazumiDialog.showToast(
         message: res['checked'] == true ? '打卡成功 ✅ +${res['bonus'] ?? 5} 积分' : '今天已打卡过啦');
+    // 🆕 首次打卡成功 → 加经验（+20，签一次直接 Lv2）
+    if (res['checked'] == true) LevelService.addExp('checkin');
     await _load();
   }
 
