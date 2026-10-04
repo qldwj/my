@@ -83,7 +83,7 @@ class _LevelPanelState extends State<LevelPanel> {
               const SizedBox(width: 8),
               Text(info.isMax ? 'MAX' : '${info.exp}/${info.next}',
                   style: TextStyle(fontSize: 11, color: cs.onSecondaryContainer)),
-              const Icon(Icons.chevron_right, size: 18, color: cs.onSecondaryContainer),
+              Icon(Icons.chevron_right, size: 18, color: cs.onSecondaryContainer),
             ],
           ),
         ),
@@ -133,13 +133,13 @@ class LevelDetailSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _section('经验获取', [
+            _section(context, '经验获取', [
               '✅ 每日签到 +20 经验',
               '✅ 每看完一集番剧 +10 经验（每日上限 30）',
               '✅ 发布吐槽/评论 +5 经验（每日上限 20）',
             ]),
             const SizedBox(height: 12),
-            _section('升级所需累计经验', [
+            _section(context, '升级所需累计经验', [
               'Lv1 → Lv2：20    Lv2 → Lv3：150',
               'Lv3 → Lv4：450    Lv4 → Lv5：1080',
               'Lv5 → Lv6：2880',
@@ -189,7 +189,7 @@ class LevelDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _section(String title, List<String> lines) {
+  Widget _section(BuildContext context, String title, List<String> lines) {
     final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
