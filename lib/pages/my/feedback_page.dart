@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key});
@@ -56,7 +57,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   // 选择图片
   Future<void> _pickImages() async {
     if (_selectedFiles.length >= 4) {
-      KazumiDialog.showToast(message: '最多只能选择4个文件');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setCMax4Files);
       return;
     }
     final picker = ImagePicker();
@@ -72,7 +73,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   // 选择视频
   Future<void> _pickVideo() async {
     if (_selectedFiles.length >= 4) {
-      KazumiDialog.showToast(message: '最多只能选择4个文件');
+      KazumiDialog.showToast(message: AppLocalizations.of(context)!.setCMax4Files);
       return;
     }
     final picker = ImagePicker();
@@ -106,9 +107,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   // 提交反馈
   Future<void> _submitFeedback() async {
+    final l10n = AppLocalizations.of(context)!;
     final content = _contentController.text.trim();
     if (content.isEmpty) {
-      KazumiDialog.showToast(message: '请填写反馈内容');
+      KazumiDialog.showToast(message: l10n.setCEnterFeedbackContent);
       return;
     }
 
@@ -116,7 +118,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     for (var xFile in _selectedFiles) {
       final file = File(xFile.path);
       if (await file.length() > 20 * 1024 * 1024) {
-        KazumiDialog.showToast(message: '文件 ${xFile.name} 超过 20MB 限制');
+        KazumiDialog.showToast(message: l10n.setCFileOverLimit(xFile.name));
         return;
       }
     }
@@ -144,21 +146,23 @@ class _FeedbackPageState extends State<FeedbackPage> {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         if (json['success'] == true) {
-          KazumiDialog.showToast(message: '反馈提交成功，感谢您的支持！');
+          KazumiDialog.showToast(message: l10n.setCSubmitSuccess);
           _contentController.clear();
           setState(() => _selectedFiles.clear());
           // 刷新列表
           _fetchFeedbacks();
         } else {
           KazumiDialog.showToast(
-            message: '提交失败：${json['error'] ?? '未知错误'}',
+            message: l10n.setCSubmitFailed(
+                (json['error'] ?? l10n.setCUnknownError).toString()),
           );
         }
       } else {
-        KazumiDialog.showToast(message: '服务器响应异常 (${response.statusCode})');
+        KazumiDialog.showToast(
+            message: l10n.setCServerError(response.statusCode));
       }
     } catch (e) {
-      KazumiDialog.showToast(message: '网络请求失败，请检查网络连接');
+      KazumiDialog.showToast(message: l10n.setCNetworkRequestFailed);
       debugPrint('反馈提交错误: $e');
     } finally {
       setState(() => _isSubmitting = false);
@@ -167,7 +171,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   // 构建单个反馈卡片
   Widget _buildFeedbackItem(Map<String, dynamic> item) {
-    final status = item['status'] == 1 ? '已处理' : '待处理';
+    final l10n = AppLocalizations.of(context)!;
+    final status = item['status'] == 1 ? l10n.setCResolved : l10n.setCPending;
     final statusColor = item['status'] == 1 ? Colors.green : Colors.orange;
     final reply = item['reply'] ?? '';
     final media = item['media'] ?? [];
@@ -255,9 +260,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '官方回复：',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    Text(
+                      l10n.setCOfficialReply,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     const SizedBox(height: 4),
                     Text(reply, style: const TextStyle(fontSize: 14)),
@@ -285,9 +290,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('意见反馈'),
+        title: Text(l10n.feedback),
         backgroundColor: Theme.of(context).colorScheme.surface,
         actions: [
           IconButton(
@@ -302,17 +308,17 @@ class _FeedbackPageState extends State<FeedbackPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ---------- 提交表单 ----------
-            const Text(
-              '提交反馈',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.setCSubmitFeedback,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _contentController,
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: '请描述您的问题或建议...',
-                border: OutlineInputBorder(
+              decoration: InputDecoration(
+                hintText: l10n.setCFeedbackHint,
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 filled: true,
@@ -325,7 +331,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ElevatedButton.icon(
                   onPressed: _pickImages,
                   icon: const Icon(Icons.photo_library),
-                  label: const Text('选择图片'),
+                  label: Text(l10n.setCSelectImages),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade50,
                     foregroundColor: Colors.blue.shade700,
@@ -335,7 +341,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ElevatedButton.icon(
                   onPressed: _pickVideo,
                   icon: const Icon(Icons.video_library),
-                  label: const Text('选择视频'),
+                  label: Text(l10n.setCSelectVideo),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.shade50,
                     foregroundColor: Colors.purple.shade700,
@@ -379,9 +385,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text(
-                        '提交反馈',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    : Text(
+                        l10n.setCSubmitFeedback,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
@@ -391,22 +397,22 @@ class _FeedbackPageState extends State<FeedbackPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '所有反馈',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.setCAllFeedback,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
                   onPressed: _fetchFeedbacks,
-                  child: const Text('刷新'),
+                  child: Text(l10n.setCRefresh),
                 ),
               ],
             ),
             if (_isLoading)
               const Center(child: LoadingIndicator())
             else if (_feedbacks.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: Text('暂无反馈，快来提交第一条吧！')),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(child: Text(l10n.setCNoFeedback)),
               )
             else
               ..._feedbacks.map((item) => _buildFeedbackItem(item)).toList(),
@@ -461,13 +467,14 @@ class VideoPlayerFullscreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.play_circle_fill, size: 60),
           const SizedBox(height: 8),
-          Text('点击播放：$url'),
+          Text(l10n.setCTapToPlay(widget.url)),
         ],
       ),
     );

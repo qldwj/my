@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BangumiEditorPage extends StatefulWidget {
@@ -48,9 +49,10 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   }
 
   Future<void> syncWithProgress() async {
+    final l10n = AppLocalizations.of(context)!;
     final syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
-      KazumiDialog.showToast(message: '请先开启 Bangumi 同步');
+      KazumiDialog.showToast(message: l10n.setCEnableBangumiSyncFirst);
       return;
     }
 
@@ -78,7 +80,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
         },
       );
     } catch (e) {
-      KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
+      KazumiDialog.showToast(message: l10n.setCBangumiSyncFailed(e.toString()));
     } finally {
       if (KazumiDialog.observer.hasKazumiDialog) {
         KazumiDialog.dismiss();
@@ -94,10 +96,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: !syncCollectiblesing,
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('Bangumi 配置')),
+        appBar: SysAppBar(title: Text(l10n.setCBangumiConfig)),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Center(
@@ -139,9 +142,9 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             setState(() {});
                           }
                         },
-                        title: Text('即时同步提示',
+                        title: Text(l10n.setCImmediateSyncToast,
                             style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('点击追番按钮触发即时同步时显示提示框',
+                        description: Text(l10n.setCImmediateSyncToastDesc,
                             style: TextStyle(fontFamily: fontFamily)),
                         initialValue: bangumiImmediateSyncToastEnable,
                       ),
@@ -153,9 +156,9 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                             syncPriorityMenuController.open();
                           }
                         },
-                        title: Text('同步优先级',
+                        title: Text(l10n.setCSyncPriority,
                             style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态',
+                        description: Text(l10n.setCSyncPriorityDesc,
                             style: TextStyle(fontFamily: fontFamily)),
                         value: MenuAnchor(
                             consumeOutsideTap: true,
@@ -202,9 +205,9 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         onPressed: (_) async {
                           await syncWithProgress();
                         },
-                        title: Text("立即同步状态",
+                        title: Text(l10n.setCSyncNow,
                             style: TextStyle(fontFamily: fontFamily)),
-                        description: Text('同步状态不一致或仅存在于本地/远端的条目',
+                        description: Text(l10n.setCSyncNowDesc,
                             style: TextStyle(fontFamily: fontFamily)),
                       ),
                     ],
@@ -218,11 +221,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         await launchUrl(url,
                             mode: LaunchMode.externalApplication);
                       } else {
-                        KazumiDialog.showToast(message: '无法打开链接');
+                        KazumiDialog.showToast(message: l10n.setCCannotOpenLink);
                       }
                     },
                     child: Text(
-                      '你可以点击此处前往 Bangumi 生成 Access Token',
+                      l10n.setCGetTokenHint,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.primary,
@@ -245,7 +248,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                       GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
 
                   if (token.isEmpty && bangumiSyncEnable) {
-                    KazumiDialog.showToast(message: 'Access Token 不能为空');
+                    KazumiDialog.showToast(message: l10n.setCTokenEmpty);
                     return;
                   }
                   setState(() {
@@ -257,7 +260,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
 
                   if (token.isEmpty) {
                     bangumi.reset();
-                    KazumiDialog.showToast(message: 'Bangumi Token 为空，请检查');
+                    KazumiDialog.showToast(message: l10n.setCBangumiTokenEmpty);
                     if (!mounted) return;
                     setState(() {
                       isVerifying = false;
@@ -265,11 +268,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                     return;
                   }
 
-                  KazumiDialog.showToast(message: '正在测试 Bangumi Token...');
+                  KazumiDialog.showToast(message: l10n.setCTestingBangumiToken);
                   try {
                     await bangumi.init();
                   } catch (e) {
-                    KazumiDialog.showToast(message: '验证失败：${e.toString()}');
+                    KazumiDialog.showToast(message: l10n.setCVerifyFailed(e.toString()));
                     await GStorage.putSetting(
                         SettingsKeys.bangumiSyncEnable, false);
                     if (!mounted) return;
@@ -280,7 +283,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   }
 
                   KazumiDialog.showToast(
-                      message: '测试成功，用户名：${bangumi.username}');
+                      message: l10n.setCTestSuccessUser(bangumi.username));
                   if (!mounted) return;
                   setState(() {
                     isVerifying = false;
@@ -303,8 +306,14 @@ class _BangumiSyncProgressDialog extends StatefulWidget {
 
 class _BangumiSyncProgressDialogState
     extends State<_BangumiSyncProgressDialog> {
-  String _progressText = '准备同步 Bangumi 状态...';
+  late String _progressText;
   double? _progressValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressText = AppLocalizations.of(context)!.setCPreparingSync;
+  }
 
   void update(String text, double? value) {
     if (!mounted) return;
@@ -316,6 +325,7 @@ class _BangumiSyncProgressDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopScope(
       canPop: false,
       child: Dialog(
@@ -327,9 +337,9 @@ class _BangumiSyncProgressDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Bangumi 同步进行中',
-                  style: TextStyle(
+                Text(
+                  l10n.setCBangumiSyncing,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

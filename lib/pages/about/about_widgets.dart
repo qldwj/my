@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/split_list_row.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 void _showMessage(BuildContext context, String message) {
   KazumiDialog.showToast(context: context, message: message);
@@ -16,7 +17,7 @@ Future<void> openAboutLink(BuildContext context, String url) async {
       return;
     }
   } catch (_) {}
-  if (context.mounted) _showMessage(context, '无法打开链接，请稍后重试');
+  if (context.mounted) _showMessage(context, AppLocalizations.of(context)!.setCCannotOpenLinkRetry);
 }
 
 class AboutContent extends StatelessWidget {
@@ -141,16 +142,19 @@ class _CheckUpdateButtonState extends State<CheckUpdateButton> {
     try {
       await widget.onCheckUpdate();
     } catch (_) {
-      if (mounted) _showMessage(context, '检查更新失败，请稍后重试');
+      if (mounted) _showMessage(context, AppLocalizations.of(context)!.setCCheckUpdateFailed);
     } finally {
       if (mounted) setState(() => _checking = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => StateActionButton(
-        onPressed: _checking ? null : _check,
-        text: _checking ? '正在检查…' : '检查更新',
-        icon: Icons.update_rounded,
-      );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return StateActionButton(
+      onPressed: _checking ? null : _check,
+      text: _checking ? l10n.setCChecking : l10n.setCCheckUpdate,
+      icon: Icons.update_rounded,
+    );
+  }
 }

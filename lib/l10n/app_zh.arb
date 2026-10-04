@@ -85,335 +85,227 @@
   "feedbackDesc": "查看所有反馈及处理情况",
   "about": "关于",
   "backTooltip": "返回",
-  "setAResetPlaybackTitle": "恢复默认播放设置",
-  "setAResetPlaybackDesc": "播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。",
-  "setAResetPlaybackAction": "恢复默认",
-  "setAResetPlaybackDone": "已恢复默认播放设置",
-  "setAButtonSkipTimeTitle": "顶部按钮快进时长",
-  "setAEnterNumber": "请输入数字",
-  "setAEnterNumberPositive": "请输入大于0的数字",
-  "setAOk": "确定",
-  "setASkipOpTitle": "片头跳过默认时长",
-  "setASkipEdTitle": "片尾跳过默认时长",
-  "setASkipGlobalHint": "这是全局默认值；每部番可在播放页 ⋮ 菜单里单独覆盖。",
-  "setASkipOpDefaultSet": "片头默认设为 {duration}",
-  "@setASkipOpDefaultSet": {
+  "setCSaved": "已保存",
+  "setCEnterMirrorDomainFirst": "请先填写镜像域名",
+  "setCTestingConnection": "正在测试连接...",
+  "setCConnectionTestPassed": "✅ 连接测试通过",
+  "setCConnectionFailed": "连接失败: {statusCode}",
+  "@setCConnectionFailed": {
     "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setASkipEdDefaultSet": "片尾默认设为 {duration}",
-  "@setASkipEdDefaultSet": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setAShowLastWatchCard": "启动时显示上次观看",
-  "setAShowLastWatchCardDesc": "打开首页后自动弹出上次观看进度卡片",
-  "setAHwDecode": "硬件解码",
-  "setAHwDecoder": "硬件解码器",
-  "setAHwDecoderDesc": "仅在硬件解码启用时生效",
-  "setARenderer": "视频渲染器",
-  "setARendererDesc": "选择视频输出方式",
-  "setALowMemoryMode": "低内存模式",
-  "setALowMemoryModeDesc": "禁用高级缓存以减少内存占用",
-  "setALowLatencyAudio": "低延迟音频",
-  "setALowLatencyAudioDesc": "启用OpenSLES音频输出以降低延时",
-  "setASuperResolution": "超分辨率",
-  "setAPlaybackBehavior": "播放行为",
-  "setAAutoSelectSource": "自动选择第一个播放源",
-  "setAAutoSelectSourceDesc": "点击开始观看时自动使用第一个可用播放源",
-  "setABackgroundPlayback": "后台播放",
-  "setABackgroundPlaybackDesc": "应用退到后台或熄屏时继续播放音频",
-  "setAAutoResume": "自动跳转",
-  "setAAutoResumeDesc": "跳转到上次播放位置",
-  "setAAutoPlayNext": "自动连播",
-  "setAAutoPlayNextDesc": "当前视频播放完毕后自动播放下一集",
-  "setASpeedMemory": "倍速记忆",
-  "setASpeedMemoryDesc": "记住每部番的播放倍速，换集/下次观看自动恢复",
-  "setAPreloadNext": "预加载下一集",
-  "setAPreloadNextDesc": "接近结尾时提前加载下一集，连播秒开；如影响当前集可关闭",
-  "setANightEye": "夜间护眼",
-  "setANightEyeDesc": "深夜(22点-6点)播放页自动降低屏幕亮度",
-  "setAVideoSource": "视频源",
-  "setAAutoSwitchSource": "源失效自动换源",
-  "setAAutoSwitchSourceDesc": "当前线路加载失败时自动尝试其他线路",
-  "setASkipAndPip": "跳过与画中画",
-  "setAAutoSkipOpEd": "自动跳过片头片尾",
-  "setAAutoSkipOpEdDesc": "播放到片头/片尾时自动跳过（拖动进度条可看到 OP/ED 白点标记）",
-  "setASkipOpDefaultDesc": "未单独设置的番剧默认跳过片头 {duration}",
-  "@setASkipOpDefaultDesc": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setASkipEdDefaultDesc": "未单独设置的番剧默认跳过片尾 {duration}",
-  "@setASkipEdDefaultDesc": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setAAutoPip": "自动进入画中画",
-  "setAAutoPipDesc": "切到后台时，自动进入画中画",
-  "setAAdBlock": "广告过滤",
-  "setAAdBlockDesc": "强制启用HLS广告过滤，忽略规则设置",
-  "setADisableAnim": "禁用动画",
-  "setADisableAnimDesc": "禁用播放器内的过渡动画",
-  "setAGesture": "滑动手势",
-  "setAGestureDesc": "竖向滑动调节音量和亮度",
-  "setAPrivateMode": "隐身模式",
-  "setAPrivateModeDesc": "不保留观看记录",
-  "setAErrorToast": "错误提示",
-  "setAErrorToastDesc": "显示播放器内部错误提示",
-  "setADebugMode": "调试模式",
-  "setADebugModeDesc": "记录播放器内部日志",
-  "setALogLevel": "日志等级",
-  "setALogLevelDesc": "播放器内部日志等级",
-  "setADefaultSpeed": "默认倍速",
-  "setADefaultLongPressSpeed": "默认方向键/长按倍速",
-  "setAArrowSkipSecs": "左右方向键的快进/快退秒数",
-  "setASkipTime": "跳过时长",
-  "setASkipTimeDesc": "顶栏跳过按钮的秒数",
-  "setAControllerDismissTime": "播放控制器消失时间：{value}",
-  "@setAControllerDismissTime": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "setADefaultAspectRatio": "默认视频比例",
-  "setAResetDefaults": "恢复默认设置",
-  "setAResetDefaultsDesc": "将播放相关设置恢复为默认值",
-  "setASecondsCount": "{seconds}秒",
-  "@setASecondsCount": {
-    "placeholders": {
-      "seconds": {
+      "statusCode": {
         "type": "int"
       }
     }
   },
-  "setADecimalSeconds": "{seconds} 秒",
-  "@setADecimalSeconds": {
+  "setCConnectionTestFailed": "连接测试失败: {error}",
+  "@setCConnectionTestFailed": {
     "placeholders": {
-      "seconds": {
-        "type": "double"
-      }
-    }
-  },
-  "setADurZero": "0秒",
-  "setADurSec": "{seconds}秒",
-  "@setADurSec": {
-    "placeholders": {
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "setADurMin": "{minutes}分",
-  "@setADurMin": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "setADurMinSec": "{minutes}分{seconds}秒",
-  "@setADurMinSec": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "setACheckDone": "检查完成，有新番会推送通知",
-  "setATestNotifSent": "已发送测试通知，请看通知栏",
-  "setANeverChecked": "尚未检查",
-  "setALastCheck": "上次检查：{time}",
-  "@setALastCheck": {
-    "placeholders": {
-      "time": {
+      "error": {
         "type": "String"
       }
     }
   },
-  "setANoMuted": "暂无已屏蔽的番剧",
-  "setAMutedListTitle": "已屏蔽更新提醒的番剧（{count}）",
-  "@setAMutedListTitle": {
+  "setCImageAcceleration": "图片加速",
+  "setCChoosePresetDomain": "选择预设域名",
+  "setCKazumiOfficialMirror": "Kazumi 官方镜像",
+  "setCQlyyzMirror": "Qlyyz 镜像",
+  "setCMirrorSettings": "镜像设置",
+  "setCEnableApiMirror": "启用 API 镜像代理",
+  "setCEnableApiMirrorDesc": "开启后将通过自定义镜像域名请求数据",
+  "setCBangumiMirror": "Bangumi 镜像",
+  "setCBangumiMirrorDesc": "同步Bangumi时使用镜像",
+  "setCRuleRepoMirror": "规则仓库镜像",
+  "setCRuleRepoMirrorDesc": "获取规则列表时使用镜像",
+  "setCImageAccelerationDesc": "加速 Bangumi 封面与头像加载",
+  "setCMirrorMainDomain": "镜像主域名",
+  "setCDomainHint": "填写后所有 API 请求将通过此域名代理（自动补全 https://）",
+  "setCEndpointPaths": "端点路径配置",
+  "setCEndpointPathsDesc": "每个端点的原始地址和自定义镜像路径",
+  "setCAnimeSearchNote": "番剧搜索：App 走 qlyyz 中转签名接口（qlyyz 凭据），后端上游直连官方 api.kazumi.fyi（带官方签名）。",
+  "setCTest": "测试",
+  "setCOriginal": "原始: {original}",
+  "@setCOriginal": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "original": {
+        "type": "String"
       }
     }
   },
-  "setAMutedSubtitle": "已屏蔽更新提醒",
-  "setAUnmutedDone": "已取消屏蔽「{name}」",
-  "@setAUnmutedDone": {
+  "setCMirrorPath": "镜像路径",
+  "setCProxy": "代理",
+  "setCCheckingConnection": "正在检测连接，请稍后",
+  "setCAllServicesOk": "所有服务连接正常",
+  "setCSomeServicesAbnormal": "部分服务连接异常",
+  "setCProxyNotEnabled": "未启用代理",
+  "setCRecheck": "重新检测",
+  "setCEdit": "编辑",
+  "setCEnterProxyAddress": "请输入代理地址",
+  "setCTestSuccess": "测试成功",
+  "setCProxyConnectionFailed": "代理连接失败",
+  "setCProxyConfig": "代理配置",
+  "setCProxyAddress": "代理地址",
+  "setCProxyFormatError": "格式错误，请使用 http://host:port 格式",
+  "setCTestAddress": "测试地址",
+  "setCSaveAndTest": "保存并测试",
+  "setCPleaseTestInProxyConfig": "请先在代理配置中完成测试",
+  "setCNetworkSettings": "网络设置",
+  "setCEnableProxy": "启用代理",
+  "setCEnableProxyDesc": "启用后网络请求将通过代理服务器",
+  "setCProxyConfigDesc": "配置代理服务器地址和认证信息",
+  "setCEnableBangumiSyncFirst": "请先开启 Bangumi 同步",
+  "setCBangumiSyncFailed": "Bangumi同步失败 {error}",
+  "@setCBangumiSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setCBangumiConfig": "Bangumi 配置",
+  "setCImmediateSyncToast": "即时同步提示",
+  "setCImmediateSyncToastDesc": "点击追番按钮触发即时同步时显示提示框",
+  "setCSyncPriority": "同步优先级",
+  "setCSyncPriorityDesc": "当本地与 Bangumi 状态不一致时优先使用哪个状态",
+  "setCSyncNow": "立即同步状态",
+  "setCSyncNowDesc": "同步状态不一致或仅存在于本地/远端的条目",
+  "setCCannotOpenLink": "无法打开链接",
+  "setCGetTokenHint": "你可以点击此处前往 Bangumi 生成 Access Token",
+  "setCTokenEmpty": "Access Token 不能为空",
+  "setCBangumiTokenEmpty": "Bangumi Token 为空，请检查",
+  "setCTestingBangumiToken": "正在测试 Bangumi Token...",
+  "setCVerifyFailed": "验证失败：{error}",
+  "@setCVerifyFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setCTestSuccessUser": "测试成功，用户名：{user}",
+  "@setCTestSuccessUser": {
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "setCPreparingSync": "准备同步 Bangumi 状态...",
+  "setCBangumiSyncing": "Bangumi 同步进行中",
+  "setCMax4Files": "最多只能选择4个文件",
+  "setCEnterFeedbackContent": "请填写反馈内容",
+  "setCFileOverLimit": "文件 {name} 超过 20MB 限制",
+  "@setCFileOverLimit": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "setAUnmute": "取消屏蔽",
-  "setANotifSectionTitle": "追番更新提醒",
-  "setAEnableFollowNotify": "开启追番提醒",
-  "setAEnableFollowNotifyDesc": "收藏的番剧有新集未看时推送通知",
-  "setACheckInterval": "检查间隔",
-  "setAHours": "{hours}小时",
-  "@setAHours": {
+  "setCSubmitSuccess": "反馈提交成功，感谢您的支持！",
+  "setCUnknownError": "未知错误",
+  "setCSubmitFailed": "提交失败：{error}",
+  "@setCSubmitFailed": {
     "placeholders": {
-      "hours": {
-        "type": "int"
-      }
-    }
-  },
-  "setAOnlyWatching": "仅提醒“在看”",
-  "setAOnlyWatchingDesc": "关闭后“想看”的番剧也会提醒",
-  "setASequelNotify": "续作开播提醒",
-  "setASequelNotifyDesc": "收藏番剧的续作 45 天内开播时通知",
-  "setABadge": "桌面角标",
-  "setABadgeDesc": "有新通知时应用图标显示小红点（iOS 生效，Android 视桌面启动器支持）",
-  "setAManualOps": "手动操作",
-  "setACheckNow": "立即检查一次",
-  "setASendTest": "发送测试通知",
-  "setASendTestDesc": "立即弹出一条通知，验证通知通道是否正常",
-  "setAMutedTitle": "已屏蔽更新提醒的番剧",
-  "setAMutedEmpty": "没有屏蔽任何番剧",
-  "setAMutedCount": "已屏蔽 {count} 部番剧",
-  "@setAMutedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "setANotifFootnote": "检查原理：通过 Bangumi 数据对比“已放送集数”与“本地已看集数”，有未看新集才会推送（完结超过 30 天的老番不会打扰你）。\n\n说明：目前仅在 App 运行期间自动检查（每小时触发一次，按间隔执行）；如需手机熄屏/App 被清理后也能提醒，可后续接入系统级后台任务（workmanager）。",
-  "setAPlatformNoDir": "当前平台不支持手动选择目录",
-  "setAPickDir": "选择下载位置",
-  "setAPersistPermFail": "无法获得该目录的持久访问权限，请更换目录",
-  "setADirUpdated": "下载位置已更新，仅对新下载生效",
-  "setADirWriteFail": "无法写入该目录: {msg}",
-  "@setADirWriteFail": {
-    "placeholders": {
-      "msg": {
+      "error": {
         "type": "String"
       }
     }
   },
-  "setAPickDirFail": "选择下载位置失败: {err}",
-  "@setAPickDirFail": {
+  "setCServerError": "服务器响应异常 ({code})",
+  "@setCServerError": {
     "placeholders": {
-      "err": {
-        "type": "String"
-      }
-    }
-  },
-  "setADirResetDone": "已恢复默认下载位置，仅对新下载生效",
-  "setAConcurrency": "并发设置",
-  "setAParallelEpisodes": "同时下载集数",
-  "setAParallelEpisodesValue": "同时下载 {count} 集",
-  "@setAParallelEpisodesValue": {
-    "placeholders": {
-      "count": {
+      "code": {
         "type": "int"
       }
     }
   },
-  "setAParallelSegments": "分片并发数",
-  "setAParallelSegmentsValue": "每集同时下载 {count} 个分片",
-  "@setAParallelSegmentsValue": {
+  "setCNetworkRequestFailed": "网络请求失败，请检查网络连接",
+  "setCResolved": "已处理",
+  "setCPending": "待处理",
+  "setCOfficialReply": "官方回复：",
+  "setCSubmitFeedback": "提交反馈",
+  "setCFeedbackHint": "请描述您的问题或建议...",
+  "setCSelectImages": "选择图片",
+  "setCSelectVideo": "选择视频",
+  "setCAllFeedback": "所有反馈",
+  "setCRefresh": "刷新",
+  "setCNoFeedback": "暂无反馈，快来提交第一条吧！",
+  "setCTapToPlay": "点击播放：{url}",
+  "@setCTapToPlay": {
     "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "setACacheSettings": "缓存设置",
-  "setADownloadDir": "下载位置",
-  "setAReadingDefaultDir": "正在读取默认位置...",
-  "setACustomDirHint": "当前使用自定义下载位置，修改后仅对新下载生效",
-  "setADefaultDirHint": "当前使用默认下载位置，修改后仅对新下载生效",
-  "setARestoreDefault": "恢复默认",
-  "setACacheDanmaku": "缓存弹幕",
-  "setACacheDanmakuDesc": "下载视频时同时缓存弹幕数据",
-  "setADownloadDoneNotify": "下载完成通知",
-  "setADownloadDoneNotifyDesc": "每集下载完成后发送系统通知，点击直达下载管理",
-  "setANotes": "说明",
-  "setAAboutConcurrency": "关于并发设置",
-  "setAConcurrencyHelp": "• 集数并发：同时下载多少集视频\n• 分片并发：每集内同时下载多少个视频片段\n• 较高的并发可提升速度，但可能被服务器限制\n• 修改后对新开始的下载生效",
-  "setAClearCacheAsk": "清除图片缓存？",
-  "setAClearCacheDesc": "图片会在下次加载时重新下载。视频、记录和设置不会删除。",
-  "setAClearCacheAction": "清除缓存",
-  "setACacheCleared": "图片缓存已清除",
-  "setAClearCacheFail": "清除失败，请稍后重试",
-  "setAClearing": "正在清除…",
-  "setAStatting": "正在统计…",
-  "setAStatFailed": "统计失败",
-  "setAStorageLogs": "存储与日志",
-  "setACache": "缓存",
-  "setAClearImageCache": "清除图片缓存",
-  "setARestat": "重新统计",
-  "setADiagnostics": "诊断",
-  "setAErrorLogs": "错误日志",
-  "setASaveFailed": "设置保存失败，请重试",
-  "setALmmAuto": "跟随网络",
-  "setALmmAlways": "始终开启",
-  "setALmmNever": "始终关闭",
-  "setALmmAutoDesc": "移动数据自动开启，WLAN / 有线网络自动关闭",
-  "setALmmAlwaysDesc": "所有网络均减少缓存，降低内存占用",
-  "setALmmNeverDesc": "使用完整缓存，移动数据下也不自动开启",
-  "setALmmStatusAutoOn": "已自动开启 · 移动数据下减少缓存",
-  "setALmmStatusAutoOff": "已自动关闭 · 非移动网络使用完整缓存",
-  "setALmmStatusAlwaysOn": "已手动开启 · 所有网络均减少缓存",
-  "setALmmStatusNeverMetered": "已手动关闭 · 移动数据使用完整缓存",
-  "setALmmStatusNever": "已手动关闭 · 使用完整缓存",
-  "setALmmFootnote": "减少缓存可降低内存占用和额外流量，网络不稳定时可能更容易缓冲。\n选择后立即生效并记住选择；跟随网络仅影响在线播放。",
-  "setAModeDefault": "{label}（默认）",
-  "@setAModeDefault": {
-    "placeholders": {
-      "label": {
+      "url": {
         "type": "String"
       }
     }
   },
-  "setASrHint": "超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换视频渲染器为 gpu",
-  "setADefaultBehavior": "默认行为",
-  "setADisableSrWarning": "关闭提示",
-  "setADisableSrWarningDesc": "关闭每次启用超分辨率时的提示",
-  "setAUpdateSettings": "更新设置",
-  "setACheckOnStartup": "启动时检查更新",
-  "setAAppUpdate": "应用更新",
-  "setARuleUpdate": "规则更新",
-  "setADesktopSettings": "桌面端设置",
-  "setASystemTray": "系统托盘",
-  "setAEnableTray": "启用系统托盘",
-  "setAEnableTrayDesc": "关闭后最小化/退出行为不受托盘影响",
-  "setATrayEnabledRestart": "托盘已启用（重启生效）",
-  "setATrayDisabledRestart": "托盘已关闭（重启生效）",
-  "setAWindow": "窗口",
-  "setARememberGeometry": "记住窗口位置和大小",
-  "setARememberGeometryDesc": "下次启动恢复上次的窗口位置和大小",
-  "setAGlobalHotkey": "全局快捷键",
-  "setAEnableHotkey": "启用全局快捷键",
-  "setAHotkeyDesc": "Ctrl + Alt + K 显示/隐藏主窗口（需重启生效）",
-  "setADesktopOnlyNote": "该页面仅桌面端（Windows / macOS / Linux）生效。",
-  "setARefreshRate": "屏幕帧率设置",
-  "setARefreshRateHint": "没有生效? 重启app试试",
-  "setAAutoMode": "自动",
-  "setASystemSuffix": "  [系统]",
-  "setARendererPickHint": "选择合适的渲染器以获得最佳播放体验",
-  "setADecoderFallbackHint": "选择不受支持的解码器将回退到软件解码",
-  "setAWebVersion": "网页版"
+  "setCExitKazumi": "退出 Kazumi",
+  "setCMinimizeToTray": "最小化至托盘",
+  "setCAskEveryTime": "每次都询问",
+  "setCCacheManagement": "缓存管理",
+  "setCCacheClearConfirm": "缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?",
+  "setCChooseUpdateChannel": "选择更新渠道",
+  "setCStable": "稳定版",
+  "setCBeta": "预览版",
+  "setCClose": "关闭",
+  "setCSpecialThanks": "特别感谢 Kazumi 2.2.3",
+  "setCOpenSourceLicense": "开源许可证",
+  "setCOpenSourceLicenseDesc": "查看所有开源许可证",
+  "setCExternalLinks": "外部链接",
+  "setCProjectHomepage": "项目主页",
+  "setCCodeRepo": "代码仓库",
+  "setCLoginApi": "登录接口",
+  "setCAggregatedLogin": "聚合登录",
+  "setCIconArtwork": "图标创作",
+  "setCBangumiIndex": "番剧索引",
+  "setCReverseSearch": "以图搜番",
+  "setCDanmakuSource": "弹幕来源",
+  "setCDanmakuId": "ID: {id}",
+  "@setCDanmakuId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "setCDandanOpenPlatform": "弹弹play开放平台",
+  "setCCommunity": "社区",
+  "setCTapToJoin": "点击加入",
+  "setCDefaultBehavior": "默认行为",
+  "setCOnClose": "关闭时",
+  "setCErrorLogs": "错误日志",
+  "setCAppUpdate": "应用更新",
+  "setCCheckUpdateOnStartup": "启动时检查应用更新",
+  "setCSilentDownload": "静默下载更新",
+  "setCSilentDownloadDesc": "开启后后台自动下载新版本，下次打开时提示安装",
+  "setCUpdateChannel": "更新渠道",
+  "setCCheckAppUpdate": "检查应用更新",
+  "setCCurrentVersion": "当前版本 {version}",
+  "@setCCurrentVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "setCRuleUpdate": "规则更新",
+  "setCCheckRuleUpdateOnStartup": "启动时检查规则更新",
+  "setCAcknowledgements": "致谢",
+  "setCContribution": "贡献",
+  "setCContributors": "贡献者",
+  "setCIconAuthor": "图标作者",
+  "setCServices": "服务",
+  "setCAnimeInfo": "番剧信息",
+  "setCDanmaku": "弹幕",
+  "setCOpenSourceProjects": "开源项目",
+  "setCAppFramework": "应用框架",
+  "setCVideoPlayback": "视频播放",
+  "setCRealTimeUpscaling": "实时超分辨率",
+  "setCPlaybackSync": "播放同步",
+  "setCXpathParsing": "XPath 解析",
+  "setCNonStandardStream": "非标准视频流支持",
+  "setCLocalStorage": "本地存储",
+  "setCCannotOpenLinkRetry": "无法打开链接，请稍后重试",
+  "setCCheckUpdateFailed": "检查更新失败，请稍后重试",
+  "setCChecking": "正在检查…",
+  "setCCheckUpdate": "检查更新"
 }

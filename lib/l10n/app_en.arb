@@ -85,335 +85,227 @@
   "feedbackDesc": "View all feedback",
   "about": "About",
   "backTooltip": "Back",
-  "setAResetPlaybackTitle": "Reset playback settings",
-  "setAResetPlaybackDesc": "Playback, hardware decoder, video renderer and super-resolution settings will be restored to defaults.",
-  "setAResetPlaybackAction": "Restore defaults",
-  "setAResetPlaybackDone": "Playback settings restored to defaults",
-  "setAButtonSkipTimeTitle": "Top-bar button seek duration",
-  "setAEnterNumber": "Please enter a number",
-  "setAEnterNumberPositive": "Please enter a number greater than 0",
-  "setAOk": "OK",
-  "setASkipOpTitle": "Default OP skip duration",
-  "setASkipEdTitle": "Default ED skip duration",
-  "setASkipGlobalHint": "This is the global default; each title can be overridden individually from the ⋮ menu on the player page.",
-  "setASkipOpDefaultSet": "OP default set to {duration}",
-  "@setASkipOpDefaultSet": {
+  "setCSaved": "Saved",
+  "setCEnterMirrorDomainFirst": "Please enter the mirror domain first",
+  "setCTestingConnection": "Testing connection…",
+  "setCConnectionTestPassed": "✅ Connection test passed",
+  "setCConnectionFailed": "Connection failed: {statusCode}",
+  "@setCConnectionFailed": {
     "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setASkipEdDefaultSet": "ED default set to {duration}",
-  "@setASkipEdDefaultSet": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setAShowLastWatchCard": "Show last watched on startup",
-  "setAShowLastWatchCardDesc": "Auto show the resume card on the home screen",
-  "setAHwDecode": "Hardware decoding",
-  "setAHwDecoder": "Hardware decoder",
-  "setAHwDecoderDesc": "Only takes effect when hardware decoding is enabled",
-  "setARenderer": "Video renderer",
-  "setARendererDesc": "Choose the video output method",
-  "setALowMemoryMode": "Low memory mode",
-  "setALowMemoryModeDesc": "Disable advanced caching to reduce memory usage",
-  "setALowLatencyAudio": "Low-latency audio",
-  "setALowLatencyAudioDesc": "Enable OpenSLES output to reduce latency",
-  "setASuperResolution": "Super resolution",
-  "setAPlaybackBehavior": "Playback behavior",
-  "setAAutoSelectSource": "Auto-select first source",
-  "setAAutoSelectSourceDesc": "Use the first available source when you start watching",
-  "setABackgroundPlayback": "Background playback",
-  "setABackgroundPlaybackDesc": "Keep playing audio when backgrounded or screen off",
-  "setAAutoResume": "Resume playback",
-  "setAAutoResumeDesc": "Jump back to the last playback position",
-  "setAAutoPlayNext": "Autoplay next episode",
-  "setAAutoPlayNextDesc": "Auto play the next episode after this one ends",
-  "setASpeedMemory": "Remember playback speed",
-  "setASpeedMemoryDesc": "Remember each title's speed and restore it on next episode/visit",
-  "setAPreloadNext": "Preload next episode",
-  "setAPreloadNextDesc": "Preload the next episode near the end for instant autoplay; disable if it affects the current one",
-  "setANightEye": "Night eye protection",
-  "setANightEyeDesc": "Dim the player screen late at night (22:00–06:00)",
-  "setAVideoSource": "Video source",
-  "setAAutoSwitchSource": "Auto-switch on dead source",
-  "setAAutoSwitchSourceDesc": "Try other lines automatically when the current one fails",
-  "setASkipAndPip": "Skip & Picture-in-Picture",
-  "setAAutoSkipOpEd": "Auto-skip OP/ED",
-  "setAAutoSkipOpEdDesc": "Auto-skip OP/ED (drag the progress bar to see the OP/ED markers)",
-  "setASkipOpDefaultDesc": "Titles without a custom setting skip the OP by {duration}",
-  "@setASkipOpDefaultDesc": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setASkipEdDefaultDesc": "Titles without a custom setting skip the ED by {duration}",
-  "@setASkipEdDefaultDesc": {
-    "placeholders": {
-      "duration": {
-        "type": "String"
-      }
-    }
-  },
-  "setAAutoPip": "Auto enter PiP",
-  "setAAutoPipDesc": "Auto enter picture-in-picture when backgrounded",
-  "setAAdBlock": "Ad filtering",
-  "setAAdBlockDesc": "Force-enable HLS ad filtering, ignoring rule settings",
-  "setADisableAnim": "Disable animations",
-  "setADisableAnimDesc": "Disable transition animations in the player",
-  "setAGesture": "Swipe gestures",
-  "setAGestureDesc": "Vertical swipe to adjust volume and brightness",
-  "setAPrivateMode": "Incognito mode",
-  "setAPrivateModeDesc": "Don't keep watch history",
-  "setAErrorToast": "Error alerts",
-  "setAErrorToastDesc": "Show internal player error messages",
-  "setADebugMode": "Debug mode",
-  "setADebugModeDesc": "Record internal player logs",
-  "setALogLevel": "Log level",
-  "setALogLevelDesc": "Internal player log level",
-  "setADefaultSpeed": "Default playback speed",
-  "setADefaultLongPressSpeed": "Default arrow-key / long-press speed",
-  "setAArrowSkipSecs": "Arrow-key seek seconds",
-  "setASkipTime": "Skip duration",
-  "setASkipTimeDesc": "Seconds for the top-bar skip buttons",
-  "setAControllerDismissTime": "Controller auto-hide: {value}",
-  "@setAControllerDismissTime": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "setADefaultAspectRatio": "Default aspect ratio",
-  "setAResetDefaults": "Reset settings",
-  "setAResetDefaultsDesc": "Restore playback settings to defaults",
-  "setASecondsCount": "{seconds} s",
-  "@setASecondsCount": {
-    "placeholders": {
-      "seconds": {
+      "statusCode": {
         "type": "int"
       }
     }
   },
-  "setADecimalSeconds": "{seconds} s",
-  "@setADecimalSeconds": {
+  "setCConnectionTestFailed": "Connection test failed: {error}",
+  "@setCConnectionTestFailed": {
     "placeholders": {
-      "seconds": {
-        "type": "double"
-      }
-    }
-  },
-  "setADurZero": "0s",
-  "setADurSec": "{seconds}s",
-  "@setADurSec": {
-    "placeholders": {
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "setADurMin": "{minutes}m",
-  "@setADurMin": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "setADurMinSec": "{minutes}m {seconds}s",
-  "@setADurMinSec": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "setACheckDone": "Check done; you'll be notified about new episodes",
-  "setATestNotifSent": "Test notification sent — check your notification shade",
-  "setANeverChecked": "Not checked yet",
-  "setALastCheck": "Last check: {time}",
-  "@setALastCheck": {
-    "placeholders": {
-      "time": {
+      "error": {
         "type": "String"
       }
     }
   },
-  "setANoMuted": "No muted titles",
-  "setAMutedListTitle": "Muted update reminders ({count})",
-  "@setAMutedListTitle": {
+  "setCImageAcceleration": "Image acceleration",
+  "setCChoosePresetDomain": "Choose a preset domain",
+  "setCKazumiOfficialMirror": "Official Kazumi mirror",
+  "setCQlyyzMirror": "Qlyyz mirror",
+  "setCMirrorSettings": "Mirror settings",
+  "setCEnableApiMirror": "Enable API mirror proxy",
+  "setCEnableApiMirrorDesc": "When on, requests go through a custom mirror domain",
+  "setCBangumiMirror": "Bangumi mirror",
+  "setCBangumiMirrorDesc": "Use the mirror when syncing Bangumi",
+  "setCRuleRepoMirror": "Rule repository mirror",
+  "setCRuleRepoMirrorDesc": "Use the mirror when fetching the rule list",
+  "setCImageAccelerationDesc": "Speed up loading of Bangumi covers and avatars",
+  "setCMirrorMainDomain": "Mirror main domain",
+  "setCDomainHint": "After filling in, all API requests go through this domain (https:// is auto-prepended)",
+  "setCEndpointPaths": "Endpoint path config",
+  "setCEndpointPathsDesc": "Original address and custom mirror path for each endpoint",
+  "setCAnimeSearchNote": "Anime search: the app uses the qlyyz signed relay endpoint (qlyyz credentials); the upstream connects directly to official api.kazumi.fyi (with official signature).",
+  "setCTest": "Test",
+  "setCOriginal": "Original: {original}",
+  "@setCOriginal": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "original": {
+        "type": "String"
       }
     }
   },
-  "setAMutedSubtitle": "Update reminder muted",
-  "setAUnmutedDone": "Unmuted “{name}”",
-  "@setAUnmutedDone": {
+  "setCMirrorPath": "Mirror path",
+  "setCProxy": "Proxy",
+  "setCCheckingConnection": "Checking connection, please wait…",
+  "setCAllServicesOk": "All services are connected",
+  "setCSomeServicesAbnormal": "Some services are unreachable",
+  "setCProxyNotEnabled": "Proxy disabled",
+  "setCRecheck": "Recheck",
+  "setCEdit": "Edit",
+  "setCEnterProxyAddress": "Please enter the proxy address",
+  "setCTestSuccess": "Test succeeded",
+  "setCProxyConnectionFailed": "Proxy connection failed",
+  "setCProxyConfig": "Proxy configuration",
+  "setCProxyAddress": "Proxy address",
+  "setCProxyFormatError": "Invalid format, use http://host:port",
+  "setCTestAddress": "Test URL",
+  "setCSaveAndTest": "Save & test",
+  "setCPleaseTestInProxyConfig": "Please complete the test in proxy configuration first",
+  "setCNetworkSettings": "Network settings",
+  "setCEnableProxy": "Enable proxy",
+  "setCEnableProxyDesc": "When on, network requests go through the proxy server",
+  "setCProxyConfigDesc": "Configure the proxy server address and credentials",
+  "setCEnableBangumiSyncFirst": "Please enable Bangumi sync first",
+  "setCBangumiSyncFailed": "Bangumi sync failed: {error}",
+  "@setCBangumiSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setCBangumiConfig": "Bangumi configuration",
+  "setCImmediateSyncToast": "Immediate sync toast",
+  "setCImmediateSyncToastDesc": "Show a toast when tapping the follow button triggers an immediate sync",
+  "setCSyncPriority": "Sync priority",
+  "setCSyncPriorityDesc": "Which state to prefer when local and Bangumi differ",
+  "setCSyncNow": "Sync status now",
+  "setCSyncNowDesc": "Syncs mismatched or locally/remotely-only entries",
+  "setCCannotOpenLink": "Could not open the link",
+  "setCGetTokenHint": "Tap here to go to Bangumi and generate an Access Token",
+  "setCTokenEmpty": "Access Token cannot be empty",
+  "setCBangumiTokenEmpty": "Bangumi token is empty, please check",
+  "setCTestingBangumiToken": "Testing Bangumi token…",
+  "setCVerifyFailed": "Verification failed: {error}",
+  "@setCVerifyFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "setCTestSuccessUser": "Test succeeded, user: {user}",
+  "@setCTestSuccessUser": {
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "setCPreparingSync": "Preparing to sync Bangumi status…",
+  "setCBangumiSyncing": "Bangumi sync in progress",
+  "setCMax4Files": "You can select up to 4 files",
+  "setCEnterFeedbackContent": "Please describe your feedback",
+  "setCFileOverLimit": "File {name} exceeds the 20MB limit",
+  "@setCFileOverLimit": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "setAUnmute": "Unmute",
-  "setANotifSectionTitle": "Follow-update reminders",
-  "setAEnableFollowNotify": "Enable follow reminders",
-  "setAEnableFollowNotifyDesc": "Notify when followed titles have unwatched new episodes",
-  "setACheckInterval": "Check interval",
-  "setAHours": "{hours} h",
-  "@setAHours": {
+  "setCSubmitSuccess": "Feedback submitted, thank you for your support!",
+  "setCUnknownError": "Unknown error",
+  "setCSubmitFailed": "Submission failed: {error}",
+  "@setCSubmitFailed": {
     "placeholders": {
-      "hours": {
-        "type": "int"
-      }
-    }
-  },
-  "setAOnlyWatching": "Only “watching” titles",
-  "setAOnlyWatchingDesc": "When off, “plan to watch” titles are also reminded",
-  "setASequelNotify": "Sequel reminders",
-  "setASequelNotifyDesc": "Notify when a sequel airs within 45 days",
-  "setABadge": "Home-screen badge",
-  "setABadgeDesc": "Show a dot on the app icon for new notifications (iOS; Android depends on launcher)",
-  "setAManualOps": "Manual",
-  "setACheckNow": "Check now",
-  "setASendTest": "Send test notification",
-  "setASendTestDesc": "Fire a test notification to verify the channel",
-  "setAMutedTitle": "Muted update reminders",
-  "setAMutedEmpty": "No muted titles",
-  "setAMutedCount": "{count} muted titles",
-  "@setAMutedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "setANotifFootnote": "How it works: compares Bangumi's aired-episode count against your local watched count and pushes only when there are unwatched new episodes (titles ended 30+ days ago are not disturbed).\n\nNote: automatic checks only run while the app is alive (hourly triggers, on the chosen interval); waking after screen-off/app-kill would need a system background task (workmanager).",
-  "setAPlatformNoDir": "This platform doesn't support picking a directory",
-  "setAPickDir": "Choose download location",
-  "setAPersistPermFail": "Can't get persistent access to this directory — pick another",
-  "setADirUpdated": "Download location updated; applies to new downloads only",
-  "setADirWriteFail": "Can't write to this directory: {msg}",
-  "@setADirWriteFail": {
-    "placeholders": {
-      "msg": {
+      "error": {
         "type": "String"
       }
     }
   },
-  "setAPickDirFail": "Failed to pick download location: {err}",
-  "@setAPickDirFail": {
+  "setCServerError": "Unexpected server response ({code})",
+  "@setCServerError": {
     "placeholders": {
-      "err": {
-        "type": "String"
-      }
-    }
-  },
-  "setADirResetDone": "Default download location restored; new downloads only",
-  "setAConcurrency": "Concurrency",
-  "setAParallelEpisodes": "Concurrent episodes",
-  "setAParallelEpisodesValue": "{count} episodes at once",
-  "@setAParallelEpisodesValue": {
-    "placeholders": {
-      "count": {
+      "code": {
         "type": "int"
       }
     }
   },
-  "setAParallelSegments": "Concurrent segments",
-  "setAParallelSegmentsValue": "{count} segments per episode at once",
-  "@setAParallelSegmentsValue": {
+  "setCNetworkRequestFailed": "Network request failed, please check your connection",
+  "setCResolved": "Resolved",
+  "setCPending": "Pending",
+  "setCOfficialReply": "Official reply:",
+  "setCSubmitFeedback": "Submit feedback",
+  "setCFeedbackHint": "Describe your issue or suggestion…",
+  "setCSelectImages": "Select images",
+  "setCSelectVideo": "Select video",
+  "setCAllFeedback": "All feedback",
+  "setCRefresh": "Refresh",
+  "setCNoFeedback": "No feedback yet. Be the first to submit one!",
+  "setCTapToPlay": "Tap to play: {url}",
+  "@setCTapToPlay": {
     "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "setACacheSettings": "Caching",
-  "setADownloadDir": "Download location",
-  "setAReadingDefaultDir": "Reading default location…",
-  "setACustomDirHint": "Custom location in use; changes apply to new downloads only",
-  "setADefaultDirHint": "Default location in use; changes apply to new downloads only",
-  "setARestoreDefault": "Restore default",
-  "setACacheDanmaku": "Cache danmaku",
-  "setACacheDanmakuDesc": "Also cache danmaku data when downloading",
-  "setADownloadDoneNotify": "Download complete notification",
-  "setADownloadDoneNotifyDesc": "Notify on each completed episode; tap to open downloads",
-  "setANotes": "Notes",
-  "setAAboutConcurrency": "About concurrency",
-  "setAConcurrencyHelp": "• Episode concurrency: how many episodes download at once\n• Segment concurrency: how many fragments per episode\n• Higher concurrency may speed things up but can be rate-limited by servers\n• Changes apply to newly started downloads",
-  "setAClearCacheAsk": "Clear image cache?",
-  "setAClearCacheDesc": "Images will be re-downloaded on next load. Videos, history and settings are kept.",
-  "setAClearCacheAction": "Clear cache",
-  "setACacheCleared": "Image cache cleared",
-  "setAClearCacheFail": "Clear failed — try again later",
-  "setAClearing": "Clearing…",
-  "setAStatting": "Calculating…",
-  "setAStatFailed": "Failed to calculate",
-  "setAStorageLogs": "Storage & logs",
-  "setACache": "Cache",
-  "setAClearImageCache": "Clear image cache",
-  "setARestat": "Recalculate",
-  "setADiagnostics": "Diagnostics",
-  "setAErrorLogs": "Error logs",
-  "setASaveFailed": "Failed to save — try again",
-  "setALmmAuto": "Follow network",
-  "setALmmAlways": "Always on",
-  "setALmmNever": "Always off",
-  "setALmmAutoDesc": "On for mobile data, off on Wi-Fi / wired",
-  "setALmmAlwaysDesc": "Reduce cache on all networks to save memory",
-  "setALmmNeverDesc": "Use full cache; never auto-enable even on mobile",
-  "setALmmStatusAutoOn": "Auto on · reducing cache on mobile data",
-  "setALmmStatusAutoOff": "Auto off · full cache on non-mobile",
-  "setALmmStatusAlwaysOn": "Manually on · reducing cache on all networks",
-  "setALmmStatusNeverMetered": "Manually off · full cache on mobile data",
-  "setALmmStatusNever": "Manually off · using full cache",
-  "setALmmFootnote": "Reducing cache lowers memory and extra traffic, but may buffer more on unstable networks.\nApplies instantly and is remembered; follow-network affects online playback only.",
-  "setAModeDefault": "{label} (default)",
-  "@setAModeDefault": {
-    "placeholders": {
-      "label": {
+      "url": {
         "type": "String"
       }
     }
   },
-  "setASrHint": "Super resolution requires hardware decoding; if it still doesn't work, try switching the renderer to gpu",
-  "setADefaultBehavior": "Default behavior",
-  "setADisableSrWarning": "Disable warning",
-  "setADisableSrWarningDesc": "Disable the prompt shown each time super resolution is enabled",
-  "setAUpdateSettings": "Update settings",
-  "setACheckOnStartup": "Check for updates on startup",
-  "setAAppUpdate": "App updates",
-  "setARuleUpdate": "Rule updates",
-  "setADesktopSettings": "Desktop settings",
-  "setASystemTray": "System tray",
-  "setAEnableTray": "Enable system tray",
-  "setAEnableTrayDesc": "When off, minimize/exit behavior is independent of the tray",
-  "setATrayEnabledRestart": "Tray enabled (restart to take effect)",
-  "setATrayDisabledRestart": "Tray disabled (restart to take effect)",
-  "setAWindow": "Window",
-  "setARememberGeometry": "Remember window position and size",
-  "setARememberGeometryDesc": "Restore last window position and size on next launch",
-  "setAGlobalHotkey": "Global hotkey",
-  "setAEnableHotkey": "Enable global hotkey",
-  "setAHotkeyDesc": "Ctrl + Alt + K toggles the main window (restart to take effect)",
-  "setADesktopOnlyNote": "This page applies to desktops only (Windows / macOS / Linux).",
-  "setARefreshRate": "Refresh rate",
-  "setARefreshRateHint": "Not applied? Try restarting the app",
-  "setAAutoMode": "Auto",
-  "setASystemSuffix": "  [system]",
-  "setARendererPickHint": "Pick the right renderer for the best playback",
-  "setADecoderFallbackHint": "An unsupported decoder falls back to software decoding",
-  "setAWebVersion": "Web version"
+  "setCExitKazumi": "Exit Kazumi",
+  "setCMinimizeToTray": "Minimize to tray",
+  "setCAskEveryTime": "Ask every time",
+  "setCCacheManagement": "Cache management",
+  "setCCacheClearConfirm": "Cache stores anime covers. Clearing means they will be re-downloaded. Clear the cache?",
+  "setCChooseUpdateChannel": "Choose update channel",
+  "setCStable": "Stable",
+  "setCBeta": "Preview",
+  "setCClose": "Close",
+  "setCSpecialThanks": "Special thanks to Kazumi 2.2.3",
+  "setCOpenSourceLicense": "Open source licenses",
+  "setCOpenSourceLicenseDesc": "View all open source licenses",
+  "setCExternalLinks": "External links",
+  "setCProjectHomepage": "Project homepage",
+  "setCCodeRepo": "Code repository",
+  "setCLoginApi": "Login service",
+  "setCAggregatedLogin": "Unified login",
+  "setCIconArtwork": "Icon artwork",
+  "setCBangumiIndex": "Anime index",
+  "setCReverseSearch": "Reverse anime search",
+  "setCDanmakuSource": "Danmaku source",
+  "setCDanmakuId": "ID: {id}",
+  "@setCDanmakuId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "setCDandanOpenPlatform": "Dandanplay open platform",
+  "setCCommunity": "Community",
+  "setCTapToJoin": "Tap to join",
+  "setCDefaultBehavior": "Default behavior",
+  "setCOnClose": "When closing",
+  "setCErrorLogs": "Error logs",
+  "setCAppUpdate": "App update",
+  "setCCheckUpdateOnStartup": "Check for app updates on startup",
+  "setCSilentDownload": "Silently download updates",
+  "setCSilentDownloadDesc": "When on, new versions download in the background and you will be prompted to install next time",
+  "setCUpdateChannel": "Update channel",
+  "setCCheckAppUpdate": "Check for app updates",
+  "setCCurrentVersion": "Current version: {version}",
+  "@setCCurrentVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "setCRuleUpdate": "Rule update",
+  "setCCheckRuleUpdateOnStartup": "Check for rule updates on startup",
+  "setCAcknowledgements": "Acknowledgements",
+  "setCContribution": "Contribution",
+  "setCContributors": "Contributors",
+  "setCIconAuthor": "Icon author",
+  "setCServices": "Services",
+  "setCAnimeInfo": "Anime info",
+  "setCDanmaku": "Danmaku",
+  "setCOpenSourceProjects": "Open source projects",
+  "setCAppFramework": "App framework",
+  "setCVideoPlayback": "Video playback",
+  "setCRealTimeUpscaling": "Real-time upscaling",
+  "setCPlaybackSync": "Playback sync",
+  "setCXpathParsing": "XPath parsing",
+  "setCNonStandardStream": "Non-standard stream support",
+  "setCLocalStorage": "Local storage",
+  "setCCannotOpenLinkRetry": "Could not open the link, please try again later",
+  "setCCheckUpdateFailed": "Failed to check for updates, please try again later",
+  "setCChecking": "Checking…",
+  "setCCheckUpdate": "Check for updates"
 }
