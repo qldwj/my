@@ -20,6 +20,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/request/apis/custom_danmaku_api.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/bean/widget/segment_progress_bar.dart';
+import 'package:kazumi/bean/widget/play_recommend_section.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -1727,7 +1729,20 @@ class _VideoPageState extends State<VideoPage>
                             }),
                             menuBar,
                             menuBody,
+                            // ⭐ 播放页相关推荐：选集列表末尾横排推荐
+                            const PlayRecommendSection(),
                           ],
+                        ),
+                      ),
+                      // ⭐ 选集加载分段进度条：位于选集列表上方，加载时一段一段往右推进
+                      Positioned(
+                        top: 4,
+                        left: 12,
+                        right: 12,
+                        child: Observer(
+                          builder: (_) => videoPageController.loading
+                              ? const SegmentProgressBar()
+                              : const SizedBox.shrink(),
                         ),
                       ),
                     ],
