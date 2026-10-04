@@ -81,7 +81,7 @@ class _DanmakuShieldEditorState extends State<DanmakuShieldEditor> {
             );
           }
           return ContentSection.group(
-            title: l10n.setBAddedCount(rules.length),
+            title: l10n.setBAddedCount(count: rules.length),
             children: [
               for (final rule in rules)
                 ListTile(

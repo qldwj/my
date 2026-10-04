@@ -133,11 +133,11 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     if (mounted) {
       final msg = StringBuffer();
       if (done.isNotEmpty) {
-        msg.write(l10n.setBSyncDone(dirLabel, done.join('、')));
+        msg.write(l10n.setBSyncDone(dir: dirLabel, items: done.join('、')));
       }
       if (failed.isNotEmpty) {
         if (msg.isNotEmpty) msg.write('\n');
-        msg.write(l10n.setBSyncFailed(failed.join('、')));
+        msg.write(l10n.setBSyncFailed(items: failed.join('、')));
       }
       if (msg.isEmpty) msg.write(l10n.setBSyncNothingSelected);
       KazumiDialog.showToast(message: msg.toString());
@@ -298,7 +298,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                     contentPadding: EdgeInsets.zero,
                                     leading: const Icon(Icons.restore_rounded, size: 18),
                                     title: Text(
-                                      l10n.setBRestoreSnapshot(GStorage.snapshotCollectCount),
+                                      l10n.setBRestoreSnapshot(count: GStorage.snapshotCollectCount),
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                     onTap: () async {
@@ -306,7 +306,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                                           .restoreCollectiblesFromSnapshot();
                                       if (!mounted) return;
                                       KazumiDialog.showToast(
-                                          message: l10n.setBRestoredFavorites(n));
+                                          message: l10n.setBRestoredFavorites(n: n));
                                       setState(() {});
                                     },
                                   ),

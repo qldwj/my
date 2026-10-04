@@ -331,7 +331,7 @@ class _AboutPageState extends State<AboutPage> {
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text(l10n.setCDanmakuSource, style: TextStyle(fontFamily: fontFamily)),
-                  description: Text(l10n.setCDanmakuId(dandanCredentials['id'] ?? ''),
+                  description: Text(l10n.setCDanmakuId(id: dandanCredentials['id'] ?? ''),
                       style: TextStyle(fontFamily: fontFamily)),
                   value: Text(l10n.setCDandanOpenPlatform,
                       style: TextStyle(fontFamily: fontFamily)),
@@ -456,7 +456,7 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title:
                       Text(l10n.setCCheckAppUpdate, style: TextStyle(fontFamily: fontFamily)),
-                  value: Text(l10n.setCCurrentVersion(ApiEndpoints.version),
+                  value: Text(l10n.setCCurrentVersion(version: ApiEndpoints.version),
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

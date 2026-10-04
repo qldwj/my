@@ -261,7 +261,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                       builder: (ctx) => AlertDialog(
                         title: Text(l10n.setBClearCache),
                         content: Text(
-                            l10n.setBClearCacheContent(_fmtSize(size))),
+                            l10n.setBClearCacheContent(size: _fmtSize(size))),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),

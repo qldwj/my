@@ -118,7 +118,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     for (var xFile in _selectedFiles) {
       final file = File(xFile.path);
       if (await file.length() > 20 * 1024 * 1024) {
-        KazumiDialog.showToast(message: l10n.setCFileOverLimit(xFile.name));
+        KazumiDialog.showToast(message: l10n.setCFileOverLimit(name: xFile.name));
         return;
       }
     }
@@ -154,12 +154,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
         } else {
           KazumiDialog.showToast(
             message: l10n.setCSubmitFailed(
-                (json['error'] ?? l10n.setCUnknownError).toString()),
+                error: (json['error'] ?? l10n.setCUnknownError).toString()),
           );
         }
       } else {
         KazumiDialog.showToast(
-            message: l10n.setCServerError(response.statusCode));
+            message: l10n.setCServerError(code: response.statusCode));
       }
     } catch (e) {
       KazumiDialog.showToast(message: l10n.setCNetworkRequestFailed);
@@ -474,7 +474,7 @@ class VideoPlayerFullscreen extends StatelessWidget {
         children: [
           const Icon(Icons.play_circle_fill, size: 60),
           const SizedBox(height: 8),
-          Text(l10n.setCTapToPlay(url)),
+          Text(l10n.setCTapToPlay(url: url)),
         ],
       ),
     );

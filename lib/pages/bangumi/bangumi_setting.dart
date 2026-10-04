@@ -80,7 +80,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
         },
       );
     } catch (e) {
-      KazumiDialog.showToast(message: l10n.setCBangumiSyncFailed(e.toString()));
+      KazumiDialog.showToast(message: l10n.setCBangumiSyncFailed(error: e.toString()));
     } finally {
       if (KazumiDialog.observer.hasKazumiDialog) {
         KazumiDialog.dismiss();
@@ -272,7 +272,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   try {
                     await bangumi.init();
                   } catch (e) {
-                    KazumiDialog.showToast(message: l10n.setCVerifyFailed(e.toString()));
+                    KazumiDialog.showToast(message: l10n.setCVerifyFailed(error: e.toString()));
                     await GStorage.putSetting(
                         SettingsKeys.bangumiSyncEnable, false);
                     if (!mounted) return;
@@ -283,7 +283,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   }
 
                   KazumiDialog.showToast(
-                      message: l10n.setCTestSuccessUser(bangumi.username));
+                      message: l10n.setCTestSuccessUser(user: bangumi.username));
                   if (!mounted) return;
                   setState(() {
                     isVerifying = false;

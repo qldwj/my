@@ -131,7 +131,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         if (otherFunc == func && i == index) continue;
         if (otherKeys[i] == rawKey) {
           final name = shortcutsChineseName[otherFunc] ?? otherFunc;
-          KazumiDialog.showToast(message: l10n.setBKeyTaken(name));
+          KazumiDialog.showToast(message: l10n.setBKeyTaken(name: name));
           return true;
         }
       }

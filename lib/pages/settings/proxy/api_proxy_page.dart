@@ -176,10 +176,10 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
       if (response.statusCode == 200) {
         KazumiDialog.showToast(message: l10n.setCConnectionTestPassed);
       } else {
-        KazumiDialog.showToast(message: l10n.setCConnectionFailed(response.statusCode));
+        KazumiDialog.showToast(message: l10n.setCConnectionFailed(statusCode: response.statusCode));
       }
     } catch (e) {
-      KazumiDialog.showToast(message: l10n.setCConnectionTestFailed(e.toString()));
+      KazumiDialog.showToast(message: l10n.setCConnectionTestFailed(error: e.toString()));
     }
   }
 
@@ -452,7 +452,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                 launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
               },
               child: Text(
-                l10n.setCOriginal(endpoint.original),
+                l10n.setCOriginal(original: endpoint.original),
                 style: TextStyle(fontSize: 11, color: cs.outline, decoration: TextDecoration.underline),
               ),
             ),
