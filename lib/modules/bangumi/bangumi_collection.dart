@@ -64,6 +64,7 @@ class BangumiCollection {
       'date': date ?? '',
       'images': images,
       'tags': tags,
+      'eps': eps, // 🔧 补上总集数，否则收藏页 AnimeFlow 卡片 totalEpisodes=0 → 显示"集数未知"
       'rating': {
         'rank': rank,
         'score': score,
