@@ -7,6 +7,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/card/rule_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/request/apis/plugin_market_api.dart';
@@ -17,6 +18,9 @@ import 'package:kazumi/request/apis/plugin_market_api.dart';
 /// - 区分管理员上传 / 用户上传
 /// - 管理员上传的规则标"官方"，用户上传标"用户上传"
 /// - 下架由管理员在网页端（json 仓库后台）操作
+/// 内部哨兵值，表示"全部"分类（不直接展示，展示时本地化）。
+const String _allCategorySentinel = '__all_rules__';
+
 class MarketPage extends StatefulWidget {
   const MarketPage({super.key, required this.controller});
 
@@ -30,12 +34,12 @@ class _MarketPageState extends State<MarketPage> {
   bool _loading = true;
   bool _loadFailed = false;
   List<MarketRuleItem> _items = const [];
-  String _selectedCategory = '全部';
+  String _selectedCategory = _allCategorySentinel;
 
   /// 从列表聚合出的分类（保持出现顺序）
   List<String> get _categories {
     final seen = <String>{};
-    final result = <String>['全部'];
+    final result = <String>[_allCategorySentinel];
     for (final item in _items) {
       if (seen.add(item.category)) {
         result.add(item.category);
@@ -45,7 +49,7 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   List<MarketRuleItem> get _filteredItems {
-    if (_selectedCategory == '全部') return _items;
+    if (_selectedCategory == _allCategorySentinel) return _items;
     return _items.where((e) => e.category == _selectedCategory).toList();
   }
 
@@ -77,7 +81,8 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   Future<void> _install(MarketRuleItem item) async {
-    KazumiDialog.showToast(message: '正在获取规则…');
+    final l10n = AppLocalizations.of(context)!;
+    KazumiDialog.showToast(message: l10n.setFLoadingRule);
     try {
       final content = await PluginMarketApi.fetchRule(item.file);
       final plugin = Plugin.fromJson(
@@ -86,40 +91,44 @@ class _MarketPageState extends State<MarketPage> {
       final exists = widget.controller.pluginList
           .any((p) => p.name.toLowerCase() == plugin.name.toLowerCase());
       final confirm = await KazumiDialog.show<bool>(
-        builder: (context) => AlertDialog(
-          title: const Text('安装规则'),
-          content: Text(
-            '规则「${plugin.name}」v${plugin.version}\n'
-            '${exists ? '本机已存在同名规则，将覆盖。' : '安装后可在规则管理中管理。'}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => KazumiDialog.dismiss(popWith: false),
-              child: const Text('取消'),
+        builder: (context) {
+          final dl10n = AppLocalizations.of(context)!;
+          return AlertDialog(
+            title: Text(dl10n.setFInstallRule),
+            content: Text(
+              '${dl10n.setFRuleNameVersion(name: plugin.name, version: plugin.version)}\n'
+              '${exists ? dl10n.setFRuleOverwriteExisting : dl10n.setFRuleManageAfterInstall}',
             ),
-            FilledButton(
-              onPressed: () => KazumiDialog.dismiss(popWith: true),
-              child: const Text('安装'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: false),
+                child: Text(dl10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: true),
+                child: Text(dl10n.setFInstall),
+              ),
+            ],
+          );
+        },
       );
       if (confirm != true) return;
       await widget.controller.updatePlugin(plugin);
       if (mounted) {
-        KazumiDialog.showToast(message: '安装成功 ✅');
+        KazumiDialog.showToast(message: l10n.setFInstallSuccess);
       }
     } catch (e) {
       if (mounted) {
-        KazumiDialog.showToast(message: '安装失败: $e');
+        KazumiDialog.showToast(message: l10n.setFInstallFail(error: e.toString()));
       }
     }
   }
 
   Widget _buildList() {
+    final l10n = AppLocalizations.of(context)!;
     final items = _filteredItems;
     if (items.isEmpty) {
-      return const Center(child: Text('市场中还没有规则\n\n在规则管理页点「上传到市场」即可分享你的规则'));
+      return Center(child: Text(l10n.setFMarketEmpty));
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -131,7 +140,7 @@ class _MarketPageState extends State<MarketPage> {
           title: item.origin.replaceAll(RegExp(r'\.json$'), ''),
           tags: [
             RuleTag(
-              label: item.isAdminUpload ? '官方' : '用户上传',
+              label: item.isAdminUpload ? l10n.setFOfficial : l10n.setFUserUploaded,
               background: item.isAdminUpload
                   ? colorScheme.primaryContainer
                   : colorScheme.tertiaryContainer,
@@ -147,7 +156,7 @@ class _MarketPageState extends State<MarketPage> {
           ],
           caption: '${item.time}${item.uid.isNotEmpty ? ' · ${item.uid}' : ''}',
           trailing: RuleCardActionButton(
-            label: '安装',
+            label: l10n.setFInstall,
             onPressed: () => _install(item),
           ),
         );
@@ -157,6 +166,7 @@ class _MarketPageState extends State<MarketPage> {
 
   /// 顶部分类筛选条（横向滚动）
   Widget _buildCategoryBar() {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final categories = _categories;
     return SizedBox(
@@ -170,7 +180,7 @@ class _MarketPageState extends State<MarketPage> {
           final c = categories[index];
           final selected = c == _selectedCategory;
           return ChoiceChip(
-            label: Text(c),
+            label: Text(c == _allCategorySentinel ? l10n.setFAll : c),
             selected: selected,
             onSelected: (_) => setState(() => _selectedCategory = c),
             selectedColor: colorScheme.primaryContainer,
@@ -188,15 +198,16 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) {
       return const Center(child: LoadingIndicator());
     }
     if (_loadFailed) {
       return Center(
         child: GeneralErrorWidget(
-          errMsg: '无法访问规则市场\n请确认服务器 qlyyz.xyz/json/ 已部署',
+          errMsg: l10n.setFMarketUnreachable,
           actions: [
-            GeneralErrorButton(onPressed: _load, text: '重试'),
+            GeneralErrorButton(onPressed: _load, text: l10n.retry),
           ],
         ),
       );
@@ -206,13 +217,14 @@ class _MarketPageState extends State<MarketPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: SysAppBar(
-        title: const Text('规则市场'),
+        title: Text(l10n.setFRuleMarket),
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
-            tooltip: '刷新',
+            tooltip: l10n.setCRefresh,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],

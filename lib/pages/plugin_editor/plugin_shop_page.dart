@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/pages/plugin_editor/market_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_catalog_view.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -28,9 +29,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: SysAppBar(
-        title: const Text('规则仓库'),
+        title: Text(l10n.setFRuleRepository),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(
@@ -38,16 +40,16 @@ class _PluginShopPageState extends State<PluginShopPage> {
                 builder: (_) => MarketPage(controller: widget.controller),
               ),
             ),
-            tooltip: '规则市场（用户上传）',
+            tooltip: l10n.setFRuleMarketUserUpload,
             icon: const Icon(Icons.storefront_outlined),
           ),
           IconButton(
               onPressed: _toggleSort,
-              tooltip: sortByName ? '按名称排序' : '按更新时间排序',
+              tooltip: sortByName ? l10n.setFSortByName : l10n.setFSortByUpdatedAt,
               icon: Icon(sortByName ? Icons.sort_by_alpha : Icons.access_time)),
           IconButton(
               onPressed: () => catalogKey.currentState?.refresh(),
-              tooltip: '刷新规则列表',
+              tooltip: l10n.setFRefreshRuleList,
               icon: const Icon(Icons.refresh))
         ],
       ),
@@ -56,7 +58,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         controller: widget.controller,
         sort:
             sortByName ? PluginCatalogSort.name : PluginCatalogSort.lastUpdate,
-        errorMessage: '啊咧（⊙.⊙） 无法访问规则仓库',
+        errorMessage: l10n.setFRepoUnreachable,
       ),
     );
   }
