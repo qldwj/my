@@ -24,6 +24,7 @@ import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/theme_skin_page.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
 import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
+import 'package:kazumi/pages/settings/sync/lan_share_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 final settingsModule = createModule(
@@ -81,6 +82,8 @@ final settingsModule = createModule(
                 child: (context, state) => const SyncSettingsPage())
             ..route('/sync/bangumi',
                 child: (context, state) => const BangumiSyncPage())
+            ..route('/lan-share',
+                child: (context, state) => const LanSharePage())
             ..module(bangumiModule);
         },
       );

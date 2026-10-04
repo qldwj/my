@@ -362,6 +362,19 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // ══════════ 局域网快速互传 ══════════
+                  _SyncServiceTile(
+                    icon: Icons.wifi_tethering_rounded,
+                    title: '局域网快速互传',
+                    subtitle: '同一WiFi/热点下点对点互传收藏与进度',
+                    status: '不依赖公网',
+                    statusColor: colors.primary,
+                    iconBg: colors.tertiaryContainer,
+                    iconFg: colors.onTertiaryContainer,
+                    onTap: () => context.pushNamed('/settings/lan-share/'),
+                  ),
                 ],
               ),
             ),
