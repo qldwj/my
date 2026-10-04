@@ -285,6 +285,11 @@ class SettingsKeys {
     'default',
     group: SettingGroup.theme,
   );
+  static const appLocale = SettingKey<String>(
+    _SettingBoxKey.appLocale,
+    'system',
+    group: SettingGroup.interface,
+  );
   static const privateMode = SettingKey<bool>(
     _SettingBoxKey.privateMode,
     false,
@@ -1188,6 +1193,7 @@ class _SettingBoxKey {
       danmakuFollowSpeed = 'danmakuFollowSpeed',
       themeMode = 'themeMode',
       themeColor = 'themeColor',
+      appLocale = 'appLocale',
       privateMode = 'privateMode',
       autoPlay = 'autoPlay',
       autoPlayNext = 'autoPlayNext',
