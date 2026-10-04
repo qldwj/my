@@ -229,12 +229,6 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           path: '/settings/notification',
         ),
         SettingsEntrySpec(
-          icon: Icons.keyboard_rounded,
-          title: l10n.operationSettings,
-          description: l10n.operationSettingsDesc,
-          path: '/settings/keyboard',
-        ),
-        SettingsEntrySpec(
           icon: Icons.vpn_key_rounded,
           title: l10n.mirrorProxy,
           description: l10n.mirrorProxyDesc,
