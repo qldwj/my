@@ -69,14 +69,10 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       String? selectedPath;
 
       if (Platform.isAndroid) {
-        // Android: 使用 SAF 选择文件后取父目录
-        final result = await FilePicker.platform.pickFiles();
-        if (result != null && result.files.isNotEmpty) {
-          final filePath = result.files.first.path;
-          if (filePath != null) {
-            selectedPath = filePath.substring(0, filePath.lastIndexOf('/'));
-          }
-        }
+        // Android: 直接用 SAF 目录选择器选「文件夹」（「使用此文件夹」授权）
+        selectedPath = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: l10n.setAPickDir,
+        );
       } else {
         // 桌面平台: 直接选择目录
         final effectiveDirectory = _effectiveDownloadDirectory;
