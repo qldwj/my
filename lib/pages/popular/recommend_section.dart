@@ -43,8 +43,8 @@ class _RecommendSectionState extends State<RecommendSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // ⭐ 紧贴顶部标题栏：去掉上方空隙
-      padding: const EdgeInsets.only(top: 0, bottom: 8),
+      // ⭐ 紧贴顶部标题栏：去掉上方空隙，底部微留间距
+      padding: const EdgeInsets.only(top: 0, bottom: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

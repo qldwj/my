@@ -527,14 +527,34 @@ class _PluginViewPageState extends State<PluginViewPage>
 
   void _showInputDialog() {
     String pluginText = '';
+    final controller = TextEditingController();
+    var clipboardLoaded = false;
     KazumiDialog.show(
       builder: (context) {
+        // 首次打开自动读取剪贴板填入，无需手动粘贴
+        if (!clipboardLoaded) {
+          clipboardLoaded = true;
+          Clipboard.getData('text/plain').then((data) {
+            final text = data?.text?.trim() ?? '';
+            if (text.isNotEmpty) {
+              pluginText = text;
+              controller.text = text;
+            }
+          });
+        }
         return AlertDialog(
           title: const Text('导入规则'),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return TextField(
+                controller: controller,
                 onChanged: (value) => pluginText = value,
+                minLines: 4,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  hintText: '在这里粘贴规则链接或 JSON',
+                  border: OutlineInputBorder(),
+                ),
               );
             },
           ),
