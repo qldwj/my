@@ -262,6 +262,12 @@ const List<_SettingsGroup> _settingsGroups = [
         path: '/settings/theme',
       ),
       SettingsEntrySpec(
+        icon: Icons.color_lens_outlined,
+        title: '番剧主题',
+        description: '动漫主题配色皮肤',
+        path: '/settings/theme/skin',
+      ),
+      SettingsEntrySpec(
         icon: Icons.pages_rounded,
         title: '界面设置',
         description: '设置应用界面样式',

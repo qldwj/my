@@ -21,6 +21,7 @@ import 'package:kazumi/pages/my/feedback_page.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/webview_embed_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
+import 'package:kazumi/pages/settings/theme_skin_page.dart';
 import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
 import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
@@ -41,6 +42,8 @@ final settingsModule = createModule(
             ..route('/', child: (context, state) => const SettingsIndexPage())
             ..route('/theme',
                 child: (context, state) => const ThemeSettingsPage())
+            ..route('/theme/skin',
+                child: (context, state) => const ThemeSkinPage())
             ..route('/webview',
                 child: (context, state) => const WebviewEmbedPage())
             ..route('/theme/display',
