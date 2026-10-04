@@ -274,6 +274,12 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           description: l10n.interfaceSettingsDesc,
           path: '/settings/interface',
         ),
+        SettingsEntrySpec(
+          icon: Icons.language_rounded,
+          title: l10n.languageTitle,
+          description: l10n.languageFollowSystem,
+          path: '/settings/language',
+        ),
       ],
     ),
     _SettingsGroup(
