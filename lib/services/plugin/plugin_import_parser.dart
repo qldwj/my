@@ -57,7 +57,13 @@ class PluginImportParser {
     } else {
       final segments = findKazumiRuleLinkSegments(value).toList();
       if (segments.isEmpty) {
-        failures.add('未找到有效的 JSON 或 kazumi:// 规则链接');
+        // 兜底：整段输入可能是无前缀的纯 base64（或带空白）
+        final bare = _tryDecodeBareBase64(value);
+        if (bare != null) {
+          _parseEntry(bare, 1, parsed, failures);
+        } else {
+          failures.add('未找到有效的 JSON 或 kazumi:// 规则链接');
+        }
       } else {
         for (var index = 0; index < segments.length; index++) {
           final segment = segments[index];
@@ -104,11 +110,26 @@ class PluginImportParser {
     }
   }
 
+  /// 兜底：整段输入是无前缀的纯 base64 时直接解码为 JSON Map
+  static Map<String, dynamic>? _tryDecodeBareBase64(String value) {
+    final compact = value.replaceAll(RegExp(r'\s'), '');
+    if (compact.length < 16) return null;
+    if (!RegExp(r'^[A-Za-z0-9+/=_-]+$').hasMatch(compact)) return null;
+    try {
+      final normalized = base64.normalize(
+        compact.replaceAll('-', '+').replaceAll('_', '/'),
+      );
+      final decoded = json.decode(utf8.decode(base64.decode(normalized)));
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Map<String, dynamic> _decodeRuleEntry(
     String scheme,
     String rawPayload,
-  ) {
-    final payload = _ruleLinkPayloadPrefixPattern
+  ) {    final payload = _ruleLinkPayloadPrefixPattern
         .firstMatch(rawPayload)
         ?.group(0)
         ?.trimRight();
