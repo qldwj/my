@@ -24,6 +24,7 @@ import 'package:kazumi/repositories/history_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
@@ -705,7 +706,16 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           Navigator.pop(ctx);
                           Future.delayed(const Duration(milliseconds: 300), () async {
                             try {
-                              await Share.share(shareText);
+                              // 生成含番剧信息+深链的临时文件，系统分享（content://）可直接发给 QQ
+                              final dir = await getTemporaryDirectory();
+                              final file = File('${dir.path}/share_${item.id}.txt');
+                              await file.writeAsString(
+                                '$shareText\n\n打开链接：$deepLink',
+                              );
+                              await Share.shareXFiles(
+                                [XFile(file.path, mimeType: 'text/plain')],
+                                text: name,
+                              );
                             } catch (e) {
                               // 系统分享失败，直接复制邀请文案
                               await Clipboard.setData(ClipboardData(text: shareText));
