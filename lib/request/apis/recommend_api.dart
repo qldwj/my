@@ -6,7 +6,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 /// 后端：https://qlyyz.xyz/api/v0/recommendations.php?offset=&limit=
 class RecommendApi {
   static const String _baseUrl =
-      'https://qlyyz.xyz/api/v0/recommendations.php';
+      'https://qlyyz.xyz/api/v0/recommendations';
 
   /// 拉取一页推荐，失败返回空列表（调用方静默降级）
   static Future<List<BangumiItem>> fetchRecommendations({
