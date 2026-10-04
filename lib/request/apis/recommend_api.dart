@@ -27,14 +27,14 @@ class RecommendApi {
 
       final json = jsonDecode(body);
       if (json is! Map<String, dynamic> || json['data'] == null) {
-        return (list: const [], hasMore: false);
+        return (list: const <BangumiItem>[], hasMore: false);
       }
       final data = json['data'];
       if (data is! Map<String, dynamic>) {
-        return (list: const [], hasMore: false);
+        return (list: const <BangumiItem>[], hasMore: false);
       }
       final list = data['list'];
-      if (list is! List) return (list: const [], hasMore: false);
+      if (list is! List) return (list: const <BangumiItem>[], hasMore: false);
       final items = list
           .whereType<Map>()
           .map((e) => _toBangumiItem(Map<String, dynamic>.from(e)))
@@ -43,7 +43,7 @@ class RecommendApi {
       final hasMore = data['has_more'] == true;
       return (list: items, hasMore: hasMore);
     } catch (e) {
-      return (list: const [], hasMore: false);
+      return (list: const <BangumiItem>[], hasMore: false);
     }
   }
 
