@@ -127,12 +127,20 @@ yhdmgz://
           break;
         case 'tools/list':
           _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'tools': [
-            {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}}
+            {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}},
+            {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}}
           ]}});
           break;
         case 'tools/call':
-          final url = data['params']?['arguments']?['url'] ?? '';
-          _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
+          final name = data['params']?['name'] ?? 'yhdm';
+          final args = data['params']?['arguments'] ?? <String, dynamic>{};
+          if (name == 'validate_rule') {
+            final result = _validateRule((args['rule'] ?? '').toString());
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else {
+            final url = args['url'] ?? '';
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
+          }
           break;
         case 'prompts/list':
           _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'prompts': [{'name': 'rule_guide', 'description': 'Kazumi规则编写完整指南'}]}});
@@ -151,5 +159,115 @@ yhdmgz://
   void _ok(HttpRequest req, dynamic data) {
     req.response.write(jsonEncode(data));
     req.response.close();
+  }
+
+  // ============ validate_rule：校验规则并生成 yhdmgz:// 链接 ============
+  Map<String, dynamic> _validateRule(String raw) {
+    Map<String, dynamic> rule;
+    var source = raw.trim();
+    try {
+      if (source.startsWith('yhdmgz://')) {
+        source = utf8.decode(base64Decode(base64.normalize(source.substring(9))));
+      } else if (source.startsWith('kazumi://')) {
+        source = utf8.decode(base64Decode(base64.normalize(source.substring(9))));
+      } else if (!source.startsWith('{')) {
+        // 尝试 Base64 解码
+        try {
+          source = utf8.decode(base64Decode(base64.normalize(source)));
+        } catch (_) {}
+      }
+      final decoded = jsonDecode(source);
+      if (decoded is! Map) {
+        return {'ok': false, 'errors': ['规则必须是单个 JSON 对象，不能是数组']};
+      }
+      rule = Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      return {'ok': false, 'errors': ['无法解析输入: $e']};
+    }
+
+    final errors = <String>[];
+
+    // 必填字段
+    for (final f in ['api', 'type', 'name', 'version', 'baseURL']) {
+      final v = rule[f];
+      if (v == null || v.toString().trim().isEmpty) {
+        errors.add('缺少必填字段: $f');
+      }
+    }
+
+    final searchMode = (rule['searchMode'] ?? 'xpath').toString();
+    final chapterMode = (rule['chapterMode'] ?? 'xpath').toString();
+
+    // XPath 受限语法校验
+    const xpathFields = [
+      'searchURL', 'searchList', 'searchName', 'searchResult',
+      'chapterRoads', 'chapterResult',
+    ];
+    for (final f in xpathFields) {
+      final v = rule[f];
+      if (v is String && v.isNotEmpty) {
+        if (f != 'searchURL' && !v.trimLeft().startsWith('//')) {
+          errors.add('$f 选择器必须以 // 开头');
+        }
+        _checkUnsupportedXpath(v, f, errors);
+      }
+    }
+
+    // JSONPath 合规校验
+    final apiCfgFields = ['searchApiConfig', 'chapterApiConfig'];
+    for (final f in apiCfgFields) {
+      final cfg = rule[f];
+      if (cfg is Map) {
+        final cfgMap = Map<String, dynamic>.from(cfg);
+        final path = cfgMap['path'];
+        if (path is String && path.isNotEmpty) _checkJsonPath(path, '$f.path', errors);
+        for (final k in [
+          'roadsPath', 'roadNamePath', 'episodesPath', 'episodeNamePath',
+          'episodeUrlPath', 'roadNamesPath', 'roadEpisodesPath',
+        ]) {
+          final p = cfgMap[k];
+          if (p is String && p.isNotEmpty) _checkJsonPath(p, '$f.$k', errors);
+        }
+      }
+    }
+
+    final base64Str = base64Encode(utf8.encode(jsonEncode(rule)));
+    return {
+      'ok': errors.isEmpty,
+      'errors': errors,
+      'name': rule['name'],
+      'searchMode': searchMode,
+      'chapterMode': chapterMode,
+      'base64': base64Str,
+      'importLink': 'yhdmgz://$base64Str',
+    };
+  }
+
+  void _checkUnsupportedXpath(String s, String field, List<String> errors) {
+    const pats = [
+      ['contains(', 'contains() 不兼容，用 [@attr*="value"]'],
+      ['starts-with(', 'starts-with() 不兼容，用 [@attr^="value"]'],
+      ['text()', 'text() 不支持'],
+      ['normalize-space(', 'normalize-space() 不支持'],
+      ['substring(', 'substring() 不支持'],
+      ['::', 'XPath 轴 :: 不支持'],
+    ];
+    for (final p in pats) {
+      if (s.contains(p[0])) errors.add('$field: ${p[1]}');
+    }
+    if (s.contains('|')) errors.add('$field: XPath 并集 | 不支持');
+    if (s.contains('/..') || s.contains('(')) {
+      if (s.contains('/..')) errors.add('$field: 父级遍历 .. 不支持');
+    }
+    if (RegExp(r'\band\b|\bor\b', caseSensitive: false).hasMatch(s)) {
+      errors.add('$field: XPath 布尔谓词 and/or 不支持');
+    }
+  }
+
+  void _checkJsonPath(String p, String field, List<String> errors) {
+    if (!p.startsWith('\$')) errors.add('$field: JSONPath 必须以 \$ 开头');
+    if (p.contains('\$..')) errors.add('$field: 递归 \$.. 不支持');
+    if (RegExp(r'\[\?').hasMatch(p)) errors.add('$field: 过滤 [?()] 不支持');
+    if (RegExp(r'\[[^\]\[]*:').hasMatch(p)) errors.add('$field: 切片 [a:b] 不支持');
   }
 }
