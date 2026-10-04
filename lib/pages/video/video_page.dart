@@ -19,6 +19,7 @@ import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/request/apis/custom_danmaku_api.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
@@ -207,6 +208,8 @@ class _VideoPageState extends State<VideoPage>
   void _initializePlayback() {
     if (videoPageController.isOfflineMode) {
       _initOfflineMode(playerController);
+    } else if (videoPageController.autoResolvePending) {
+      _initAutoResolveMode(playerController);
     } else {
       _initOnlineMode(playerController);
     }
@@ -251,6 +254,40 @@ class _VideoPageState extends State<VideoPage>
         videoPageController.selectedEpisode.episode,
         currentRoad: videoPageController.selectedEpisode.road,
         offset: videoPageController.historyOffset,
+      );
+    });
+  }
+
+  /// ⭐ 自动选源入口（详情页「开始观看」直接进播放页时走这里）：
+  /// 在播放页内并发检索所有规则，自动选择最快可用源并解析分集，随后正常播放首集；
+  /// 成功时右下角提示用户可在播放设置关闭自动选源。
+  void _initAutoResolveMode(PlayerController playerController) {
+    videoPageController.historyOffset = 0;
+    _showTabBodyImmediately(locateEpisode: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ok = await videoPageController.autoResolveAndPlay();
+      if (!mounted) return;
+      if (!ok) {
+        // 失败：controller 已置错误信息，交由错误态提供重试
+        return;
+      }
+      if (GStorage.getSetting(SettingsKeys.autoSelectSource)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('已自动选择最快可用源'),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: '关闭自动选源',
+              onPressed: () =>
+                  GStorage.putSetting(SettingsKeys.autoSelectSource, false),
+            ),
+          ),
+        );
+      }
+      await changeEpisode(
+        videoPageController.selectedEpisode.episode,
+        currentRoad: videoPageController.selectedEpisode.road,
       );
     });
   }

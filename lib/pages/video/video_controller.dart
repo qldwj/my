@@ -26,6 +26,12 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/request/apis/custom_danmaku_api.dart';
 import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/services/plugin/plugin_search_service.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
@@ -323,6 +329,12 @@ abstract class _VideoPageController with Store implements Disposable {
 
   String src = '';
 
+  /// ⭐ 自动选源待解析标记：`AutoOnlineVideoPlaybackArgs` 入口进入后置 true，
+  /// 播放页首帧先执行 [autoResolveAndPlay]，成功后再走正常在线解析流程。
+  bool _autoResolvePending = false;
+
+  bool get autoResolvePending => _autoResolvePending;
+
   @observable
   var roadList = ObservableList<Road>();
 
@@ -354,6 +366,15 @@ abstract class _VideoPageController with Store implements Disposable {
         src = args.src;
         roadList.clear();
         roadList.addAll(args.roads);
+      case AutoOnlineVideoPlaybackArgs():
+        // ⭐ 详情页「开始观看」直接进播放页：不携带源，播放页首帧自动搜索并选择最快可用源
+        bangumiItem = args.bangumiItem;
+        title = bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name;
+        src = '';
+        roadList.clear();
+        _autoResolvePending = true;
       case OfflineVideoPlaybackArgs():
         _initForOfflinePlayback(
           bangumiItem: args.bangumiItem,
@@ -363,6 +384,108 @@ abstract class _VideoPageController with Store implements Disposable {
           downloadedEpisodes: args.downloadedEpisodes,
         );
     }
+  }
+
+  /// ⭐ 播放页内自动选源：并发检索所有规则，按「星标优先 + 速度/质量评分」自动选择
+  /// 最快可用源并查询其分集，成功后 `currentPlugin`/`src`/`roadList` 即就绪。
+  /// 返回 `true` 表示源已就绪，调用方随后应触发 [changeEpisode] 正常播放。
+  @action
+  Future<bool> autoResolveAndPlay() async {
+    _autoResolvePending = false;
+    final bangumiTitle = title.isNotEmpty
+        ? title
+        : (bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name);
+    try {
+      final collectController = inject<CollectController>();
+      final pluginsController = inject<PluginsController>();
+      final infoController = InfoController(collectController);
+      final searchService = PluginSearchService(
+        infoController: infoController,
+        pluginsController: pluginsController,
+      );
+      await searchService.queryAllSource(bangumiTitle);
+      searchService.cancel();
+
+      // 排序：星标优先，再按速度/质量评分（复用选源弹窗的评分口径）
+      final starred = _starredPlugins(pluginsController);
+      final responses = List.of(infoController.pluginSearchResponseList)
+        ..sort((a, b) {
+          final starA = starred.contains(a.pluginName) ? 0 : 1;
+          final starB = starred.contains(b.pluginName) ? 0 : 1;
+          if (starA != starB) return starA.compareTo(starB);
+          return _scoreSearchResponse(b).compareTo(_scoreSearchResponse(a));
+        });
+
+      Plugin? matched;
+      PluginSearchResponse? chosen;
+      for (final resp in responses) {
+        if (resp.data.isEmpty) continue;
+        for (final p in pluginsController.pluginList) {
+          if (p.name == resp.pluginName) {
+            matched = p;
+            break;
+          }
+        }
+        if (matched != null) {
+          chosen = resp;
+          break;
+        }
+      }
+      if (matched == null || chosen == null) {
+        KazumiLogger().w('VideoPageController: 自动选源失败，所有规则均无结果');
+        _failLoading('自动选源失败：所有播放源均无结果，请返回后重试');
+        return false;
+      }
+
+      final searchItem = chosen.data.first;
+      final roads = await matched.queryChapterRoads(searchItem.src);
+      if (roads.isEmpty) {
+        KazumiLogger().w('VideoPageController: 自动选源失败，所选源分集为空');
+        _failLoading('自动选源失败：所选播放源分集解析为空，请返回后重试');
+        return false;
+      }
+      currentPlugin = matched;
+      src = searchItem.src;
+      roadList.clear();
+      roadList.addAll(roads);
+      return true;
+    } catch (e) {
+      KazumiLogger().w('VideoPageController: 自动选源异常', error: e);
+      _failLoading('自动选源失败：$e');
+      return false;
+    }
+  }
+
+  Set<String> _starredPlugins(PluginsController pc) {
+    final stars = GStorage.getStringListSettingByName('starRules') ?? const <String>[];
+    return stars.toSet();
+  }
+
+  int _scoreSearchResponse(PluginSearchResponse resp) {
+    var score = 0;
+    final useDefault = GStorage.getSetting(SettingsKeys.ruleSortDefault);
+    final byQuality = GStorage.getSetting(SettingsKeys.ruleSortQuality);
+    final byEpisodes = GStorage.getSetting(SettingsKeys.ruleSortEpisodes);
+    final bySpeed = GStorage.getSetting(SettingsKeys.ruleSortSpeed);
+    if (useDefault && !byQuality && !byEpisodes && !bySpeed) {
+      return 0;
+    }
+    if (byEpisodes) {
+      score += resp.data.length * 10;
+    }
+    if (byQuality) {
+      final text = resp.data
+          .map((s) => '${s.name} ${s.src}')
+          .join(' ')
+          .toLowerCase();
+      if (RegExp(r'1080|2160|4k|hd|高清|超清|bluray|web-dl').hasMatch(text)) {
+        score += 100;
+      }
+    }
+    if (bySpeed) {
+      score += 1;
+    }
+    return score;
   }
 
   @action
