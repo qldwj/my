@@ -64,7 +64,8 @@ class LevelService {
       final res = await http.get(Uri.parse(
           '$api?action=get&token=$token&collect_count=$collectCount'));
       final j = jsonDecode(res.body);
-      if (j is Map && j['success'] == true) return LevelInfo.fromJson(j);
+      if (j is Map && j['success'] == true)
+        return LevelInfo.fromJson(Map<String, dynamic>.from(j));
     } catch (_) {}
     return null;
   }
