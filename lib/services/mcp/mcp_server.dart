@@ -251,8 +251,40 @@ class McpServer {
     final base64Str = base64Encode(utf8.encode(jsonEncode(rule)));
     final icon = rule['icon'];
     if (icon == null || icon.toString().trim().isEmpty) {
-      warnings.add('未提供 icon（网站 logo 图片 URL），App 规则列表将不显示图标');
+      warnings.add('icon 为【非官方字段】（官方规则无此字段，仅本 App 本地用于规则列表显示站点图标），可选；未提供时 App 规则列表将不显示图标');
     }
+
+    // 往返校验（幂等）：base64 解码还原后应与原始规则一致
+    try {
+      final redecoded = jsonDecode(utf8.decode(base64Decode(base64Str)));
+      if (jsonEncode(redecoded) != jsonEncode(rule)) {
+        warnings.add('往返校验不一致：解码还原后的规则与原始输入有差异');
+      }
+    } catch (e) {
+      warnings.add('往返解码失败: $e');
+    }
+
+    // API 模式 episodePage 模板变量校验（补 API 规则支持严谨性）
+    for (final f in apiCfgFields) {
+      final cfg = rule[f];
+      if (cfg is Map) {
+        final ep = cfg['episodePage'];
+        if (ep is Map) {
+          final epUrl = ep['url'];
+          if (epUrl is String && epUrl.isNotEmpty) {
+            final allowed = RegExp(r'@(source|episodeUrl|roadIndex|roadNumber|episodeIndex|episodeNumber|keyword)');
+            final unknowns = RegExp(r'@[a-zA-Z]+').allMatches(epUrl)
+                .map((m) => m.group(0))
+                .where((v) => v != null && !allowed.hasMatch(v))
+                .toList();
+            if (unknowns.isNotEmpty) {
+              warnings.add('$f.episodePage.url 含未知模板变量: ${unknowns.join(', ')}（仅支持 @source/@episodeUrl/@roadIndex/@roadNumber/@episodeIndex/@episodeNumber/@keyword）');
+            }
+          }
+        }
+      }
+    }
+
     return {
       'ok': errors.isEmpty,
       'errors': errors,
