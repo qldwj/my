@@ -386,8 +386,8 @@ class _SourceSheetState extends State<SourceSheet>
           _autoSelectTimer?.cancel();
           _autoSelectTimer = null;
           KazumiDialog.showTimedSuccessDialog(
-            title: '验证成功',
-            message: '已锁定当前规则，正在重新检索…',
+            title: '验证通过',
+            message: '验证通过，正在重新检索…',
             onComplete: () {
               pluginSearchService?.querySource(keyword, plugin.name).then((_) {
                 _autoPlayVerifiedPlugin(plugin.name);
@@ -431,8 +431,8 @@ class _SourceSheetState extends State<SourceSheet>
   void showButtonClickDialog(Plugin plugin) {
     showAutomatedVerifyDialog(
       plugin,
-      statusText: '${plugin.name} 正在自动完成验证，请稍候',
-      detailText: '已检测到验证按钮并模拟点击，等待验证通过…',
+      statusText: '${plugin.name} 正在自动验证，请稍候',
+      detailText: '已检测到验证入口，正在自动处理…',
       startVerification: (captchaService, searchUrl, onVerified) {
         return captchaService.loadForButtonClick(
           url: searchUrl,

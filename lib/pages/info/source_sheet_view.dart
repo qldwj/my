@@ -23,8 +23,8 @@ class _SourceSearchGroup {
           results.isEmpty ? '无结果' : '${results.length} 个结果',
         PluginSearchStatus.noResult => '无结果',
         PluginSearchStatus.error => '检索失败',
-        PluginSearchStatus.captcha => '需要验证',
-        PluginSearchStatus.login => '需要登录',
+        PluginSearchStatus.captcha => '需通过人机验证',
+        PluginSearchStatus.login => '需登录',
       };
 }
 
@@ -446,9 +446,9 @@ class _SourceSheetViewState extends State<_SourceSheetView> {
     final (icon, title, hint, action, onAction) = requiresVerification
         ? (
             Icons.verified_user_outlined,
-            '需要验证',
-            '完成网站验证后继续检索。',
-            '进行验证',
+            '需通过人机验证',
+            '请先完成验证，再继续检索。',
+            '前往验证',
             () => widget.onVerify(sourceName),
           )
         : (
