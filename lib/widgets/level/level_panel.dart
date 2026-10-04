@@ -34,7 +34,7 @@ class _LevelPanelState extends State<LevelPanel> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (_) => _LevelDetailSheet(info: info),
+      builder: (_) => LevelDetailSheet(info: info),
     );
   }
 
@@ -93,9 +93,9 @@ class _LevelPanelState extends State<LevelPanel> {
 }
 
 /// 等级详情：经验规则 + 徽章
-class _LevelDetailSheet extends StatelessWidget {
+class LevelDetailSheet extends StatelessWidget {
   final LevelInfo info;
-  const _LevelDetailSheet({required this.info});
+  const LevelDetailSheet({required this.info});
 
   @override
   Widget build(BuildContext context) {

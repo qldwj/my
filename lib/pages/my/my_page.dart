@@ -19,6 +19,7 @@ import 'package:kazumi/pages/my/checkin_page.dart';
 import 'package:kazumi/pages/my/kazumi_login_page.dart';
 import 'package:kazumi/pages/my/qrcode_login_page.dart';
 import 'package:kazumi/pages/my/friends_page.dart';
+import 'package:kazumi/services/level_service.dart';
 import 'package:kazumi/widgets/level/level_panel.dart';
 import 'package:kazumi/pages/my/chat_list_page.dart';
 import 'package:kazumi/pages/my/privacy_settings_page.dart';
@@ -1083,115 +1084,158 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  // ── 个人中心头部（头像可点击管理）──
+  // ── 个人中心头部（头像/昵称一行式 + 等级折叠 + 好友/换号）──
   Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme, bool bangumiLoggedIn) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final logged = AuthService.isLoggedIn;
+    final nickname = _socialProfile?.nickname ?? '用户';
+    final uid =
+        (logged && _socialProfile != null && _socialProfile!.uid.isNotEmpty)
+            ? _socialProfile!.uid
+            : null;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          // 第一行：头像 + 昵称/UID + 等级图标（折叠成小图标，点击展开详情）
+          Row(
             children: [
-              Text(
-                '个人中心',
-                style: textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: colorScheme.onSurface,
-                  height: 1.2,
+              GestureDetector(
+                onTap: _openAccountPage,
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: logged
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : colorScheme.primary.withValues(alpha: 0.1),
+                  child: (logged &&
+                          _socialProfile != null &&
+                          _socialProfile!.avatar.isNotEmpty)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(26),
+                          child: NetworkImgLayer(
+                            width: 52,
+                            height: 52,
+                            src:
+                                SocialService.proxiedAvatar(_socialProfile!.avatar),
+                          ),
+                        )
+                      : Icon(
+                          logged
+                              ? Icons.check_circle_rounded
+                              : Icons.person_add_rounded,
+                          color: logged ? Colors.green : colorScheme.primary,
+                          size: 26,
+                        ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                AuthService.isLoggedIn
-                    ? '欢迎回来，${_socialProfile?.nickname ?? '用户'}'
-                    : '登录以同步数据',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      logged ? nickname : '点击登录以同步数据',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                        height: 1.2,
+                      ),
+                    ),
+                    if (uid != null) ...[
+                      const SizedBox(height: 3),
+                      Text('UID：$uid',
+                          style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant)),
+                    ],
+                  ],
                 ),
               ),
-              if (AuthService.isLoggedIn && _socialProfile != null && _socialProfile!.uid.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    'UID：${_socialProfile!.uid}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              // 🆕 等级图标（折叠：仅图标，点击展开等级/徽章详情）
+              if (logged)
+                GestureDetector(
+                  onTap: _showLevelDetail,
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(LevelService.levelIconUrl(1),
+                          width: 22,
+                          height: 22,
+                          errorBuilder: (_, __, ___) => Icon(
+                              Icons.workspace_premium,
+                              size: 20,
+                              color: colorScheme.primary)),
                     ),
                   ),
                 ),
-              // 🆕 等级面板（登录时显示）
-              if (AuthService.isLoggedIn) const LevelPanel(),
             ],
           ),
-        ),
-        const SizedBox(width: 12),
-        // 头像（已登录时可点击管理）
-        GestureDetector(
-          onTap: AuthService.isLoggedIn
-              ? () {
-                  // 跳转到账号绑定页面
+          // 第二行：好友 / 换号 操作
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildAccountAction(
+                colorScheme: colorScheme,
+                icon: Icons.people_rounded,
+                title: '好友',
+                color: colorScheme.tertiary,
+                badge: _friendRequestCount,
+                onTap: () {
+                  if (!AuthService.isLoggedIn) {
+                    KazumiDialog.showToast(message: '请先登录樱花动漫账号');
+                    return;
+                  }
                   final navContext = rootNavigatorKey.currentContext;
                   if (navContext == null || !navContext.mounted) return;
                   Navigator.of(navContext).push(
-                    MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
-                  );
-                }
-              : () {
-                  final navContext = rootNavigatorKey.currentContext;
-                  if (navContext == null || !navContext.mounted) return;
-                  Navigator.of(navContext).push(
-                    MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
-                  );
+                    MaterialPageRoute(builder: (_) => const FriendsPage()),
+                  ).then((_) => _loadSocialProfile());
                 },
-          child: CircleAvatar(
-            radius: 26,
-            backgroundColor: AuthService.isLoggedIn
-                ? Colors.green.withValues(alpha: 0.1)
-                : colorScheme.primary.withValues(alpha: 0.1),
-            child: AuthService.isLoggedIn && _socialProfile != null && _socialProfile!.avatar.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: NetworkImgLayer(
-                      width: 52,
-                      height: 52,
-                      src: SocialService.proxiedAvatar(_socialProfile!.avatar),
-                    ),
-                  )
-                : Icon(
-                    AuthService.isLoggedIn ? Icons.check_circle_rounded : Icons.person_add_rounded,
-                    color: AuthService.isLoggedIn ? Colors.green : colorScheme.primary,
-                    size: 28,
-                  ),
+              ),
+              const SizedBox(width: 8),
+              // 🆕 切换账号（多账号快速切换，账号列表持久保存，重开 App 不丢）
+              _buildAccountAction(
+                colorScheme: colorScheme,
+                icon: Icons.switch_account_rounded,
+                title: '换号',
+                color: colorScheme.primary,
+                onTap: () => _showAccountSwitcher(),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 12),
-        // 好友
-        _buildAccountAction(
-          colorScheme: colorScheme,
-          icon: Icons.people_rounded,
-          title: '好友',
-          color: colorScheme.tertiary,
-          badge: _friendRequestCount,
-          onTap: () {
-            if (!AuthService.isLoggedIn) {
-              KazumiDialog.showToast(message: '请先登录樱花动漫账号');
-              return;
-            }
-            final navContext = rootNavigatorKey.currentContext;
-            if (navContext == null || !navContext.mounted) return;
-            Navigator.of(navContext).push(
-              MaterialPageRoute(builder: (_) => const FriendsPage()),
-            ).then((_) => _loadSocialProfile());
-          },
-        ),
-        // 🆕 切换账号（多账号快速切换，账号列表持久保存，重开 App 不丢）
-        _buildAccountAction(
-          colorScheme: colorScheme,
-          icon: Icons.switch_account_rounded,
-          title: '换号',
-          color: colorScheme.primary,
-          onTap: () => _showAccountSwitcher(),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  void _openAccountPage() {
+    final navContext = rootNavigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return;
+    Navigator.of(navContext).push(
+      MaterialPageRoute(builder: (_) => const KazumiLoginPage()),
+    );
+  }
+
+  Future<void> _showLevelDetail() async {
+    final info = await LevelService.fetch();
+    if (!mounted) return;
+    if (info == null) {
+      KazumiDialog.showToast(message: '获取等级失败，请稍后再试');
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (_) => LevelDetailSheet(info: info),
     );
   }
 
