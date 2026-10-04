@@ -30,76 +30,112 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   // 原始端点 → 默认镜像路径
   static const Map<String, _ApiEndpoint> _endpoints = {
     'calendar': _ApiEndpoint(
-      label: '每日放送',
+      labelKey: 'setDEndpointCalendar',
       original: 'next.bgm.tv/p1/calendar',
       defaultMirrorPath: '/kazumi/v1/calendar',
     ),
     'trending': _ApiEndpoint(
-      label: '番剧趋势',
+      labelKey: 'setDEndpointTrending',
       original: 'next.bgm.tv/p1/trending/subjects',
       defaultMirrorPath: '/kazumi/v1/trending/subjects',
     ),
     'popular': _ApiEndpoint(
-      label: '热门番剧',
+      labelKey: 'setDEndpointPopular',
       original: 'next.bgm.tv/p1/trending/subjects',
       defaultMirrorPath: '/kazumi/v1/popular/subjects',
     ),
     'season': _ApiEndpoint(
-      label: '季节时间表',
+      labelKey: 'setDEndpointSeason',
       original: 'api.qlyyz.top/kazumi/v1/calendar/season',
       defaultMirrorPath: '/kazumi/v1/calendar/season',
     ),
     'search': _ApiEndpoint(
-      label: '番剧搜索',
+      labelKey: 'setDEndpointSearch',
       original: 'api.bgm.tv/v0/search/subjects',
       defaultMirrorPath: '/v0/search/subjects',
     ),
     'subject': _ApiEndpoint(
-      label: '番剧详情',
+      labelKey: 'setDEndpointSubject',
       original: 'api.bgm.tv/v0/subjects/{id}',
       defaultMirrorPath: '/v0/subjects/{id}',
     ),
     'episodes': _ApiEndpoint(
-      label: '剧集列表',
+      labelKey: 'setDEndpointEpisodes',
       original: 'api.bgm.tv/v0/episodes',
       defaultMirrorPath: '/v0/episodes',
     ),
     'characters': _ApiEndpoint(
-      label: '角色列表',
+      labelKey: 'setDEndpointCharacters',
       original: 'api.bgm.tv/v0/subjects/{id}/characters',
       defaultMirrorPath: '/v0/subjects/{id}/characters',
     ),
     'comments': _ApiEndpoint(
-      label: '条目评论',
+      labelKey: 'setDEndpointSubjectComments',
       original: 'next.bgm.tv/p1/subjects/{id}/comments',
       defaultMirrorPath: '/p1/subjects/{id}/comments',
     ),
     'episode_comments': _ApiEndpoint(
-      label: '剧集评论',
+      labelKey: 'setDEndpointEpisodeComments',
       original: 'next.bgm.tv/p1/episodes/{id}/comments',
       defaultMirrorPath: '/p1/episodes/{id}/comments',
     ),
     'character_info': _ApiEndpoint(
-      label: '角色详情',
+      labelKey: 'setDEndpointCharacterInfo',
       original: 'next.bgm.tv/p1/characters/{id}',
       defaultMirrorPath: '/p1/characters/{id}',
     ),
     'character_comments': _ApiEndpoint(
-      label: '角色评论',
+      labelKey: 'setDEndpointCharacterComments',
       original: 'next.bgm.tv/p1/characters/{id}/comments',
       defaultMirrorPath: '/p1/characters/{id}/comments',
     ),
     'staff': _ApiEndpoint(
-      label: '制作人员',
+      labelKey: 'setDEndpointStaff',
       original: 'next.bgm.tv/p1/subjects/{id}/staffs/persons',
       defaultMirrorPath: '/p1/subjects/{id}/staffs/persons',
     ),
     'related': _ApiEndpoint(
-      label: '关联条目',
+      labelKey: 'setDEndpointRelated',
       original: 'api.bgm.tv/v0/subjects/{id}/subjects',
       defaultMirrorPath: '/v0/subjects/{id}/subjects',
     ),
   };
+
+  /// Resolve an endpoint labelKey to its localized label.
+  String _endpointLabel(String labelKey, AppLocalizations l10n) {
+    switch (labelKey) {
+      case 'setDEndpointCalendar':
+        return l10n.setDEndpointCalendar;
+      case 'setDEndpointTrending':
+        return l10n.setDEndpointTrending;
+      case 'setDEndpointPopular':
+        return l10n.setDEndpointPopular;
+      case 'setDEndpointSeason':
+        return l10n.setDEndpointSeason;
+      case 'setDEndpointSearch':
+        return l10n.setDEndpointSearch;
+      case 'setDEndpointSubject':
+        return l10n.setDEndpointSubject;
+      case 'setDEndpointEpisodes':
+        return l10n.setDEndpointEpisodes;
+      case 'setDEndpointCharacters':
+        return l10n.setDEndpointCharacters;
+      case 'setDEndpointSubjectComments':
+        return l10n.setDEndpointSubjectComments;
+      case 'setDEndpointEpisodeComments':
+        return l10n.setDEndpointEpisodeComments;
+      case 'setDEndpointCharacterInfo':
+        return l10n.setDEndpointCharacterInfo;
+      case 'setDEndpointCharacterComments':
+        return l10n.setDEndpointCharacterComments;
+      case 'setDEndpointStaff':
+        return l10n.setDEndpointStaff;
+      case 'setDEndpointRelated':
+        return l10n.setDEndpointRelated;
+      default:
+        return labelKey;
+    }
+  }
 
   @override
   void initState() {
@@ -185,13 +221,14 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
 
   /// 🆕 图片加速模式选择（直连 / ECH / 镜像）
   Future<void> _selectImageAcceleration() async {
+    final l10n = AppLocalizations.of(context)!;
     final current = ImageAcceleration.fromSetting(
       GStorage.getSetting(SettingsKeys.imageAcceleration),
     );
     final selected = await KazumiDialog.show<ImageAcceleration>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text(AppLocalizations.of(context)!.setCImageAcceleration),
+        title: Text(l10n.setCImageAcceleration),
         children: [
           RadioGroup<ImageAcceleration>(
             groupValue: current,
@@ -202,8 +239,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                 for (final mode in ImageAcceleration.values)
                   RadioListTile<ImageAcceleration>(
                     value: mode,
-                    title: Text(mode.label),
-                    subtitle: Text(mode.description),
+                    title: Text(mode.label(l10n)),
+                    subtitle: Text(mode.description(l10n)),
                   ),
               ],
             ),
@@ -317,7 +354,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
                         Text(
                           ImageAcceleration.fromSetting(
                             GStorage.getSetting(SettingsKeys.imageAcceleration),
-                          ).label,
+                          ).label(l10n),
                           style: TextStyle(color: cs.primary),
                         ),
                         const Icon(Icons.chevron_right_rounded),
@@ -422,7 +459,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              endpoint.label,
+              _endpointLabel(endpoint.labelKey, l10n),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
@@ -455,12 +492,12 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
 }
 
 class _ApiEndpoint {
-  final String label;
+  final String labelKey;
   final String original;
   final String defaultMirrorPath;
 
   const _ApiEndpoint({
-    required this.label,
+    required this.labelKey,
     required this.original,
     required this.defaultMirrorPath,
   });

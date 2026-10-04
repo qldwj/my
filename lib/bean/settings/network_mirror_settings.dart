@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/network/image_acceleration.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -22,57 +23,64 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bangumiAcceleration = BangumiAcceleration.current;
     final gitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     final imageAcceleration = ImageAcceleration.fromSetting(
       GStorage.getSetting(SettingsKeys.imageAcceleration),
     );
     return SettingsSection(
-      title: const Text('访问加速'),
+      title: Text(l10n.setDMirrorTitle),
       margin: widget.margin,
       tiles: [
         SettingsTile(
           leading: Icons.travel_explore_rounded,
-          title: const Text('番剧条目加速'),
-          description: const Text('番剧信息与评论'),
+          title: Text(l10n.setDBangumiItemAccel),
+          description: Text(l10n.setDBangumiItemAccelDesc),
           value: SizedBox(
             width: 60,
-            child: Text(bangumiAcceleration.label, textAlign: TextAlign.center),
+            child: Text(
+              bangumiAcceleration.label(l10n),
+              textAlign: TextAlign.center,
+            ),
           ),
           onPressed: (context) => _selectAcceleration(
             context,
-            title: '番剧条目加速',
+            title: l10n.setDBangumiItemAccel,
             current: bangumiAcceleration,
             modes: BangumiAcceleration.values,
-            label: (mode) => mode.label,
-            description: (mode) => mode.description,
+            label: (mode) => mode.label(l10n),
+            description: (mode) => mode.description(l10n),
             setting: SettingsKeys.bangumiAcceleration,
           ),
         ),
         SettingsTile.switchTile(
           leading: Icons.extension_rounded,
-          title: const Text('规则仓库镜像'),
-          description: const Text('加速规则的下载与更新'),
+          title: Text(l10n.setDRuleRepoMirror),
+          description: Text(l10n.setDRuleRepoMirrorDesc),
           initialValue: gitProxy,
           onToggle: (value) =>
               _save(SettingsKeys.enableGitProxy, value ?? !gitProxy),
         ),
         SettingsTile(
           leading: Icons.image_rounded,
-          title: const Text('图片加速'),
-          description: const Text('加速封面与头像加载'),
+          title: Text(l10n.setCImageAcceleration),
+          description: Text(l10n.setCImageAccelerationDesc),
           value: SizedBox(
             // Match the trailing Material 3 switch width.
             width: 60,
-            child: Text(imageAcceleration.label, textAlign: TextAlign.center),
+            child: Text(
+              imageAcceleration.label(l10n),
+              textAlign: TextAlign.center,
+            ),
           ),
           onPressed: (context) => _selectAcceleration(
             context,
-            title: '图片加速',
+            title: l10n.setCImageAcceleration,
             current: imageAcceleration,
             modes: ImageAcceleration.values,
-            label: (mode) => mode.label,
-            description: (mode) => mode.description,
+            label: (mode) => mode.label(l10n),
+            description: (mode) => mode.description(l10n),
             setting: SettingsKeys.imageAcceleration,
           ),
         ),
@@ -120,12 +128,4 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
       await _save(setting, selected.name);
     }
   }
-}
-
-extension on BangumiAcceleration {
-  String get description => switch (this) {
-    BangumiAcceleration.direct => '访问官方接口',
-    BangumiAcceleration.ech => '启用加密握手',
-    BangumiAcceleration.mirror => '镜像接口（默认）',
-  };
 }

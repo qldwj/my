@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,21 +17,24 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mirrorEnabled = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
     return GeneralErrorWidget(
-      errMsg: '啊咧（⊙.⊙） 无法加载数据\n番剧条目镜像${mirrorEnabled ? '已启用' : '已禁用'}',
+      errMsg: mirrorEnabled
+          ? l10n.setDMirrorLoadFailEnabled
+          : l10n.setDMirrorLoadFailDisabled,
       actions: [
         GeneralErrorButton(
           onPressed: () async {
             await context.pushNamed('/settings/mirror-proxy');
             onSettingsReturned?.call();
           },
-          text: '镜像开关',
+          text: l10n.setDMirrorToggle,
         ),
         GeneralErrorButton(
           onPressed: onRetry,
-          text: '点击重试',
+          text: l10n.setDTapRetry,
         ),
         GeneralErrorButton(
           onPressed: () {
@@ -39,7 +43,7 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
               mode: LaunchMode.externalApplication,
             );
           },
-          text: '检查服务器状态',
+          text: l10n.setDCheckServerStatus,
         ),
       ],
     );

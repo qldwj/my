@@ -19,27 +19,44 @@ class ServiceStatusPage extends StatefulWidget {
 class _ServiceStatusPageState extends State<ServiceStatusPage> {
   final List<_ServiceStatus> _services = [
     _ServiceStatus(
-      name: 'Bangumi',
-      desc: '收藏数据服务',
       url: 'https://api.qlyyz.top/kazumi/v1/popular/subjects?limit=1',
       avatar: null,
       checkType: ServiceCheckType.bangumiCollection,
     ),
     _ServiceStatus(
-      name: 'Bangumi',
-      desc: '评论服务',
       url: 'https://qlyyz.xyz/ping?pl',
       avatar: null,
       checkType: ServiceCheckType.bangumiComment,
     ),
     _ServiceStatus(
-      name: '樱花动漫',
-      desc: '弹幕,评论服务',
       url: 'https://qlyyz.xyz/ping',
       avatar: 'https://qlyyz.xyz/logo.webp',
       checkType: ServiceCheckType.yhpdmPing,
     ),
   ];
+
+  /// Localized service display name, keyed by [ServiceCheckType].
+  String _serviceName(ServiceCheckType type, AppLocalizations l10n) {
+    switch (type) {
+      case ServiceCheckType.bangumiCollection:
+      case ServiceCheckType.bangumiComment:
+        return 'Bangumi';
+      case ServiceCheckType.yhpdmPing:
+        return l10n.setDServiceYhpdm;
+    }
+  }
+
+  /// Localized service description, keyed by [ServiceCheckType].
+  String _serviceDesc(ServiceCheckType type, AppLocalizations l10n) {
+    switch (type) {
+      case ServiceCheckType.bangumiCollection:
+        return l10n.setDServiceCollection;
+      case ServiceCheckType.bangumiComment:
+        return l10n.setDServiceComment;
+      case ServiceCheckType.yhpdmPing:
+        return l10n.setDServiceDanmakuComment;
+    }
+  }
 
   @override
   void initState() {
@@ -119,7 +136,12 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
       }
       
     } catch (e) {
-      print('检测失败: ${service.url}, 错误: $e');
+      if (mounted) {
+        print(AppLocalizations.of(context)!.setDServiceCheckFailed(
+          url: service.url,
+          error: e.toString(),
+        ));
+      }
       return false;
     } finally {
       client.close();
@@ -330,7 +352,8 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
 
   Widget _buildServiceTile(_ServiceStatus service) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+    final l10n = AppLocalizations.of(context)!;
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: service.avatar != null
@@ -346,11 +369,11 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
             )
           : _defaultLeading(service),
       title: Text(
-        service.name,
+        _serviceName(service.checkType, l10n),
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        service.desc,
+        _serviceDesc(service.checkType, l10n),
         style: TextStyle(
           fontSize: 13,
           color: colorScheme.onSurfaceVariant,
@@ -396,7 +419,9 @@ class _ServiceStatusPageState extends State<ServiceStatusPage> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(
-        service.name == 'Bangumi' ? Icons.tv_rounded : Icons.cloud_rounded,
+        service.checkType == ServiceCheckType.yhpdmPing
+            ? Icons.cloud_rounded
+            : Icons.tv_rounded,
         size: 20,
         color: colorScheme.onPrimaryContainer,
       ),
@@ -413,19 +438,15 @@ enum ServiceCheckType {
 
 class _ServiceStatus {
   _ServiceStatus({
-    required this.name,
-    required this.desc,
     required this.url,
     this.avatar,
     required this.checkType,
   });
 
-  final String name;
-  final String desc;
   final String url;
   final String? avatar;
   final ServiceCheckType checkType;
-  
+
   bool ok = false;
   bool checking = false;  // 独立检测状态
 }

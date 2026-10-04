@@ -24,23 +24,70 @@ class ThemeSkinPage extends StatefulWidget {
 }
 
 class _AnimeSkin {
-  final String name;
-  final String desc;
+  final String id;
   final Color color;
-  const _AnimeSkin(this.name, this.desc, this.color);
+  const _AnimeSkin(this.id, this.color);
 }
 
 const List<_AnimeSkin> _skins = [
-  _AnimeSkin('默认配色', '经典绿', Color(0xff4CAF50)),
-  _AnimeSkin('次元城·樱', '樱花粉', Color(0xffEC407A)),
-  _AnimeSkin('命运·门', '时间蓝', Color(0xff2196F3)),
-  _AnimeSkin('紫罗兰永恒', '永恒紫', Color(0xff6750a4)),
-  _AnimeSkin('露营·晴空', '晴空蓝', Color(0xff4fc3f7)),
-  _AnimeSkin('绯红·刀', '刀红', Color(0xffe53935)),
-  _AnimeSkin('金瞳', '琥珀金', Color(0xfffbc02d)),
-  _AnimeSkin('薄荷·凪', '薄荷青', Color(0xff26a69a)),
-  _AnimeSkin('黑银·机械', '机械银', Color(0xff607d8b)),
+  _AnimeSkin('default', Color(0xff4CAF50)),
+  _AnimeSkin('sakura', Color(0xffEC407A)),
+  _AnimeSkin('gate', Color(0xff2196F3)),
+  _AnimeSkin('violet', Color(0xff6750a4)),
+  _AnimeSkin('camp', Color(0xff4fc3f7)),
+  _AnimeSkin('crimson', Color(0xffe53935)),
+  _AnimeSkin('golden', Color(0xfffbc02d)),
+  _AnimeSkin('mint', Color(0xff26a69a)),
+  _AnimeSkin('mecha', Color(0xff607d8b)),
 ];
+
+/// Localized theme display name, keyed by [_AnimeSkin.id].
+String _skinName(String id, AppLocalizations l10n) {
+  switch (id) {
+    case 'default':
+      return l10n.setDThemeDefault;
+    case 'sakura':
+      return l10n.setDThemeSakura;
+    case 'gate':
+      return l10n.setDThemeGate;
+    case 'violet':
+      return l10n.setDThemeViolet;
+    case 'camp':
+      return l10n.setDThemeCamp;
+    case 'crimson':
+      return l10n.setDThemeCrimson;
+    case 'golden':
+      return l10n.setDThemeGolden;
+    case 'mint':
+      return l10n.setDThemeMint;
+    case 'mecha':
+      return l10n.setDThemeMecha;
+  }
+}
+
+/// Localized color nickname, keyed by [_AnimeSkin.id].
+String _skinDesc(String id, AppLocalizations l10n) {
+  switch (id) {
+    case 'default':
+      return l10n.setDThemeClassicGreen;
+    case 'sakura':
+      return l10n.setDThemeSakuraPink;
+    case 'gate':
+      return l10n.setDThemeTimeBlue;
+    case 'violet':
+      return l10n.setDThemeEternalPurple;
+    case 'camp':
+      return l10n.setDThemeSkyBlue;
+    case 'crimson':
+      return l10n.setDThemeBladeRed;
+    case 'golden':
+      return l10n.setDThemeAmberGold;
+    case 'mint':
+      return l10n.setDThemeMintGreen;
+    case 'mecha':
+      return l10n.setDThemeMechaSilver;
+  }
+}
 
 class _ThemeSkinPageState extends State<ThemeSkinPage> {
   late String _currentColorHex;
@@ -56,7 +103,7 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
 
   bool _isColorSelected(_AnimeSkin skin) {
     if (_currentColorHex.isEmpty || _currentColorHex == 'default') {
-      return skin.name == '默认配色';
+      return skin.id == 'default';
     }
     return _hexOf(skin.color) == _currentColorHex;
   }
@@ -69,6 +116,7 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
 
   void _applySkin(_AnimeSkin skin) {
     final tp = context.read<ThemeProvider>();
+    final l10n = AppLocalizations.of(context)!;
     final light = ThemeData(
       useMaterial3: true,
       fontFamily: tp.currentFontFamily,
@@ -91,7 +139,9 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
     tp.setTheme(light, oledEnhance ? oledDarkTheme(dark) : dark);
     GStorage.putSetting(SettingsKeys.themeColor, _hexOf(skin.color));
     setState(() => _currentColorHex = _hexOf(skin.color));
-    KazumiDialog.showToast(message: '已切换主题：${skin.name}');
+    KazumiDialog.showToast(
+      message: l10n.setDThemeSwitched(name: _skinName(skin.id, l10n)),
+    );
   }
 
   Widget glassPanel({
@@ -202,52 +252,55 @@ class _ThemeSkinPageState extends State<ThemeSkinPage> {
                 for (final skin in _skins)
                   GestureDetector(
                     onTap: () => _applySkin(skin),
-                    child: SizedBox(
-                      width: 64,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: skin.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _isColorSelected(skin)
-                                    ? colors.primary
-                                    : colors.outlineVariant
-                                        .withValues(alpha: 0.5),
-                                width: _isColorSelected(skin) ? 2.5 : 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: skin.color.withValues(alpha: 0.35),
-                                  blurRadius: 10,
+                    child: Tooltip(
+                      message: _skinDesc(skin.id, l10n),
+                      child: SizedBox(
+                        width: 64,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: skin.color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _isColorSelected(skin)
+                                      ? colors.primary
+                                      : colors.outlineVariant
+                                          .withValues(alpha: 0.5),
+                                  width: _isColorSelected(skin) ? 2.5 : 1,
                                 ),
-                              ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: skin.color.withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: _isColorSelected(skin)
+                                  ? Icon(
+                                      Icons.check_rounded,
+                                      size: 20,
+                                      color:
+                                          skin.color.computeLuminance() > 0.55
+                                          ? Colors.black87
+                                          : Colors.white,
+                                    )
+                                  : null,
                             ),
-                            child: _isColorSelected(skin)
-                                ? Icon(
-                                    Icons.check_rounded,
-                                    size: 20,
-                                    color:
-                                        skin.color.computeLuminance() > 0.55
-                                            ? Colors.black87
-                                            : Colors.white,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            skin.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
+                            const SizedBox(height: 6),
+                            Text(
+                              _skinName(skin.id, l10n),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
