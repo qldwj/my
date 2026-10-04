@@ -9,6 +9,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/storage/settings_keys.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 /// Bangumi OAuth 登录页面（新版 UI）
 class BangumiLoginPage extends StatefulWidget {
@@ -140,6 +141,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: const Text('Bangumi 登录')),
       body: ListView(
@@ -209,7 +211,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
               child: Column(children: [
                 const Icon(Icons.check_circle, size: 48, color: Colors.green),
                 const SizedBox(height: 12),
-                const Text('已登录', style: TextStyle(fontSize: 18)),
+                Text(l10n.setHLoggedIn, style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,

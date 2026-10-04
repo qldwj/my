@@ -18,6 +18,7 @@ import 'package:kazumi/pages/my/wechat_login_page.dart';
 import 'package:kazumi/pages/my/telegram_login_page.dart';
 import 'package:kazumi/pages/my/douyin_login_page.dart';
 import 'package:kazumi/pages/my/bangumi_login_page.dart';
+import 'package:kazumi/l10n/app_localizations.dart';
 
 class KazumiLoginPage extends StatefulWidget {
   const KazumiLoginPage({super.key});
@@ -55,7 +56,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
 
   Future<void> _sendCode() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
+    if (email.isEmpty) { KazumiDialog.showToast(message: AppLocalizations.of(context)!.setHEmailRequired); return; }
     setState(() { _sendingCode = true; _captchaChallenge = null; });
     try {
       final res = await AuthService.sendCode(email);
@@ -344,6 +345,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         title: const Text('樱花动漫账号'),
@@ -354,7 +356,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
           ),
           if (_loggedIn) IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QrcodeLoginPage())),
-            icon: const Icon(Icons.qr_code), tooltip: '生成登录二维码',
+            icon: const Icon(Icons.qr_code), tooltip: l10n.setHGenLoginQr,
           ),
         ],
       ),
@@ -371,31 +373,31 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             Icon(_loggedIn ? Icons.check_circle : Icons.person, size: 48,
               color: _loggedIn ? Colors.green : cs.outline),
             const SizedBox(height: 8),
-            Text(_loggedIn ? '已登录' : '未登录', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(_loggedIn ? l10n.setHLoggedIn : l10n.setHNotLoggedIn, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ]),
         ),
         const SizedBox(height: 16),
 
         if (!_loggedIn) ...[
           // ========== 未登录：邮箱登录直接显示，第三方登录在下方 ==========
-          Text('邮箱登录', style: TextStyle(fontSize: 14, color: cs.outline)),
+          Text(l10n.setHEmailLogin, style: TextStyle(fontSize: 14, color: cs.outline)),
           const SizedBox(height: 8),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: '邮箱', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
+            decoration: InputDecoration(
+              labelText: l10n.setHEmail, border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.email)),
           ),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: TextField(controller: _codeController, maxLength: 6,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '验证码', border: OutlineInputBorder()))),
+              decoration: InputDecoration(labelText: l10n.setHCaptcha, border: const OutlineInputBorder()))),
             const SizedBox(width: 12),
             FilledButton.tonal(onPressed: _sendingCode ? null : _sendCode,
               child: _sendingCode
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('发送验证码')),
+                  : Text(l10n.setHSendCaptcha)),
           ]),
           if (_captchaChallenge != null) ...[
             const SizedBox(height: 12),
@@ -644,6 +646,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
   }
 
   void _showBindEmailDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final emailCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
     var challenge = <String>[];
@@ -653,10 +656,10 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('绑定邮箱'),
+          title: Text(l10n.setHBindEmail),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(controller: emailCtrl, keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'QQ 邮箱', hintText: 'xxx@qq.com', border: OutlineInputBorder())),
+              decoration: InputDecoration(labelText: l10n.setHQQMail, hintText: 'xxx@qq.com', border: const OutlineInputBorder())),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(child: TextField(controller: codeCtrl, keyboardType: TextInputType.number,
@@ -668,7 +671,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                   final res = await AuthService.sendCode(emailCtrl.text.trim());
                   setDialogState(() { sending = false; challenge = res['captcha_challenge'] != null ? [res['captcha_challenge'].toString()] : []; });
                   if (res['success'] == true) {
-                    KazumiDialog.showToast(message: '验证码已发送，请查收邮箱（含垃圾箱）');
+                    KazumiDialog.showToast(message: l10n.setHCaptchaSentCheckSpam);
                   } else {
                     KazumiDialog.showToast(message: res['error'] ?? '发送失败');
                   }
@@ -694,7 +697,7 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
                 await AuthService.saveUserEmail(emailCtrl.text.trim());
                 _loadStatus();
                 AuthService.notifyLoginChanged();
-                KazumiDialog.showToast(message: '邮箱绑定成功');
+                KazumiDialog.showToast(message: l10n.setHBindEmailSuccess);
               } else {
                 KazumiDialog.showToast(message: res['error'] ?? '绑定失败');
               }
@@ -723,7 +726,7 @@ class _EmailLoginPageState extends State<_EmailLoginPage> {
 
   Future<void> _sendCode() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) { KazumiDialog.showToast(message: '请输入邮箱'); return; }
+    if (email.isEmpty) { KazumiDialog.showToast(message: AppLocalizations.of(context)!.setHEmailRequired); return; }
     setState(() => _sending = true);
     try {
       final res = await AuthService.sendCode(email);
@@ -776,14 +779,15 @@ class _EmailLoginPageState extends State<_EmailLoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('邮箱登录')),
+      appBar: AppBar(title: Text(l10n.setHEmailLogin)),
       body: ListView(padding: const EdgeInsets.all(24), children: [
         const SizedBox(height: 20),
         const Icon(Icons.email, size: 72),
         const SizedBox(height: 12),
-        const Text('邮箱验证码登录', textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(l10n.setHEmailCodeLogin, textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         const SizedBox(height: 32),
         TextField(controller: _emailController, keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(labelText: '邮箱', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email))),
