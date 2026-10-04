@@ -238,6 +238,8 @@ class McpServer {
       'chapterRoads', 'chapterResult', 'chapterResultURL', 'searchMode',
       'chapterMode', 'icon', 'antiCrawlerConfig', 'searchApiConfig',
       'chapterApiConfig', 'useProxy', 'variables',
+      // 本 App 扩展字段（登录/镜像等）
+      'needLogin', 'loginURL', 'mirror', 'remark',
     };
     for (final k in rule.keys) {
       if (!allowedFields.contains(k)) {
