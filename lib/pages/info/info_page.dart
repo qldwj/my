@@ -21,6 +21,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -1083,12 +1084,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               : FloatingActionButton.extended(
                   tooltip: '开始观看',
                   onPressed: () {
-                    showAdaptiveBottomSheet<void>(
-                      context: context,
-                      builder: (context) {
-                        return SourceSheet(
-                            infoController: infoController);
-                      },
+                    // ⭐ 不再弹选源弹窗：直接进入播放页，由播放页内自动选择最快可用源
+                    context.pushNamed(
+                      '/video/',
+                      arguments: AutoOnlineVideoPlaybackArgs(
+                        bangumiItem: infoController.bangumiItem,
+                      ),
                     );
                   },
                   label: const Text('开始观看'),
