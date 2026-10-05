@@ -211,7 +211,7 @@ class McpServer {
             {'name': 'captcha_guide', 'description': '验证码/登录应对指引：按类型输出 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等)/purple或login(紫色模板=登录后观看,needLogin+loginURL 全套)；不传则返回全部档位。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / purple(登录后观看) / 不传返回全部'}}, 'required': []}},
             {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}},
             {'name': 'test_with_cookie', 'description': '带Cookie实测规则：用户从站点/浏览器/App复制已登录的Cookie粘贴进来，带上Cookie跑真实搜索+选集测试，验证登录后规则到底能不能用。用于需要登录(紫色线路)或带Cookie才可访问的站点。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}, 'cookie': {'type': 'string', 'description': '已登录Cookie(用户从浏览器/站点复制)'}}, 'required': ['rule', 'keyword', 'cookie']}},
-            {'name': 'cookie_helper', 'description': 'Cookie/凭据指引：站点需要登录(Cookie)时规则怎么写。说明 App 端登录态机制(WebView共享Cookie)、userAgent/Referer 字段、Cookie 过期处理，以及何时用 test_with_cookie 实测。', 'inputSchema': {'type': 'object', 'properties': {}}, 'required': []}}
+            {'name': 'cookie_helper', 'description': 'Cookie/凭据指引：站点需要登录(Cookie)时规则怎么写。说明 App 端登录态机制(WebView共享Cookie)、userAgent/Referer 字段、Cookie 过期处理，以及何时用 test_with_cookie 实测。', 'inputSchema': {'type': 'object', 'properties': {}, 'required': []}}
           ]}});
           break;
         case 'tools/call':
