@@ -30,6 +30,7 @@ import 'package:kazumi/services/sync/kazumi_sync_service.dart';
 import 'package:kazumi/pages/info/info_page.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/navigation.dart';
+import 'package:kazumi/bean/widget/loading_indicator.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({
@@ -458,11 +459,91 @@ class _InitPageState extends State<InitPage> {
   }
 }
 
-class LoadingWidget extends StatelessWidget {
+/// 启动动画页：粉底渐变 + 居中 Logo 淡入缩放 + 底部加载指示。
+/// InitPage 在初始化完成后会自动进主页，这里只负责启动期间的视觉。
+class LoadingWidget extends StatefulWidget {
   const LoadingWidget({super.key});
 
   @override
+  State<LoadingWidget> createState() => _LoadingWidgetState();
+}
+
+class _LoadingWidgetState extends State<LoadingWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1000),
+  )..forward();
+
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _controller,
+    curve: const Interval(0.0, 0.65, curve: Curves.easeOut),
+  );
+  late final Animation<double> _scale = Tween<double>(begin: 0.82, end: 1.0)
+      .animate(CurvedAnimation(
+    parent: _controller,
+    curve: const Interval(0.0, 0.75, curve: Curves.easeOutBack),
+  ));
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Container());
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              cs.primary.withValues(alpha: 0.16),
+              cs.primary.withValues(alpha: 0.04),
+              cs.surface,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FadeTransition(
+                  opacity: _fade,
+                  child: ScaleTransition(
+                    scale: _scale,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset(
+                        'assets/images/logo/logo_rounded.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'YHDM',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 3,
+                    color: cs.primary,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                const LoadingIndicator(size: 26),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
