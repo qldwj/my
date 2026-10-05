@@ -4,6 +4,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/mcp/mcp_server.dart';
+import 'package:kazumi/services/mcp/mcp_overlay.dart';
 
 /// MCP AI规则生成器弹窗
 void showMcpServerDialog(BuildContext context) {
@@ -172,12 +173,24 @@ sheetAnimationStyle: kSheetAnimationStyle,
                           try {
                             if (isRunning) {
                               await McpServer.instance.stop();
+                              // 同步状态给悬浮窗
+                              await McpOverlay.instance.broadcast();
                             } else {
+                              // 启动前申请悬浮窗权限（防掉后台 + 快捷开关）
+                              final granted =
+                                  await McpOverlay.instance.ensurePermission();
+                              if (!granted) {
+                                KazumiDialog.showToast(
+                                    message: '未授予悬浮窗权限，快捷开关不可用，但服务仍可启动');
+                              }
                               await McpServer.instance.start(port: port);
+                              await McpOverlay.instance.show();
+                              await McpOverlay.instance.broadcast();
                             }
                             setSheetState(() {});
                           } catch (e) {
-                            KazumiDialog.showToast(message: l10n.setFOperationFailed(error: e.toString()));
+                            KazumiDialog.showToast(
+                                message: l10n.setFOperationFailed(error: e.toString()));
                           }
                         },
                         icon: Icon(isRunning ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 20),

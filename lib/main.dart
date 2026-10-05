@@ -37,6 +37,8 @@ import 'package:kazumi/services/stats_report_service.dart';
 import 'package:kazumi/pages/signature/signature_error_page.dart';
 import 'package:kazumi/services/network/ech_http_licenses.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/services/mcp/mcp_overlay.dart';
+import 'package:kazumi/services/mcp/mcp_overlay_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +52,8 @@ void main() async {
     return;
   }
   MediaKit.ensureInitialized();
+  // ✅ MCP 悬浮窗：注册点击切换监听（Android 防掉后台保活 + 快捷开关）
+  McpOverlay.instance.init();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -404,4 +408,15 @@ void _openServerSite(String message) {
       );
     });
   } catch (_) {}
+}
+
+/// MCP 悬浮窗独立引擎入口（flutter_overlay_window 渲染悬浮窗 UI）。
+/// 通过 @pragma('vm:entry-point') 注册为独立 entry point，随 App 一起打包。
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: McpOverlayView(),
+  ));
 }
