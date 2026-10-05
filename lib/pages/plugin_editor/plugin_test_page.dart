@@ -120,6 +120,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   Future<void> startTest() async {
     final keyword = testKeywordController.text.trim();
+    if (keyword.length < 2) {
+      setState(() => errorMsg = '测试关键词至少输入 2 个字符');
+      return;
+    }
     _resetState();
     setState(() => isTesting = true);
     try {
@@ -134,23 +138,41 @@ class _PluginTestPageState extends State<PluginTestPage> {
       searchDiagnostics = searchTrace.diagnostics;
       _itemFragmentMap.addAll(searchTrace.matchedFragments.asMap());
       if (_hasSearchData && _needChapterParse) {
-        final firstItem = searchRes!.data.first;
-        if (firstItem.src.isNotEmpty) {
-          _testRoadsCancelToken?.cancel();
-          _testRoadsCancelToken = CancelToken();
-          final chapterTrace = await plugin.traceChapters(
-            firstItem.src,
-            cancelToken: _testRoadsCancelToken,
-          );
-          chapterRaw = chapterTrace.rawResponse;
-          chapters = chapterTrace.roads;
-          chapterDiagnostics = chapterTrace.diagnostics;
+        // 章节测试：自动尝试前 5 条搜索结果，取第一个能成功解析出章节的条目。
+        // 首条结果可能是推荐位/特殊条目，跳过它更贴近真实使用。
+        String? lastError;
+        for (final item in searchRes!.data.take(5)) {
+          if (item.src.isEmpty) continue;
+          try {
+            _testRoadsCancelToken?.cancel();
+            _testRoadsCancelToken = CancelToken();
+            final chapterTrace = await plugin.traceChapters(
+              item.src,
+              cancelToken: _testRoadsCancelToken,
+            );
+            if (chapterTrace.roads.isNotEmpty) {
+              chapterRaw = chapterTrace.rawResponse;
+              chapters = chapterTrace.roads;
+              chapterDiagnostics = chapterTrace.diagnostics;
+              final usedIndex = searchRes!.data.indexOf(item) + 1;
+              chapterDiagnostics.insert(
+                  0, '使用第 $usedIndex 条结果测试成功');
+              break;
+            }
+            lastError = '该条目未解析到章节';
+          } catch (e) {
+            lastError = e.toString();
+          }
+        }
+        if (chapters == null && lastError != null) {
+          chapterDiagnostics.add('前 5 条结果均未获取到章节：$lastError');
         }
       }
     } catch (e, stack) {
       KazumiLogger().e("PluginTest: test failed", error: e, stackTrace: stack);
       if (mounted) {
-        setState(() => errorMsg = e.toString());
+        setState(() => errorMsg =
+            '$e\n\n若实际播放正常，多为站点临时风控（403/418）或关键词无结果，可稍后重试或换关键词。');
       }
     } finally {
       if (mounted) setState(() => isTesting = false);
