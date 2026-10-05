@@ -5,6 +5,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/apis/recommend_api.dart';
 
 /// 首页顶部横排「为你推荐」区块，点击进入详情页
+/// 支持横向无限滚动（滑到末尾自动加载下一页）
 class RecommendSection extends StatefulWidget {
   const RecommendSection({super.key});
 
@@ -14,19 +15,31 @@ class RecommendSection extends StatefulWidget {
 
 class _RecommendSectionState extends State<RecommendSection> {
   final List<BangumiItem> _list = [];
+  final ScrollController _scrollController = ScrollController();
   bool _loading = true;
+  bool _hasMore = true;
+  bool _loadingMore = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
+      _hasMore = true;
+      _list.clear();
     });
     final r = await RecommendApi.fetchRecommendations(offset: 0, limit: 20);
     if (!mounted) return;
@@ -37,14 +50,37 @@ class _RecommendSectionState extends State<RecommendSection> {
       } else {
         _list.addAll(r.list);
       }
+      _hasMore = r.hasMore;
+    });
+  }
+
+  /// 横向滑到接近末尾时自动加载下一页，实现一直往右滑
+  void _onScroll() {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 240) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    final r = await RecommendApi.fetchRecommendations(
+        offset: _list.length, limit: 20);
+    if (!mounted) return;
+    setState(() {
+      _loadingMore = false;
+      _hasMore = r.hasMore;
+      _list.addAll(r.list);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // ⭐ 紧贴顶部标题栏：去掉上方空隙，底部微留间距
-      padding: const EdgeInsets.only(top: 0, bottom: 2),
+      // 标题上方留出呼吸间距，底部微留间距
+      padding: const EdgeInsets.only(top: 12, bottom: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -65,7 +101,7 @@ class _RecommendSectionState extends State<RecommendSection> {
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           if (_loading && _list.isEmpty)
             const SizedBox(
               height: 150,
@@ -85,6 +121,7 @@ class _RecommendSectionState extends State<RecommendSection> {
             SizedBox(
               height: 178,
               child: ListView.separated(
+                controller: _scrollController,
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemCount: _list.length,

@@ -187,7 +187,9 @@ abstract class _InfoController with Store {
     try {
       // 🔧 先移除已存在的 server 评论，避免加载更多/重复刷新时累积重复
       commentsList.removeWhere((c) => c.source == 'server');
-      final res = await CustomCommentApi.fetch(subjectId: subjectId);
+      // 若 2 秒内自建(qlyyz)吐槽未拉取完成，则放弃合并，仅保留 Bangumi 吐槽
+      final res = await CustomCommentApi.fetch(subjectId: subjectId)
+          .timeout(const Duration(seconds: 2));
       final custom = res.items;
       if (custom.isEmpty) return;
       // 🔧 按内容去重（数据库可能存在历史重复提交），置顶优先、其次保留最新
