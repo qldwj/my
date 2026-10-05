@@ -1441,5 +1441,8 @@
   "setIRequireLoginBangumiOrSakura": "Please sign in to your Bangumi or Sakura account first.",
   "setIRequireFollowBeforeReview": "Please follow the series before writing a review.",
   "setIRequireLoginSakura": "Please sign in to your Sakura account first.",
-  "setIRequireLoginToFollow": "Please sign in first before following."
+  "setIRequireLoginToFollow": "Please sign in first before following.",
+  "setGSectionPrefs": "Preferences",
+  "setGSectionData": "Data",
+  "setGSectionAbout": "Settings · About"
 }

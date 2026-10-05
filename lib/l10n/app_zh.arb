@@ -1441,5 +1441,8 @@
   "setIRequireLoginBangumiOrSakura": "请先登录 Bangumi 或樱花动漫账号",
   "setIRequireFollowBeforeReview": "请先追番后再发表评价",
   "setIRequireLoginSakura": "请先登录樱花动漫账号",
-  "setIRequireLoginToFollow": "请先登录后再关注"
+  "setIRequireLoginToFollow": "请先登录后再关注",
+  "setGSectionPrefs": "偏好",
+  "setGSectionData": "数据",
+  "setGSectionAbout": "设置 · 关于"
 }

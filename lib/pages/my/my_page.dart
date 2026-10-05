@@ -730,6 +730,21 @@ sheetAnimationStyle: kSheetAnimationStyle,
     return '$bytes B';
   }
 
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -828,7 +843,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
                         // 🆕 我的称号（已登录账号区内展示）
                         _buildTitleCard(colorScheme, textTheme),
                       ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+                      _sectionHeader(l10n.setGSectionPrefs),
+                      const SizedBox(height: 8),
                       // ── 本周目标 ──
                       _buildWeeklyGoal(colorScheme, textTheme),
                       const SizedBox(height: 12),
@@ -836,7 +853,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
                       _buildRulesTile(colorScheme, textTheme),
                       // ── 偏好设置（紧挨着规则，无间距）──
                       _buildPreferencesPanel(context, colorScheme, textTheme),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
+                      _sectionHeader(l10n.setGSectionData),
+                      const SizedBox(height: 8),
                       // ── 历史记录 + 离线下载（一行）──
                       Row(
                         children: [
@@ -908,6 +927,8 @@ sheetAnimationStyle: kSheetAnimationStyle,
                         ),
                       ),
                       const SizedBox(height: 24),
+                      _sectionHeader(l10n.setGSectionAbout),
+                      const SizedBox(height: 8),
                       // ── 关于樱花动漫 ──
                       Center(
                         child: TextButton.icon(
