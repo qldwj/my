@@ -140,21 +140,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      // 切 tab 时页面水平平移滑入（不再淡出）；key 随选中 tab 变触发重播
-      body: TweenAnimationBuilder<double>(
-        key: ValueKey(selectedIndex),
-        tween: Tween(begin: 1.0, end: 0.0),
-        duration: const Duration(milliseconds: 340),
-        curve: Curves.easeOutCubic,
-        builder: (context, v, child) {
-          final w = MediaQuery.of(context).size.width;
-          return Transform.translate(
-            offset: Offset(w * v, 0),
-            child: child,
-          );
-        },
-        child: _outlet(context),
-      ),
+      body: _outlet(context),
       bottomNavigationBar: NavigationBar(
         destinations: <Widget>[
           NavigationDestination(
