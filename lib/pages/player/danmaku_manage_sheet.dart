@@ -28,7 +28,6 @@ Future<void> showDanmakuManageSheet(
     context: context,
     maxHeightFactor: 0.88,
     useRootNavigator: true,
-    routeSettings: KazumiDialog.routeSettings,
     builder: (context) => _DanmakuManageSheet(
       bangumiId: bangumiId,
       initialKeyword: initialKeyword,
@@ -130,7 +129,7 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
       children: [
         MaterialBottomSheetHeader(
           title: '动漫弹幕来源',
-          onClose: () => KazumiDialog.dismiss(context: context),
+          onClose: () => KazumiDialog.dismiss(),
         ),
         Flexible(
           child: SingleChildScrollView(

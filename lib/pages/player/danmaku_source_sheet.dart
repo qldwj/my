@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
-import 'package:yhdm/bean/widget/empty_state_widget.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:yhdm/bean/widget/side_panel_transition.dart';
@@ -43,7 +42,6 @@ Future<void> showDanmakuSourceSheet(
       context: context,
       maxHeightFactor: 0.88,
       useRootNavigator: true,
-      routeSettings: KazumiDialog.routeSettings,
       builder: buildSheet,
     );
     return;
@@ -106,7 +104,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   String get _historyKey => 'danmakuSearchHistory_${widget.bangumiId}';
 
   _SourceStep _step = _SourceStep.search;
-  List<DanmakuSearchAnime> _animes = const [];
+  List<DanmakuAnime> _animes = const [];
   List<DanmakuEpisode> _episodes = const [];
   String? _animeTitle;
   int? _segmentStart;
@@ -163,7 +161,6 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
       setState(() {
         _loading = false;
         _animes = response.animes;
-        _hasMore = response.hasMore;
         if (response.animes.isEmpty) _error = '未找到番剧';
       });
     } catch (error) {
@@ -176,7 +173,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
     }
   }
 
-  Future<void> _selectAnime(DanmakuSearchAnime anime) async {
+  Future<void> _selectAnime(DanmakuAnime anime) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -214,7 +211,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
           .getDanDanmakuByEpisodeID(episode.episodeId);
       if (!mounted) return;
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
-      KazumiDialog.dismiss(context: context);
+      KazumiDialog.dismiss();
       KazumiDialog.showToast(
         message: hasDanmakus ? '已切换弹幕源' : '暂无弹幕',
       );
@@ -317,7 +314,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                 animeTitle: _animeTitle,
                 onBack:
                     _step == _SourceStep.search || _loading ? null : _goBack,
-                onClose: () => KazumiDialog.dismiss(context: context),
+                onClose: () => KazumiDialog.dismiss(),
               ),
               Flexible(child: _loading ? _buildLoading() : _buildBody()),
             ],
@@ -430,7 +427,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => KazumiDialog.dismiss(context: context),
+                  onPressed: () => KazumiDialog.dismiss(),
                   child: const Text('取消'),
                 ),
                 const SizedBox(width: 10),
@@ -605,13 +602,6 @@ class _SheetHeader extends StatelessWidget {
         children: [
           MaterialBottomSheetHeader(
             title: title,
-            leading: onBack == null
-                ? null
-                : IconButton(
-                    tooltip: '返回',
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back),
-                  ),
             onClose: onClose,
             compact: true,
           ),
