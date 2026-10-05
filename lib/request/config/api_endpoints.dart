@@ -20,9 +20,9 @@ class ApiEndpoints {
   static const String pluginShop =
       'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/';
 
-  /// 规则仓库镜像
+  /// 规则仓库镜像（GitCode raw，照官方 Kazumi 机制，手机可直连）
   static const String pluginShopMirror =
-      'https://qlyyz.xyz/api/rules/';
+      'https://raw.gitcode.com/qldwi/yhdmgz/raw/main/';
 
   /// 规则市场后端（json 文件仓库）
   static const String pluginMarketApi = 'https://qlyyz.xyz/json/api.php';
