@@ -23,6 +23,11 @@ class McpServer {
   static const String _rulePrompt = '''
 你是樱花动漫（完全兼容 Kazumi）番剧规则编写专家。
 
+✅ 第一步（永远先做，写任何规则之前）：先阅读，再动手。
+- 必须先实际访问目标网站，阅读它的搜索页/详情页/播放页真实结构（服务端 HTML 还是 JSON 接口、有没有登录或人机验证），再决定怎么写。
+- 必须先把上方参考文档（qlyyz.xyz/docs 与规则仓库 https://qlyyz.xyz/json）读完，一切以本站文档和规范为准。
+- 禁止凭记忆、凭模板、凭猜测写 XPath/JSONPath；永远先看网站长什么样、先读文档。
+
 ⚠️ 权威优先级（最重要）：
 - 一切以【樱花动漫】为主：最终生成的规则必须适配樱花动漫应用（导入链接前缀 yhdmgz://）。
 - Kazumi 官方文档与本站(qlyyz.xyz/docs)文档均仅作参考，本站亦非官方权威。
@@ -63,7 +68,11 @@ class McpServer {
   /search/-------------.html?wd=@keyword、/search/?wd=@keyword、/?key=@keyword、/so/-------------.html?wd=@keyword、/api/search?word=@keyword 等，取决于站点框架。
 - 搜索结果 XPath 因站差异巨大：列表可能是 ul>li、div.grid、table tr、a.video、.search_list 等。searchList 必须定位到"每一条结果"的重复节点，再相对其取 searchName（标题）与 searchResult（详情链接）。
 - 若搜索有分页/懒加载，优先用站点自带的关键词搜索接口（通常稳定返回 JSON 或整页结果），不要依赖抓首页。
-- 遇到站点有验证码/风控时，在 antiCrawlerConfig 里按需配置（图片验证码=1 / 自动点击=2 / 自定义JS=3）。
+- 人机验证应对（先实测判断站点到底是哪种验证，再选对应档位）：
+  · 正常【图片验证码】（搜索/详情/播放页返回图片验证码）→ antiCrawlerConfig=1，走图片验证识别。
+  · 【非正常验证】需要点击/滑块/行为验证 → antiCrawlerConfig=2，走自动点击处理。
+  · 【超级特殊验证】Cloudflare CF、Akamai 等智能风控 → antiCrawlerConfig=3，走自定义 JS 脚本，必要时配合 useWebview 用真实浏览器内核过验证。
+  · 【需要登录才能搜索/观看】的站点（例：次元城 ciyuancheng，部分内容需登录后才可播放）→ 配 needLogin=true + loginURL，并提示用户需先在 App 内登录该站。
 
 ✅ 规则模板（以此为基准，字段名和结构照抄；searchURL/XPath 仅是示例，务必替换为目标站实测值）：
 {
@@ -92,7 +101,6 @@ class McpServer {
 - 不要凭猜测写 XPath，必须基于真实 DOM。
 - 输出完整 JSON，并在最后附上 yhdmgz:// base64 导入链接。
 - 若道路与分集在 DOM 中不嵌套，用单一 road 处理。
-- 若站点有验证码，加 antiCrawlerConfig。
 
 ✅ 客户端测试闭环（交付前必须）：
 - 生成规则后，用应用内置的 test_rule 工具真实抓站验证：
@@ -485,11 +493,26 @@ class McpServer {
     http.Response resp;
     if (method.toUpperCase() == 'POST') {
       final rawBody = request['body'];
+      final bodyType = (request['bodyType'] ?? '').toString().toLowerCase();
       if (rawBody is Map) {
         final replaced = _replaceVarsMap(rawBody, vars);
         curlBody = replaced;
-        headers['Content-Type'] = 'application/json';
-        resp = await http.post(uri, headers: headers, body: jsonEncode(replaced))
+        final isForm = bodyType == 'form' ||
+            (headers['Content-Type']?.contains('x-www-form-urlencoded') ?? false);
+        if (isForm) {
+          headers['Content-Type'] = 'application/x-www-form-urlencoded';
+          resp = await http.post(uri, headers: headers,
+              body: Uri(queryParameters: replaced).query)
+              .timeout(const Duration(seconds: 20));
+        } else {
+          headers['Content-Type'] = 'application/json';
+          resp = await http.post(uri, headers: headers, body: jsonEncode(replaced))
+              .timeout(const Duration(seconds: 20));
+        }
+      } else if (rawBody is String) {
+        final replaced = _replaceVars(rawBody, vars);
+        curlBody = replaced;
+        resp = await http.post(uri, headers: headers, body: replaced)
             .timeout(const Duration(seconds: 20));
       } else {
         resp = await http.post(uri, headers: headers).timeout(const Duration(seconds: 20));
@@ -566,9 +589,27 @@ class McpServer {
         searchUrl = searchUrl.replaceFirst(RegExp(r'^\.?/'), '');
         final finalSearchUrl = searchUrl.startsWith('http') ? searchUrl : base + searchUrl;
         searchUrl = finalSearchUrl;
-        final resp = await http.get(Uri.parse(finalSearchUrl), headers: ua)
-            .timeout(const Duration(seconds: 20));
-        searchCurl = _sanitizeCurl('GET', finalSearchUrl, ua, null);
+        final usePost = r['usePost'] == true;
+        http.Response resp;
+        if (usePost) {
+          // POST 表单搜索：剥离 query 参数，按 Form 提交到 path（兼容 maccms 等 POST 搜索站）
+          final uri = Uri.parse(finalSearchUrl);
+          final form = <String, String>{};
+          uri.queryParameters.forEach((k, v) => form[k] = v);
+          final postUri = uri.replace(queryParameters: {});
+          final postHeaders = <String, String>{
+            ...ua,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          };
+          resp = await http.post(postUri, headers: postHeaders,
+              body: Uri(queryParameters: form).query)
+              .timeout(const Duration(seconds: 20));
+          searchCurl = _sanitizeCurl('POST', postUri.toString(), postHeaders, form);
+        } else {
+          resp = await http.get(Uri.parse(finalSearchUrl), headers: ua)
+              .timeout(const Duration(seconds: 20));
+          searchCurl = _sanitizeCurl('GET', finalSearchUrl, ua, null);
+        }
         final doc = html_parser.parse(resp.body);
         final listNodes = _xpathNodes(doc, r['searchList']?.toString());
         if (listNodes.isEmpty) {
@@ -651,8 +692,26 @@ class McpServer {
             }
           }
         } else {
-          final resp = await http.get(Uri.parse(first['url'] ?? ''), headers: ua)
-              .timeout(const Duration(seconds: 20));
+          final detailUsePost = r['usePost'] == true;
+          final detailRaw = first['url'] ?? '';
+          http.Response resp;
+          if (detailUsePost) {
+            // POST 表单选集：剥离 query 参数，按 Form 提交到 path
+            final uri = Uri.parse(detailRaw);
+            final form = <String, String>{};
+            uri.queryParameters.forEach((k, v) => form[k] = v);
+            final postUri = uri.replace(queryParameters: {});
+            final postHeaders = <String, String>{
+              ...ua,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            };
+            resp = await http.post(postUri, headers: postHeaders,
+                body: Uri(queryParameters: form).query)
+                .timeout(const Duration(seconds: 20));
+          } else {
+            resp = await http.get(Uri.parse(detailRaw), headers: ua)
+                .timeout(const Duration(seconds: 20));
+          }
           final doc = html_parser.parse(resp.body);
           final roads = _xpathNodes(doc, r['chapterRoads']?.toString());
           if (roads.isEmpty) {
