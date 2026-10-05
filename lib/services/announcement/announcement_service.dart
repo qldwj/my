@@ -95,6 +95,7 @@ class AnnouncementService {
         coverImage: (item['cover_image'] ?? '').toString(),
         images: images,
         linkUrl: (item['link_url'] ?? '').toString(),
+        buttonText: (item['button_text'] ?? '').toString(),
         startTime: (item['start_time'] ?? '').toString(),
         endTime: (item['end_time'] ?? '').toString(),
         createdAt: (item['created_at'] ?? '').toString(),
@@ -257,7 +258,7 @@ class AnnouncementService {
     );
   }
 
-  /// 活动详情弹窗（新格式）：标题 + 封面大图 + 多图 + 摘要 + 链接 + 我知道了
+  /// 活动详情弹窗（新格式）：标题 + 封面大图(充满) + 摘要 + 时间 + 自定义按钮(名字+跳转链接)
   static void _showActivityDetail(BuildContext context, ActivityItem item) {
     final cs = Theme.of(context).colorScheme;
     KazumiDialog.show(
@@ -283,34 +284,36 @@ class AnnouncementService {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (item.coverImage.isNotEmpty)
+                  if (item.coverImage.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        item.coverImage,
+                      child: SizedBox(
+                        height: 200,
                         width: double.maxFinite,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            height: 180,
+                        child: Image.network(
+                          item.coverImage,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              height: 200,
+                              alignment: Alignment.center,
+                              color: cs.surfaceContainerHighest,
+                              child: const LoadingIndicator(),
+                            );
+                          },
+                          errorBuilder: (context, error, stack) => Container(
+                            height: 200,
                             alignment: Alignment.center,
                             color: cs.surfaceContainerHighest,
-                            child: const LoadingIndicator(),
-                          );
-                        },
-                        errorBuilder: (context, error, stack) => Container(
-                          height: 120,
-                          alignment: Alignment.center,
-                          color: cs.surfaceContainerHighest,
-                          child: Text('图片加载失败',
-                              style: TextStyle(fontSize: 12, color: cs.outline)),
+                            child: Text('图片加载失败',
+                                style: TextStyle(fontSize: 12, color: cs.outline)),
+                          ),
                         ),
                       ),
                     ),
-                  if (item.coverImage.isNotEmpty) const SizedBox(height: 12),
-                  if (item.images.isNotEmpty)
-                    ..._buildImages(context, item.images),
+                    const SizedBox(height: 12),
+                  ],
                   if (item.summary.isNotEmpty)
                     Container(
                       width: double.maxFinite,
@@ -333,19 +336,33 @@ class AnnouncementService {
                         style: TextStyle(fontSize: 12, color: cs.outline),
                       ),
                     ),
-                  if (item.linkUrl.isNotEmpty) const SizedBox(height: 12),
-                  if (item.linkUrl.isNotEmpty)
+                  // 自定义按钮：名字 + 点击跳转链接
+                  if (item.linkUrl.isNotEmpty) ...[
+                    const SizedBox(height: 14),
                     SizedBox(
                       width: double.maxFinite,
-                      child: OutlinedButton.icon(
+                      child: ElevatedButton.icon(
                         icon: const Icon(Icons.open_in_new, size: 18),
-                        label: const Text('查看详情'),
+                        label: Text(
+                          item.buttonText.isNotEmpty
+                              ? item.buttonText
+                              : '查看详情',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: cs.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
                         onPressed: () {
                           final uri = Uri.tryParse(item.linkUrl);
                           if (uri != null) launchUrl(uri);
                         },
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -369,38 +386,6 @@ class AnnouncementService {
         );
       },
     );
-  }
-
-  /// 多图展示（images 数组）
-  static List<Widget> _buildImages(BuildContext context, List<String> images) {
-    final cs = Theme.of(context).colorScheme;
-    return [
-      SizedBox(
-        height: 180,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: images.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                images[index],
-                width: 120,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
-                  width: 120,
-                  color: cs.surfaceContainerHighest,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.image_outlined, color: cs.outline),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      const SizedBox(height: 12),
-    ];
   }
 
   /// 旧格式活动列表弹窗（version 锚点，兼容历史服务器）
@@ -584,6 +569,7 @@ class ActivityItem {
   final String coverImage;
   final List<String> images;
   final String linkUrl;
+  final String buttonText;
   final String startTime;
   final String endTime;
   final String createdAt;
@@ -596,6 +582,7 @@ class ActivityItem {
     required this.coverImage,
     required this.images,
     required this.linkUrl,
+    required this.buttonText,
     required this.startTime,
     required this.endTime,
     required this.createdAt,
