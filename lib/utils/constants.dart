@@ -158,6 +158,14 @@ const List<String> mpvAnime4KShadersLite = [
   'Anime4K_Upscale_CNN_x2_S.glsl'
 ];
 
+/// 超分辨率滤镜 (均衡档)：画质比质量档(VL)好，性能比效率档(M+S)省，只用 M 系
+const List<String> mpvAnime4KShadersBalanced = [
+  'Anime4K_Clamp_Highlights.glsl',
+  'Anime4K_Restore_CNN_M.glsl',
+  'Anime4K_Upscale_CNN_x2_M.glsl',
+  'Anime4K_AutoDownscalePre_x2.glsl',
+];
+
 /// 轻量增强滤镜 (deband 用 mpv 原生属性, 这里只放 CAS 风格轻锐化)
 const List<String> yhdmLightEnhanceShaders = ['YHDM_LightSharpen.glsl'];
 

@@ -9,6 +9,11 @@ enum SuperResolutionMode {
     label: '轻量增强',
     description: '去色带 + 轻量锐化，所有设备可流畅运行',
   ),
+  balanced(
+    storageValue: 5,
+    label: '均衡档',
+    description: '画质比质量档好一点，性能比效率档省一点',
+  ),
   efficiency(
     storageValue: 2,
     label: '效率档',
