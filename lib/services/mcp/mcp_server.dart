@@ -137,6 +137,11 @@ class McpServer {
   4. 实际播放页能嗅探到播放地址。
 - 全部通过才能交付给用户；不通过则回查对应 XPath / JSONPath 修正。
 
+🌐 开源共享（最终一步，必须）：
+- 规则验证通过、即将交付给用户时，主动询问用户是否需要把规则上传到 qlyyz.xyz/json 公开仓库（开源精神，让更多人使用）。
+- 若用户同意，调用 upload_rule 工具上传规则 JSON（multipart 上传到 qlyyz.xyz 文件仓库 p=v0 目录），上传成功后把公开访问地址（https://qlyyz.xyz/json/<规则名>.json）一起给用户。
+- 若用户拒绝或不确定，直接交付，不强求。
+
 📌 API 选集分隔符格式（maccms 常见，非嵌套 JSON）：
 - 使用 chapterApiConfig.format = "delimited"；
 - roadNamesPath 取线路名列表、roadEpisodesPath 取线路分集字符串列表；
@@ -191,7 +196,8 @@ class McpServer {
           _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'tools': [
             {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}},
             {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}},
-            {'name': 'test_rule', 'description': '真实抓站验证XPath规则是否可用：实际请求搜索页与详情页，统计搜索结果数、线路数、各线路集数。输入规则与测试关键词。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rule', 'keyword']}}
+            {'name': 'test_rule', 'description': '真实抓站验证XPath规则是否可用：实际请求搜索页与详情页，统计搜索结果数、线路数、各线路集数。输入规则与测试关键词。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rule', 'keyword']}},
+            {'name': 'upload_rule', 'description': '将规则JSON上传到 qlyyz.xyz/json 公开仓库共享（开源精神）。输入规则JSON或yhdmgz://链接，上传到 p=v0 目录。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON（对象）或 yhdmgz:// 链接'}, 'filename': {'type': 'string', 'description': '上传文件名（不含.json），默认取规则 name 字段'}}, 'required': ['rule']}}
           ]}});
           break;
         case 'tools/call':
@@ -204,6 +210,12 @@ class McpServer {
             final rule = (args['rule'] ?? '').toString();
             final keyword = (args['keyword'] ?? '').toString();
             _testRule(rule, keyword).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'upload_rule') {
+            final rule = (args['rule'] ?? '').toString();
+            final filename = (args['filename'] ?? '').toString();
+            _uploadRule(rule, filename).then((result) {
               _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
             });
           } else {
@@ -794,5 +806,51 @@ class McpServer {
       'chapter': chapter,
       'warnings': warnings,
     };
+  }
+
+  /// 上传规则到 qlyyz.xyz/json 公开仓库（开源共享）。
+  /// 接口：POST /json/api.php，FormData: act=upload + jsonfile=<规则JSON文件>
+  Future<Map<String, dynamic>> _uploadRule(String raw, String filename) async {
+    try {
+      String jsonStr = raw.trim();
+      if (jsonStr.startsWith('yhdmgz://')) {
+        jsonStr = utf8.decode(base64.decode(base64.normalize(jsonStr.substring(9))));
+      }
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is! Map) {
+        return {'ok': false, 'errors': ['规则必须是 JSON 对象']};
+      }
+      var name = filename.trim().isNotEmpty
+          ? filename.trim()
+          : (decoded['name'] ?? 'rule').toString();
+      name = name.replaceAll(RegExp(r'[^\w\u4e00-\u9fa5-]'), '');
+      if (name.isEmpty) name = 'rule';
+      final uri = Uri.parse('https://qlyyz.xyz/json/api.php');
+      final req = http.MultipartRequest('POST', uri)
+        ..fields['act'] = 'upload'
+        ..files.add(http.MultipartFile.fromString(
+          'jsonfile',
+          jsonEncode(decoded),
+          filename: '$name.json',
+        ));
+      final streamed = await req.send().timeout(const Duration(seconds: 30));
+      final body = await streamed.stream.bytesToString();
+      Map<String, dynamic> parsed = {'raw': body};
+      try {
+        parsed = jsonDecode(body) as Map<String, dynamic>;
+      } catch (_) {}
+      final ok = streamed.statusCode == 200 && (parsed['code'] ?? 0) != 0;
+      return {
+        'ok': ok,
+        'statusCode': streamed.statusCode,
+        'response': parsed,
+        'publicUrl': 'https://qlyyz.xyz/json/',
+        'message': ok
+            ? '上传成功，规则已公开到 https://qlyyz.xyz/json/'
+            : '上传失败：$body',
+      };
+    } catch (e) {
+      return {'ok': false, 'error': e.toString()};
+    }
   }
 }
