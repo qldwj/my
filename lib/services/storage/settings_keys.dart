@@ -59,7 +59,7 @@ class SettingsKeys {
   static const ruleUpdateCount = SettingKey<int>(
     'ruleUpdateCount',
     0,
-    group: SettingGroup.plugin,
+    group: SettingGroup.update,
   );
   static const silentDownload = SettingKey<bool>(
     'silentDownload',
