@@ -6,6 +6,7 @@ import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
 import 'package:yhdm/navigation.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/pages/menu/route_visibility.dart';
 import 'package:yhdm/pages/router.dart';
 
@@ -141,10 +142,45 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
     final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: _outlet(context),
-      // 液态玻璃底部导航: BackdropFilter 模糊 + 半透明白 + 顶部细描边
-      bottomNavigationBar: DecoratedBox(
+    final bool liquidGlass =
+        GStorage.getSetting(SettingsKeys.liquidGlassNav);
+    Widget navBar = NavigationBar(
+      backgroundColor: liquidGlass
+          ? cs.surface.withValues(alpha: 0.55)
+          : cs.surfaceContainer,
+      indicatorColor: liquidGlass
+          ? cs.primaryContainer.withValues(alpha: 0.7)
+          : null,
+      elevation: liquidGlass ? 0 : null,
+      destinations: <Widget>[
+        NavigationDestination(
+          selectedIcon: Icon(Icons.home),
+          icon: Icon(Icons.home_outlined),
+          label: l10n.setGTabRecommend,
+        ),
+        NavigationDestination(
+          selectedIcon: Icon(Icons.timeline),
+          icon: Icon(Icons.timeline_outlined),
+          label: l10n.setGTabTimeline,
+        ),
+        NavigationDestination(
+          selectedIcon: Icon(Icons.favorite),
+          icon: Icon(Icons.favorite_outlined),
+          label: l10n.setGTabFollow,
+        ),
+        NavigationDestination(
+          selectedIcon: Icon(Icons.settings),
+          icon: Icon(Icons.settings_outlined),
+          label: l10n.setGTabMine,
+        ),
+      ],
+      selectedIndex: selectedIndex,
+      onDestinationSelected: _selectDestination,
+    );
+
+    if (liquidGlass) {
+      // 液态玻璃: 模糊 + 半透明白 + 圆角 + 顶部描边
+      navBar = DecoratedBox(
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
@@ -154,41 +190,19 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
           ),
         ),
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(20)),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: NavigationBar(
-              backgroundColor: cs.surface.withValues(alpha: 0.55),
-              indicatorColor: cs.primaryContainer.withValues(alpha: 0.7),
-              elevation: 0,
-              destinations: <Widget>[
-                NavigationDestination(
-                  selectedIcon: Icon(Icons.home),
-                  icon: Icon(Icons.home_outlined),
-                  label: l10n.setGTabRecommend,
-                ),
-                NavigationDestination(
-                  selectedIcon: Icon(Icons.timeline),
-                  icon: Icon(Icons.timeline_outlined),
-                  label: l10n.setGTabTimeline,
-                ),
-                NavigationDestination(
-                  selectedIcon: Icon(Icons.favorite),
-                  icon: Icon(Icons.favorite_outlined),
-                  label: l10n.setGTabFollow,
-                ),
-                NavigationDestination(
-                  selectedIcon: Icon(Icons.settings),
-                  icon: Icon(Icons.settings_outlined),
-                  label: l10n.setGTabMine,
-                ),
-              ],
-              selectedIndex: selectedIndex,
-              onDestinationSelected: _selectDestination,
-            ),
+            child: navBar,
           ),
         ),
-      ),
+      );
+    }
+
+    return Scaffold(
+      body: _outlet(context),
+      bottomNavigationBar: navBar,
     );
   }
 
