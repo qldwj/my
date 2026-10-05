@@ -109,6 +109,12 @@ abstract class _VideoPageController with Store implements Disposable {
   final Map<int, String> _preloadedVideoUrls = {};
   bool _preloadInFlight = false;
 
+  /// 伪装 HLS 失败回退嗅探命中的强制格式（失败重试时置位，供 init 使用）
+  VideoSourceFormat forcedSourceFormat = VideoSourceFormat.auto;
+
+  /// 预加载专用的独立解析实例（不干扰主播放的 webview 解析）
+  WebViewVideoSourceService? _preloadVideoSourceService;
+
   /// 🔧 预加载失败冷却：{集数 → 解除时间戳}，失败后 60 秒内不再重试该集（避免反复请求导致限流/刷日志）
   final Map<int, int> _preloadCooldownUntil = {};
 
@@ -161,8 +167,9 @@ abstract class _VideoPageController with Store implements Disposable {
     
     KazumiLogger().i('⏳ 预加载下一集: 第${resolved.listIndex}集 (${resolved.displayTitle})');
     
-    _videoSourceService ??= WebViewVideoSourceService();
-    _videoSourceService!.resolve(
+    // 🔧 预加载用独立解析实例：不共用主播放的 webview，避免并发互相打断
+    _preloadVideoSourceService ??= WebViewVideoSourceService();
+    _preloadVideoSourceService!.resolve(
       urlItem,
       useLegacyParser: currentPlugin.useLegacyParser,
       offset: 0,
@@ -203,8 +210,9 @@ abstract class _VideoPageController with Store implements Disposable {
         currentPlugin.baseUrl,
         resolved.pageUrl,
       );
-      _videoSourceService ??= WebViewVideoSourceService();
-      final source = await _videoSourceService!.resolve(
+      // 🔧 独立解析实例，避免与主播放的 webview 解析互相打断
+      _preloadVideoSourceService ??= WebViewVideoSourceService();
+      final source = await _preloadVideoSourceService!.resolve(
         urlItem,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: 0,
@@ -242,10 +250,36 @@ abstract class _VideoPageController with Store implements Disposable {
     _finishLoading();
     KazumiLogger().i(
         'VideoPageController: ✅ 使用预加载直链播放 ${resolvedEpisode.listIndex}');
+
+    // 🔧 预加载直链若是伪装流（非标准后缀）也快速嗅探一次，确保秒开能播
+    var videoFormat = forcedSourceFormat;
+    if (videoFormat == VideoSourceFormat.auto &&
+        !isStandardVideoUrl(videoUrl)) {
+      try {
+        videoFormat = await sniffHlsFormat(
+          videoUrl,
+          headers: {
+            'user-agent': currentPlugin.userAgent.isEmpty
+                ? getRandomUA()
+                : currentPlugin.userAgent,
+            if (currentPlugin.referer.isNotEmpty)
+              'referer': currentPlugin.referer,
+          },
+        );
+        if (videoFormat == VideoSourceFormat.hls) {
+          KazumiLogger().i(
+              'VideoPageController: 预加载直链嗅探命中 HLS: $videoUrl');
+        }
+      } catch (_) {
+        videoFormat = VideoSourceFormat.auto;
+      }
+    }
+
     final params = PlaybackInitParams(
       videoUrl: videoUrl,
       offset: offset,
       isLocalPlayback: false,
+      videoSourceFormat: videoFormat,
       bangumiId: bangumiItem.id,
       pluginName: currentPlugin.name,
       episode: resolvedEpisode.listIndex,
@@ -829,11 +863,14 @@ abstract class _VideoPageController with Store implements Disposable {
       }
       KazumiLogger().w('VideoPageController: failed to load danmaku', error: e);
     }
-    // ⭐ 自建弹幕始终加载：不受其他弹幕源结果/异常影响（只开自建时也能显示）
+    // ⭐ 自建弹幕"边看边抓"：延迟 2 秒再拉，不抢播放首帧带宽（前一两秒省略）
     if (session.isActive &&
         danmakuSession.isActive &&
         GStorage.getSetting(SettingsKeys.customDanmakuEnabled)) {
-      unawaited(_loadCustomDanmakus(playerController, params));
+      unawaited(Future.delayed(const Duration(seconds: 2), () {
+        if (!session.isActive || !danmakuSession.isActive) return;
+        _loadCustomDanmakus(playerController, params);
+      }));
     }
   }
 
@@ -922,35 +959,13 @@ abstract class _VideoPageController with Store implements Disposable {
       final bool forceAdBlocker =
           GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
-      // 🆕 伪装 HLS 流兼容（快速嗅探）：
-      // 部分源用 .webp/.png 等非标准后缀返回 #EXTM3U 内容。
-      // 仅对非标准后缀 URL 做 1 秒轻量嗅探（流式读前 1KB），
-      // 命中后强制 demuxer-lavf-format=hls，避免 mpv 解复用器选错。
-      KazumiLogger().i(
-          'VideoPageController: 解析完成, url=${source.url}, format=${source.format}');
-      VideoSourceFormat videoFormat = source.format;
-      if (videoFormat == VideoSourceFormat.auto &&
-          !isStandardVideoUrl(source.url)) {
-        KazumiLogger().i(
-            'VideoPageController: 非标准后缀，开始嗅探伪装流: ${source.url}');
-        final sniffStart = DateTime.now();
-        videoFormat = await sniffHlsFormat(
-          source.url,
-          headers: {
-            'user-agent': currentPlugin.userAgent.isEmpty
-                ? getRandomUA()
-                : currentPlugin.userAgent,
-            if (currentPlugin.referer.isNotEmpty)
-              'referer': currentPlugin.referer,
-          },
-        );
-        KazumiLogger().i(
-            'VideoPageController: 嗅探完成 ${DateTime.now().difference(sniffStart).inMilliseconds}ms, 结果=$videoFormat');
-        if (videoFormat == VideoSourceFormat.hls) {
-          KazumiLogger().i(
-              'VideoPageController: HLS 伪装流嗅探命中，强制 HLS 解复用: ${source.url}');
-        }
-      }
+      // 🆕 伪装 HLS 兼容改为"失败回退"（模仿官方 HLS 处理，省 0.3~1s）：
+      // 主链路不再串行嗅探，直接按解析出的格式播放；
+      // 若 mpv 加载失败（Failed to open），由 video_page 触发嗅探重试。
+      VideoSourceFormat videoFormat =
+          forcedSourceFormat != VideoSourceFormat.auto
+              ? forcedSourceFormat
+              : source.format;
 
       final params = PlaybackInitParams(
         videoUrl: source.url,

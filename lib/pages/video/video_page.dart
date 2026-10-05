@@ -21,6 +21,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:yhdm/request/apis/custom_danmaku_api.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/player/pip_utils.dart';
+import 'package:yhdm/utils/media.dart';
+import 'package:yhdm/utils/http_headers.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
@@ -430,6 +432,30 @@ class _VideoPageState extends State<VideoPage>
     final currentEp = videoPageController.selectedEpisode.episode;
     // 一级自救：前 2 次失败自动重试当前线路（重新解析视频源）
     if (_sourceFailCount <= 2) {
+      // 🔧 伪装流失败回退：非标准后缀 URL 先嗅探，命中则强制格式重播
+      final currentUrl = playerController.videoUrl;
+      final plugin = videoPageController.currentPlugin;
+      if (currentUrl.isNotEmpty && !isStandardVideoUrl(currentUrl)) {
+        final ua = plugin.userAgent.isEmpty
+            ? getRandomUA()
+            : plugin.userAgent;
+        try {
+          final fmt = await sniffHlsFormat(currentUrl, headers: {
+            'user-agent': ua,
+            if (plugin.referer.isNotEmpty) 'referer': plugin.referer,
+          });
+          if (fmt == VideoSourceFormat.hls) {
+            videoPageController.forcedSourceFormat =
+                VideoSourceFormat.hls;
+            KazumiLogger().i(
+                'VideoPageController: 失败回退嗅探命中 HLS，强制格式重播');
+          } else if (fmt != VideoSourceFormat.auto) {
+            videoPageController.forcedSourceFormat = fmt;
+          }
+        } catch (_) {
+          // 嗅探失败走原重试逻辑
+        }
+      }
       KazumiDialog.showToast(
           message: '播放出错，正在自动重试...',
           duration: const Duration(seconds: 1));
