@@ -87,20 +87,38 @@ class McpServer {
   "useLegacyParser": false,
   "adBlocker": true,
   "userAgent": "",
-  "baseURL": "https://example.com",
-  "searchURL": "https://example.com/search/-------------.html?wd=@keyword&submit=",
-  "searchList": "//ul[@class*='v_list']/li/div[@class='item']",
-  "searchName": "//a[@class='title']",
-  "searchResult": "//a[@class='title']",
-  "chapterRoads": "//div[@id='play_list']//ul[@class='play_list']",
-  "chapterResult": "//ul[@class='play_list']/li/a"
+  "baseURL": "https://example.com/",
+  "searchURL": "https://example.com/s----------.html?wd=@keyword",
+  "searchList": "//div/div[3]/ul/li",
+  "searchName": "//div/a[2]",
+  "searchResult": "//div/a[2]",
+  "chapterRoads": "//div/div[4]/div/ul",
+  "chapterResult": "//li/a",
+  "referer": "",
+  "loginURL": "",
+  "icon": "https://example.com/favicon.ico",
+  "searchMode": "xpath",
+  "chapterMode": "xpath",
+  "antiCrawlerConfig": {
+    "enabled": false,
+    "captchaType": 1,
+    "captchaImage": "",
+    "captchaInput": "",
+    "captchaButton": "",
+    "captchaDetectType": 1,
+    "captchaDetectValue": "",
+    "captchaScript": ""
+  },
+  "enabled": true,
+  "needLogin": false
 }
 
 📋 最终输出（三项缺一不可，按下面顺序返回）：
-1. 【协议导入链接】yhdmgz://<Base64>：把完整规则 JSON 直接 Base64 编码，最前面加 yhdmgz:// 前缀（压缩成 Base64，便于复制/分享/导入）。
-2. 【分享用规则】完整可读的规则 JSON 文本（可直接复制分享给他人，或放进规则仓库 https://qlyyz.xyz/json）。
-3. 【未编码前的原始规则】即第 2 项的完整 JSON 明文（未做任何 Base64 编码的原始规则）。
+1. 【协议导入链接】yhdmgz://<Base64>：把完整规则 JSON 直接 Base64 编码，最前面加 yhdmgz:// 前缀（压缩成 Base64，便于复制/导入）。
+2. 【分享链接】https://qlyyz.xyz/share?gz=<Base64>：用同一个 Base64，做成站内分享链接格式（相当于规则分享中间商，点开即可分享），严禁省略。
+3. 【未编码前的原始规则】完整 JSON 明文（未做任何 Base64 编码，可读、可核对）。
 - 写之前先实际访问目标网站，分析搜索页/详情页/播放页的真实 DOM/JSON 再写，不凭猜测。
+- 规则必须带 icon（网站 logo 图片链接）：从目标站 favicon（如 https://域名/favicon.ico）或首页 logo 图提取，严禁留空——否则 App 规则列表不显示图标。
 - 若道路与分集在 DOM 中不嵌套，用单一 road 处理。
 
 ✅ 客户端测试闭环（交付前必须）：
