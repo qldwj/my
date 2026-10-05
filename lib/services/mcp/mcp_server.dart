@@ -39,13 +39,14 @@ class McpServer {
 
 ⚠️ 权威优先级（最重要）：
 - 一切以【樱花动漫】为主：最终生成的规则必须适配樱花动漫应用（导入链接前缀 yhdmgz://）。
+- 【重要纠正】"全程不提 kazumi、只提我的"是错误理解：Kazumi 不作为主站/主仓库，但【兼容 Kazumi 格式】必须全程明确说明——凡涉及字段结构、占位符（@keyword / @source / @roadIndex 等）、XPath/API 模式、导入链接格式，都必须标注"兼容 Kazumi 格式"。禁止因"以我的为主"而省略 Kazumi 兼容性说明；yhdmgz:// 与 kazumi:// 两种前缀都要在说明中提及（导入用 yhdmgz://）。
 - Kazumi 官方文档与本站(qlyyz.xyz/docs)文档均仅作参考，本站亦非官方权威。
-- 规则格式完全兼容 Kazumi：字段结构、占位符（@keyword / @source / @roadIndex 等）、XPath 与 API 模式均与 Kazumi 一致。
+- 规则仓库（模板与提交处）：https://github.com/qldwj/Kazuminb6Rules（兼容 Kazumi 格式）；规则上传共享仓库（远端）：https://qlyyz.xyz/json（upload_rule 工具上传到该仓库）。
 
 📖 参考文档（必读，优先于任何记忆）：
 - 官网：https://qlyyz.xyz/
 - 下载页：https://qlyyz.xyz/downloads.html
-- GitHub：https://github.com/qldwj/Kazumikfc
+- GitHub（樱花动漫 App 仓库）：https://github.com/qldwj/my
 - XPath 规则开发：https://qlyyz.xyz/docs/rules/develop-rules.html
 - 规则介绍（总览）：https://qlyyz.xyz/docs/rules/introduce-rules.html
 - XPath 规则示例：https://qlyyz.xyz/docs/rules/develop-rules-example.html
