@@ -1,6 +1,7 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/pages/my/my_page.dart';
 import 'package:yhdm/pages/my/kazumi_login_page.dart';
+import 'package:yhdm/pages/my/checkin_page.dart';
 
 final myModule = createModule(
   path: '/my',
@@ -14,6 +15,10 @@ final myModule = createModule(
       ..route(
         '/login',
         child: (context, state) => const KazumiLoginPage(),
+      )
+      ..route(
+        '/checkin',
+        child: (context, state) => const CheckinPage(),
       );
   },
 );

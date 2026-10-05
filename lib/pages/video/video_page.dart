@@ -16,6 +16,7 @@ import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/pages/history/history_controller.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/pages/player/player_item.dart';
+import 'package:yhdm/pages/player/danmaku_manage_sheet.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:yhdm/request/apis/custom_danmaku_api.dart';
 import 'package:yhdm/services/storage/storage.dart';
@@ -1638,6 +1639,76 @@ class _VideoPageState extends State<VideoPage>
                         controller: observerController,
                         child: Column(
                           children: [
+                            // ⭐ 动漫弹幕来源（选集上方）：弹弹play N 条 / 我的 N 条
+                            Observer(builder: (context) {
+                              final danmakuController =
+                                  playerController.danmaku;
+                              final counts = countDanmakuSources(
+                                  danmakuController);
+                              final on = danmakuController.danmakuOn;
+                              final colors =
+                                  Theme.of(context).colorScheme;
+                              final parts = <String>[
+                                if (counts.gamer > 0)
+                                  '弹弹play ${counts.gamer}条',
+                                if (counts.local > 0)
+                                  '我的 ${counts.local}条',
+                              ];
+                              final bangumi = videoPageController.bangumiItem;
+                              final keyword = bangumi.nameCn.isEmpty
+                                  ? bangumi.name
+                                  : bangumi.nameCn;
+                              return Material(
+                                color: on
+                                    ? colors.primaryContainer
+                                        .withValues(alpha: 0.45)
+                                    : colors.surfaceContainerLow,
+                                child: InkWell(
+                                  onTap: () => showDanmakuManageSheet(
+                                    context,
+                                    bangumiId: bangumi.id,
+                                    initialKeyword: keyword,
+                                    danmakuController: danmakuController,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.subtitles_outlined,
+                                          size: 18,
+                                          color: colors.primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          '动漫弹幕来源',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            parts.isEmpty
+                                                ? '弹弹play 未加载 · 点击添加'
+                                                : parts.join(' · '),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color:
+                                                    colors.onSurfaceVariant),
+                                          ),
+                                        ),
+                                        const Icon(Icons.chevron_right,
+                                            size: 18),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
                             // ⭐ 下一集检测：上次看到第X集，第X+1集可看
                             Builder(builder: (context) {
                               final lastEp = _lastWatchedEpisode();
