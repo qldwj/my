@@ -11,7 +11,7 @@ import 'package:kazumi/utils/nsfw_filter.dart';
 ///
 /// 与官方 Kazumi 一致：优先基于 Bangumi API
 /// `GET /v0/subjects/{id}/subjects` 获取真实关联条目
-/// （续集、前传、衍生等，镜像开启时走 api.qlyyz.top），
+/// （续集、前传、衍生等，镜像开启时走 api.kazumi.fyi），
 /// 拿不到时才回退为关键词自动搜索。
 class RelatedSearchSection extends StatefulWidget {
   final BangumiItem currentBangumi;

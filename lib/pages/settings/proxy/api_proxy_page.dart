@@ -24,8 +24,8 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
 
   // 预设域名选项
   static const List<String> _presetDomains = [
-    'https://api.qlyyz.top',
     'https://api.kazumi.fyi',
+    'https://api.bgm.tv',
   ];
 
   // 原始端点 → 默认镜像路径
@@ -47,7 +47,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     ),
     'season': _ApiEndpoint(
       labelKey: 'setDEndpointSeason',
-      original: 'api.qlyyz.top/kazumi/v1/calendar/season',
+      original: 'api.kazumi.fyi/kazumi/v1/calendar/season',
       defaultMirrorPath: '/kazumi/v1/calendar/season',
     ),
     'search': _ApiEndpoint(
@@ -372,7 +372,7 @@ sheetAnimationStyle: kSheetAnimationStyle,
                           controller: _domainController,
                           decoration: InputDecoration(
                             labelText: l10n.setCMirrorMainDomain,
-                            hintText: 'api.qlyyz.top',
+                            hintText: 'api.kazumi.fyi',
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.language),
                           ),

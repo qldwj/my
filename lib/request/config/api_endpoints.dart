@@ -20,9 +20,9 @@ class ApiEndpoints {
   static const String pluginShop =
       'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/';
 
-  /// 规则仓库镜像（GitCode raw，照官方 Kazumi 机制，手机可直连）
+  /// 规则仓库镜像（AtomGit API v5 raw，raw.gitcode.com 被 WAF 拦截，API 形式可直连）
   static const String pluginShopMirror =
-      'https://raw.gitcode.com/qldwi/yhdmgz/raw/main/';
+      'https://api.atomgit.com/api/v5/repos/qldwi/yhdmgz/raw/';
 
   /// 规则市场后端（json 文件仓库）
   static const String pluginMarketApi = 'https://qlyyz.xyz/json/api.php';
@@ -76,7 +76,7 @@ class ApiEndpoints {
   static const String bangumiInfoByID = '/v0/subjects/{0}';
   static const String bangumiRelatedSubjects = '/v0/subjects/{0}/subjects';
 
-  /// 镜像后端的关联条目路径（与 Bangumi 原始路径一致，走 api.qlyyz.top）
+  /// 镜像后端的关联条目路径（与 Bangumi 原始路径一致，走 api.kazumi.fyi）
   static String buildBangumiMirrorRelatedPath(int id) =>
       '/v0/subjects/$id/subjects';
 
