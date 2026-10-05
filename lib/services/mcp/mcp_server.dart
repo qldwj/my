@@ -207,7 +207,9 @@ class McpServer {
             {'name': 'batch_test', 'description': '批量巡检规则：输入多条规则(JSON数组 或 每行一条 yhdmgz://链接/JSON)与测试关键词，逐条真实抓站测试，输出每条的状态报告(✅搜索有结果 / ⚠️风控失败 / ❌死链)。', 'inputSchema': {'type': 'object', 'properties': {'rules': {'type': 'string', 'description': 'JSON数组 或 每行一条(规则JSON/yhdmgz://链接)'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rules', 'keyword']}},
             {'name': 'diff_rules', 'description': '规则对比：输入两条规则(JSON/yhdmgz://链接)，逐字段对比，输出新增/删除/修改字段清单(含值变化)，用于升级前核对版本、baseURL、选择器改动。', 'inputSchema': {'type': 'object', 'properties': {'ruleA': {'type': 'string', 'description': '规则A'}, 'ruleB': {'type': 'string', 'description': '规则B(新版本)'}}, 'required': ['ruleA', 'ruleB']}},
             {'name': 'suggest_rules', 'description': '同类模板推荐：输入新网站URL/域名，拉取规则仓库 index.json，按 baseURL 域名相似度匹配仓库内已有规则作为编写模板参考，并返回仓库规则清单(名称/baseURL/图标)。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '新网站URL或域名'}}, 'required': ['url']}},
-            {'name': 'fix_rule', 'description': '规则自动修复：输入规则与测试关键词，先跑 test_rule 复现失败，再抓取搜索页真实DOM结构(前若干链接的href+文本)作为证据输出，指导修正 XPath/API 配置。返回:失败信息+页面真实结构+修复建议。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}}, 'required': ['rule', 'keyword']}}
+            {'name': 'fix_rule', 'description': '规则自动修复：输入规则与测试关键词，先跑 test_rule 复现失败，再抓取搜索页真实DOM结构(前若干链接的href+文本)作为证据输出，指导修正 XPath/API 配置。返回:失败信息+页面真实结构+修复建议。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}}, 'required': ['rule', 'keyword']}},
+            {'name': 'captcha_guide', 'description': '验证码应对指引：按验证码类型输出对应的 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等,需人工处理)/all(不传则返回全部三档)。附带字段说明与规则编写指引。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / all(默认all)'}}, 'required': []}},
+            {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}}
           ]}});
           break;
         case 'tools/call':
@@ -248,6 +250,13 @@ class McpServer {
             });
           } else if (name == 'fix_rule') {
             _fixRule((args['rule'] ?? '').toString(), (args['keyword'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'captcha_guide') {
+            final result = _captchaGuide((args['kind'] ?? '').toString());
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else if (name == 'fetch_page') {
+            _fetchPage((args['url'] ?? '').toString()).then((result) {
               _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
             });
           } else {
@@ -1200,5 +1209,150 @@ class McpServer {
           ? '站点页面不可达或结构为空：请人工打开站点确认是否需登录/验证码，或检查 baseURL 是否正确'
           : '以下为站点首页真实链接结构（前若干条）：请据此核对 searchList / searchName / searchResult 的 XPath 层级，修正后重新 validate_rule + test_rule',
     };
+  }
+
+  /// 验证码应对指引：输出 antiCrawlerConfig 完整模板（按类型分档）。
+  Map<String, dynamic> _captchaGuide(String kind) {
+    final k = kind.trim().toLowerCase();
+    const baseNote = 'antiCrawlerConfig 仅适用于搜索阶段；命中即必须实现全套字段，不能只给 enabled。'
+        '若站点需要登录后才能观看（播放线路呈紫色），还必须同时实现 needLogin=true + loginURL。';
+
+    Map<String, dynamic> image() => {
+          'name': '档1-正常图片验证码（captchaType=1，走图片识别）',
+          '适用': '搜索/详情页出现图片验证码（输入图中文字/数字），如 whxzyy 的数字算术验证',
+          'template': {
+            'antiCrawlerConfig': {
+              'enabled': true,
+              'captchaType': 1,
+              'captchaImage': '//img[contains(@id, \'captcha\') or contains(@class, \'captcha\')]',
+              'captchaInput': '//input[@name=\'captcha\' or @id=\'captcha_code\']',
+              'captchaButton': '//button[@type=\'submit\']',
+              'captchaDetectType': 1,
+              'captchaDetectValue': '',
+              'captchaScript': '',
+            },
+          },
+          '说明': 'captchaImage 指向验证码图片节点（App 内识别后填入）；captchaInput 指向输入框；captchaButton 指向提交按钮。三者 XPath 需按站点实际 DOM 修正。',
+        };
+
+    Map<String, dynamic> click() => {
+          'name': '档2-点击/滑块类（captchaType=2）',
+          '适用': '非普通图片验证：需要点击指定文字/图片、拖动滑块等交互验证',
+          'template': {
+            'antiCrawlerConfig': {
+              'enabled': true,
+              'captchaType': 2,
+              'captchaImage': '',
+              'captchaInput': '',
+              'captchaButton': '',
+              'captchaDetectType': 2,
+              'captchaDetectValue': '',
+              'captchaScript': '// 由 App 内置交互处理，captchaDetectType=2 时由客户端完成点击/滑块检测',
+            },
+          },
+          '说明': '档2 由 App 端交互处理（自动点击/滑块），captchaScript 可留说明文案；若为自定义点击目标，可将目标选择器写入 captchaDetectValue。',
+        };
+
+    Map<String, dynamic> cf() => {
+          'name': '档3-超级特殊验证（captchaType=3，CF/Akamai 等）',
+          '适用': 'Cloudflare、Akamai 等强人机验证，App 无法自动通过；播放线路通常呈紫色（需登录）或反复弹验证',
+          'template': {
+            'antiCrawlerConfig': {
+              'enabled': true,
+              'captchaType': 3,
+              'captchaImage': '',
+              'captchaInput': '',
+              'captchaButton': '',
+              'captchaDetectType': 3,
+              'captchaDetectValue': '',
+              'captchaScript': '',
+            },
+            'needLogin': true,
+            'loginURL': 'https://目标站登录页',
+          },
+          '说明': '档3 建议同时开启 needLogin=true + loginURL（走紫色登录线路），并在规则说明中提示用户需在 App 内登录该站后再播放；captchaScript 可留空由人工处理。',
+        };
+
+    final templates = <String, dynamic>{
+      'image': image(),
+      'click': click(),
+      'cf': cf(),
+    };
+    if (k == 'image' || k == 'click' || k == 'cf') {
+      return {'ok': true, ...templates[k] as Map<String, dynamic>, 'note': baseNote};
+    }
+    return {
+      'ok': true,
+      'guides': [image(), click(), cf()],
+      'note': baseNote,
+      '提示': '按目标站实际验证类型选对应档位；不确定时先人工访问站点确认',
+    };
+  }
+
+  /// 网页结构抓取：提取标题/链接/表单/iframe/meta。
+  Future<Map<String, dynamic>> _fetchPage(String url) async {
+    final u = url.trim();
+    if (!u.startsWith('http')) {
+      return {'ok': false, 'errors': ['请输入完整URL（含 http/https）']};
+    }
+    try {
+      final resp = await http.get(Uri.parse(u), headers: const {'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'})
+          .timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200) {
+        return {'ok': false, 'statusCode': resp.statusCode, 'errors': ['页面返回 ${resp.statusCode}']};
+      }
+      final doc = html_parser.parse(resp.body);
+      final title = doc.querySelector('title')?.text?.trim() ?? '';
+      final links = <Map<String, String>>[];
+      for (final a in doc.querySelectorAll('a[href]')) {
+        if (links.length >= 20) break;
+        final href = (a.attributes['href'] ?? '').trim();
+        final text = (a.text ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+        if (href.isNotEmpty && text.isNotEmpty) {
+          links.add({
+            'href': href.length > 100 ? href.substring(0, 100) : href,
+            'text': text.length > 30 ? text.substring(0, 30) : text,
+          });
+        }
+      }
+      final forms = <Map<String, dynamic>>[];
+      for (final f in doc.querySelectorAll('form')) {
+        if (forms.length >= 10) break;
+        final inputs = <Map<String, String>>[];
+        for (final inp in f.querySelectorAll('input')) {
+          if (inputs.length >= 10) break;
+          final name = (inp.attributes['name'] ?? '').trim();
+          final type = (inp.attributes['type'] ?? '').trim();
+          final id = (inp.attributes['id'] ?? '').trim();
+          if (name.isNotEmpty || id.isNotEmpty) {
+            inputs.add({'name': name, 'id': id, 'type': type});
+          }
+        }
+        forms.add({
+          'action': (f.attributes['action'] ?? '').trim(),
+          'method': (f.attributes['method'] ?? 'get').trim(),
+          'inputs': inputs,
+        });
+      }
+      final iframes = <String>[];
+      for (final f in doc.querySelectorAll('iframe')) {
+        if (iframes.length >= 10) break;
+        final src = (f.attributes['src'] ?? '').trim();
+        if (src.isNotEmpty) iframes.add(src);
+      }
+      final metaDesc = doc.querySelector('meta[name="description"]')?.attributes['content'] ?? '';
+      return {
+        'ok': true,
+        'url': u,
+        'title': title,
+        'metaDescription': metaDesc,
+        'links': links,
+        'forms': forms,
+        'iframes': iframes,
+        'note': '若页面无服务端内容（SPA/JS渲染），links 可能为空，需用浏览器抓包找 JSON API（searchMode=api）',
+      };
+    } catch (e) {
+      return {'ok': false, 'errors': [e.toString()]};
+    }
   }
 }
