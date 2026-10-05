@@ -162,7 +162,8 @@ class _AppWidgetState extends State<AppWidget>
   Color _storedThemeColor() {
     final defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     if (defaultThemeColor.isEmpty || defaultThemeColor == 'default') {
-      return Colors.green;
+      // 默认粉红（樱花粉），与樱花动漫主题一致
+      return const Color(0xFFFF6FA5);
     }
     return Color(int.parse(defaultThemeColor, radix: 16));
   }

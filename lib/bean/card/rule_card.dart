@@ -96,9 +96,8 @@ class RuleCard extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: selected || installed
-                              ? colors.secondaryContainer
-                              : colors.primaryContainer,
+                          // 白底：透明底 logo 显示白色，有背景色的 logo 由图片 cover 铺满
+                          color: Colors.white,
                           borderRadius:
                               BorderRadius.circular(installed ? 24 : 16),
                         ),
@@ -108,9 +107,7 @@ class RuleCard extends StatelessWidget {
                             selected
                                 ? Icons.check_rounded
                                 : Icons.extension_rounded,
-                            color: selected || installed
-                                ? colors.onSecondaryContainer
-                                : colors.onPrimaryContainer,
+                            color: colors.primary,
                           ),
                         ),
                       ),

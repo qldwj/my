@@ -454,7 +454,7 @@ class BangumiApi {
   }
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
-    // 镜像模式优先走 api.qlyyz.top（与官方同构的 /v0/subjects/{id}）；失败回退直连 next.bgm.tv
+    // 镜像模式优先走 api.kazumi.fyi（与官方同构的 /v0/subjects/{id}）；失败回退直连 next.bgm.tv
     if (_proxyEnabled) {
       try {
         final jsonData = await _client.get(ApiEndpoints.bangumiMirrorDomain +
@@ -481,7 +481,7 @@ class BangumiApi {
 
   /// 获取条目的关联条目（续集/前传/衍生等）。
   ///
-  /// 镜像开关开启时优先走 api.qlyyz.top 镜像后端（与官方 api.kazumi.fyi 同一套
+  /// 镜像开关开启时优先走 api.kazumi.fyi 镜像后端（与官方 api.kazumi.fyi 同一套
   /// Bangumi 原始路径 /v0/subjects/{id}/subjects），失败自动回退直连 api.bgm.tv。
   static Future<List<SubjectRelation>> getRelatedSubjects(int id) async {
     List<SubjectRelation> parse(dynamic jsonData) {
@@ -492,7 +492,7 @@ class BangumiApi {
           .toList();
     }
 
-    // 镜像模式：优先 api.qlyyz.top
+    // 镜像模式：优先 api.kazumi.fyi
     if (_proxyEnabled) {
       try {
         final jsonData = await _client.get(ApiEndpoints.bangumiMirrorDomain +
@@ -539,7 +539,7 @@ class BangumiApi {
   }
 
   static Future<List<EpisodeInfo>> getBangumiEpisodesByID(int id) async {
-    // 镜像模式优先走 api.qlyyz.top（/v0/episodes 同构）；失败回退直连 api.bgm.tv
+    // 镜像模式优先走 api.kazumi.fyi（/v0/episodes 同构）；失败回退直连 api.bgm.tv
     if (_proxyEnabled) {
       try {
         return await _fetchEpisodesPage(ApiEndpoints.bangumiMirrorDomain, id);

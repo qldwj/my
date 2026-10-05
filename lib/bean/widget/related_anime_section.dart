@@ -9,7 +9,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 /// 与官方 Kazumi 一致：基于 Bangumi API
 /// `GET /v0/subjects/{id}/subjects` 获取真实关联条目
 /// （续集、前传、衍生、OVA 等），不再用本地关键词猜测。
-/// Bangumi 镜像开启时自动走 api.qlyyz.top 镜像后端。
+/// Bangumi 镜像开启时自动走 api.kazumi.fyi 镜像后端。
 class RelatedAnimeSection extends StatefulWidget {
   final BangumiItem currentBangumi;
 

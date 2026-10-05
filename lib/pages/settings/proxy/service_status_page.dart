@@ -19,7 +19,7 @@ class ServiceStatusPage extends StatefulWidget {
 class _ServiceStatusPageState extends State<ServiceStatusPage> {
   final List<_ServiceStatus> _services = [
     _ServiceStatus(
-      url: 'https://api.qlyyz.top/kazumi/v1/popular/subjects?limit=1',
+      url: 'https://api.kazumi.fyi/kazumi/v1/popular/subjects?limit=1',
       avatar: null,
       checkType: ServiceCheckType.bangumiCollection,
     ),

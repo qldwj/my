@@ -290,6 +290,14 @@ class _InitPageState extends State<InitPage> {
   // migrate collect from old version (favorites)
   Future<void> _migrateStorage() async {
     await collectController.migrateCollect();
+    // 镜像域名旧默认值迁移：旧版默认 api.qlyyz.top → 统一为 api.kazumi.fyi。
+    // 仅迁移"仍是旧默认值"的用户；用户主动切换过其他域名的一律保留不动。
+    const oldDefault = 'https://api.qlyyz.top';
+    const newDefault = 'https://api.kazumi.fyi';
+    final proxyDomain = GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
+    if (proxyDomain == oldDefault) {
+      await GStorage.putSetting(SettingsKeys.bangumiProxyDomain, newDefault);
+    }
   }
 
   Future<void> _loadShaders() async {

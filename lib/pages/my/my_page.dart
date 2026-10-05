@@ -195,7 +195,7 @@ class _MyPageState extends State<MyPage> {
     _loadBangumiUser();
   }
 
-  /// 已登录 Bangumi 时拉取头像/昵称（走 api.qlyyz.top 镜像）
+  /// 已登录 Bangumi 时拉取头像/昵称（走 api.kazumi.fyi 镜像）
   Future<void> _loadBangumiUser() async {
     if (GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isEmpty) {
       return;

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
@@ -138,5 +140,31 @@ class _RulesMirrorInterceptor extends Interceptor {
     KazumiLogger().d('Rules mirror: $mirrored');
     options.path = mirrored;
     handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    // 兼容 GitCode contents API 的 {"content":"<base64>","encoding":"base64"} 包装：
+    // 仅当路径是 /contents/ 时尝试透明解码；AtomGit raw API 直接返回原文，不受影响。
+    final url = response.requestOptions.uri.toString();
+    if (url.contains('/api/v5/repos/') &&
+        url.contains('/contents/') &&
+        response.data is String) {
+      final trimmed = (response.data as String).trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          final obj = json.decode(trimmed);
+          if (obj is Map && obj['content'] is String) {
+            final b64 =
+                (obj['content'] as String).replaceAll(RegExp(r'\s'), '');
+            response.data =
+                utf8.decode(base64.decode(base64.normalize(b64)));
+          }
+        } catch (_) {
+          // 非 GitCode 包装（例如规则 JSON 本身），保持原样
+        }
+      }
+    }
+    handler.next(response);
   }
 }
