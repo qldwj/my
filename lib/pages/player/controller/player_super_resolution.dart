@@ -2,7 +2,12 @@ enum SuperResolutionMode {
   off(
     storageValue: 1,
     label: '关闭',
-    description: '默认禁用超分辨率',
+    description: '默认禁用画质增强',
+  ),
+  light(
+    storageValue: 4,
+    label: '轻量增强',
+    description: '去色带 + 轻量锐化，所有设备可流畅运行',
   ),
   efficiency(
     storageValue: 2,
