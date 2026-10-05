@@ -1,14 +1,14 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/widget/online_dot.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/my/chat_page.dart';
-import 'package:kazumi/services/social/social_service.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/bean/widget/online_dot.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/my/chat_page.dart';
+import 'package:yhdm/services/social/social_service.dart';
 
 /// 我的好友页
 ///

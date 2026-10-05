@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/plugins/animeko_rule_config.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/plugins.dart';
+import 'package:yhdm/plugins/animeko_rule_config.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/plugins.dart';
 
 /// Converts Animeko web-selector and rss rules to Kazumi Plugin objects.
 ///

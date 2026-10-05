@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/air_time_resolver.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/utils/device.dart';
+import 'package:yhdm/utils/air_time_resolver.dart';
 
 /// 时间线番剧卡片
 class BangumiTimelineCard extends StatelessWidget {

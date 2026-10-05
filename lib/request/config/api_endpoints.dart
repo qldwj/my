@@ -1,4 +1,4 @@
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 class ApiEndpoints {
   /// 当前版本

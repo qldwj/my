@@ -1,13 +1,13 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/services/playlist/play_queue_service.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/video/video_controller.dart';
+import 'package:yhdm/pages/video/video_playback_args.dart';
+import 'package:yhdm/services/playlist/play_queue_service.dart';
 
 /// 连播队列页（"稍后看"）
 ///

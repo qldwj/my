@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/sync/webdav.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/sync/webdav.dart';
 
 class WebDavSettingsPage extends StatefulWidget {
   const WebDavSettingsPage({super.key});

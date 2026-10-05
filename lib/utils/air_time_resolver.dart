@@ -1,4 +1,4 @@
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 
 /// 🆕 播出时间推算（本地纯函数，不请求额外网络）
 ///

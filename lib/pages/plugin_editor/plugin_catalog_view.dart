@@ -1,16 +1,16 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/card/rule_card.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/widget/source_rating_widget.dart';
-import 'package:kazumi/modules/plugin/plugin_http_module.dart';
-import 'package:kazumi/pages/plugin_editor/plugin_update_actions.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/card/rule_card.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
+import 'package:yhdm/bean/widget/source_rating_widget.dart';
+import 'package:yhdm/modules/plugin/plugin_http_module.dart';
+import 'package:yhdm/pages/plugin_editor/plugin_update_actions.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 enum PluginCatalogSort { lastUpdate, name }
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/bean/settings/settings_list.dart';
-import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:kazumi/modules/my/watch_stats.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/bean/settings/settings_list.dart';
+import 'package:yhdm/bean/widget/content_section.dart';
+import 'package:yhdm/bean/widget/state_presentation.dart';
+import 'package:yhdm/modules/my/watch_stats.dart';
 import 'package:material_new_shapes/material_new_shapes.dart';
 
 enum MyDestination {

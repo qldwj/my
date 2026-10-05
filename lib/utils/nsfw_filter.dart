@@ -1,6 +1,6 @@
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
 
 /// 未成年人保护模式过滤器
 /// 开启时过滤掉 卖肉/里番/18+ 内容

@@ -1,6 +1,6 @@
 import 'package:cookie_jar/cookie_jar.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 每条规则的 Cookie 管理器（Hive 持久化）
 ///

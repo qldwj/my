@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
 
 /// 首页推荐接口（代理 Animeko 官方 /v2/home/recommendations）
 /// 后端：https://qlyyz.xyz/api/v0/recommendations.php?offset=&limit=

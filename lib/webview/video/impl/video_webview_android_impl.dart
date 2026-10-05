@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/network/proxy_utils.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/webview/video/video_webview_controller.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/network/proxy_utils.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
     as android_webview;
-import 'package:kazumi/utils/media.dart';
-import 'package:kazumi/utils/http_headers.dart';
+import 'package:yhdm/utils/media.dart';
+import 'package:yhdm/utils/http_headers.dart';
 
 class VideoWebviewAndroidImpl
     extends VideoWebviewController<PlatformInAppWebViewController> {

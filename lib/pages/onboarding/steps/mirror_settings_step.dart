@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/settings/network_mirror_settings.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
+import 'package:yhdm/bean/settings/network_mirror_settings.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/onboarding/onboarding_step_layout.dart';
 
 /// 引导页：网络镜像（番剧条目镜像 / 规则仓库镜像 / 图片加速）
 class MirrorSettingsStep extends StatelessWidget {

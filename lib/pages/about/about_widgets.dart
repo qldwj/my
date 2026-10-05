@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/split_list_row.dart';
-import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/split_list_row.dart';
+import 'package:yhdm/bean/widget/state_presentation.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 void _showMessage(BuildContext context, String message) {
   KazumiDialog.showToast(context: context, message: message);

@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/account_status_cache.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/checkin_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/account_status_cache.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/checkin_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 账号页面（编辑个人资料）

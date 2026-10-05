@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:kazumi/utils/bgm_sticker.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:yhdm/utils/bgm_sticker.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
 
 /// 将评论文本中的以下内容渲染为对应效果：
 /// 1. `(bgmN)` → 本地表情图

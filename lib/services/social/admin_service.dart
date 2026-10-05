@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 管理员服务（对接后端 danmaku_admin.php?api=1）
 ///

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
-import 'package:kazumi/pages/plugin_editor/plugin_catalog_view.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/onboarding/onboarding_step_layout.dart';
+import 'package:yhdm/pages/plugin_editor/plugin_catalog_view.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
 
 class PluginShopStep extends StatelessWidget {
   const PluginShopStep({

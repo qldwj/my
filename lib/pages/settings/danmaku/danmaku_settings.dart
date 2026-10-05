@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/player/danmaku_cache_service.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/settings/settings_list.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_ch_convert_tile.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/player/danmaku_cache_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/settings/settings_list.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/settings/danmaku/danmaku_ch_convert_tile.dart';
+import 'package:yhdm/utils/device.dart';
 
 class DanmakuSettingsPage extends StatefulWidget {
   const DanmakuSettingsPage({super.key});

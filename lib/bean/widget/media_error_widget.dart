@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
 
 class MediaErrorWidget extends StatelessWidget {
   const MediaErrorWidget({

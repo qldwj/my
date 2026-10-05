@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/card/animeflow_card.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/friend_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/card/animeflow_card.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/friend_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 /// 🆕 公开个人主页（分享链接 api/u/{uid} 打开；可一键加好友/关注）
 /// - 展示 TA 的收藏动漫（追番列表）

@@ -2,14 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/plugin_editor/editor_form_widgets.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/plugin/api_rule_engine.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/anti_crawler_config.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/pages/plugin_editor/editor_form_widgets.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/plugin/api_rule_engine.dart';
 
 abstract final class _RuleEditorText {
   static const pageTitle = '规则编辑器';

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/request/core/dio_factory.dart';
-import 'package:kazumi/request/core/network_error_mapper.dart';
+import 'package:yhdm/request/core/dio_factory.dart';
+import 'package:yhdm/request/core/network_error_mapper.dart';
 
 class RulesRepoClient {
   RulesRepoClient._();

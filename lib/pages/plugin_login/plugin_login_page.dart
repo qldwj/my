@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart' show KazumiDialog;
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
-import 'package:kazumi/services/plugin/plugin_credential_store.dart';
-import 'package:kazumi/plugins/plugins.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart' show KazumiDialog;
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/plugin/plugin_credential_store.dart';
+import 'package:yhdm/plugins/plugins.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 

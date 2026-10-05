@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 抖音 OAuth 登录/绑定页

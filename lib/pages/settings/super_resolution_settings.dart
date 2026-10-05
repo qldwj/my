@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/player/controller/player_super_resolution.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class SuperResolutionSettings extends StatefulWidget {

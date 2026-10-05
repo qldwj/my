@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/services/schedule_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/collect/collect_module.dart';
+import 'package:yhdm/services/schedule_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 追番日历（Animeko 风格）
 ///

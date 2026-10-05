@@ -3,12 +3,12 @@ import 'dart:convert';
 
 import 'package:html/dom.dart';
 import 'package:html/parser.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/plugins/animeko_rule_config.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/services/plugin/rule_engine_models.dart';
-import 'package:kazumi/utils/episode_url.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/plugins/animeko_rule_config.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/services/plugin/rule_engine_models.dart';
+import 'package:yhdm/utils/episode_url.dart';
 
 /// Exception thrown when a CSS rule format is invalid.
 class CssRuleFormatException implements Exception {

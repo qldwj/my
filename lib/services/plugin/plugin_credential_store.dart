@@ -1,5 +1,5 @@
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 插件登录凭证持久化存储
 ///

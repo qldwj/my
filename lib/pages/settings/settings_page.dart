@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/settings/player_settings.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
+import 'package:yhdm/bean/widget/settings_section_card.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/settings/player_settings.dart';
+import 'package:yhdm/utils/constants.dart';
 
 /// 设置主页（总设置）
 ///

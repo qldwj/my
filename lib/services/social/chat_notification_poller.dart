@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/notification/anime_update_notification_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/notification/anime_update_notification_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
 
 /// 好友聊天消息通知（前台轮询）
 ///

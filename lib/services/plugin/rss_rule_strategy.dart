@@ -1,6 +1,6 @@
 import 'package:html/parser.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/services/plugin/rule_engine_models.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/services/plugin/rule_engine_models.dart';
 
 /// Exception thrown when RSS rule execution fails.
 class RssRuleFormatException implements Exception {

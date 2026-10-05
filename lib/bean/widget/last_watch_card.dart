@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/pages/video/video_playback_args.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/utils/device.dart';
 
 /// 首页左下角"上次观看"弹窗
 ///

@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/collect/collect_module.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
 
 /// 同步日志 - 记录每次同步的详细结果
 class SyncLogEntry {

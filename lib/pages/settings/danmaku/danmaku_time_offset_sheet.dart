@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 const double _minDanmakuTimeOffset = -180;
 const double _maxDanmakuTimeOffset = 180;

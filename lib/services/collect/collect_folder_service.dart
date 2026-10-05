@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 自定义收藏分组（本地功能）
 ///

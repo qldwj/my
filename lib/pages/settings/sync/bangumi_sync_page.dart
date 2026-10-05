@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/sync/bangumi_sync_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/widget/state_presentation.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/sync/bangumi_sync_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BangumiSyncPage extends StatefulWidget {

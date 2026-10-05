@@ -2,20 +2,20 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/hive_registrar.g.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
-import 'package:kazumi/modules/collect/collect_sync_merger.dart';
-import 'package:kazumi/modules/search/search_history_module.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/services/storage/history_storage_coordinator.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/hive_registrar.g.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/modules/collect/collect_module.dart';
+import 'package:yhdm/modules/collect/collect_change_module.dart';
+import 'package:yhdm/modules/collect/collect_sync_merger.dart';
+import 'package:yhdm/modules/search/search_history_module.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/services/storage/history_storage_coordinator.dart';
 
-import 'package:kazumi/services/storage/settings_keys.dart';
-export 'package:kazumi/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+export 'package:yhdm/services/storage/settings_keys.dart';
 
 class GStorage {
   /// Don't use favorites box, it's replaced by collectibles.

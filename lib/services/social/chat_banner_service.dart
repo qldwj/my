@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/my/chat_page.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/my/chat_page.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 全局好友消息横幅提醒
 ///

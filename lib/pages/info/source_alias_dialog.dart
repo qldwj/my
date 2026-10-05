@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 
 /// Deletions edit [aliases] in place and then fire [onAliasesChanged], so the
 /// caller can persist the list it passed in.

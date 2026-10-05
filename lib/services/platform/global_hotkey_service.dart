@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/device.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// 全局快捷键（桌面端）

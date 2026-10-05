@@ -1,15 +1,15 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:kazumi/modules/character/character_full_item.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:yhdm/modules/character/character_full_item.dart';
+import 'package:yhdm/modules/comments/comment_item.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/card/character_comments_card.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/widget/image_preview.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/card/character_comments_card.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
+import 'package:yhdm/bean/widget/image_preview.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({

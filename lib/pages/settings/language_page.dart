@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/settings/theme_provider.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 语言切换页：跟随系统 / 中文 / English（即时生效）
 class LanguagePage extends StatelessWidget {

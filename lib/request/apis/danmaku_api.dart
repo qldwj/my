@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/request/clients/danmaku_client.dart';
-import 'package:kazumi/request/core/dio_factory.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
-import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
-import 'package:kazumi/utils/http_headers.dart';
-import 'package:kazumi/utils/string_similarity.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/request/clients/danmaku_client.dart';
+import 'package:yhdm/request/core/dio_factory.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/modules/danmaku/danmaku_module.dart';
+import 'package:yhdm/modules/danmaku/danmaku_search_response.dart';
+import 'package:yhdm/modules/danmaku/danmaku_episode_response.dart';
+import 'package:yhdm/utils/http_headers.dart';
+import 'package:yhdm/utils/string_similarity.dart';
 
 class DanmakuApi {
   static final DanmakuClient _client = DanmakuClient.instance;

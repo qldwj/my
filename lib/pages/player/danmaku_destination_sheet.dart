@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/bean/widget/split_list_row.dart';
 
 enum DanmakuDestination {
   chatRoom,

@@ -1,16 +1,16 @@
 import 'dart:io';
 
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/modules/search/image_search_module.dart';
-import 'package:kazumi/modules/search/search_history_module.dart';
-import 'package:kazumi/repositories/collect_repository.dart';
-import 'package:kazumi/repositories/search_history_repository.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/request/apis/trace_api.dart';
-import 'package:kazumi/utils/nsfw_filter.dart';
-import 'package:kazumi/utils/search_parser.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/collect/collect_type.dart';
+import 'package:yhdm/modules/search/image_search_module.dart';
+import 'package:yhdm/modules/search/search_history_module.dart';
+import 'package:yhdm/repositories/collect_repository.dart';
+import 'package:yhdm/repositories/search_history_repository.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/request/apis/trace_api.dart';
+import 'package:yhdm/utils/nsfw_filter.dart';
+import 'package:yhdm/utils/search_parser.dart';
 
 part 'search_controller.g.dart';
 

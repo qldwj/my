@@ -1,13 +1,13 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});

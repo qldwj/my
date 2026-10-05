@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/danmaku.dart';
+import 'package:yhdm/utils/danmaku.dart';
 
 class DanmakuEntry {
   // 弹幕内容

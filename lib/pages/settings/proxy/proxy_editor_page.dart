@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/network/proxy_utils.dart';
-import 'package:kazumi/services/network/proxy_manager.dart';
-import 'package:kazumi/request/core/dio_factory.dart';
-import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/network/proxy_utils.dart';
+import 'package:yhdm/services/network/proxy_manager.dart';
+import 'package:yhdm/request/core/dio_factory.dart';
+import 'package:yhdm/request/core/network_config.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 class ProxyEditorPage extends StatefulWidget {
   const ProxyEditorPage({super.key});

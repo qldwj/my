@@ -1,9 +1,9 @@
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/pages/info/info_page.dart';
-import 'package:kazumi/pages/route_error_page.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/pages/info/info_controller.dart';
+import 'package:yhdm/pages/info/info_page.dart';
+import 'package:yhdm/pages/route_error_page.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
 
 final infoModule = createModule(
   path: '/info',

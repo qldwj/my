@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/settings/network_mirror_settings.dart';
-import 'package:kazumi/bean/settings/settings_list.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/network/proxy_manager.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/settings/network_mirror_settings.dart';
+import 'package:yhdm/bean/settings/settings_list.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/network/proxy_manager.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 class ProxySettingsPage extends StatefulWidget {
   const ProxySettingsPage({super.key});

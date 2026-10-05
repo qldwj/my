@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 abstract class IDownloadRepository {
   /// Emits when a record or an episode status is persisted. Progress ticks stay

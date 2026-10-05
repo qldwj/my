@@ -1,9 +1,9 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/modules/playlist/playlist_module.dart';
-import 'package:kazumi/services/playlist/playlist_service.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/modules/playlist/playlist_module.dart';
+import 'package:yhdm/services/playlist/playlist_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 
 /// 播放列表管理页面
 class PlaylistPage extends StatefulWidget {

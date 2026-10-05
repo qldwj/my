@@ -1,4 +1,4 @@
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:libtorrent_flutter/libtorrent_flutter.dart';
 
 /// BT / 磁力播放服务

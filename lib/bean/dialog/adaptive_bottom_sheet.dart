@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/utils/device.dart';
 
 /// 保留为公开函数：timeline_page.dart 等处直接调用以获取底部弹层约束。
 /// 逻辑沿用 my 版（isDesktop/isLargeScreen 判定紧凑横屏）。

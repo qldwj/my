@@ -1,18 +1,18 @@
 import 'dart:async';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/my/watch_stats.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/my/watch_stats.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/update/auto_updater.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/update/auto_updater.dart';
 // 引入公告服务
-import 'package:kazumi/services/announcement/announcement_service.dart';
+import 'package:yhdm/services/announcement/announcement_service.dart';
 // 🆕 弹幕屏蔽词云端同步（恢复官方 2.3.3）
-import 'package:kazumi/modules/danmaku/danmaku_shield_rule.dart';
-import 'package:kazumi/repositories/danmaku_shield_repository.dart';
+import 'package:yhdm/modules/danmaku/danmaku_shield_rule.dart';
+import 'package:yhdm/repositories/danmaku_shield_repository.dart';
 // 官方 2.3.7：我的页面观看统计（响应式监听历史/下载仓库）
-import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/repositories/history_repository.dart';
+import 'package:yhdm/repositories/download_repository.dart';
+import 'package:yhdm/repositories/history_repository.dart';
 
 part 'my_controller.g.dart';
 

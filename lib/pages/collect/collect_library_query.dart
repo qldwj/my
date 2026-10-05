@@ -1,5 +1,5 @@
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:yhdm/modules/collect/collect_module.dart';
+import 'package:yhdm/modules/collect/collect_type.dart';
 
 enum CollectSort {
   recentlyChanged('最近变更'),

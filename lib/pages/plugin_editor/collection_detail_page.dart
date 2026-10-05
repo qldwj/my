@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/card/rule_card.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/plugins/animeko_converter.dart';
-import 'package:kazumi/request/clients/plugin_site_client.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/utils/encoding.dart';
+import 'package:yhdm/bean/card/rule_card.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/plugins/animeko_converter.dart';
+import 'package:yhdm/request/clients/plugin_site_client.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/utils/encoding.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 /// 合集详情页面

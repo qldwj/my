@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/plugin_editor/market_page.dart';
-import 'package:kazumi/pages/plugin_editor/plugin_catalog_view.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/plugin_editor/market_page.dart';
+import 'package:yhdm/pages/plugin_editor/plugin_catalog_view.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({

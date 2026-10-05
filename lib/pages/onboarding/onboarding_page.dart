@@ -3,20 +3,20 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/pages/onboarding/steps/disclaimer_step.dart';
-import 'package:kazumi/pages/onboarding/steps/migration_step.dart';
-import 'package:kazumi/pages/onboarding/steps/mirror_settings_step.dart';
-import 'package:kazumi/pages/onboarding/steps/plugin_shop_step.dart';
-import 'package:kazumi/pages/onboarding/steps/update_source_step.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/update/startup_update_check.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/bean/settings/theme_provider.dart';
+import 'package:yhdm/pages/my/my_controller.dart';
+import 'package:yhdm/pages/onboarding/steps/disclaimer_step.dart';
+import 'package:yhdm/pages/onboarding/steps/migration_step.dart';
+import 'package:yhdm/pages/onboarding/steps/mirror_settings_step.dart';
+import 'package:yhdm/pages/onboarding/steps/plugin_shop_step.dart';
+import 'package:yhdm/pages/onboarding/steps/update_source_step.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/update/startup_update_check.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({

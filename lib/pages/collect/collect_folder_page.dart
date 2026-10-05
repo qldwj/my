@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/collect/collect_folder_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/bangumi_card.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/collect/collect_folder_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 收藏分组管理页
 ///

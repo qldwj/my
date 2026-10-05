@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/split_list_row.dart';
+import 'package:yhdm/bean/widget/split_list_row.dart';
 
 enum _TileKind { plain, toggle, radio }
 

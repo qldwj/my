@@ -1,8 +1,8 @@
 import 'package:ech_http/ech_http.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:kazumi/services/network/image_file_response.dart';
-import 'package:kazumi/utils/constants.dart' show bangumiHTTPHeader;
+import 'package:yhdm/services/network/image_file_response.dart';
+import 'package:yhdm/utils/constants.dart' show bangumiHTTPHeader;
 
 class BangumiEchImageService extends FileService {
   BangumiEchImageService({

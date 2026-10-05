@@ -1,7 +1,7 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:kazumi/services/qr_login_service.dart';
+import 'package:yhdm/services/qr_login_service.dart';
 
 class YhdmgzCameraScanPage extends StatefulWidget {
   const YhdmgzCameraScanPage({super.key});

@@ -1,12 +1,12 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 import '../../modules/roads/road_module.dart';
 import '../../plugins/api_rule_config.dart';

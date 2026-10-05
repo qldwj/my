@@ -1,8 +1,8 @@
 import 'dart:math';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/nsfw_filter.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/nsfw_filter.dart';
 import 'package:mobx/mobx.dart';
 
 part 'popular_controller.g.dart';

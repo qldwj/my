@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/comment/episode_comment_service.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/utils/bgm_sticker.dart';
-import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
+import 'package:yhdm/services/comment/episode_comment_service.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/utils/bgm_sticker.dart';
+import 'package:yhdm/widgets/comment/bgm_rich_text.dart';
 
 class CommentEditor extends StatefulWidget {
   final int subjectId;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/source_rating_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/source_rating_service.dart';
 
 /// 🆕 规则源稳定性评分组件
 ///

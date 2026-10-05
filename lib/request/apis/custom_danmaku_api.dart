@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 自建弹幕条目
 class CustomDanmakuItem {

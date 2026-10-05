@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/utils/api_throttle.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/utils/api_throttle.dart';
 
 /// 🆕 规则源稳定性评分客户端
 ///

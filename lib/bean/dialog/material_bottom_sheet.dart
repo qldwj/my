@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
+import 'package:yhdm/bean/widget/scrollable_wrapper.dart';
 
 const double materialBottomSheetRadius = 24;
 const EdgeInsets materialBottomSheetContentPadding =

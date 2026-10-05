@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 账号绑定状态的本地缓存（存在 Hive 的 `setting` 盒里）
 ///

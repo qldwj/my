@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 连播队列中的一项（"稍后看"）

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 规则动漫图标缓存：首次从网络下载后写入 Hive 永久保存，
 /// 之后（含重启）直接从 Hive 读取，不再请求网络。

@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:ech_http/ech_http.dart';
 import 'package:http/http.dart' as http;
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/network/bangumi_acceleration.dart';
-import 'package:kazumi/services/network/bangumi_ech_resolver.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/request/core/network_config.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/network/bangumi_acceleration.dart';
+import 'package:yhdm/services/network/bangumi_ech_resolver.dart';
 
 const _echRequestKey = 'bangumiEch';
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/bangumi_avatar.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:yhdm/bean/widget/bangumi_avatar.dart';
+import 'package:yhdm/modules/comments/comment_item.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:kazumi/utils/date_time.dart';
-import 'package:kazumi/request/apis/custom_comment_api.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/utils/date_time.dart';
+import 'package:yhdm/request/apis/custom_comment_api.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CommentsCard extends StatelessWidget {

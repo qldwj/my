@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/models/episode_comment.dart';
-import 'package:kazumi/modules/bangumi/episode_item.dart';
-import 'package:kazumi/modules/comments/comment_item.dart' show EpisodeCommentItem;
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/services/comment/episode_comment_service.dart';
-import 'package:kazumi/widgets/comment/comment_editor.dart';
-import 'package:kazumi/widgets/comment/comment_item.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/models/episode_comment.dart';
+import 'package:yhdm/modules/bangumi/episode_item.dart';
+import 'package:yhdm/modules/comments/comment_item.dart' show EpisodeCommentItem;
+import 'package:yhdm/pages/video/video_controller.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/services/comment/episode_comment_service.dart';
+import 'package:yhdm/widgets/comment/comment_editor.dart';
+import 'package:yhdm/widgets/comment/comment_item.dart';
 
 /// 播放页评论 Tab（樱花动漫评论系统）
 ///

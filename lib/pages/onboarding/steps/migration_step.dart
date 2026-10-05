@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/onboarding/onboarding_step_layout.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 🆕 换包名账号迁移步骤（写进首次启动向导）
 ///

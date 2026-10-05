@@ -1,32 +1,32 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'dart:io';
-import 'package:kazumi/torrent/torrent_service.dart';
+import 'package:yhdm/torrent/torrent_service.dart';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
-import 'package:kazumi/pages/player/controller/player_super_resolution.dart';
-import 'package:kazumi/services/shaders/shader_asset_service.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/pages/player/controller/player_debug_controller.dart';
+import 'package:yhdm/pages/player/controller/player_super_resolution.dart';
+import 'package:yhdm/services/shaders/shader_asset_service.dart';
+import 'package:yhdm/utils/constants.dart';
 import 'dart:async';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/network/proxy_utils.dart';
-import 'package:kazumi/services/network/metered_network_service.dart';
-import 'package:kazumi/services/network/system_proxy_service.dart';
-import 'package:kazumi/services/player/player_screenshot_service.dart';
-import 'package:kazumi/services/player/low_memory_mode.dart';
-import 'package:kazumi/services/player/player_error_mapper.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/async_serial_queue.dart';
-import 'package:kazumi/services/video_source/video_source_format.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/network/proxy_utils.dart';
+import 'package:yhdm/services/network/metered_network_service.dart';
+import 'package:yhdm/services/network/system_proxy_service.dart';
+import 'package:yhdm/services/player/player_screenshot_service.dart';
+import 'package:yhdm/services/player/low_memory_mode.dart';
+import 'package:yhdm/services/player/player_error_mapper.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/async_serial_queue.dart';
+import 'package:yhdm/services/video_source/video_source_format.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/media.dart';
-import 'package:kazumi/services/platform/platform_environment_service.dart';
+import 'package:yhdm/utils/device.dart';
+import 'package:yhdm/utils/media.dart';
+import 'package:yhdm/services/platform/platform_environment_service.dart';
 
 part 'player_playback_controller.g.dart';
 

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/notification/anime_update_notification_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/date_time.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/settings_section_card.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/notification/anime_update_notification_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/date_time.dart';
 
 /// 追番更新提醒设置页
 class NotificationSettingsPage extends StatefulWidget {

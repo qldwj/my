@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/webview/captcha/captcha_webview_controller.dart';
 
 /// 验证码验证服务
 ///

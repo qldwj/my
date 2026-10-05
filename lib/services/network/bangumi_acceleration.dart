@@ -1,5 +1,5 @@
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 enum BangumiAcceleration {
   direct,

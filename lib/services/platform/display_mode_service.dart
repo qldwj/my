@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 class DisplayModeService {
