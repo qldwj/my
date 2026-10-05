@@ -20,11 +20,39 @@ class AnnouncementService {
       final data = json.decode(response) as Map<String, dynamic>;
 
       final version = data['version'] as int? ?? 0;
-      final title = data['title'] as String? ?? '公告';
-      final content = data['content'] as String? ?? '';
+      // 活动列表：优先取 list 字段；兼容旧单条结构(title/content)
+      final activities = <Map<String, String>>[];
+      final rawList = data['list'];
+      if (rawList is List) {
+        for (final item in rawList) {
+          if (item is Map) {
+            final t = (item['title'] ?? '').toString().trim();
+            final c = (item['content'] ?? '').toString();
+            final img = (item['image'] ?? item['img'] ?? item['pic'] ?? '').toString().trim();
+            if (c.isNotEmpty) {
+              activities.add({
+                'title': t.isEmpty ? '活动' : t,
+                'content': c,
+                'image': img,
+              });
+            }
+          }
+        }
+      } else {
+        final t = (data['title'] ?? '活动').toString().trim();
+        final c = (data['content'] ?? '').toString();
+        final img = (data['image'] ?? data['img'] ?? data['pic'] ?? '').toString().trim();
+        if (c.isNotEmpty) {
+          activities.add({
+            'title': t.isEmpty ? '活动' : t,
+            'content': c,
+            'image': img,
+          });
+        }
+      }
 
-      if (version > localVersion && content.isNotEmpty) {
-        _showAnnouncementDialog(title, content, version);
+      if (version > localVersion && activities.isNotEmpty) {
+        _showActivityDialog(activities, version);
       }
     } catch (e) {
       KazumiLogger().w('Announcement: check failed', error: e);
@@ -38,7 +66,9 @@ class AnnouncementService {
         (trimmed.contains('</') || trimmed.contains('/>'));
   }
 
-  static void _showAnnouncementDialog(String title, String content, int version) {
+  /// 活动列表弹窗：默认展示最新 5 条，可下滑；点击条目展开详情(标题+内容+图片)。
+  /// 点"我知道了"或勾选后仅记录当前 version，后台发布新活动(version 更新)仍会弹出。
+  static void _showActivityDialog(List<Map<String, String>> activities, int version) {
     bool dontShowAgain = false;
 
     KazumiDialog.show(
@@ -49,65 +79,79 @@ class AnnouncementService {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Row(
                 children: [
-                  Icon(Icons.announcement, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.celebration, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  const Expanded(child: Text('活动', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
               ),
               content: SizedBox(
                 width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_isHtml(content))
-                        // HTML内容：用WebView渲染
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            constraints: const BoxConstraints(maxHeight: 460),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 活动列表：默认可视约 5 条，超出可下滑
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: activities.length,
+                        itemBuilder: (context, index) {
+                          final item = activities[index];
+                          return ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              Icons.campaign_outlined,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            child: _HtmlContentView(htmlContent: content),
-                          ),
-                        )
-                      else
-                        // 纯文本内容
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            content,
-                            style: const TextStyle(fontSize: 15, height: 1.6),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: dontShowAgain,
-                            onChanged: (value) {
-                              setState(() {
-                                dontShowAgain = value ?? false;
-                              });
-                            },
-                          ),
-                          const Text('不再提示此公告'),
-                        ],
+                            title: Text(
+                              item['title'] ?? '活动',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                            ),
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => _showActivityDetail(
+                              context,
+                              item['title'] ?? '活动',
+                              item['content'] ?? '',
+                              item['image'] ?? '',
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                    if (activities.length > 5)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '共 ${activities.length} 个活动，可下滑查看',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: dontShowAgain,
+                          onChanged: (value) {
+                            setState(() {
+                              dontShowAgain = value ?? false;
+                            });
+                          },
+                        ),
+                        const Text('不再提示此活动'),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
+                    // 勾选/关闭均记录当前 version：后台发布新活动(version 更新)后仍会弹出
                     GStorage.putSetting(SettingsKeys.announcementVersion, version);
                     KazumiDialog.dismiss();
                   },
@@ -126,6 +170,108 @@ class AnnouncementService {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  /// 活动详情弹窗：标题 + 图片(补充) + 内容(HTML 渲染，支持图片) + 我知道了。
+  static void _showActivityDetail(BuildContext context, String title, String content, String image) {
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.celebration, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 补充图片（可选）
+                  if (image.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        image,
+                        width: double.maxFinite,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            height: 160,
+                            alignment: Alignment.center,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: const LoadingIndicator(),
+                          );
+                        },
+                        errorBuilder: (context, error, stack) => Container(
+                          height: 80,
+                          alignment: Alignment.center,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          child: Text(
+                            '图片加载失败',
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (image.isNotEmpty) const SizedBox(height: 12),
+                  if (_isHtml(content))
+                    // HTML内容：用WebView渲染(支持图片/样式)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 460),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: _HtmlContentView(htmlContent: content),
+                      ),
+                    )
+                  else
+                    // 纯文本内容
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        content,
+                        style: const TextStyle(fontSize: 15, height: 1.6),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '我知道了',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
