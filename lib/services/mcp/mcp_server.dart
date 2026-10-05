@@ -146,7 +146,7 @@ class McpServer {
   Future<void> start({int? port}) async {
     if (_running) return;
     if (port != null) _port = port;
-    final addr = InternetAddress.loopbackIPv4;
+    final addr = InternetAddress.anyIPv4;
     _server = await HttpServer.bind(addr, _port);
     _running = true;
     KazumiLogger().i('MCP Server: $url');

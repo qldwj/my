@@ -159,8 +159,48 @@ sheetAnimationStyle: kSheetAnimationStyle,
                     // 左下角：设置
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: isRunning ? null : () {
-                          // 端口已经在上面设置了
+                        onPressed: isRunning ? null : () async {
+                          // 弹端口修改对话框
+                          final newPort = await KazumiDialog.show<int>(
+                            clickMaskDismiss: true,
+                            builder: (dctx) {
+                              final ctrl =
+                                  TextEditingController(text: port.toString());
+                              return AlertDialog(
+                                title: const Text('设置端口'),
+                                content: TextField(
+                                  controller: ctrl,
+                                  keyboardType: TextInputType.number,
+                                  autofocus: true,
+                                  decoration: const InputDecoration(
+                                    hintText: '1 - 65535',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dctx).pop(),
+                                    child: const Text('取消'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      final p = int.tryParse(ctrl.text);
+                                      if (p != null && p > 0 && p < 65536) {
+                                        Navigator.of(dctx).pop(p);
+                                      } else {
+                                        KazumiDialog.showToast(message: '端口无效');
+                                      }
+                                    },
+                                    child: const Text('确定'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          if (newPort != null && newPort > 0 && newPort < 65536) {
+                            port = newPort;
+                            setSheetState(() {});
+                          }
                         },
                         icon: const Icon(Icons.settings_rounded, size: 18),
                         label: Text(l10n.setFPortSettings),
