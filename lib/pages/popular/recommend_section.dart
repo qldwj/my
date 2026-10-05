@@ -79,8 +79,8 @@ class _RecommendSectionState extends State<RecommendSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // 标题上方留出呼吸间距，底部微留间距
-      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      // 顶部紧贴热门番组标题栏，不留间距；底部微留间距
+      padding: const EdgeInsets.only(top: 0, bottom: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
