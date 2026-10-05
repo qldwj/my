@@ -513,6 +513,19 @@ abstract class _PlayerPlaybackController with Store {
         return;
       }
       switch (mode) {
+        case SuperResolutionMode.light:
+          // deband 用 mpv 原生滤镜(零开销), CAS 风格轻锐化 shader
+          await pp.command(['set', 'deband', 'yes']);
+          await pp.command([
+            'change-list',
+            'glsl-shaders',
+            'set',
+            buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path,
+              yhdmLightEnhanceShaders,
+            ),
+          ]);
+          break;
         case SuperResolutionMode.efficiency:
           await pp.command([
             'change-list',
@@ -536,6 +549,7 @@ abstract class _PlayerPlaybackController with Store {
           ]);
           break;
         case SuperResolutionMode.off:
+          await pp.command(['set', 'deband', 'no']);
           await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
           break;
       }

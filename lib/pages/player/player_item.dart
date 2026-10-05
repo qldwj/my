@@ -718,8 +718,8 @@ class _PlayerItemState extends State<PlayerItem>
         await KazumiDialog.show(builder: (context) {
           return AlertDialog(
             title: const Text('兼容性提示'),
-            content: const Text('MediaCodec 渲染器不支持超分辨率功能。\n\n'
-                '如需使用超分辨率，请在播放设置中将视频渲染器切换为 gpu 或 gpu-next。'),
+            content: const Text('MediaCodec 渲染器不支持画质增强/超分辨率功能。\n\n'
+                '如需使用，请在播放设置中将视频渲染器切换为 gpu 或 gpu-next。'),
             actions: [
               TextButton(
                 onPressed: () {

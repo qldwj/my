@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
@@ -139,33 +140,54 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
     final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: _outlet(context),
-      bottomNavigationBar: NavigationBar(
-        destinations: <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: l10n.setGTabRecommend,
+      // 液态玻璃底部导航: BackdropFilter 模糊 + 半透明白 + 顶部细描边
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.35),
+              width: 0.5,
+            ),
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.timeline),
-            icon: Icon(Icons.timeline_outlined),
-            label: l10n.setGTabTimeline,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: NavigationBar(
+              backgroundColor: cs.surface.withValues(alpha: 0.55),
+              indicatorColor: cs.primaryContainer.withValues(alpha: 0.7),
+              elevation: 0,
+              destinations: <Widget>[
+                NavigationDestination(
+                  selectedIcon: Icon(Icons.home),
+                  icon: Icon(Icons.home_outlined),
+                  label: l10n.setGTabRecommend,
+                ),
+                NavigationDestination(
+                  selectedIcon: Icon(Icons.timeline),
+                  icon: Icon(Icons.timeline_outlined),
+                  label: l10n.setGTabTimeline,
+                ),
+                NavigationDestination(
+                  selectedIcon: Icon(Icons.favorite),
+                  icon: Icon(Icons.favorite_outlined),
+                  label: l10n.setGTabFollow,
+                ),
+                NavigationDestination(
+                  selectedIcon: Icon(Icons.settings),
+                  icon: Icon(Icons.settings_outlined),
+                  label: l10n.setGTabMine,
+                ),
+              ],
+              selectedIndex: selectedIndex,
+              onDestinationSelected: _selectDestination,
+            ),
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
-            label: l10n.setGTabFollow,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings_outlined),
-            label: l10n.setGTabMine,
-          ),
-        ],
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _selectDestination,
+        ),
       ),
     );
   }

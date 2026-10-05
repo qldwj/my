@@ -158,6 +158,9 @@ const List<String> mpvAnime4KShadersLite = [
   'Anime4K_Upscale_CNN_x2_S.glsl'
 ];
 
+/// 轻量增强滤镜 (deband 用 mpv 原生属性, 这里只放 CAS 风格轻锐化)
+const List<String> yhdmLightEnhanceShaders = ['YHDM_LightSharpen.glsl'];
+
 /// 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,
