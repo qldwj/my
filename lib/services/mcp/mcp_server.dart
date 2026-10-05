@@ -42,6 +42,8 @@ class McpServer {
 - XPath 规则示例：https://qlyyz.xyz/docs/rules/develop-rules-example.html
 - 社区教程：https://www.kshare.top
 - API 规则开发：https://qlyyz.xyz/docs/rules/develop-api-rules.html
+- 需要登录后才能观看（例：次元城 ciyuancheng，不只限它）：https://qlyyz.xyz/docs/rules/login-required.html
+- 人机验证应对（图片验证码 / 点击滑块 / CF·Akamai 智能风控）：https://qlyyz.xyz/docs/rules/human-verification.html
 - 规则仓库（兼容 Kazumi 格式）：https://github.com/qldwj/Kazuminb6Rules
 - 视频嗅探原理：https://qlyyz.xyz/docs/architecture/video-parser.html
 - 技术博客：https://www.cnblogs.com/1288blog/p/19506033
@@ -68,11 +70,13 @@ class McpServer {
   /search/-------------.html?wd=@keyword、/search/?wd=@keyword、/?key=@keyword、/so/-------------.html?wd=@keyword、/api/search?word=@keyword 等，取决于站点框架。
 - 搜索结果 XPath 因站差异巨大：列表可能是 ul>li、div.grid、table tr、a.video、.search_list 等。searchList 必须定位到"每一条结果"的重复节点，再相对其取 searchName（标题）与 searchResult（详情链接）。
 - 若搜索有分页/懒加载，优先用站点自带的关键词搜索接口（通常稳定返回 JSON 或整页结果），不要依赖抓首页。
-- 人机验证应对（先实测判断站点到底是哪种验证，再选对应档位）：
-  · 正常【图片验证码】（搜索/详情/播放页返回图片验证码）→ antiCrawlerConfig=1，走图片验证识别。
-  · 【非正常验证】需要点击/滑块/行为验证 → antiCrawlerConfig=2，走自动点击处理。
-  · 【超级特殊验证】Cloudflare CF、Akamai 等智能风控 → antiCrawlerConfig=3，走自定义 JS 脚本，必要时配合 useWebview 用真实浏览器内核过验证。
-  · 【需要登录才能搜索/观看】的站点（例：次元城 ciyuancheng，部分内容需登录后才可播放）→ 配 needLogin=true + loginURL，并提示用户需先在 App 内登录该站。
+- 人机验证应对与登录后观看（最重要：动手前必须先读这两份文档，按其完整规范处理，严禁只看本摘要就写）：
+  · 《需要登录后才能观看》：https://qlyyz.xyz/docs/rules/login-required.html → 针对需要登录才能搜索/观看的站点（例：次元城 ciyuancheng，不只限它）。生成规则时必须配 needLogin=true + loginURL（该站的登录页地址），并在规则说明里提示用户需先在 App 内登录该站。不要遗漏 needLogin/loginURL 字段，否则用户导入后无法播放。
+  · 《人机验证应对》：https://qlyyz.xyz/docs/rules/human-verification.html → 针对站点有人机验证的情况。先实测判断站点到底是哪种验证，再按文档选对应档位：
+    - 正常【图片验证码】（搜索/详情/播放页返回图片验证码）→ antiCrawlerConfig=1，配 captchaImage/captchaInput/captchaButton 等图片验证识别字段。
+    - 【非正常验证】需要点击/滑块/行为验证 → antiCrawlerConfig=2，走自动点击处理，配 captchaDetectType/captchaDetectValue/captchaScript。
+    - 【超级特殊验证】Cloudflare CF、Akamai 等智能风控 → antiCrawlerConfig=3，走自定义 JS 脚本，必要时配合 useWebview=true 用真实浏览器内核过验证。
+    - 无论哪种，都要把 antiCrawlerConfig 对象完整给出（enabled 等字段），不能只给数字。实在无法自动处理时，在规则说明中标注需要用户手动配合。
 
 ✅ 规则模板（以此为基准，字段名和结构照抄；searchURL/XPath 仅是示例，务必替换为目标站实测值）：
 {
