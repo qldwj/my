@@ -155,46 +155,25 @@ abstract class _PlayerDanmakuController with Store {
         episode,
       );
     }
-    // ⭐ 两个弹幕源【同时并发】拉取，合并显示（弹弹play + B站）
-    final futures = <Future<DanmakuLoadResult>>[
-      _fetchDanDanmakuByBgmBangumiID(
-        bangumiId,
-        episode,
-      ),
-    ];
-    if (bangumiName.isNotEmpty &&
-        GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource)) {
-      futures.add(_fetchBiliDanmaku(bangumiName, episode));
-    }
+    // ⭐ 只拉弹弹play（按用户要求去掉 B站并发，省带宽，弱网首帧更快）
+    final result = await _fetchDanDanmakuByBgmBangumiID(
+      bangumiId,
+      episode,
+    );
 
-    final results = await Future.wait(futures);
-
-    final merged = <DanmakuEntry>[];
-    var mergedBangumiId = bangumiId;
-    for (final r in results) {
-      if (r.hasDanmakus) {
-        merged.addAll(r.danmakus);
-      }
-      if (r.bangumiID != bangumiId && r.bangumiID != 0) {
-        mergedBangumiId = r.bangumiID;
-      }
-    }
-    if (merged.isNotEmpty) {
+    if (result.hasDanmakus) {
       KazumiLogger().i(
-          'PlayerController: 双源合并 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
+          'PlayerController: 弹弹play 拉取 ${result.danmakus.length} 条弹幕 (bangumiId=$bangumiId)');
       // 🆕 缓存到本地库（下次源挂了也能看）
       unawaited(DanmakuCacheService.save(
         bangumiId: bangumiId,
         episode: episode,
-        danmakus: merged.map((e) => e.toJson()).toList(),
+        danmakus: result.danmakus.map((e) => e.toJson()).toList(),
       ));
-      return DanmakuLoadResult.success(
-        danmakus: merged,
-        bangumiID: mergedBangumiId,
-      );
+      return result;
     }
 
-    // 🆕 两个源都没弹幕 → 尝试本地缓存兜底
+    // 🆕 弹弹play 没弹幕 → 尝试本地缓存兜底
     final cached = await DanmakuCacheService.load(
       bangumiId: bangumiId,
       episode: episode,
@@ -214,9 +193,7 @@ abstract class _PlayerDanmakuController with Store {
     }
 
     // 都没有：返回失败（由上层提示）
-    return results.isNotEmpty
-        ? results.first
-        : DanmakuLoadResult.failed(bangumiID: bangumiId);
+    return result;
   }
 
   /// 通过 B站搜索拉取弹幕（真正的 B站直连源）
