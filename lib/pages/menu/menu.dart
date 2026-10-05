@@ -138,9 +138,32 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 
   Widget _bottomMenu(BuildContext context, int selectedIndex) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: _outlet(context),
-      bottomNavigationBar: _AnimatedNavBar(
+      bottomNavigationBar: NavigationBar(
+        destinations: <Widget>[
+          NavigationDestination(
+            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
+            label: l10n.setGTabRecommend,
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.timeline),
+            icon: Icon(Icons.timeline_outlined),
+            label: l10n.setGTabTimeline,
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.favorite),
+            icon: Icon(Icons.favorite_outlined),
+            label: l10n.setGTabFollow,
+          ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.settings),
+            icon: Icon(Icons.settings_outlined),
+            label: l10n.setGTabMine,
+          ),
+        ],
         selectedIndex: selectedIndex,
         onDestinationSelected: _selectDestination,
       ),
@@ -201,96 +224,3 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   }
 }
 
-/// 底部导航：选中高亮条在 tab 间水平平移 + 选中图标缩放上浮
-class _AnimatedNavBar extends StatelessWidget {
-  const _AnimatedNavBar({
-    super.key,
-    required this.selectedIndex,
-    required this.onDestinationSelected,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onDestinationSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-    final items = <({IconData icon, IconData selIcon, String label})>[
-      (icon: Icons.home_outlined, selIcon: Icons.home, label: l10n.setGTabRecommend),
-      (icon: Icons.timeline_outlined, selIcon: Icons.timeline, label: l10n.setGTabTimeline),
-      (icon: Icons.favorite_outlined, selIcon: Icons.favorite, label: l10n.setGTabFollow),
-      (icon: Icons.settings_outlined, selIcon: Icons.settings, label: l10n.setGTabMine),
-    ];
-    return Material(
-      color: cs.surfaceContainer,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final w = c.maxWidth;
-              final itemW = w / items.length;
-              final pillW = itemW - 36;
-              return Stack(
-                children: [
-                  // 高亮指示条：选中项之间水平平移（不重载页面）
-                  AnimatedPositioned(
-                    left: selectedIndex * itemW + (itemW - pillW) / 2,
-                    top: 10,
-                    duration: const Duration(milliseconds: 320),
-                    curve: Curves.easeOutCubic,
-                    child: Container(
-                      width: pillW,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: List.generate(items.length, (i) {
-                      final it = items[i];
-                      final sel = i == selectedIndex;
-                      return Expanded(
-                        child: InkWell(
-                          onTap: () => onDestinationSelected(i),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedScale(
-                                scale: sel ? 1.12 : 1.0,
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeOut,
-                                child: Icon(
-                                  sel ? it.selIcon : it.icon,
-                                  size: 23,
-                                  color: sel ? cs.primary : cs.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                it.label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                                  color: sel ? cs.primary : cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
