@@ -536,7 +536,10 @@ class _PluginViewPageState extends State<PluginViewPage>
           clipboardLoaded = true;
           Clipboard.getData('text/plain').then((data) {
             final text = data?.text?.trim() ?? '';
-            if (text.isNotEmpty) {
+            // 仅当剪贴板为 yhdmgz 链接或 HTTPS 链接时才自动粘贴，其他内容不自动填入
+            final isAutoPaste =
+                text.startsWith('yhdmgz://') || text.startsWith('https://');
+            if (isAutoPaste) {
               pluginText = text;
               controller.text = text;
             }
