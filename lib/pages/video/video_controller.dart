@@ -49,6 +49,39 @@ class VideoPageController extends _VideoPageController
   /// 🆕 好友"一起看"邀请：打开播放页后自动加入该 Syncplay 房间
   static ({int id, int episode, String room, String endpoint, String username})?
       pendingSyncInvite;
+
+  /// ⭐ 详情页预解析池：key='番剧id:集数' → 直链 URL。
+  /// 详情页选源后后台预解析第 1 集写入，播放页 changeEpisode 命中即秒开。
+  static final Map<String, String> incomingPreloadedUrls = {};
+
+  /// 详情页后台预解析指定集数直链（失败静默，不影响详情页）
+  static Future<void> preloadFor(
+    int bangumiId,
+    int episode, {
+    required Plugin currentPlugin,
+    required String pageUrl,
+  }) async {
+    final key = '$bangumiId:$episode';
+    if (incomingPreloadedUrls.containsKey(key)) return;
+    final service = WebViewVideoSourceService();
+    try {
+      final urlItem = normalizeEpisodeUrl(currentPlugin.baseUrl, pageUrl);
+      final source = await service.resolve(
+        urlItem,
+        useLegacyParser: currentPlugin.useLegacyParser,
+        offset: 0,
+      );
+      if (source.url.isNotEmpty) {
+        incomingPreloadedUrls[key] = source.url;
+        KazumiLogger().i(
+            'VideoPageController: 详情页预解析完成 $bangumiId 第$episode集');
+      }
+    } catch (e) {
+      KazumiLogger().w('VideoPageController: 详情页预解析失败', error: e);
+    } finally {
+      unawaited(service.dispose());
+    }
+  }
 }
 
 class VideoEpisodeSelection {
@@ -690,6 +723,15 @@ abstract class _VideoPageController with Store implements Disposable {
     );
 
     // ⭐ 检查预加载缓存（秒开）
+    // 先吸收详情页预解析池的直链（命中即移除，只生效一次）
+    final incomingKey = '${bangumiItem.id}:${resolvedEpisode.listIndex}';
+    final incomingUrl =
+        VideoPageController.incomingPreloadedUrls.remove(incomingKey);
+    if (incomingUrl != null && incomingUrl.isNotEmpty) {
+      _preloadedVideoUrls[resolvedEpisode.listIndex] = incomingUrl;
+      KazumiLogger().i(
+          '✅ 使用详情页预解析缓存: 第${resolvedEpisode.listIndex}集');
+    }
     final preloadedUrl = _preloadedVideoUrls.remove(resolvedEpisode.listIndex);
     if (preloadedUrl != null && preloadedUrl.isNotEmpty) {
       KazumiLogger().i('✅ 使用预加载缓存: 第${resolvedEpisode.listIndex}集');

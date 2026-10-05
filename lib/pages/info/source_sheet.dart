@@ -13,6 +13,7 @@ import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/modules/search/plugin_search_module.dart';
 import 'package:yhdm/pages/video/video_playback_args.dart';
+import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 import 'package:url_launcher/url_launcher.dart';
@@ -296,6 +297,15 @@ class _SourceSheetState extends State<SourceSheet>
       }
       KazumiDialog.dismiss();
       if (userClosed || !mounted) return;   // 用户已取消就不再进播放页
+      // ⭐ 详情页预解析：后台解析第 1 集直链，进播放页命中即秒开（失败静默）
+      if (roads.isNotEmpty && roads.first.data.isNotEmpty) {
+        unawaited(VideoPageController.preloadFor(
+          widget.infoController.bangumiItem.id,
+          1,
+          currentPlugin: plugin,
+          pageUrl: roads.first.data.first,
+        ));
+      }
       context.pushNamed(
         '/video/',
         arguments: OnlineVideoPlaybackArgs(
