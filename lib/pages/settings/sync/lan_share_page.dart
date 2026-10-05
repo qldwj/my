@@ -40,6 +40,7 @@ class _LanSharePageState extends State<LanSharePage> {
   }
 
   Future<void> _loadLocalIp() async {
+    String? fallback;
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
@@ -47,18 +48,47 @@ class _LanSharePageState extends State<LanSharePage> {
         includeLinkLocal: false,
       );
       for (final i in interfaces) {
+        final name = (i.name ?? '').toLowerCase();
+        // 跳过隧道/VPN/蜂窝虚拟接口（地址通常不可被局域网内其他设备访问）
+        final isTunnel = name.startsWith('tun') ||
+            name.startsWith('tap') ||
+            name.startsWith('ppp') ||
+            name.startsWith('wg') ||
+            name.startsWith('vpn') ||
+            name.startsWith('utun') ||
+            name.startsWith('rmnet') ||
+            name.startsWith('sw');
         for (final a in i.addresses) {
-          if (!a.isLoopback) {
+          if (a.isLoopback) continue;
+          fallback ??= a.address;
+          // 优先选局域网私网地址（192.168.x / 10.x / 172.16-31.x）
+          if (_isPrivateLan(a.address)) {
             _ip = a.address;
-            break;
+            if (mounted) setState(() {});
+            return;
           }
         }
-        if (_ip.isNotEmpty) break;
+        if (isTunnel) continue;
       }
     } catch (e) {
       KazumiLogger().w('LanShare: 获取本机IP失败 $e');
     }
+    _ip = fallback ?? '';
     if (mounted) setState(() {});
+  }
+
+  /// 判断是否为可被局域网内其他设备直连的私网 IPv4 地址。
+  bool _isPrivateLan(String ip) {
+    if (ip.startsWith('192.168.')) return true;
+    if (ip.startsWith('10.')) return true;
+    if (ip.startsWith('172.')) {
+      final parts = ip.split('.');
+      if (parts.length >= 2) {
+        final b = int.tryParse(parts[1]);
+        if (b != null && b >= 16 && b <= 31) return true;
+      }
+    }
+    return false;
   }
 
   String _url() => 'http://$_ip:$_port';
