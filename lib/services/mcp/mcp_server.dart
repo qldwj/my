@@ -26,6 +26,7 @@ class McpServer {
 🔧 工具使用规范（重要）：
 - 有很多的工具可用，用来调用，仅在要使用的时候进行调用，一定要看它的介绍。
 - 例如：抓站测试用 test_rule，扫描/搜索图标用 scan_rule_icons / fetch_site_icon，批量巡检用 batch_test，规则对比用 diff_rules，找同类模板用 suggest_rules，失败自动修复用 fix_rule。
+- 【验证码/登录处理】AI 不能自动识别图片验证码：测试或生成规则遇到验证码/登录拦截时，禁止尝试硬解或编造答案。先读《人机验证应对》文档，用 captcha_guide 取模板；实测阶段请用户在该站点完成验证后复制 Cookie，用 test_with_cookie 粘贴 Cookie 重新测试，确认登录/过验证后规则可用。
 
 ✅ 第一步（永远先做，写任何规则之前）：先阅读，再动手。
 - 必须先实际访问目标网站，阅读它的搜索页/详情页/播放页真实结构（服务端 HTML 还是 JSON 接口、有没有登录或人机验证），再决定怎么写。
@@ -211,7 +212,8 @@ class McpServer {
             {'name': 'captcha_guide', 'description': '验证码/登录应对指引：按类型输出 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等)/purple或login(紫色模板=登录后观看,needLogin+loginURL 全套)；不传则返回全部档位。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / purple(登录后观看) / 不传返回全部'}}, 'required': []}},
             {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}},
             {'name': 'test_with_cookie', 'description': '带Cookie实测规则：用户从站点/浏览器/App复制已登录的Cookie粘贴进来，带上Cookie跑真实搜索+选集测试，验证登录后规则到底能不能用。用于需要登录(紫色线路)或带Cookie才可访问的站点。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}, 'cookie': {'type': 'string', 'description': '已登录Cookie(用户从浏览器/站点复制)'}}, 'required': ['rule', 'keyword', 'cookie']}},
-            {'name': 'cookie_helper', 'description': 'Cookie/凭据指引：站点需要登录(Cookie)时规则怎么写。说明 App 端登录态机制(WebView共享Cookie)、userAgent/Referer 字段、Cookie 过期处理，以及何时用 test_with_cookie 实测。', 'inputSchema': {'type': 'object', 'properties': {}, 'required': []}}
+            {'name': 'cookie_helper', 'description': 'Cookie/凭据指引：站点需要登录(Cookie)时规则怎么写。说明 App 端登录态机制(WebView共享Cookie)、userAgent/Referer 字段、Cookie 过期处理，以及何时用 test_with_cookie 实测。', 'inputSchema': {'type': 'object', 'properties': {}, 'required': []}},
+            {'name': 'captcha_help', 'description': '验证码人工协助入口：AI 无法识别图片验证码时的处理工具。传入 cookie 则直接带 Cookie 重新实测(test_with_cookie 逻辑)；不传则输出三套处理方案(用户粘贴Cookie / App内人工过验证 / 规则标记antiCrawlerConfig)，禁止AI硬解验证码。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}, 'cookie': {'type': 'string', 'description': '可选：用户在该站完成验证后复制的Cookie，传入则直接重测'}}, 'required': ['rule', 'keyword']}}
           ]}});
           break;
         case 'tools/call':
@@ -269,6 +271,14 @@ class McpServer {
           } else if (name == 'cookie_helper') {
             final result = _cookieHelper();
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else if (name == 'captcha_help') {
+            _captchaHelp(
+              (args['rule'] ?? '').toString(),
+              (args['keyword'] ?? '').toString(),
+              (args['cookie'] ?? '').toString(),
+            ).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
           } else {
             final url = args['url'] ?? '';
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
@@ -1409,6 +1419,32 @@ class McpServer {
         '搜索可访问但播放需登录(紫色线路)',
         '站点对未登录请求返回 302/403 跳登录页',
       ],
+    };
+  }
+
+  /// 验证码人工协助入口：AI 不识别图片验证码时的处理工具。
+  /// 传 cookie 直接带 Cookie 重测；不传则输出三套处理方案。
+  Future<Map<String, dynamic>> _captchaHelp(
+      String raw, String keyword, String cookie) async {
+    if (cookie.trim().isNotEmpty) {
+      final t = await _testRule(raw, keyword, cookie: cookie.trim());
+      return {
+        'ok': t['ok'],
+        'mode': 'cookie_retest',
+        'testResult': t,
+        'note': t['ok'] == true
+            ? '带 Cookie 实测通过：登录/验证已生效，规则可用'
+            : '带 Cookie 仍失败：Cookie 可能过期/不完整，或站点校验更严格(如指纹/UA)，请重新在站点完成验证后复制新 Cookie 再试',
+      };
+    }
+    return {
+      'ok': false,
+      'mode': 'guidance',
+      '说明': 'AI 无法自动识别图片验证码，禁止硬解或编造答案。按以下方案处理：',
+      '方案A(推荐)': '请用户在该站点(浏览器/App内)完成验证/登录后，复制 Cookie 粘贴进来，重新调用本工具(传 cookie)或 test_with_cookie 实测',
+      '方案B': '让用户在 App 内打开该站点完成一次验证，之后 App 自动保存 Cookie，规则无需硬编码',
+      '方案C': '用 captcha_guide 取对应档位 antiCrawlerConfig 模板(图片/点击/CF)，规则标记验证类型，App 播放时自动弹验证',
+      '提示': '不要尝试 OCR 硬解复杂验证码；不要编造验证码答案；不要虚构 Cookie',
     };
   }
 }
