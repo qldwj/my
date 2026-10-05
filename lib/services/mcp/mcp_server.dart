@@ -208,7 +208,7 @@ class McpServer {
             {'name': 'diff_rules', 'description': '规则对比：输入两条规则(JSON/yhdmgz://链接)，逐字段对比，输出新增/删除/修改字段清单(含值变化)，用于升级前核对版本、baseURL、选择器改动。', 'inputSchema': {'type': 'object', 'properties': {'ruleA': {'type': 'string', 'description': '规则A'}, 'ruleB': {'type': 'string', 'description': '规则B(新版本)'}}, 'required': ['ruleA', 'ruleB']}},
             {'name': 'suggest_rules', 'description': '同类模板推荐：输入新网站URL/域名，拉取规则仓库 index.json，按 baseURL 域名相似度匹配仓库内已有规则作为编写模板参考，并返回仓库规则清单(名称/baseURL/图标)。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '新网站URL或域名'}}, 'required': ['url']}},
             {'name': 'fix_rule', 'description': '规则自动修复：输入规则与测试关键词，先跑 test_rule 复现失败，再抓取搜索页真实DOM结构(前若干链接的href+文本)作为证据输出，指导修正 XPath/API 配置。返回:失败信息+页面真实结构+修复建议。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}}, 'required': ['rule', 'keyword']}},
-            {'name': 'captcha_guide', 'description': '验证码应对指引：按验证码类型输出对应的 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等,需人工处理)/all(不传则返回全部三档)。附带字段说明与规则编写指引。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / all(默认all)'}}, 'required': []}},
+            {'name': 'captcha_guide', 'description': '验证码/登录应对指引：按类型输出 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等)/purple或login(紫色模板=登录后观看,needLogin+loginURL 全套)；不传则返回全部档位。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / purple(登录后观看) / 不传返回全部'}}, 'required': []}},
             {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}}
           ]}});
           break;
@@ -1273,19 +1273,41 @@ class McpServer {
           '说明': '档3 建议同时开启 needLogin=true + loginURL（走紫色登录线路），并在规则说明中提示用户需在 App 内登录该站后再播放；captchaScript 可留空由人工处理。',
         };
 
+    Map<String, dynamic> purple() => {
+          'name': '紫色模板-登录后观看（needLogin=true）',
+          '适用': '站点搜索/详情可正常访问，但点击播放需登录（播放线路呈紫色）；或整站内容均需登录后观看',
+          'template': {
+            'needLogin': true,
+            'loginURL': 'https://目标站登录页(真实地址)',
+            'antiCrawlerConfig': {
+              'enabled': false,
+              'captchaType': 1,
+              'captchaImage': '',
+              'captchaInput': '',
+              'captchaButton': '',
+              'captchaDetectType': 1,
+              'captchaDetectValue': '',
+              'captchaScript': '',
+            },
+          },
+          '说明': 'needLogin=true 表示播放需登录（线路显示紫色）；loginURL 必须填该站真实登录页地址（不能占位）。若登录页/搜索同时有验证码，再叠加对应档位 antiCrawlerConfig。规则说明中应提示：用户需先在 App 内登录该站账号，再播放紫色线路。',
+        };
+
     final templates = <String, dynamic>{
       'image': image(),
       'click': click(),
       'cf': cf(),
+      'purple': purple(),
+      'login': purple(),
     };
-    if (k == 'image' || k == 'click' || k == 'cf') {
+    if (k == 'image' || k == 'click' || k == 'cf' || k == 'purple' || k == 'login') {
       return {'ok': true, ...templates[k] as Map<String, dynamic>, 'note': baseNote};
     }
     return {
       'ok': true,
-      'guides': [image(), click(), cf()],
+      'guides': [image(), click(), cf(), purple()],
       'note': baseNote,
-      '提示': '按目标站实际验证类型选对应档位；不确定时先人工访问站点确认',
+      '提示': '按目标站实际验证类型选对应档位；需要登录后观看的站点直接用 purple 紫色模板；不确定时先人工访问站点确认',
     };
   }
 
