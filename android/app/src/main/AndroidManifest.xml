@@ -140,6 +140,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="MCP 悬浮快捷开关，防掉后台保活" />
         </service>
+        <!-- MCP 悬浮窗可交互 Activity（flutter_overlay_window 必需，缺它悬浮窗不显示） -->
+        <activity
+            android:name="flutter.overlay.window.flutter_overlay_window.OverlayActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/overlay_theme" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
