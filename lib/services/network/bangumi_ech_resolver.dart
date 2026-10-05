@@ -1,6 +1,6 @@
 import 'package:ech_http/ech_http.dart';
 import 'package:http/http.dart' as http;
-import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
 
 class BangumiEchResolver {
   BangumiEchResolver._();

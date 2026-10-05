@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
 
 /// 签名校验失败页。
 ///

@@ -1,10 +1,10 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/onboarding/onboarding_step_layout.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DisclaimerStep extends StatefulWidget {

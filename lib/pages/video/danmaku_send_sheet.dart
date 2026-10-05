@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 
 /// 返回 (弹幕文本, 位置类型) — 1=滚动 4=底部(置底) 5=顶部(置顶)
 Future<({String text, int type})?> showMobileDanmakuInputSheet(

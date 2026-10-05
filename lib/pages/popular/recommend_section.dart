@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/request/apis/recommend_api.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/request/apis/recommend_api.dart';
 
 /// 首页顶部横排「为你推荐」区块，点击进入详情页
 /// 支持横向无限滚动（滑到末尾自动加载下一页）

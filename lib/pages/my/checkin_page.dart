@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/checkin_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/checkin_service.dart';
 
 /// 🆕 追番打卡 / 连看天数页面
 class CheckinPage extends StatefulWidget {

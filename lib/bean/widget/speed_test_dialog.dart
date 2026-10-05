@@ -1,9 +1,9 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/services/video_source/speed_tester.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/services/video_source/speed_tester.dart';
 
 /// 测速对话框 — 获取到剧集线路后进行测速和排序
 class SpeedTestDialog {

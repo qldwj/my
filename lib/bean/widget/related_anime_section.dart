@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/bangumi/subject_relation.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:yhdm/bean/card/bangumi_card.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/bangumi/subject_relation.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
 
 /// 续集 / 关联作品组件（番剧详情页概览 Tab 底部）
 ///

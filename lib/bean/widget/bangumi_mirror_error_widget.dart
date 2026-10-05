@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BangumiMirrorErrorWidget extends StatelessWidget {

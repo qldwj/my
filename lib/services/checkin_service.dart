@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/api_throttle.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/api_throttle.dart';
 
 /// 🆕 追番打卡 / 连看天数客户端
 ///

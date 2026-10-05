@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 网页版授权登录（App 端）
 ///

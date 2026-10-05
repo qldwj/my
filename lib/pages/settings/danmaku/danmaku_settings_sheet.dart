@@ -1,13 +1,13 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_time_offset_sheet.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
+import 'package:yhdm/pages/settings/danmaku/danmaku_time_offset_sheet.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/utils/device.dart';
 
 enum _DanmakuSettingsDestination {
   timeOffset,

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/mcp/mcp_server.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/mcp/mcp_server.dart';
 
 /// MCP 悬浮窗快捷开关管理。
 ///

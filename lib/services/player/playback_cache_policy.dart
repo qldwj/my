@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/network/metered_network_service.dart';
-import 'package:kazumi/services/player/low_memory_mode.dart';
-import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/network/metered_network_service.dart';
+import 'package:yhdm/services/player/low_memory_mode.dart';
+import 'package:yhdm/utils/async_serial_queue.dart';
 import 'package:media_kit/media_kit.dart';
 
 class PlaybackCachePolicy {

@@ -3,15 +3,15 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart' as canvas;
 import 'dart:async';
 
-import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/pages/player/controller/player_models.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/request/apis/danmaku_api.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/player/danmaku_cache_service.dart';
+import 'package:yhdm/modules/danmaku/danmaku_module.dart';
+import 'package:yhdm/pages/player/controller/player_models.dart';
+import 'package:yhdm/pages/download/download_controller.dart';
+import 'package:yhdm/request/apis/danmaku_api.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/player/danmaku_cache_service.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/utils/danmaku.dart';
+import 'package:yhdm/utils/danmaku.dart';
 
 part 'player_danmaku_controller.g.dart';
 

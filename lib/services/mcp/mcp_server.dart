@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
-import 'package:kazumi/services/plugin/api_rule_strategy.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/services/plugin/api_rule_strategy.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 class McpServer {
   static McpServer? _instance;

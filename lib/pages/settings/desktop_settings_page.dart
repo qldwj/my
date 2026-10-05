@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/platform/global_hotkey_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/settings_section_card.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/platform/global_hotkey_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/device.dart';
 
 /// 桌面端设置页（托盘 / 窗口记忆 / 全局快捷键）
 class DesktopSettingsPage extends StatefulWidget {

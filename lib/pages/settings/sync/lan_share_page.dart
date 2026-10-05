@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/repositories/history_repository.dart';
-import 'package:kazumi/repositories/collect_crud_repository.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/repositories/history_repository.dart';
+import 'package:yhdm/repositories/collect_crud_repository.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 局域网快速互传：点对点传输收藏与进度，不依赖公网
 /// 樱花动漫粉红主题（Color(0xffEC407A)）

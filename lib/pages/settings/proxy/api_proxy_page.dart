@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/network/image_acceleration.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/network/proxy_manager.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/network/image_acceleration.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/network/proxy_manager.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 镜像代理设置页面

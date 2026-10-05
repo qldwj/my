@@ -3,12 +3,12 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/modules/history/history_sync.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/history_storage_coordinator.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/modules/history/history_sync.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/history_storage_coordinator.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/async_serial_queue.dart';
 import 'package:path_provider/path_provider.dart';
 
 class HistorySyncService {

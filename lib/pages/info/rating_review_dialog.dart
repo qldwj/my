@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/bangumi/bangumi_tag.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 class RatingReviewResult {
   const RatingReviewResult({

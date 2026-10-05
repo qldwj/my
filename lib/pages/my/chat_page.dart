@@ -1,27 +1,27 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/online_dot.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/plugins/animeko_converter.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/utils/encoding.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/online_dot.dart';
+import 'package:yhdm/modules/collect/collect_module.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/video/video_controller.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/plugins/animeko_converter.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/utils/encoding.dart';
 
 /// 好友聊天页（文本 / 小表情 / 分享动漫 / 分享规则）
 class ChatPage extends StatefulWidget {

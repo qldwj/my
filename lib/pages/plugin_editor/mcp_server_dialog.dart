@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/mcp/mcp_server.dart';
-import 'package:kazumi/services/mcp/mcp_overlay.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/mcp/mcp_server.dart';
+import 'package:yhdm/services/mcp/mcp_overlay.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// MCP AI规则生成器弹窗
 void showMcpServerDialog(BuildContext context) {

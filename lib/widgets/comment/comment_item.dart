@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/models/episode_comment.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/services/comment/episode_comment_service.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/pages/social/public_profile_page.dart';
-import 'package:kazumi/widgets/comment/bgm_rich_text.dart';
+import 'package:yhdm/models/episode_comment.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/services/comment/episode_comment_service.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/pages/social/public_profile_page.dart';
+import 'package:yhdm/widgets/comment/bgm_rich_text.dart';
 
 class CommentItemWidget extends StatefulWidget {
   final EpisodeComment comment;

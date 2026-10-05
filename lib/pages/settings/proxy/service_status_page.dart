@@ -4,9 +4,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/utils/http_headers.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/utils/http_headers.dart';
 
 /// 代理/服务状态检测页
 class ServiceStatusPage extends StatefulWidget {

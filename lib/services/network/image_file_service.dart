@@ -1,9 +1,9 @@
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:kazumi/services/network/bangumi_ech_image_service.dart';
-import 'package:kazumi/services/network/bangumi_image_url_rewriter.dart';
-import 'package:kazumi/services/network/image_acceleration.dart';
-import 'package:kazumi/services/network/image_file_response.dart';
+import 'package:yhdm/services/network/bangumi_ech_image_service.dart';
+import 'package:yhdm/services/network/bangumi_image_url_rewriter.dart';
+import 'package:yhdm/services/network/image_acceleration.dart';
+import 'package:yhdm/services/network/image_file_response.dart';
 
 class ImageFileService extends FileService {
   ImageFileService({

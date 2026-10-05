@@ -3,22 +3,22 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/webauth/webauth_page.dart';
-import 'package:kazumi/pages/social/public_profile_page.dart';
-import 'package:kazumi/plugins/animeko_converter.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/web_auth_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/webauth/webauth_page.dart';
+import 'package:yhdm/pages/social/public_profile_page.dart';
+import 'package:yhdm/plugins/animeko_converter.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/web_auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/encoding.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/encoding.dart';
 
 /// yhdmgz:// 深度链接处理服务
 ///

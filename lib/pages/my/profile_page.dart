@@ -1,10 +1,10 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/online_dot.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/auth_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/online_dot.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/auth_service.dart';
 
 /// 个人主页（查看他人主页）
 ///

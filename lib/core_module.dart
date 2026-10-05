@@ -1,21 +1,21 @@
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/repositories/collect_crud_repository.dart';
-import 'package:kazumi/repositories/collect_repository.dart';
-import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/repositories/danmaku_shield_repository.dart';
-import 'package:kazumi/repositories/history_repository.dart';
-import 'package:kazumi/repositories/search_history_repository.dart';
-import 'package:kazumi/services/download/download_manager.dart';
-import 'package:kazumi/services/player/audio_controller.dart';
-import 'package:kazumi/services/player/history_playback_service.dart';
-import 'package:kazumi/services/shaders/shader_asset_service.dart';
-import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
-import 'package:kazumi/services/sync/webdav.dart';
+import 'package:yhdm/pages/collect/collect_controller.dart';
+import 'package:yhdm/pages/download/download_controller.dart';
+import 'package:yhdm/pages/history/history_controller.dart';
+import 'package:yhdm/pages/my/my_controller.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/repositories/collect_crud_repository.dart';
+import 'package:yhdm/repositories/collect_repository.dart';
+import 'package:yhdm/repositories/download_repository.dart';
+import 'package:yhdm/repositories/danmaku_shield_repository.dart';
+import 'package:yhdm/repositories/history_repository.dart';
+import 'package:yhdm/repositories/search_history_repository.dart';
+import 'package:yhdm/services/download/download_manager.dart';
+import 'package:yhdm/services/player/audio_controller.dart';
+import 'package:yhdm/services/player/history_playback_service.dart';
+import 'package:yhdm/services/shaders/shader_asset_service.dart';
+import 'package:yhdm/services/sync/danmaku_shield_sync_service.dart';
+import 'package:yhdm/services/sync/webdav.dart';
 
 /// Root-owned application data and cross-feature coordinators.
 ///

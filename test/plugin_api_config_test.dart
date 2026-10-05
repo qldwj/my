@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/utils/encoding.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/utils/encoding.dart';
 
 void main() {
   test('legacy plugin defaults to XPath modes', () {

@@ -1,10 +1,10 @@
 
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/yhdmgz_qr_protocol.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/yhdmgz_qr_protocol.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 扫描 yhdm://login 二维码后的处理页
 /// 扫码插件只需把二维码字符串传入 handleCode 即可

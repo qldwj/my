@@ -1,9 +1,9 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/models/episode_comment.dart';
-import 'package:kazumi/services/comment/episode_comment_service.dart';
-import 'package:kazumi/widgets/comment/comment_item.dart';
-import 'package:kazumi/widgets/comment/comment_editor.dart';
+import 'package:yhdm/models/episode_comment.dart';
+import 'package:yhdm/services/comment/episode_comment_service.dart';
+import 'package:yhdm/widgets/comment/comment_item.dart';
+import 'package:yhdm/widgets/comment/comment_editor.dart';
 
 class CommentListPage extends StatefulWidget {
   final int subjectId;

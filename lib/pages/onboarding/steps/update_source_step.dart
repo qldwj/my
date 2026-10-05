@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/onboarding/onboarding_step_layout.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/onboarding/onboarding_step_layout.dart';
 
 class UpdateSourceStep extends StatelessWidget {
   const UpdateSourceStep({

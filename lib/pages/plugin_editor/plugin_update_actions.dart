@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
 
 /// 解析本地化实例：优先使用调用方传入的 context，否则回退到全局 navigator context。
 /// （经验判断：本函数被范围外页面以无 context 形式调用，回退保证其在运行期仍可本地化。）

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/widget/image_preview.dart';
-import 'package:kazumi/bean/widget/tonal_card.dart';
-import 'package:kazumi/modules/character/character_full_item.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/bean/widget/content_section.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/bean/widget/image_preview.dart';
+import 'package:yhdm/bean/widget/tonal_card.dart';
+import 'package:yhdm/modules/character/character_full_item.dart';
 
 class CharacterInfoView extends StatelessWidget {
   const CharacterInfoView({

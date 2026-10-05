@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:kazumi/request/core/dio_factory.dart';
-import 'package:kazumi/request/core/network_error_mapper.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
-import 'package:kazumi/utils/crypto.dart';
+import 'package:yhdm/request/core/dio_factory.dart';
+import 'package:yhdm/request/core/network_error_mapper.dart';
+import 'package:yhdm/utils/constants.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/bangumi_mirror_credentials.dart';
+import 'package:yhdm/utils/crypto.dart';
 
 class BangumiClient {
   BangumiClient._();

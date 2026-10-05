@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:kazumi/repositories/danmaku_shield_repository.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/sync/webdav.dart';
+import 'package:yhdm/repositories/danmaku_shield_repository.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/sync/webdav.dart';
 
 class DanmakuShieldSyncService {
   DanmakuShieldSyncService(this._repository, this._webDav);

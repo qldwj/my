@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/widget/source_rating_widget.dart';
-import 'package:kazumi/services/plugin/plugin_icon_cache.dart';
+import 'package:yhdm/bean/widget/source_rating_widget.dart';
+import 'package:yhdm/services/plugin/plugin_icon_cache.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.

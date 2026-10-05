@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/pages/download/download_controller.dart';
+import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 
 class DownloadEpisodeSheet extends StatefulWidget {

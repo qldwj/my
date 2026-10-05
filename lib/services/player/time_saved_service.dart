@@ -1,4 +1,4 @@
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// ⚡ 省时统计：记录跳过的片头/片尾/快进节省的秒数
 class TimeSavedService {

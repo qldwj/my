@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/services/web_auth_service.dart';
+import 'package:yhdm/services/web_auth_service.dart';
 
 /// 网页版授权登录 —— 应用端整页授权确认页
 ///

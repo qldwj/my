@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/bangumi_history_card.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/bangumi_history_card.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/pages/history/history_controller.dart';
+import 'package:yhdm/utils/constants.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({

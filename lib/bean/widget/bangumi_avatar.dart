@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/services/network/bangumi_image_url_rewriter.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/services/network/bangumi_image_url_rewriter.dart';
 
 /// Bangumi 头像/网格图组件
 ///

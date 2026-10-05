@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
-import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/pages/about/about_widgets.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
+import 'package:yhdm/bean/widget/content_section.dart';
+import 'package:yhdm/pages/about/about_widgets.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 class CreditsPage extends StatelessWidget {
   const CreditsPage({super.key});

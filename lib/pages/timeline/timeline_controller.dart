@@ -1,10 +1,10 @@
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/utils/anime_season.dart';
-import 'package:kazumi/repositories/collect_repository.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/services/schedule_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/utils/anime_season.dart';
+import 'package:yhdm/repositories/collect_repository.dart';
+import 'package:yhdm/modules/collect/collect_type.dart';
+import 'package:yhdm/services/schedule_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';

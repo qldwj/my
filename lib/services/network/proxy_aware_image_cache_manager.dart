@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/io_client.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/network/bangumi_ech_image_service.dart';
-import 'package:kazumi/services/network/image_acceleration.dart';
-import 'package:kazumi/services/network/image_file_service.dart';
-import 'package:kazumi/services/network/proxy_utils.dart';
-import 'package:kazumi/services/network/system_proxy_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/network/bangumi_ech_image_service.dart';
+import 'package:yhdm/services/network/image_acceleration.dart';
+import 'package:yhdm/services/network/image_file_service.dart';
+import 'package:yhdm/services/network/proxy_utils.dart';
+import 'package:yhdm/services/network/system_proxy_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 class ProxyAwareImageCacheManager extends CacheManager with ImageCacheManager {
   static final ProxyAwareImageCacheManager instance =

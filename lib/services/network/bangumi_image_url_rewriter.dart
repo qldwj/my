@@ -1,4 +1,4 @@
-import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
 
 /// Bangumi 图片 URL 重写器
 ///

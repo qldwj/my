@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 自建评论条目
 class CustomCommentItem {

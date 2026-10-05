@@ -3,13 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/dialog/material_bottom_sheet.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:kazumi/services/player/syncplay_endpoint.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
+import 'package:yhdm/pages/player/player_controller.dart';
+import 'package:yhdm/services/player/syncplay_endpoint.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/constants.dart';
+import 'package:yhdm/utils/device.dart';
 
 /// The lobby pops itself with the step to open next, so the framework animates
 /// the swap. Steps never route back — dismissing one ends the flow.

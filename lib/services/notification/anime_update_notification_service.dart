@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/bangumi/episode_item.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/my/chat_page.dart';
-import 'package:kazumi/repositories/history_repository.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/modules/bangumi/episode_item.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/my/chat_page.dart';
+import 'package:yhdm/repositories/history_repository.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 追番更新提醒（新番推送通知）
 ///

@@ -2,16 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/player/controller/player_aspect_ratio.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/player/pip_utils.dart';
-import 'package:kazumi/services/player/skip_segments_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/pages/player/controller/player_aspect_ratio.dart';
+import 'package:yhdm/utils/constants.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/player/pip_utils.dart';
+import 'package:yhdm/services/player/skip_segments_service.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/utils/device.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});

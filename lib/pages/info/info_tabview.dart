@@ -1,23 +1,23 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/card/comments_card.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/card/character_card.dart';
-import 'package:kazumi/bean/card/staff_card.dart';
-import 'package:kazumi/bean/widget/related_anime_section.dart';
+import 'package:yhdm/bean/widget/error_widget.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/card/comments_card.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/card/character_card.dart';
+import 'package:yhdm/bean/card/staff_card.dart';
+import 'package:yhdm/bean/widget/related_anime_section.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/bean/widget/related_search_section.dart';
+import 'package:yhdm/bean/widget/related_search_section.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/services/social/admin_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/modules/characters/character_item.dart';
-import 'package:kazumi/modules/staff/staff_item.dart';
-import 'package:kazumi/utils/device.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/comments/comment_item.dart';
+import 'package:yhdm/services/social/admin_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/modules/characters/character_item.dart';
+import 'package:yhdm/modules/staff/staff_item.dart';
+import 'package:yhdm/utils/device.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({

@@ -2,16 +2,16 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/request/clients/download_http_client.dart';
-import 'package:kazumi/request/core/network_exception.dart';
-import 'package:kazumi/utils/m3u8_parser.dart';
-import 'package:kazumi/utils/m3u8_ad_filter.dart';
-import 'package:kazumi/utils/format.dart' as fmt;
-import 'package:kazumi/utils/file_system.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/platform/secure_bookmark_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/request/clients/download_http_client.dart';
+import 'package:yhdm/request/core/network_exception.dart';
+import 'package:yhdm/utils/m3u8_parser.dart';
+import 'package:yhdm/utils/m3u8_ad_filter.dart';
+import 'package:yhdm/utils/format.dart' as fmt;
+import 'package:yhdm/utils/file_system.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/platform/secure_bookmark_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:path/path.dart' as path;
 
 class _NotM3u8Exception implements Exception {

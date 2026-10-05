@@ -1,15 +1,15 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/bean/widget/source_rating_widget.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/sync/webdav.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/settings_section_card.dart';
+import 'package:yhdm/bean/widget/source_rating_widget.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/sync/webdav.dart';
 
 /// 规则设置页
 ///

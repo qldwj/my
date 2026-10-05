@@ -1,4 +1,4 @@
-import 'package:kazumi/utils/async_serial_queue.dart';
+import 'package:yhdm/utils/async_serial_queue.dart';
 
 /// Serializes mutations to the history Hive box across repositories and sync.
 class HistoryStorageCoordinator {

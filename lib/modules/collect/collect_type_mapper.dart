@@ -1,5 +1,5 @@
-import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:yhdm/modules/bangumi/bangumi_collection_type.dart';
+import 'package:yhdm/modules/collect/collect_type.dart';
 
 /// Converting [BangumiCollectionType] to local [CollectType].
 extension BangumiCollectionTypeMapper on BangumiCollectionType {

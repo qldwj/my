@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:kazumi/plugins/animeko_converter.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/request/clients/plugin_site_client.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/plugins/animeko_converter.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/request/clients/plugin_site_client.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// Animeko 合集自动更新服务
 ///

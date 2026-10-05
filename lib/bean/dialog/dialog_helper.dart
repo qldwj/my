@@ -1,8 +1,8 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/utils/constants.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/utils/constants.dart';
 
 // A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
 // flutter_smart_dialog use overlays and self-managed route stack to show dialogs.

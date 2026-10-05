@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/collect/collect_sync_merger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/modules/bangumi/sync_priority.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/collect/collect_sync_merger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/modules/bangumi/sync_priority.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
 
 /// Bangumi 同步服务工具类
 class BangumiSyncService {

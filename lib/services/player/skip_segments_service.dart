@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:kazumi/request/apis/skip_report_api.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/request/apis/skip_report_api.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 片头/片尾跳过时长（按番剧记忆 + 众包）
 class SkipSegmentsService {

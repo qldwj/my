@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/widget/bangumi_avatar.dart';
-import 'package:kazumi/modules/characters/character_item.dart';
-import 'package:kazumi/pages/info/character_page.dart';
+import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/widget/bangumi_avatar.dart';
+import 'package:yhdm/modules/characters/character_item.dart';
+import 'package:yhdm/pages/info/character_page.dart';
 
 class CharacterCard extends StatelessWidget {
   const CharacterCard({

@@ -1,7 +1,7 @@
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/search/image_search_page.dart';
-import 'package:kazumi/pages/search/search_controller.dart';
-import 'package:kazumi/pages/search/search_page.dart';
+import 'package:yhdm/pages/search/image_search_page.dart';
+import 'package:yhdm/pages/search/search_controller.dart';
+import 'package:yhdm/pages/search/search_page.dart';
 
 void _provideSearchController(Scoped scoped) {
   scoped.add<SearchPageController>(SearchPageController.new);

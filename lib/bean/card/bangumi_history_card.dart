@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/video/video_playback_args.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/services/plugin/rule_engine_models.dart'
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/collect_button.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/modules/history/history_module.dart';
+import 'package:yhdm/pages/collect/collect_controller.dart';
+import 'package:yhdm/pages/download/download_controller.dart';
+import 'package:yhdm/pages/video/video_playback_args.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/date_time.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/utils/device.dart';
+import 'package:yhdm/utils/date_time.dart';
 
 String historySourceText(String entryKind) {
   return HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline

@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/notification/anime_update_notification_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/api_throttle.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/notification/anime_update_notification_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/api_throttle.dart';
 
 /// 社交用户资料
 class SocialProfile {

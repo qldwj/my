@@ -1,15 +1,15 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/widget/online_dot.dart';
-import 'package:kazumi/navigation.dart';
-import 'package:kazumi/pages/my/chat_page.dart';
-import 'package:kazumi/pages/my/chat_settings_page.dart';
-import 'package:kazumi/services/social/social_service.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/card/network_img_layer.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/bean/widget/online_dot.dart';
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/my/chat_page.dart';
+import 'package:yhdm/pages/my/chat_settings_page.dart';
+import 'package:yhdm/services/social/social_service.dart';
 
 /// 消息会话列表（最近聊天，微信式）
 ///

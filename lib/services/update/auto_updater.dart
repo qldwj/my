@@ -3,18 +3,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/request/clients/download_http_client.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/request/clients/download_http_client.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/date_time.dart';
-import 'package:kazumi/utils/crypto.dart';
-import 'package:kazumi/utils/version.dart';
+import 'package:yhdm/utils/device.dart';
+import 'package:yhdm/utils/date_time.dart';
+import 'package:yhdm/utils/crypto.dart';
+import 'package:yhdm/utils/version.dart';
 
 // 🆕 拉取发布镜像列表用的浏览器头（Kangle WAF 会把默认 UA 当机器人返回 JS 验证页 cbk_var）
 const Map<String, dynamic> _mirrorBrowserHeaders = {

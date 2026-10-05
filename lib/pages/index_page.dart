@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/pages/menu/menu.dart';
+import 'package:yhdm/pages/menu/menu.dart';
 
 class IndexPage extends StatefulWidget {
   const IndexPage({super.key, required this.location});

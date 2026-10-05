@@ -1,15 +1,15 @@
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/animeko_rule_config.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/plugin/api_rule_engine.dart';
-import 'package:kazumi/services/plugin/css_rule_strategy.dart';
-import 'package:kazumi/utils/episode_url.dart';
-import 'package:kazumi/utils/http_headers.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/plugins/anti_crawler_config.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/animeko_rule_config.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/plugin/api_rule_engine.dart';
+import 'package:yhdm/services/plugin/css_rule_strategy.dart';
+import 'package:yhdm/utils/episode_url.dart';
+import 'package:yhdm/utils/http_headers.dart';
 
-export 'package:kazumi/services/plugin/rule_engine_models.dart'
+export 'package:yhdm/services/plugin/rule_engine_models.dart'
     show
         CaptchaRequiredException,
         NoResultException,

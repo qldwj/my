@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/settings/settings_dropdown_tile.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/modules/danmaku/danmaku_ch_convert.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/modules/danmaku/danmaku_ch_convert.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 extension _ConversionLabel on DanmakuChConvert {
   String label(AppLocalizations l10n) => switch (this) {

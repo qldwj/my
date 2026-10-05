@@ -1,9 +1,9 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/my/device_sessions_page.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/social/social_service.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/pages/my/device_sessions_page.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/social/social_service.dart';
 
 /// 账号安全中心（我的 → 账号与数据 → 安全中心）
 ///

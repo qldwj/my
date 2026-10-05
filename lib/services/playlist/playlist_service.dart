@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:kazumi/modules/playlist/playlist_module.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/modules/playlist/playlist_module.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 播放列表服务（JSON 文件持久化）

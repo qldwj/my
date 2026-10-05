@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/player/external_player.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/player/external_player.dart';
 
 class ExternalPlaybackLauncher {
   final String Function() videoUrl;

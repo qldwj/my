@@ -1,19 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/card/palette_card.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/settings/color_type.dart';
-import 'package:kazumi/services/font_service.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/bean/card/palette_card.dart';
+import 'package:yhdm/utils/constants.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/theme_provider.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/settings/color_type.dart';
+import 'package:yhdm/services/font_service.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:kazumi/utils/device.dart';
-import 'package:kazumi/utils/theme.dart';
+import 'package:yhdm/utils/device.dart';
+import 'package:yhdm/utils/theme.dart';
 
 /// Resolve a [colorThemeTypes] labelKey to its localized label.
 String _colorLabel(String labelKey, AppLocalizations l10n) {

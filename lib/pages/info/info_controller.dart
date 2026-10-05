@@ -1,20 +1,20 @@
 import 'dart:async';
 
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/pages/info/rating_review_dialog.dart';
-import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/modules/bangumi/bangumi_interest.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/pages/collect/collect_controller.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/pages/info/rating_review_dialog.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/apis/custom_comment_api.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/modules/characters/character_item.dart';
-import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/modules/comments/comment_item.dart';
+import 'package:yhdm/request/apis/custom_comment_api.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/modules/characters/character_item.dart';
+import 'package:yhdm/modules/staff/staff_item.dart';
 
 part 'info_controller.g.dart';
 

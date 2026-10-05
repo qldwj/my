@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
-import 'package:kazumi/bean/widget/content_section.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:yhdm/bean/widget/content_section.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/pages/my/my_controller.dart';
 
 class DanmakuShieldEditor extends StatefulWidget {
   const DanmakuShieldEditor({

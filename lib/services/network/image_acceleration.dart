@@ -1,4 +1,4 @@
-import 'package:kazumi/l10n/app_localizations.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
 
 enum ImageAcceleration {
   direct,

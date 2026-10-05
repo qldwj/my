@@ -1,4 +1,4 @@
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 
 /// 播放列表中的一项（无 Hive 注解，由 PlaylistService 做 JSON 持久化）
 class PlaylistItem {

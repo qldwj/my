@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/utils/bangumi_mirror_credentials.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/utils/bangumi_mirror_credentials.dart';
 
 /// 已保存的樱花动漫账号（账号快速切换用，持久化存于设置）
 class SavedAccount {

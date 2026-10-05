@@ -1,10 +1,10 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/utils/date_time.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/empty_state_widget.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/utils/date_time.dart';
 
 /// 登录设备管理：查看已登录设备、踢下线
 class DeviceSessionsPage extends StatefulWidget {

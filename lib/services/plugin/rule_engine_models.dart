@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/animeko_rule_config.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/plugins/anti_crawler_config.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/animeko_rule_config.dart';
 
 typedef RuleCancelToken = CancelToken;
 

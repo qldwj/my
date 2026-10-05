@@ -1,5 +1,5 @@
-import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/modules/history/history_module.dart';
+import 'package:yhdm/modules/download/download_module.dart';
+import 'package:yhdm/modules/history/history_module.dart';
 
 final class WatchStats {
   const WatchStats({

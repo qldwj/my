@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/plugins/api_rule_config.dart';
-import 'package:kazumi/plugins/animeko_rule_config.dart';
-import 'package:kazumi/request/clients/plugin_site_client.dart';
-import 'package:kazumi/request/core/network_exception.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/plugin/api_rule_strategy.dart';
-import 'package:kazumi/services/plugin/css_rule_strategy.dart';
-import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
-import 'package:kazumi/services/plugin/rss_rule_strategy.dart';
-import 'package:kazumi/services/plugin/rule_engine_models.dart';
-import 'package:kazumi/services/plugin/xpath_rule_strategy.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/plugins/api_rule_config.dart';
+import 'package:yhdm/plugins/animeko_rule_config.dart';
+import 'package:yhdm/request/clients/plugin_site_client.dart';
+import 'package:yhdm/request/core/network_exception.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/plugin/api_rule_strategy.dart';
+import 'package:yhdm/services/plugin/css_rule_strategy.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/plugin/rss_rule_strategy.dart';
+import 'package:yhdm/services/plugin/rule_engine_models.dart';
+import 'package:yhdm/services/plugin/xpath_rule_strategy.dart';
 
 abstract interface class RuleRequestExecutor {
   Future<String> execute(

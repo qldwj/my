@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/settings_section_card.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/settings_section_card.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 聊天设置页
 ///

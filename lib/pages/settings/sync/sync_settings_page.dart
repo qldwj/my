@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/repositories/danmaku_shield_repository.dart';
-import 'package:kazumi/l10n/app_localizations.dart';
-import 'package:kazumi/services/sync/webdav.dart';
-import 'package:kazumi/services/storage/storage.dart';
+import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/pages/collect/collect_controller.dart';
+import 'package:yhdm/repositories/danmaku_shield_repository.dart';
+import 'package:yhdm/l10n/app_localizations.dart';
+import 'package:yhdm/services/sync/webdav.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 class SyncSettingsPage extends StatefulWidget {
   const SyncSettingsPage({super.key});

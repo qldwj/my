@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/request/core/dio_logger_interceptor.dart';
-import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/services/logging/logger.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/utils/http_headers.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/request/core/dio_logger_interceptor.dart';
+import 'package:yhdm/request/core/network_config.dart';
+import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/http_headers.dart';
 
 class DioFactory {
   DioFactory._();

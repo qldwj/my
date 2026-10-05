@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/modules/roads/road_module.dart';
+import 'package:yhdm/services/logging/logger.dart';
 import 'package:http/http.dart' as http;
 
 /// 视频源测速结果

@@ -1,12 +1,12 @@
-import 'package:kazumi/bean/widget/loading_indicator.dart';
+import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:kazumi/services/auth_service.dart';
-import 'package:kazumi/services/qr_login_service.dart';
-import 'package:kazumi/services/storage/settings_keys.dart';
-import 'package:kazumi/services/social/social_service.dart';
-import 'package:kazumi/services/storage/storage.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/auth_service.dart';
+import 'package:yhdm/services/qr_login_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart';
 
 class YhdmgzQrScanPage extends StatefulWidget {
   const YhdmgzQrScanPage({super.key});

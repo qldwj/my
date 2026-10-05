@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/logging/logger.dart';
+import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/logging/logger.dart';
 
 /// 规则市场条目（来自 json 文件仓库 record）
 class MarketRuleItem {

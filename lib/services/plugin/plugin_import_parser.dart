@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/utils/encoding.dart';
+import 'package:yhdm/plugins/plugins.dart';
+import 'package:yhdm/utils/encoding.dart';
 
 class PluginImportParseResult {
   const PluginImportParseResult({
