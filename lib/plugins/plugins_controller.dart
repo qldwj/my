@@ -434,17 +434,23 @@ abstract class _PluginsController with Store {
     }
     // Validate at the injected loader boundary so production and test/custom
     // loaders follow the same integrity rule. Preserve the catalog spelling.
-    if (remotePlugin.name.isEmpty ||
-        _catalogKey(remotePlugin.name) != _catalogKey(name)) {
-      final error = FormatException(
-        'Downloaded rule name ${remotePlugin.name} does not match $name',
+    if (remotePlugin.name.isEmpty) {
+      final error = const FormatException(
+        'Downloaded rule has an empty name',
       );
       _errorReporter(
-        'Plugin: rejected mismatched rule payload',
+        'Plugin: rejected empty rule name',
         error,
         StackTrace.current,
       );
       return (result: PluginUpdateResult.failed, plugin: null);
+    }
+    // 目录名（短名）与文件内显示名不一致时不再拒绝：短名作为规则 key/文件名，
+    // 文件内中文名仅作参考。统一采用目录拼写，保证更新检测与本地存储一致。
+    if (_catalogKey(remotePlugin.name) != _catalogKey(name)) {
+      KazumiLogger().w(
+        'Plugin: rule $name displays as "${remotePlugin.name}", using catalog name',
+      );
     }
     remotePlugin.name = name;
     try {
