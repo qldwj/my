@@ -60,6 +60,11 @@ class SettingsKeys {
     true, // 🆕 静默下载更新默认开启
     group: SettingGroup.proxy,
   );
+  // 首页推荐磁盘缓存（首次加载后存本地，避免每次进首页触发服务器验证）
+  static const recommendHomeCache = SettingKey<String>(
+    'recommend_home_cache_v1',
+    '',
+  );
   static const pendingUpdateVersion = SettingKey<String>(
     'pendingUpdateVersion',
     '',
