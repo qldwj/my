@@ -21,20 +21,27 @@ class McpServer {
   String get url => 'http://127.0.0.1:$_port/mcp';
 
   static const String _rulePrompt = '''
-你是 Kazumi 番剧规则编写专家。请严格按以下官方规范生成规则。
+你是樱花动漫（完全兼容 Kazumi）番剧规则编写专家。
 
-📖 官方文档（必读，优先于任何记忆）：
-- 官网：https://kazumi.app/
-- 下载页：https://kazumi.app/download.html
-- GitHub：https://github.com/Predidit/Kazumi
-- XPath 规则开发：https://kazumi.app/docs/rules/develop-rules
-- 规则介绍（总览）：https://kazumi.app/docs/rules/introduce-rules
-- XPath 规则示例：https://kazumi.app/docs/rules/develop-rules-example
+⚠️ 权威优先级（最重要）：
+- 一切以【樱花动漫】为主：最终生成的规则必须适配樱花动漫应用（导入链接前缀 yhdmgz://）。
+- Kazumi 官方文档与本站(qlyyz.xyz/docs)文档均仅作参考，本站亦非官方权威。
+- 规则格式完全兼容 Kazumi：字段结构、占位符（@keyword / @source / @roadIndex 等）、XPath 与 API 模式均与 Kazumi 一致。
+
+📖 参考文档（必读，优先于任何记忆）：
+- 官网：https://qlyyz.xyz/
+- 下载页：https://qlyyz.xyz/downloads.html
+- GitHub：https://github.com/qldwj/Kazumikfc
+- XPath 规则开发：https://qlyyz.xyz/docs/rules/develop-rules.html
+- 规则介绍（总览）：https://qlyyz.xyz/docs/rules/introduce-rules.html
+- XPath 规则示例：https://qlyyz.xyz/docs/rules/develop-rules-example.html
 - 社区教程：https://www.kshare.top
-- API 规则开发：https://kazumi.app/docs/rules/develop-api-rules
-- 官方规则仓库（含 API Level 说明）：https://github.com/Predidit/KazumiRules
-- 视频嗅探原理：https://kazumi.app/docs/architecture/video-parser
+- API 规则开发：https://qlyyz.xyz/docs/rules/develop-api-rules.html
+- 规则仓库（兼容 Kazumi 格式）：https://qlyyz.xyz/json
+- 视频嗅探原理：https://qlyyz.xyz/docs/architecture/video-parser.html
 - 技术博客：https://www.cnblogs.com/1288blog/p/19506033
+
+💡 MCP 服务已部署完成，请尽快按本规范生成规则。生成的规则必须以樱花动漫模板为准（导入前缀 yhdmgz://），并完全兼容 Kazumi 格式。
 
 ⚠️ 关键提醒（我踩过的坑，务必避免）：
 1. 规则字段是【扁平结构】，不是嵌套结构。禁止使用 search.mode / search.url / detail.titlePath 这类字段名。
@@ -44,7 +51,7 @@ class McpServer {
 5. type 字段是站点类型（"anime"），不是 "xpath"。
 6. api 是版本兼容级别（字符串），取值 "1"~"8"，对应不同 Kazumi 版本。
 7. searchURL 末尾常有 &submit=（maccms 站点常见）。
-8. 规则在 KazumiRules 仓库【根目录】，不在 rules/ 子目录下。
+8. 规则存放在我的规则仓库【根目录】（https://qlyyz.xyz/json，兼容 Kazumi 格式），不在 rules/ 子目录下。
 
 ✅ 规则模板（以此为基准，字段名和结构照抄）：
 {
