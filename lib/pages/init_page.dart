@@ -104,7 +104,6 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _initializeApp() async {
-    final splashStart = DateTime.now();
     _migrateStorage();
     _loadShaders();
     _loadDanmakuShield();
@@ -148,12 +147,7 @@ class _InitPageState extends State<InitPage> {
     // 🆕 播放崩溃恢复：上次异常退出时提示「继续观看」
     unawaited(_checkPlaybackRecovery());
 
-    // 保证启动动画至少展示 2.5 秒，避免一闪而过
-    final splashElapsed =
-        DateTime.now().difference(splashStart).inMilliseconds;
-    if (splashElapsed < 2500) {
-      await Future.delayed(Duration(milliseconds: 2500 - splashElapsed));
-    }
+    // 启动动画已去除：初始化完成立即进主页，不再强制等待 2.5 秒
 
     if (!mounted) {
       return;
@@ -475,166 +469,13 @@ class _InitPageState extends State<InitPage> {
   }
 }
 
-/// 启动动画页：粉底渐变 + 居中 Logo 扩散光环 + 品牌字渐显 + 底部进度条。
-/// InitPage 有 2.5 秒最小时长保护，初始化完成后自动进主页。
-class LoadingWidget extends StatefulWidget {
+/// 启动占位（无任何画面）：无 logo、无进度条、无文字。
+/// 打开应用直接到首页，初始化期间仅纯色背景。
+class LoadingWidget extends StatelessWidget {
   const LoadingWidget({super.key});
 
   @override
-  State<LoadingWidget> createState() => _LoadingWidgetState();
-}
-
-class _LoadingWidgetState extends State<LoadingWidget>
-    with TickerProviderStateMixin {
-  late final AnimationController _logoController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..forward();
-
-  late final AnimationController _rippleController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2000),
-  )..repeat();
-
-  late final AnimationController _textController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 800),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    // 品牌字在 Logo 动画接近完成时渐显
-    Future.delayed(const Duration(milliseconds: 550), () {
-      if (mounted) _textController.forward();
-    });
-  }
-
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _logoController,
-    curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-  );
-  late final Animation<double> _scale = Tween<double>(begin: 0.62, end: 1.0)
-      .animate(CurvedAnimation(
-    parent: _logoController,
-    curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack),
-  ));
-
-  @override
-  void dispose() {
-    _logoController.dispose();
-    _rippleController.dispose();
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              cs.primary.withValues(alpha: 0.30),
-              cs.primary.withValues(alpha: 0.10),
-              cs.surface,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo + 扩散光环
-                SizedBox(
-                  width: 230,
-                  height: 230,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _rippleController,
-                        builder: (context, child) {
-                          final t = _rippleController.value;
-                          return Container(
-                            width: 128 + 150 * t,
-                            height: 128 + 150 * t,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: cs.primary
-                                    .withValues(alpha: (1 - t) * 0.4),
-                                width: 2,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      FadeTransition(
-                        opacity: _fade,
-                        child: ScaleTransition(
-                          scale: _scale,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
-                            child: Image.asset(
-                              'assets/images/logo/logo_rounded.png',
-                              width: 112,
-                              height: 112,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // 品牌名渐显
-                FadeTransition(
-                  opacity: CurvedAnimation(
-                    parent: _textController,
-                    curve: Curves.easeOut,
-                  ),
-                  child: Text(
-                    'YHDM',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 6,
-                      color: cs.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 44),
-                // 底部进度条
-                SizedBox(
-                  width: 150,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      minHeight: 3,
-                      backgroundColor: cs.primary.withValues(alpha: 0.12),
-                      color: cs.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '正在启动…',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cs.outline,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const Scaffold(body: SizedBox.expand());
   }
 }
