@@ -261,7 +261,8 @@ class _PopularPageState extends State<PopularPage> {
               final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
               final fontSize = lerpDouble(28, 20, t)!;
               return Align(
-                alignment: Alignment.centerLeft,
+                // 标题贴底，去掉展开态标题下方的垂直留白，让「为你推荐」紧贴热门番组
+                alignment: Alignment.bottomLeft,
                 child: Padding(
                   padding: const EdgeInsets.only(left: 16, top: 2, bottom: 4, right: 16),
                   child: Column(
