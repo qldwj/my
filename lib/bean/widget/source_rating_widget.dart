@@ -22,24 +22,19 @@ class _SourceRatingWidgetState extends State<SourceRatingWidget> {
   @override
   void initState() {
     super.initState();
-    // 有 10 分钟内的缓存 → 直接显示，不再闪「评分加载中」，列表重建也秒出
-    _loading = !SourceRatingService.hasCache(widget.sourceId);
-    _load();
-  }
-
-  Future<void> _load() async {
-    if (!_loading) return;
-    setState(() => _loading = true);
-    final r = await SourceRatingService.fetch(widget.sourceId);
-    if (!mounted) return;
-    setState(() {
-      _rating = r;
-      _loading = false;
-    });
+    // C 策略：列表打开零请求，只用缓存；用户点开评分弹窗时才拉服务器
+    _rating = SourceRatingService.cached(widget.sourceId);
+    _loading = false;
   }
 
   /// 打开打分弹窗
   Future<void> _openRateDialog() async {
+    // 懒加载：点开评分时才拉最新（无缓存才请求服务器）
+    if (_rating == null) {
+      final r = await SourceRatingService.fetch(widget.sourceId);
+      if (!mounted) return;
+      if (r != null) setState(() => _rating = r);
+    }
     final result = await showDialog<Map<String, int>>(
       context: context,
       builder: (ctx) => _RateDialog(sourceId: widget.sourceId, current: _rating?.my),
