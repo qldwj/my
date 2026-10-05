@@ -9,6 +9,8 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/file_system.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
   const DownloadSettingsPage({super.key});
@@ -56,6 +58,31 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     });
   }
 
+  /// 申请写入自定义下载目录所需的存储权限。
+  /// Android 11+（SDK>=30）需"所有文件访问"(MANAGE_EXTERNAL_STORAGE)，会跳转系统设置页；
+  /// Android 10- 申请运行时读写外部存储权限。
+  Future<bool> _requestStoragePermission() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      if (androidInfo.version.sdkInt >= 30) {
+        var status = await Permission.manageExternalStorage.status;
+        if (!status.isGranted) {
+          status = await Permission.manageExternalStorage.request();
+        }
+        return status.isGranted;
+      } else {
+        var status = await Permission.storage.status;
+        if (!status.isGranted) {
+          status = await Permission.storage.request();
+        }
+        return status.isGranted;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _selectDownloadDirectory() async {
     final l10n = AppLocalizations.of(context)!;
     if (!_canPickDirectory) {
@@ -87,6 +114,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
       }
 
       if (selectedPath == null || selectedPath.isEmpty) return;
+
+      if (Platform.isAndroid && !await _requestStoragePermission()) {
+        KazumiDialog.showToast(message: l10n.setADirWriteFail(msg: '需要存储权限才能写入该目录，请在系统设置中授权后重试'));
+        return;
+      }
 
       await ensureDirectoryWritable(selectedPath);
       if (!Platform.isAndroid) {
