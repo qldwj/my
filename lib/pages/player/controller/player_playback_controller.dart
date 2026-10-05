@@ -267,10 +267,14 @@ abstract class _PlayerPlaybackController with Store {
     if (!canInstall()) {
       return null;
     }
+    // 完整预缓冲：开启后 demuxer 一直缓冲直到视频下载完（内存占用高）
+    final fullBuffer = GStorage.getSetting(SettingsKeys.fullBuffer);
     final candidate = _OwnedPlayer(
       Player(
         configuration: PlayerConfiguration(
-          bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+          bufferSize: fullBuffer
+              ? 100 * 1024 * 1024 * 1024
+              : (lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024),
           osc: false,
           logLevel: MPVLogLevel.values[debug.playerLogLevel],
           adBlocker: adBlockerEnabled,

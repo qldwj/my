@@ -43,6 +43,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool preloadNextEpisode;
   late bool nightEye;
   late bool autoSource;
+  late bool fullBuffer;
   late bool autoSwitchSource;
   late int skipOpDefault;
   late int skipEdDefault;
@@ -103,6 +104,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.preloadNextEpisode);
     nightEye = GStorage.getSetting<bool>(SettingsKeys.nightEyeProtection);
     autoSource = GStorage.getSetting<bool>(SettingsKeys.autoSelectSource);
+    fullBuffer = GStorage.getSetting<bool>(SettingsKeys.fullBuffer);
     autoSwitchSource =
         GStorage.getSetting<bool>(SettingsKeys.autoSwitchSource);
     skipOpDefault =
@@ -493,6 +495,19 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text(l10n.setAAutoSelectSourceDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoSource,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    fullBuffer = value ?? !fullBuffer;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.fullBuffer, fullBuffer);
+                    setState(() {});
+                  },
+                  title: Text('完整预缓冲',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('开启后持续缓冲直到视频下载完（内存占用高，建议仅在看长篇时开启）',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: fullBuffer,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

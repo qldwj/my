@@ -329,6 +329,12 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
+  /// 完整预缓冲：开启后持续缓冲直到视频下载完（内存占用高，默认关）
+  static const fullBuffer = SettingKey<bool>(
+    _SettingBoxKey.fullBuffer,
+    false,
+    group: SettingGroup.player,
+  );
   /// 自动选择视频源：点击开始观看后自动用第一个可用的源播放，无需手动选择
   static const autoSelectSource = SettingKey<bool>(
     _SettingBoxKey.autoSelectSource,
@@ -1091,6 +1097,7 @@ class SettingsKeys {
     autoPlayNext,
     preloadNextEpisode,
     nightEyeProtection,
+    fullBuffer,
     autoSelectSource,
     playResume,
     showPlayerError,
@@ -1226,6 +1233,7 @@ class _SettingBoxKey {
       autoPlayNext = 'autoPlayNext',
       preloadNextEpisode = 'preloadNextEpisode',
       nightEyeProtection = 'nightEyeProtection',
+      fullBuffer = 'fullBuffer',
       autoSelectSource = 'autoSelectSource',
       playResume = 'playResume',
       showPlayerError = 'showPlayerError',

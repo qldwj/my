@@ -1,8 +1,12 @@
 import 'dart:async';
 
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/network/metered_network_service.dart';
 import 'package:yhdm/services/player/low_memory_mode.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/utils/async_serial_queue.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -15,6 +19,9 @@ class PlaybackCachePolicy {
 
   static const int _lowMemoryBufferSize = 2 * 1024 * 1024;
   static const int _defaultBufferSize = 1500 * 1024 * 1024;
+  static const int _fullBufferSize = 100 * 1024 * 1024 * 1024;
+  /// 磁盘缓存上限：网络流边播边落盘，重启后可复用（约 5GB）
+  static const int _diskCacheSize = 5 * 1024 * 1024 * 1024;
 
   final bool Function() _isLocalPlayback;
   final Player? Function() _currentPlayer;
@@ -27,12 +34,18 @@ class PlaybackCachePolicy {
       !_isLocalPlayback() &&
       MeteredNetworkService.isMetered;
 
-  int get bufferSize => LowMemoryMode.current.isEnabled(
-        isMetered: MeteredNetworkService.isMetered,
-        isLocalPlayback: _isLocalPlayback(),
-      )
-          ? _lowMemoryBufferSize
-          : _defaultBufferSize;
+  int get bufferSize {
+    // 用户开启"完整预缓冲"：一直缓冲到视频下载完
+    if (GStorage.getSetting(SettingsKeys.fullBuffer)) {
+      return _fullBufferSize;
+    }
+    return LowMemoryMode.current.isEnabled(
+          isMetered: MeteredNetworkService.isMetered,
+          isLocalPlayback: _isLocalPlayback(),
+        )
+        ? _lowMemoryBufferSize
+        : _defaultBufferSize;
+  }
 
   void startWatching() {
     if (_settingsSubscription != null) {
@@ -64,6 +77,17 @@ class PlaybackCachePolicy {
         final size = bufferSize.toString();
         await pp.setProperty('demuxer-max-bytes', size);
         await pp.setProperty('demuxer-max-back-bytes', size);
+        // 磁盘缓存：网络流边播边落盘到应用私有目录，重启后可复用
+        try {
+          final supportDir = await getApplicationSupportDirectory();
+          final cacheDir = Directory(p.join(supportDir.path, 'mpv_disk_cache'));
+          await cacheDir.create(recursive: true);
+          await pp.setProperty('cache-dir', cacheDir.path);
+          await pp.setProperty('cache-file-size', _diskCacheSize.toString());
+        } catch (e) {
+          KazumiLogger().w('PlaybackCachePolicy: disk cache setup failed',
+              error: e);
+        }
       });
     } catch (e) {
       KazumiLogger().w(
