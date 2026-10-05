@@ -14,6 +14,7 @@ import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/plugins/animeko_converter.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_update_actions.dart';
@@ -91,6 +92,8 @@ class _PluginViewPageState extends State<PluginViewPage>
       }
     });
     unawaited(_loadPluginUpdateStatus());
+    // 🆕 规则更新红点：进入规则页即消费（清除入口角标）
+    GStorage.putSetting(SettingsKeys.ruleUpdateCount, 0);
   }
 
   @override
@@ -906,6 +909,8 @@ class _PluginViewPageState extends State<PluginViewPage>
             ? _buildRuleList(_filteredPlugins, colorScheme)
             : Column(
                 children: [
+                  // 🆕 规则更新提示条（目录加载后有可更新规则时显示）
+                  _buildUpdateBanner(colorScheme),
                   // #7 规则搜索框
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -943,6 +948,50 @@ class _PluginViewPageState extends State<PluginViewPage>
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildUpdateBanner(ColorScheme colorScheme) {
+    final updatable = pluginsController.pluginList
+        .where((p) =>
+            pluginsController.pluginUpdateStatus(p) ==
+            PluginUpdateAvailability.updatable)
+        .length;
+    if (updatable == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Material(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.system_update_alt_rounded,
+                  size: 20, color: colorScheme.onPrimaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '有 $updatable 个规则可以更新',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _handleUpdate,
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.primary,
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('全部更新'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

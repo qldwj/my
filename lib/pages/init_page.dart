@@ -449,6 +449,8 @@ class _InitPageState extends State<InitPage> {
     } catch (_) {
       return;
     }
+    // 🆕 红点：把可更新数量存下来，我的页规则卡片/规则页显示角标
+    GStorage.putSetting(SettingsKeys.ruleUpdateCount, count);
     if (count != 0) {
       KazumiDialog.showToast(
         message: '检测到 $count 条规则可以更新',

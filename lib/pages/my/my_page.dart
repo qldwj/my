@@ -1491,6 +1491,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
   // ── 规则设置大卡片 ──
   Widget _buildRulesTile(ColorScheme colorScheme, TextTheme textTheme) {
     final l10n = AppLocalizations.of(context)!;
+    // 🆕 规则更新红点（启动检测写入，进入规则页后清零）
+    final ruleUpdateCount =
+        GStorage.getSetting(SettingsKeys.ruleUpdateCount);
     return Material(
       color: colorScheme.primary,
       borderRadius: const BorderRadius.only(
@@ -1501,14 +1504,32 @@ sheetAnimationStyle: kSheetAnimationStyle,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(28),
-        onTap: () => context.pushNamed('/settings/plugin/'),
+        onTap: () async {
+          await context.pushNamed('/settings/plugin/');
+          if (!mounted) return;
+          GStorage.putSetting(SettingsKeys.ruleUpdateCount, 0);
+          setState(() {});
+        },
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.setGRuleSettings,
-                  style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: colorScheme.onPrimary)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(l10n.setGRuleSettings,
+                        style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onPrimary)),
+                  ),
+                  if (ruleUpdateCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _Badge(count: ruleUpdateCount),
+                    ),
+                ],
+              ),
               const SizedBox(height: 6),
               Text(l10n.setGManageSources, style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary)),
               const SizedBox(height: 32),
