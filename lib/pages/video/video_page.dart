@@ -1132,11 +1132,11 @@ class _VideoPageState extends State<VideoPage>
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // ⭐ 播放页加载保持原转圈样式（用户要求不变）
+                                // ⭐ 播放页加载转圈：主题主色（tertiaryContainer 在黑底上不明显，换 primary，每个主题有对应）
                                 CircularProgressIndicator(
                                     color: Theme.of(context)
                                         .colorScheme
-                                        .tertiaryContainer),
+                                        .primary),
                                 const SizedBox(height: 10),
                                 Text(
                                   videoPageController.loading
