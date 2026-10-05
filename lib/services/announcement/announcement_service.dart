@@ -20,6 +20,42 @@ import 'package:webview_flutter/webview_flutter.dart';
 class AnnouncementService {
   static const String _apiUrl = 'https://qlyyz.xyz/api/v0/notice?action=get';
 
+  /// 🆕 首页右上角"活动"入口：无论是否看过，强制拉取并展示活动列表
+  static Future<void> openActivities() async {
+    try {
+      final client = DownloadHttpClient.instance;
+      final response = await client.getPlain(_apiUrl);
+      final data = json.decode(response) as Map<String, dynamic>;
+      final newActivities = _parseNewActivities(data);
+      if (newActivities.isNotEmpty) {
+        _showActivityDialog(newActivities, _maxUpdatedAt(newActivities));
+        return;
+      }
+      // 旧格式兜底
+      final rawList = data['list'];
+      if (rawList is List) {
+        final oldItems = <Map<String, String>>[];
+        for (final item in rawList) {
+          if (item is Map) {
+            final t = (item['title'] ?? '').toString().trim();
+            final c = (item['content'] ?? '').toString();
+            if (c.isNotEmpty) {
+              oldItems.add({'title': t.isEmpty ? '活动' : t, 'content': c});
+            }
+          }
+        }
+        if (oldItems.isNotEmpty) {
+          _showOldActivityDialog(oldItems, data['version'] as int? ?? 0);
+          return;
+        }
+      }
+      KazumiDialog.showToast(message: '暂无活动');
+    } catch (e) {
+      KazumiLogger().w('Announcement: open activities failed', error: e);
+      KazumiDialog.showToast(message: '活动获取失败，请稍后重试');
+    }
+  }
+
   static Future<void> checkAnnouncement() async {
     try {
       final client = DownloadHttpClient.instance;
