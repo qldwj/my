@@ -934,12 +934,13 @@ class McpServer {
     }
 
     // 经典图片后缀：直接扫描源码字符串
+    // （注意：raw 字符串内 \' 是非法转义，故用普通字符串双重转义）
     final imgRe = RegExp(
-        r'https?://[^\s"\'\\]+?\.(?:png|jpe?g|ico|gif|webp|avif|svg)(?:\?[^\s"\'\\]*)?',
+        'https?://[^\\s"\'\\\\]+?\\.(?:png|jpe?g|ico|gif|webp|avif|svg)(?:\\?[^\\s"\'\\\\]*)?',
         caseSensitive: false);
     final allImages = <String>[];
     final seen = <String>{};
-    final walk = (dynamic v) {
+    void walk(dynamic v) {
       if (v is String) {
         for (final m in imgRe.allMatches(v)) {
           final u = m.group(0)!;
@@ -952,7 +953,7 @@ class McpServer {
           walk(val);
         }
       }
-    };
+    }
     walk(rule);
 
     final icon = (rule['icon'] ?? '').toString().trim();
