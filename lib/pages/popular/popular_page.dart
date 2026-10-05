@@ -240,8 +240,7 @@ class _PopularPageState extends State<PopularPage> {
     final theme = Theme.of(context);
     return SliverAppBar(
       pinned: true,
-      stretch: true,
-      expandedHeight: 170,
+      expandedHeight: 112,
       elevation: 0,
       titleSpacing: 0,
       centerTitle: false,
@@ -252,7 +251,7 @@ class _PopularPageState extends State<PopularPage> {
         child: dtb.DragToMoveArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final double maxExtent = 170 - MediaQuery.of(context).padding.top;
+              final double maxExtent = 112 - MediaQuery.of(context).padding.top;
               final t = (1 -
                   ((constraints.maxHeight - kToolbarHeight) /
                           (maxExtent - kToolbarHeight))

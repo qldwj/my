@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 /// 首页推荐接口（代理 Animeko 官方 /v2/home/recommendations）
 /// 后端：https://qlyyz.xyz/api/v0/recommendations.php?offset=&limit=
@@ -8,12 +9,36 @@ class RecommendApi {
   static const String _baseUrl =
       'https://qlyyz.xyz/api/v0/recommendations';
 
+  /// 首页（offset==0）推荐磁盘缓存 key：首次加载后存本地，
+  /// 之后进首页直接读缓存，不再重复请求服务器（服务器有验证/限流）。
+  static const String _homeCacheKey = 'recommend_home_cache_v1';
+
   /// 拉取一页推荐。失败静默降级为空列表。
   /// 返回 (list, hasMore)，供无限分页使用。
   static Future<({List<BangumiItem> list, bool hasMore})> fetchRecommendations({
     int offset = 0,
     int limit = 20,
   }) async {
+    // 首页优先读本地缓存，避免每次进首页都触发服务器验证
+    if (offset == 0) {
+      final cached = GStorage.getSetting(_homeCacheKey);
+      if (cached is String && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          if (decoded is List) {
+            final items = decoded
+                .whereType<Map>()
+                .map((e) => _toBangumiItem(Map<String, dynamic>.from(e)))
+                .where((item) => item.id > 0)
+                .toList();
+            if (items.isNotEmpty) return (list: items, hasMore: true);
+          }
+        } catch (_) {
+          // 缓存损坏则忽略，走网络重新拉取
+        }
+      }
+    }
+
     final url = '$_baseUrl?offset=$offset&limit=$limit';
     try {
       final client = HttpClient();
@@ -40,6 +65,10 @@ class RecommendApi {
           .map((e) => _toBangumiItem(Map<String, dynamic>.from(e)))
           .where((item) => item.id > 0)
           .toList();
+      // 首页成功拉取后写入缓存
+      if (offset == 0 && items.isNotEmpty) {
+        GStorage.putSetting(_homeCacheKey, jsonEncode(list));
+      }
       final hasMore = data['has_more'] == true;
       return (list: items, hasMore: hasMore);
     } catch (e) {
