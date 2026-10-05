@@ -18,11 +18,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
-import 'package:yhdm/services/auth_service.dart';
-import 'package:yhdm/services/social/social_service.dart';
-import 'package:yhdm/bean/card/network_img_layer.dart';
-import 'package:yhdm/pages/my/kazumi_login_page.dart';
-import 'package:yhdm/pages/my/profile_edit_page.dart';
+import 'package:yhdm/services/announcement/announcement_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:yhdm/utils/device.dart';
@@ -310,10 +306,9 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   List<Widget> buildActions() {
-    final isLoggedIn = AuthService.isLoggedIn;
     final l10n = AppLocalizations.of(context)!;
     final actions = <Widget>[];
-    // 搜索 / 历史 / 离线下载 三个图标并排放在右上角
+    // 搜索（左）→ 历史（右）→ 活动（最右）
     actions.add(
       IconButton(
         tooltip: l10n.search,
@@ -328,39 +323,12 @@ class _PopularPageState extends State<PopularPage> {
         icon: const Icon(Icons.history),
       ),
     );
+    // 🆕 活动：点击拉取并展示活动列表
     actions.add(
       IconButton(
-        tooltip: l10n.setHDownload,
-        onPressed: () => context.pushNamed('/settings/download/'),
-        icon: const Icon(Icons.download_outlined),
-      ),
-    );
-    // 🆕 已登录显示头像，未登录显示登录图标
-    actions.add(
-      IconButton(
-        tooltip: isLoggedIn ? l10n.setHProfileCenter : l10n.setHLogin,
-        onPressed: () => _showUserMenu(context),
-        icon: isLoggedIn
-            ? FutureBuilder<SocialProfile?>(
-                future: SocialService.getProfile(),
-                builder: (ctx, snap) {
-                  final profile = snap.data;
-                  if (profile != null && profile.avatar.isNotEmpty) {
-                    return CircleAvatar(
-                      radius: 14,
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      child: ClipOval(
-                        child: NetworkImgLayer(
-                          width: 28, height: 28,
-                          src: SocialService.proxiedAvatar(profile.avatar),
-                        ),
-                      ),
-                    );
-                  }
-                  return const Icon(Icons.account_circle, size: 28);
-                },
-              )
-            : const Icon(Icons.account_circle_outlined),
+        tooltip: '活动',
+        onPressed: () => AnnouncementService.openActivities(),
+        icon: const Icon(Icons.campaign_outlined),
       ),
     );
     if (isDesktop()) {
@@ -378,119 +346,6 @@ class _PopularPageState extends State<PopularPage> {
   }
 
   /// 🆕 用户菜单弹窗
-  void _showUserMenu(BuildContext context) {
-    final isLoggedIn = AuthService.isLoggedIn;
-    final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-
-    showModalBottomSheet(
-      context: context,
-sheetAnimationStyle: kSheetAnimationStyle,
-      isScrollControlled: true,
-      backgroundColor: cs.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return FutureBuilder<SocialProfile?>(
-          future: SocialService.getProfile(),
-          builder: (ctx, snap) {
-            final profile = snap.data;
-            final displayName = profile?.nickname ?? (isLoggedIn ? l10n.setHSakuraUser : l10n.setHNotLoggedIn);
-            final avatar = profile?.avatar ?? '';
-
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 头像
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: cs.primaryContainer,
-                    child: avatar.isNotEmpty
-                        ? ClipOval(
-                            child: NetworkImgLayer(
-                              width: 72, height: 72,
-                              src: SocialService.proxiedAvatar(avatar),
-                            ),
-                          )
-                        : Icon(
-                            isLoggedIn ? Icons.account_circle : Icons.account_circle_outlined,
-                            size: 48, color: cs.primary,
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(displayName,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-
-                  if (isLoggedIn) ...[
-                    _menuTile(ctx, Icons.edit, l10n.setHEditProfile, () {
-                      Navigator.pop(ctx);
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const ProfileEditPage()));
-                    }),
-                    _menuTile(ctx, Icons.history, l10n.setHWatchHistory, () {
-                      Navigator.pop(ctx);
-                      context.pushNamed('/settings/history/');
-                    }),
-                    _menuTile(ctx, Icons.settings, l10n.settings, () {
-                      Navigator.pop(ctx);
-                      context.pushNamed('/settings/');
-                    }),
-                    _menuTile(ctx, Icons.logout, l10n.setHLogout, () async {
-                      Navigator.pop(ctx);
-                      final confirm = await KazumiDialog.show<bool>(
-                        builder: (c) => AlertDialog(
-                          title: Text(l10n.setHLogout),
-                          content: Text(l10n.setHLogoutConfirm),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l10n.cancel)),
-                            TextButton(onPressed: () => Navigator.pop(c, true),
-                              child: Text(l10n.setAOk, style: TextStyle(color: cs.error))),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        AuthService.clearLocalToken();
-                        SocialService.clearProfileCache();
-                        setState(() {});
-                      }
-                    }),
-                  ] else ...[
-                    _menuTile(ctx, Icons.login, l10n.setHRegisterLogin, () {
-                      Navigator.pop(ctx);
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const KazumiLoginPage()));
-                    }),
-                    _menuTile(ctx, Icons.history, l10n.setHWatchHistory, () {
-                      Navigator.pop(ctx);
-                      context.pushNamed('/settings/history/');
-                    }),
-                    _menuTile(ctx, Icons.settings, l10n.settings, () {
-                      Navigator.pop(ctx);
-                      context.pushNamed('/settings/');
-                    }),
-                  ],
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _menuTile(BuildContext ctx, IconData icon, String label, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    );
-  }
 
   Future<void> showTagMenu() async {
     // Calculate the position of the button manually to position the dropdown menu.
