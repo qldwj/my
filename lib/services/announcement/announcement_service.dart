@@ -164,11 +164,11 @@ class AnnouncementService {
                           return ListTile(
                             dense: true,
                             contentPadding: EdgeInsets.zero,
-                            leading: item.coverImage.isNotEmpty
+                            leading: item.effectiveCover.isNotEmpty
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.network(
-                                      item.coverImage,
+                                      item.effectiveCover,
                                       width: 48,
                                       height: 64,
                                       fit: BoxFit.cover,
@@ -284,14 +284,14 @@ class AnnouncementService {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (item.coverImage.isNotEmpty) ...[
+                  if (item.effectiveCover.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: SizedBox(
                         height: 200,
                         width: double.maxFinite,
                         child: Image.network(
-                          item.coverImage,
+                          item.effectiveCover,
                           fit: BoxFit.cover,
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
@@ -588,6 +588,10 @@ class ActivityItem {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// 生效封面：优先 cover_image，为空时回退到 images 第一张
+  String get effectiveCover =>
+      coverImage.isNotEmpty ? coverImage : (images.isNotEmpty ? images.first : '');
 }
 
 /// HTML内容渲染组件（旧格式兼容）
