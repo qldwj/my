@@ -18,6 +18,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late bool showRating;
   late bool showAnimeCounter;
   late bool minorMode;
+  late bool liquidGlass;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -27,6 +28,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     showRating = GStorage.getSetting(SettingsKeys.showRating);
     showAnimeCounter = GStorage.getSetting(SettingsKeys.showAnimeCounter);
     minorMode = GStorage.getSetting(SettingsKeys.minorMode);
+    liquidGlass = GStorage.getSetting(SettingsKeys.liquidGlassNav);
     defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
   }
 
@@ -132,8 +134,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
           ]),
           SettingsSection(
             title: Text(l10n.setBContentFilter, style: TextStyle(fontFamily: fontFamily)),
-            tiles: [
-              SettingsTile.switchTile(
+            tiles: [              SettingsTile.switchTile(
                 onToggle: (value) async {
                   final newValue = value ?? !minorMode;
                   if (!newValue && minorMode) {
@@ -167,6 +168,21 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                   minorMode ? l10n.setBMinorOn : l10n.setBMinorOff,
                   style: TextStyle(fontFamily: fontFamily)),
                 initialValue: minorMode,
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: Text('底部导航', style: TextStyle(fontFamily: fontFamily)),
+            tiles: [
+              SettingsTile.switchTile(
+                onToggle: (value) async {
+                  liquidGlass = value ?? !liquidGlass;
+                  await GStorage.putSetting(SettingsKeys.liquidGlassNav, liquidGlass);
+                  setState(() {});
+                },
+                title: const Text('液态玻璃'),
+                description: const Text('底部导航栏使用毛玻璃模糊效果，默认关闭'),
+                initialValue: liquidGlass,
               ),
             ],
           ),

@@ -636,6 +636,12 @@ class SettingsKeys {
     false,
     group: SettingGroup.interface,
   );
+  // 🆕 液态玻璃底部导航（默认关闭）
+  static const liquidGlassNav = SettingKey<bool>(
+    'liquidGlassNav',
+    false,
+    group: SettingGroup.interface,
+  );
   static const downloadParallelEpisodes = SettingKey<int>(
     _SettingBoxKey.downloadParallelEpisodes,
     2,
@@ -1131,6 +1137,7 @@ class SettingsKeys {
     proxyTestUrl,
     showRating,
     showAnimeCounter,
+    liquidGlassNav,
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
