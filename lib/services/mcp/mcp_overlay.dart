@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/mcp/mcp_server.dart';
 
 /// MCP 悬浮窗快捷开关管理。
@@ -23,10 +24,16 @@ class McpOverlay {
   void _onOverlayEvent(Object? data) {
     if (data is! Map || data['action'] != 'mcp_toggle') return;
     final srv = McpServer.instance;
-    if (srv.isRunning) {
-      srv.stop();
-    } else {
-      srv.start();
+    try {
+      if (srv.isRunning) {
+        srv.stop();
+        KazumiLogger().i('McpOverlay: 悬浮窗点击 -> 已停止 MCP');
+      } else {
+        srv.start();
+        KazumiLogger().i('McpOverlay: 悬浮窗点击 -> 已启动 MCP');
+      }
+    } catch (e) {
+      KazumiLogger().e('McpOverlay: 点击切换失败: $e');
     }
     // 同步新状态给悬浮窗 UI
     broadcast();
@@ -36,19 +43,30 @@ class McpOverlay {
   Future<bool> ensurePermission() async {
     if (!Platform.isAndroid) return true;
     try {
-      if (await FlutterOverlayWindow.isPermissionGranted()) return true;
+      final granted = await FlutterOverlayWindow.isPermissionGranted();
+      if (granted) {
+        KazumiLogger().i('McpOverlay: 悬浮窗权限已授权');
+        return true;
+      }
+      KazumiLogger().i('McpOverlay: 未授权，跳转系统设置申请');
       await FlutterOverlayWindow.requestPermission();
-      return await FlutterOverlayWindow.isPermissionGranted();
-    } catch (_) {
+      final after = await FlutterOverlayWindow.isPermissionGranted();
+      KazumiLogger().i('McpOverlay: 申请后授权状态 = $after');
+      return after;
+    } catch (e) {
+      KazumiLogger().e('McpOverlay: 申请悬浮窗权限异常: $e');
       return false;
     }
   }
 
-  /// 显示悬浮窗。
-  Future<void> show() async {
-    if (!Platform.isAndroid) return;
+  /// 显示悬浮窗。返回是否成功显示。
+  Future<bool> show() async {
+    if (!Platform.isAndroid) return true;
     try {
-      if (await FlutterOverlayWindow.isActive()) return;
+      if (await FlutterOverlayWindow.isActive()) {
+        KazumiLogger().i('McpOverlay: 悬浮窗已存在，跳过');
+        return true;
+      }
       await FlutterOverlayWindow.showOverlay(
         height: 52,
         width: 240,
@@ -60,8 +78,11 @@ class McpOverlay {
         overlayTitle: '樱花动漫 MCP',
         overlayContent: 'MCP 悬浮快捷开关',
       );
+      KazumiLogger().i('McpOverlay: showOverlay 调用成功');
+      return true;
     } catch (e) {
-      // 悬浮窗显示失败不影响 MCP 服务本身
+      KazumiLogger().e('McpOverlay: 显示悬浮窗失败: $e');
+      return false;
     }
   }
 
@@ -70,7 +91,10 @@ class McpOverlay {
     if (!Platform.isAndroid) return;
     try {
       await FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
+      KazumiLogger().i('McpOverlay: 悬浮窗已关闭');
+    } catch (e) {
+      KazumiLogger().e('McpOverlay: 关闭悬浮窗失败: $e');
+    }
   }
 
   /// 把当前 MCP 状态广播给悬浮窗 UI。
@@ -81,6 +105,8 @@ class McpOverlay {
         'action': 'mcp_status',
         'running': McpServer.instance.isRunning,
       });
-    } catch (_) {}
+    } catch (e) {
+      KazumiLogger().e('McpOverlay: 广播状态失败: $e');
+    }
   }
 }
