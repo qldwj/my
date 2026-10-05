@@ -55,6 +55,12 @@ class SettingsKeys {
     0,
     group: SettingGroup.proxy,
   );
+  /// 可更新规则数量（启动检测后写入，我的页规则卡片显示红点）
+  static const ruleUpdateCount = SettingKey<int>(
+    'ruleUpdateCount',
+    0,
+    group: SettingGroup.plugin,
+  );
   static const silentDownload = SettingKey<bool>(
     'silentDownload',
     true, // 🆕 静默下载更新默认开启
