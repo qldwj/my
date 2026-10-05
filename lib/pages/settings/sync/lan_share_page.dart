@@ -41,6 +41,8 @@ class _LanSharePageState extends State<LanSharePage> {
 
   Future<void> _loadLocalIp() async {
     String? fallback;
+    String? lanFallback;
+    final allIps = <String>[];
     try {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
@@ -58,22 +60,31 @@ class _LanSharePageState extends State<LanSharePage> {
             name.startsWith('utun') ||
             name.startsWith('rmnet') ||
             name.startsWith('sw');
+        // 物理局域网接口：WiFi(wlan/en0) 或 以太网(eth)
+        final isLanIf =
+            name.startsWith('wlan') || name.startsWith('eth') || name.startsWith('en');
         for (final a in i.addresses) {
           if (a.isLoopback) continue;
+          allIps.add('$name:${a.address}');
+          final isPrivate = _isPrivateLan(a.address);
+          if (isPrivate && lanFallback == null) lanFallback = a.address;
           fallback ??= a.address;
-          // 优先选局域网私网地址（192.168.x / 10.x / 172.16-31.x）
-          if (_isPrivateLan(a.address)) {
+          // 优先取物理局域网接口上的私网地址（最可能被同 WiFi 设备直连）
+          if (isLanIf && isPrivate) {
             _ip = a.address;
+            KazumiLogger().i('LanShare: 选用物理局域网地址 $name:${a.address}');
             if (mounted) setState(() {});
             return;
           }
         }
         if (isTunnel) continue;
       }
+      // 无物理接口私网时，退而求其次用任意私网地址
+      _ip = lanFallback ?? fallback ?? '';
     } catch (e) {
       KazumiLogger().w('LanShare: 获取本机IP失败 $e');
     }
-    _ip = fallback ?? '';
+    KazumiLogger().i('LanShare: 本机全部IPv4 [$allIps] 选用: ${_ip.isEmpty ? '(空)' : _ip}');
     if (mounted) setState(() {});
   }
 
@@ -227,6 +238,13 @@ class _LanSharePageState extends State<LanSharePage> {
         _running = true;
         _status = '已开启：$_url()';
       });
+      KazumiLogger().i('LanShare: 服务器已监听 0.0.0.0:$_port，二维码地址 $_url()');
+      if (!_isPrivateLan(_ip)) {
+        KazumiLogger().w('LanShare: 当前地址 $_ip 非局域网私网IP，对方设备可能连不上');
+        setState(() {
+          _status = '已开启：$_url()（警告：地址非局域网私网IP，对方可能连不上）';
+        });
+      }
     } catch (e) {
       setState(() => _status = '启动失败：$e');
     } finally {
