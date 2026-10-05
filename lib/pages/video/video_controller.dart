@@ -885,11 +885,11 @@ abstract class _VideoPageController with Store implements Disposable {
       );
       if (session.isActive && danmakuSession.isActive) {
         if (result.hasDanmakus) {
-          final bool enableDanmaku =
-              GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault);
+          // ⭐ 弹幕加载到即显示（恢复原行为，不再依赖"默认开启"开关；
+          // 用户仍可用播放页内的弹幕开关随时关闭）
           playerController.danmaku.applyDanmakuLoad(
             result,
-            enableDanmaku: enableDanmaku,
+            enableDanmaku: true,
           );
         } else {
           playerController.danmaku.applyUnavailableDanmakuLoad(result);
