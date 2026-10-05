@@ -92,7 +92,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void setTheme(Color? color) {
-    final seedColor = color ?? Colors.green;
+    final seedColor = color ?? const Color(0xffEC407A);
     var lightTheme = ThemeData(
       useMaterial3: true,
       fontFamily: themeProvider.currentFontFamily,
@@ -122,7 +122,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   void resetTheme() {
     // 默认配色 = 绿色；统一走 setTheme 存具体 ARGB，不再使用 'default' 特例
-    setTheme(Colors.green);
+    setTheme(const Color(0xffEC407A));
   }
 
   void updateTheme(String theme) async {
@@ -151,7 +151,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     dynamic color;
     oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     if (defaultThemeColor == 'default') {
-      color = Colors.green;
+      color = const Color(0xffEC407A);
     } else {
       color = Color(int.parse(defaultThemeColor, radix: 16));
     }
@@ -363,7 +363,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setFontFamily(useSystemFont);
                     dynamic color;
                     if (defaultThemeColor == 'default') {
-                      color = Colors.green;
+                      color = const Color(0xffEC407A);
                     } else {
                       color = Color(int.parse(defaultThemeColor, radix: 16));
                     }
