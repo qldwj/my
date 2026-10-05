@@ -197,7 +197,8 @@ class McpServer {
             {'name': 'yhdm', 'description': '分析网站生成番剧解析规则', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '番剧网站URL'}}, 'required': ['url']}},
             {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}},
             {'name': 'test_rule', 'description': '真实抓站验证XPath规则是否可用：实际请求搜索页与详情页，统计搜索结果数、线路数、各线路集数。输入规则与测试关键词。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rule', 'keyword']}},
-            {'name': 'upload_rule', 'description': '将规则JSON上传到 qlyyz.xyz/json 公开仓库共享（开源精神）。输入规则JSON或yhdmgz://链接，上传到 p=v0 目录。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON（对象）或 yhdmgz:// 链接'}, 'filename': {'type': 'string', 'description': '上传文件名（不含.json），默认取规则 name 字段'}}, 'required': ['rule']}}
+            {'name': 'upload_rule', 'description': '将规则JSON上传到 qlyyz.xyz/json 公开仓库共享（开源精神）。输入规则JSON或yhdmgz://链接，上传到 p=v0 目录。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON（对象）或 yhdmgz:// 链接'}, 'filename': {'type': 'string', 'description': '上传文件名（不含.json），默认取规则 name 字段'}}, 'required': ['rule']}},
+            {'name': 'scan_rule_icons', 'description': '扫描规则内所有图片资源：提取 icon 字段，并全字段搜索所有带经典图片后缀(.png/.jpg/.jpeg/.ico/.gif/.webp/.avif/.svg)的图片URL（直接解析规则源码，无需访问网站）。无 icon 时给出推荐图标(baseURL/favicon.ico 或文件内第一张图)。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}}, 'required': ['rule']}}
           ]}});
           break;
         case 'tools/call':
@@ -218,6 +219,9 @@ class McpServer {
             _uploadRule(rule, filename).then((result) {
               _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
             });
+          } else if (name == 'scan_rule_icons') {
+            final result = _scanRuleIcons((args['rule'] ?? '').toString());
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
           } else {
             final url = args['url'] ?? '';
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
@@ -852,5 +856,80 @@ class McpServer {
     } catch (e) {
       return {'ok': false, 'error': e.toString()};
     }
+  }
+
+  /// 扫描规则内所有图片资源（直接解析规则源码，无需访问网站）。
+  /// - 提取 icon 字段（若有）
+  /// - 全字段正则搜索所有带经典图片后缀的 URL（png/jpg/jpeg/ico/gif/webp/avif/svg）
+  /// - 无 icon 时给出推荐：文件内第一张图，或 baseURL/favicon.ico 后备
+  Map<String, dynamic> _scanRuleIcons(String raw) {
+    Map<String, dynamic> rule;
+    var source = raw.trim();
+    try {
+      if (source.startsWith('yhdmgz://')) {
+        source = utf8.decode(base64Decode(base64.normalize(source.substring(9))));
+      } else if (source.startsWith('kazumi://')) {
+        source = utf8.decode(base64Decode(base64.normalize(source.substring(9))));
+      } else if (!source.startsWith('{')) {
+        try {
+          source = utf8.decode(base64Decode(base64.normalize(source)));
+        } catch (_) {}
+      }
+      final decoded = jsonDecode(source);
+      if (decoded is! Map) {
+        return {'ok': false, 'errors': ['规则必须是单个 JSON 对象，不能是数组']};
+      }
+      rule = Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      return {'ok': false, 'errors': ['无法解析输入: $e']};
+    }
+
+    // 经典图片后缀：直接扫描源码字符串
+    final imgRe = RegExp(
+        r'https?://[^\s"\'\\]+?\.(?:png|jpe?g|ico|gif|webp|avif|svg)(?:\?[^\s"\'\\]*)?',
+        caseSensitive: false);
+    final allImages = <String>[];
+    final seen = <String>{};
+    final walk = (dynamic v) {
+      if (v is String) {
+        for (final m in imgRe.allMatches(v)) {
+          final u = m.group(0)!;
+          if (seen.add(u)) allImages.add(u);
+        }
+      } else if (v is Map) {
+        v.forEach((_, val) => walk(val));
+      } else if (v is List) {
+        for (final val in v) {
+          walk(val);
+        }
+      }
+    };
+    walk(rule);
+
+    final icon = (rule['icon'] ?? '').toString().trim();
+    final base = (rule['baseURL'] ?? '').toString().trim();
+    String? suggestion;
+    if (icon.isEmpty) {
+      final baseTrim = base.replaceAll(RegExp(r'/+$'), '');
+      suggestion = allImages.isNotEmpty
+          ? allImages.first
+          : (baseTrim.isNotEmpty ? '$baseTrim/favicon.ico' : null);
+    }
+    return {
+      'ok': true,
+      'name': rule['name'],
+      'hasIcon': icon.isNotEmpty,
+      'icon': icon.isEmpty ? null : icon,
+      'imageCount': allImages.length,
+      'allImages': allImages,
+      'suggestion': suggestion,
+      'note': suggestion == null
+          ? '规则无 baseURL，无法给出推荐图标'
+          : (icon.isEmpty
+              ? (allImages.isNotEmpty
+                  ? '文件内第 1 张图可用作 icon；仍建议以站点实际 logo 为准'
+                  : '推荐值 baseURL/favicon.ico 为站点常见默认图标，若站点有独立 logo 以实际路径为准')
+              : '规则已有 icon，无需修改'),
+    };
   }
 }
