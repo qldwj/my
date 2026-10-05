@@ -209,7 +209,9 @@ class McpServer {
             {'name': 'suggest_rules', 'description': '同类模板推荐：输入新网站URL/域名，拉取规则仓库 index.json，按 baseURL 域名相似度匹配仓库内已有规则作为编写模板参考，并返回仓库规则清单(名称/baseURL/图标)。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '新网站URL或域名'}}, 'required': ['url']}},
             {'name': 'fix_rule', 'description': '规则自动修复：输入规则与测试关键词，先跑 test_rule 复现失败，再抓取搜索页真实DOM结构(前若干链接的href+文本)作为证据输出，指导修正 XPath/API 配置。返回:失败信息+页面真实结构+修复建议。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}}, 'required': ['rule', 'keyword']}},
             {'name': 'captcha_guide', 'description': '验证码/登录应对指引：按类型输出 antiCrawlerConfig 完整模板。kind 取值 image(正常图片验证码,走图片识别)/click(非正常点击/滑块类)/cf(超级特殊,如Cloudflare等)/purple或login(紫色模板=登录后观看,needLogin+loginURL 全套)；不传则返回全部档位。', 'inputSchema': {'type': 'object', 'properties': {'kind': {'type': 'string', 'description': 'image / click / cf / purple(登录后观看) / 不传返回全部'}}, 'required': []}},
-            {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}}
+            {'name': 'fetch_page', 'description': '网页结构抓取：输入任意URL，抓取页面并提取标题、前若干链接(href+文本)、表单(action/method/inputs)、iframe、meta描述，供分析站点结构/编写规则前勘察使用。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '完整URL(含 http/https)'}}, 'required': ['url']}},
+            {'name': 'test_with_cookie', 'description': '带Cookie实测规则：用户从站点/浏览器/App复制已登录的Cookie粘贴进来，带上Cookie跑真实搜索+选集测试，验证登录后规则到底能不能用。用于需要登录(紫色线路)或带Cookie才可访问的站点。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}, 'cookie': {'type': 'string', 'description': '已登录Cookie(用户从浏览器/站点复制)'}}, 'required': ['rule', 'keyword', 'cookie']}},
+            {'name': 'cookie_helper', 'description': 'Cookie/凭据指引：站点需要登录(Cookie)时规则怎么写。说明 App 端登录态机制(WebView共享Cookie)、userAgent/Referer 字段、Cookie 过期处理，以及何时用 test_with_cookie 实测。', 'inputSchema': {'type': 'object', 'properties': {}}, 'required': []}}
           ]}});
           break;
         case 'tools/call':
@@ -259,6 +261,14 @@ class McpServer {
             _fetchPage((args['url'] ?? '').toString()).then((result) {
               _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
             });
+          } else if (name == 'test_with_cookie') {
+            _testRule((args['rule'] ?? '').toString(), (args['keyword'] ?? '').toString(),
+                cookie: (args['cookie'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'cookie_helper') {
+            final result = _cookieHelper();
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
           } else {
             final url = args['url'] ?? '';
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
@@ -608,7 +618,8 @@ class McpServer {
     }
   }
 
-  Future<Map<String, dynamic>> _testRule(String raw, String keyword) async {
+  Future<Map<String, dynamic>> _testRule(String raw, String keyword,
+      {String cookie = ''}) async {
     final r = _decodeRule(raw);
     if (r == null) {
       return {'ok': false, 'errors': ['无法解析规则：需为规则JSON、Base64 或 yhdmgz:// 链接']};
@@ -617,7 +628,8 @@ class McpServer {
     final chapterMode = (r['chapterMode'] ?? 'xpath').toString();
     final warnings = <String>[];
     final base = (r['baseURL'] ?? '').toString().trim().replaceAll(RegExp(r'/$'), '');
-    const ua = {'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'};
+    final ua = <String, String>{'User-Agent': 'Mozilla/5.0 (Kazumi-MCP)'};
+    if (cookie.isNotEmpty) ua['Cookie'] = cookie;
 
     // 1. 搜索（支持 XPath / API 双模式）
     final items = <Map<String, String>>[];
@@ -1376,5 +1388,26 @@ class McpServer {
     } catch (e) {
       return {'ok': false, 'errors': [e.toString()]};
     }
+  }
+
+  /// Cookie/凭据指引：站点需登录(Cookie)时规则怎么写。
+  Map<String, dynamic> _cookieHelper() {
+    return {
+      'ok': true,
+      '标题': '站点需要登录(Cookie)时，规则怎么写',
+      '要点': [
+        '1. App 登录态机制：YHDM 内置 WebView 与请求共享 Cookie。站点需登录时，用户先在 App 内打开该站(useWebview:true)登录一次，Cookie 自动保存并用于后续请求，规则无需硬编码 Cookie。',
+        '2. 规则字段：needLogin=true + loginURL(填真实登录页地址) → 播放线路显示紫色，提示用户需登录。',
+        '3. userAgent 字段：部分站点要求浏览器 UA，可填站点常见浏览器的 UA；留空则用默认。',
+        '4. Referer 需求：若站点校验来源，可在请求头配置里带 Referer(API 模式 request.headers；XPath 模式一般无需)。',
+        '5. Cookie 会过期：失效时重新登录即可；不要把账号密码写进规则(明文不安全)。',
+        '6. 编写/调试期实测：让用户从浏览器/站点控制台复制已登录 Cookie，用 test_with_cookie 粘贴实测，确认登录后搜索/选集能否通过。',
+      ],
+      '适用场景': [
+        '整站需登录才能搜索或观看',
+        '搜索可访问但播放需登录(紫色线路)',
+        '站点对未登录请求返回 302/403 跳登录页',
+      ],
+    };
   }
 }
