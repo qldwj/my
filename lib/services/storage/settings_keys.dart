@@ -819,6 +819,13 @@ class SettingsKeys {
     group: SettingGroup.notice,
   );
 
+  // 🆕 活动版本锚点（新格式，存最新 updated_at；新增/编辑活动后 App 重新弹出）
+  static const activitiesUpdatedAt = SettingKey<String>(
+    'activitiesUpdatedAt',
+    '',
+    group: SettingGroup.notice,
+  );
+
   // 🆕 追番更新提醒（新番推送通知）
   /// 总开关：是否开启追番更新提醒
   static const animeUpdateNotify = SettingKey<bool>(
@@ -1143,6 +1150,7 @@ class SettingsKeys {
     defaultVolume,
     playerMuted,
     announcementVersion, // 新增
+    activitiesUpdatedAt, // 🆕 活动版本锚点（新格式）
     savedAccounts, // 🆕 账号快速切换
     prefUsageCount, // 🆕 偏好设置使用次数（点击排序）
   ];
