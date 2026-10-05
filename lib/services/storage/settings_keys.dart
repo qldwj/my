@@ -64,6 +64,7 @@ class SettingsKeys {
   static const recommendHomeCache = SettingKey<String>(
     'recommend_home_cache_v1',
     '',
+    group: SettingGroup.proxy,
   );
   static const pendingUpdateVersion = SettingKey<String>(
     'pendingUpdateVersion',
