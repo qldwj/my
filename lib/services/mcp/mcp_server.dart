@@ -53,7 +53,19 @@ class McpServer {
 7. searchURL 末尾常有 &submit=（maccms 站点常见）。
 8. 规则存放在我的规则仓库【根目录】（https://qlyyz.xyz/json，兼容 Kazumi 格式），不在 rules/ 子目录下。
 
-✅ 规则模板（以此为基准，字段名和结构照抄）：
+🔍 搜索方式适配（最重要，务必因站实测，严禁套模板）：
+- 每个站点的搜索方式都不一样，100 个站有 100 种搜索写法。动手前先用 curl/浏览器实测目标站的【真实搜索】，看清返回的是"服务端 HTML"还是"JSON 接口"，再决定实现方式，不要凭模板照抄。
+- 三种搜索实现，任选其一（用哪种以实测为准）：
+  A. XPath 搜索（默认）：searchURL 填搜索页 URL（关键词用 @keyword 替换），searchList / searchName / searchResult 用 XPath 从返回 HTML 提取。适用于服务端渲染完整结果的站。
+  B. API 搜索：若搜索是 JSON 接口（浏览器 Network 里能看到 /api/search、/search/do.php 之类返回 JSON），用 searchApiConfig 配 method / url / params / headers，searchList 用受限 JSONPath 提取，api 设为 "8"。
+  C. POST 表单搜索：若搜索是 <form method="post"> 提交，设 usePost=true，searchURL 填带查询参数的地址，Kazumi 会自动剥离参数按 Form 提交。
+- searchURL 常见形态仅为示例（严禁照抄，必须以实测为准）：
+  /search/-------------.html?wd=@keyword、/search/?wd=@keyword、/?key=@keyword、/so/-------------.html?wd=@keyword、/api/search?word=@keyword 等，取决于站点框架。
+- 搜索结果 XPath 因站差异巨大：列表可能是 ul>li、div.grid、table tr、a.video、.search_list 等。searchList 必须定位到"每一条结果"的重复节点，再相对其取 searchName（标题）与 searchResult（详情链接）。
+- 若搜索有分页/懒加载，优先用站点自带的关键词搜索接口（通常稳定返回 JSON 或整页结果），不要依赖抓首页。
+- 遇到站点有验证码/风控时，在 antiCrawlerConfig 里按需配置（图片验证码=1 / 自动点击=2 / 自定义JS=3）。
+
+✅ 规则模板（以此为基准，字段名和结构照抄；searchURL/XPath 仅是示例，务必替换为目标站实测值）：
 {
   "api": "5",
   "type": "anime",

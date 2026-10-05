@@ -5,6 +5,7 @@ import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/l10n/app_localizations.dart';
 import 'package:kazumi/services/mcp/mcp_server.dart';
 import 'package:kazumi/services/mcp/mcp_overlay.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 /// MCP AI规则生成器弹窗
 void showMcpServerDialog(BuildContext context) {
@@ -184,7 +185,11 @@ sheetAnimationStyle: kSheetAnimationStyle,
                                     message: '未授予悬浮窗权限，快捷开关不可用，但服务仍可启动');
                               }
                               await McpServer.instance.start(port: port);
-                              await McpOverlay.instance.show();
+                              final shown = await McpOverlay.instance.show();
+                              if (!shown) {
+                                KazumiLogger()
+                                    .e('McpOverlay: 悬浮窗未显示，请在日志页查看 McpOverlay 相关记录');
+                              }
                               await McpOverlay.instance.broadcast();
                             }
                             setSheetState(() {});
