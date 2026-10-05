@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yhdm/services/plugin/plugin_search_service.dart';
 import 'package:yhdm/pages/collect/collect_controller.dart';
 import 'package:yhdm/modules/collect/collect_type.dart';
+import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -181,18 +182,33 @@ class _SourceSheetState extends State<SourceSheet>
     try {
       final roads = await plugin.queryChapterRoads(searchItem.src);
       if (roads.isNotEmpty && roads.first.data.isNotEmpty && mounted) {
+        // 解析上次看到的集数；没看过或超出选集数则解析第 1 集
+        final historyRepo = inject<IHistoryRepository>();
+        final history = historyRepo.getHistory(
+          plugin.name,
+          widget.infoController.bangumiItem,
+        );
+        var episode = history?.lastWatchEpisode ?? 1;
+        if (episode < 1 || episode > roads.first.data.length) episode = 1;
         await VideoPageController.preloadFor(
           widget.infoController.bangumiItem.id,
-          1,
+          episode,
           currentPlugin: plugin,
-          pageUrl: roads.first.data.first,
+          pageUrl: roads.first.data[episode - 1],
         );
       }
     } catch (e) {
       KazumiLogger().w('SourceSheet: 标星预解析失败', error: e);
     }
     // 未命中缓存（解析失败）→ 3 秒后换下一个源重试
-    final key = '${widget.infoController.bangumiItem.id}:1';
+    final historyRepo = inject<IHistoryRepository>();
+    final history = historyRepo.getHistory(
+      plugin.name,
+      widget.infoController.bangumiItem,
+    );
+    var episode = history?.lastWatchEpisode ?? 1;
+    if (episode < 1) episode = 1;
+    final key = '${widget.infoController.bangumiItem.id}:$episode';
     if (!VideoPageController.incomingPreloadedUrls.containsKey(key) &&
         mounted &&
         _starredPreloadAttempts < 2) {
