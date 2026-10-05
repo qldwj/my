@@ -751,9 +751,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Observer(builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                // 🆕 已缓冲(提前下载)部分用主题相反色(补色)：与未缓冲、已播放一眼区分，随主题自动适配
+                final bufferedColor = HSVColor.fromColor(cs.primary)
+                    .withHue(
+                        (HSVColor.fromColor(cs.primary).hue + 180) % 360)
+                    .toColor();
                 final progressBar = ProgressBar(
                   thumbRadius: 8,
                   thumbGlowRadius: 18,
+                  baseBarColor: Colors.white24,
+                  bufferedBarColor: bufferedColor,
+                  progressBarColor: cs.primary,
                   timeLabelLocation: isTablet()
                       ? TimeLabelLocation.sides
                       : TimeLabelLocation.none,

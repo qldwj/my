@@ -423,9 +423,17 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
         // tick rebuilds only the bar and time text, not the whole bottom bar.
         Expanded(
           child: Observer(builder: (context) {
+            final cs = Theme.of(context).colorScheme;
+            // 🆕 已缓冲(提前下载)部分用主题相反色(补色)：与未缓冲、已播放一眼区分，随主题自动适配
+            final bufferedColor = HSVColor.fromColor(cs.primary)
+                .withHue((HSVColor.fromColor(cs.primary).hue + 180) % 360)
+                .toColor();
             return ProgressBar(
               thumbRadius: 8,
               thumbGlowRadius: 18,
+              baseBarColor: Colors.white24,
+              bufferedBarColor: bufferedColor,
+              progressBarColor: cs.primary,
               timeLabelLocation: TimeLabelLocation.none,
               progress: playerController.playback.currentPosition,
               buffered: playerController.playback.buffer,

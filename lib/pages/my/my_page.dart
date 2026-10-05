@@ -1526,11 +1526,7 @@ sheetAnimationStyle: kSheetAnimationStyle,
                   if (ruleUpdateCount > 0)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: _Badge(
-                        count: ruleUpdateCount,
-                        // 🆕 主题错误色：深浅主题下都是醒目红，与粉色卡片对比明显
-                        color: colorScheme.error,
-                      ),
+                      child: _Badge(count: ruleUpdateCount),
                     ),
                 ],
               ),
