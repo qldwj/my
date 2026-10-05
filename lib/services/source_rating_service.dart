@@ -17,9 +17,9 @@ class SourceRatingService {
 
   static const String baseUrl = ApiEndpoints.sourceRatingApi;
 
-  /// 评分缓存（内存级，TTL 10 分钟）。
+  /// 评分缓存（内存级，TTL 1 小时）。
   /// 规则卡片重建 / 列表下滑再滑回时不再重复打服务器，降低后端占用。
-  static const Duration _cacheTtl = Duration(minutes: 10);
+  static const Duration _cacheTtl = Duration(hours: 1);
   static final Map<String, _CachedEntry> _cache = {};
 
   /// 源评分聚合数据
@@ -32,6 +32,47 @@ class SourceRatingService {
     final cached = _cache[sourceId];
     return cached != null &&
         DateTime.now().difference(cached.at) < _cacheTtl;
+  }
+
+  /// 读缓存（不请求服务器）；无缓存返回 null。
+  /// C 策略：列表打开零请求，只用缓存，用户点开评分时才拉。
+  static SourceRating? cached(String sourceId) {
+    final cached = _cache[sourceId];
+    if (cached != null && DateTime.now().difference(cached.at) < _cacheTtl) {
+      return cached.rating;
+    }
+    return null;
+  }
+
+  /// 批量获取多个源评分（一次请求；有缓存的先直接用，只请求缺失的）。
+  /// B 策略：规则市场列表一次拉全部，从 N 个请求降到 1 个。
+  static Future<Map<String, SourceRating>> fetchBatch(List<String> ids) async {
+    if (ids.isEmpty) return {};
+    final now = DateTime.now();
+    final result = <String, SourceRating>{};
+    final missing = <String>[];
+    for (final id in ids) {
+      final cached = _cache[id];
+      if (cached != null && now.difference(cached.at) < _cacheTtl) {
+        result[id] = cached.rating;
+      } else {
+        missing.add(id);
+      }
+    }
+    if (missing.isEmpty) return result;
+    final res = await _get('batch', {'sourceIds': missing.join(',')});
+    if (res['success'] != true) return result;
+    final items = res['items'];
+    if (items is Map) {
+      items.forEach((k, v) {
+        if (v is Map<String, dynamic>) {
+          final rating = SourceRating.fromJson(v);
+          _cache[k] = _CachedEntry(now, rating);
+          result[k] = rating;
+        }
+      });
+    }
+    return result;
   }
 
   /// 获取某源的评分聚合（含「我」是否评过）。
