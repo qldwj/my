@@ -25,7 +25,7 @@ class McpServer {
 
 ✅ 第一步（永远先做，写任何规则之前）：先阅读，再动手。
 - 必须先实际访问目标网站，阅读它的搜索页/详情页/播放页真实结构（服务端 HTML 还是 JSON 接口、有没有登录或人机验证），再决定怎么写。
-- 必须先把上方参考文档（qlyyz.xyz/docs 与规则仓库 https://qlyyz.xyz/json）读完，一切以本站文档和规范为准。
+- 必须先把上方参考文档（qlyyz.xyz/docs 与规则仓库 https://github.com/qldwj/Kazuminb6Rules）读完，一切以本站文档和规范为准。
 - 禁止凭记忆、凭模板、凭猜测写 XPath/JSONPath；永远先看网站长什么样、先读文档。
 
 ⚠️ 权威优先级（最重要）：
@@ -42,7 +42,7 @@ class McpServer {
 - XPath 规则示例：https://qlyyz.xyz/docs/rules/develop-rules-example.html
 - 社区教程：https://www.kshare.top
 - API 规则开发：https://qlyyz.xyz/docs/rules/develop-api-rules.html
-- 规则仓库（兼容 Kazumi 格式）：https://qlyyz.xyz/json
+- 规则仓库（兼容 Kazumi 格式）：https://github.com/qldwj/Kazuminb6Rules
 - 视频嗅探原理：https://qlyyz.xyz/docs/architecture/video-parser.html
 - 技术博客：https://www.cnblogs.com/1288blog/p/19506033
 
@@ -56,7 +56,7 @@ class McpServer {
 5. type 字段是站点类型（"anime"），不是 "xpath"。
 6. api 是版本兼容级别（字符串），取值 "1"~"8"，对应不同 Kazumi 版本。
 7. searchURL 末尾常有 &submit=（maccms 站点常见）。
-8. 规则存放在我的规则仓库【根目录】（https://qlyyz.xyz/json，兼容 Kazumi 格式），不在 rules/ 子目录下。
+8. 规则存放在我的规则仓库【根目录】（https://github.com/qldwj/Kazuminb6Rules，兼容 Kazumi 格式），不在 rules/ 子目录下。
 
 🔍 搜索方式适配（最重要，务必因站实测，严禁套模板）：
 - 每个站点的搜索方式都不一样，100 个站有 100 种搜索写法。动手前先用 curl/浏览器实测目标站的【真实搜索】，看清返回的是"服务端 HTML"还是"JSON 接口"，再决定实现方式，不要凭模板照抄。
