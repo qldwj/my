@@ -23,6 +23,7 @@ import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/player/pip_utils.dart';
 import 'package:yhdm/utils/media.dart';
 import 'package:yhdm/utils/http_headers.dart';
+import 'package:yhdm/services/video_source/video_source_format.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
@@ -424,7 +425,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   /// 源失效自动换源：切换到下一条线路重播当前集
-  void _autoSwitchSource() {
+  Future<void> _autoSwitchSource() async {
     if (!mounted) return;
     _sourceFailCount++;
     final roadList = videoPageController.roadList;
