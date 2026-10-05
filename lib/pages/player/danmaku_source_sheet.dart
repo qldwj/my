@@ -49,13 +49,6 @@ Future<void> showDanmakuSourceSheet(
 
   await KazumiDialog.show<void>(
     context: context,
-    transitionDuration: MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : SidePanelTransition.duration,
-    transitionBuilder: (_, animation, __, child) => Align(
-      alignment: Alignment.centerRight,
-      child: SidePanelTransition(animation: animation, child: child),
-    ),
     builder: (context) {
       final size = MediaQuery.sizeOf(context);
       return SizedBox(
@@ -447,7 +440,6 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   Widget _buildAnimeList() {
     if (_error != null) {
       return GeneralEmptyState(
-        compact: true,
         icon: Icons.search_off,
         title: _error!,
         actions: [
@@ -501,7 +493,6 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
   Widget _buildEpisodeList() {
     if (_error != null) {
       return GeneralErrorWidget(
-        compact: true,
         icon: Icons.subtitles_off_outlined,
         title: _error!,
         errMsg: '',
@@ -529,8 +520,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
         Flexible(
           child: visible.isEmpty
               ? const GeneralEmptyState(
-                  compact: true,
-                  icon: Icons.filter_list_off,
+                            icon: Icons.filter_list_off,
                   title: '未找到分集',
                 )
               : ListView.builder(
@@ -603,8 +593,7 @@ class _SheetHeader extends StatelessWidget {
           MaterialBottomSheetHeader(
             title: title,
             onClose: onClose,
-            compact: true,
-          ),
+              ),
           if (subtitle != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
