@@ -1085,8 +1085,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   tooltip: '开始观看',
                   onPressed: () {
                     showAdaptiveBottomSheet<void>(
-                      backgroundColor:
-                          Theme.of(context).scaffoldBackgroundColor,
                       context: context,
                       builder: (context) {
                         return SourceSheet(
