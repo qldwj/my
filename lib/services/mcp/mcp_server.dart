@@ -27,6 +27,10 @@ class McpServer {
 - 必须先实际访问目标网站，阅读它的搜索页/详情页/播放页真实结构（服务端 HTML 还是 JSON 接口、有没有登录或人机验证），再决定怎么写。
 - 必须先把上方参考文档（qlyyz.xyz/docs 与规则仓库 https://github.com/qldwj/Kazuminb6Rules）读完，一切以本站文档和规范为准。
 - 禁止凭记忆、凭模板、凭猜测写 XPath/JSONPath；永远先看网站长什么样、先读文档。
+- 【强制必执行】生成任何规则前，必须判断目标站：① 是否需要登录才能搜索/观看？② 有没有人机验证？两者至少先实测确认一种，禁止跳过。
+   · 需要登录 → 必须先读《需要登录后才能观看》https://qlyyz.xyz/docs/rules/login-required.html，完整实现 needLogin=true + loginURL（该站登录页地址），并在规则说明中提示用户需在 App 内登录该站。遗漏 needLogin/loginURL 视为不合格规则。
+   · 有人机验证 → 必须先读《人机验证应对》https://qlyyz.xyz/docs/rules/human-verification.html，按其分档（图片验证码/点击滑块/CF·Akamai）完整实现 antiCrawlerConfig 全套字段（enabled 等），不能只给数字。遗漏或给占位视为不合格规则。
+   · 这两个文档是必读必执行，不只是参考资料；命中却不实现对应字段，禁止交付。
 
 ⚠️ 权威优先级（最重要）：
 - 一切以【樱花动漫】为主：最终生成的规则必须适配樱花动漫应用（导入链接前缀 yhdmgz://）。
