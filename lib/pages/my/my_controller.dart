@@ -168,7 +168,7 @@ abstract class _MyController with Store {
         // 提示，所以这里不再额外调 checkPendingUpdate，避免双弹"立即安装"
         // 对话框 —— 用户反馈"出现两个对话框/关掉一个又弹一个"的根因）。
         await autoUpdater.autoCheckForUpdates();
-        // 自动检查公告（仅在自动检查时触发）
+        // 自动检查活动（仅在自动检查时触发，接口复用原公告接口）
         await AnnouncementService.checkAnnouncement();
       }
 
