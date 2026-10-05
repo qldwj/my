@@ -23,6 +23,10 @@ class McpServer {
   static const String _rulePrompt = '''
 你是樱花动漫（完全兼容 Kazumi）番剧规则编写专家。
 
+🔧 工具使用规范（重要）：
+- 有很多的工具可用，用来调用，仅在要使用的时候进行调用，一定要看它的介绍。
+- 例如：抓站测试用 test_rule，扫描/搜索图标用 scan_rule_icons / fetch_site_icon，批量巡检用 batch_test，规则对比用 diff_rules，找同类模板用 suggest_rules，失败自动修复用 fix_rule。
+
 ✅ 第一步（永远先做，写任何规则之前）：先阅读，再动手。
 - 必须先实际访问目标网站，阅读它的搜索页/详情页/播放页真实结构（服务端 HTML 还是 JSON 接口、有没有登录或人机验证），再决定怎么写。
 - 必须先把上方参考文档（qlyyz.xyz/docs 与规则仓库 https://github.com/qldwj/Kazuminb6Rules）读完，一切以本站文档和规范为准。
@@ -198,7 +202,12 @@ class McpServer {
             {'name': 'validate_rule', 'description': '校验并规范化Kazumi番剧规则(XPath/JSON API/混合)，生成 yhdmgz:// 导入链接。输入可为规则JSON、Base64或yhdmgz://链接。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'format': {'type': 'string', 'enum': ['json', 'base64', 'link']}}, 'required': ['rule']}},
             {'name': 'test_rule', 'description': '真实抓站验证XPath规则是否可用：实际请求搜索页与详情页，统计搜索结果数、线路数、各线路集数。输入规则与测试关键词。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rule', 'keyword']}},
             {'name': 'upload_rule', 'description': '将规则JSON上传到 qlyyz.xyz/json 公开仓库共享（开源精神）。输入规则JSON或yhdmgz://链接，上传到 p=v0 目录。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON（对象）或 yhdmgz:// 链接'}, 'filename': {'type': 'string', 'description': '上传文件名（不含.json），默认取规则 name 字段'}}, 'required': ['rule']}},
-            {'name': 'scan_rule_icons', 'description': '扫描规则内所有图片资源：提取 icon 字段，并全字段搜索所有带经典图片后缀(.png/.jpg/.jpeg/.ico/.gif/.webp/.avif/.svg)的图片URL（直接解析规则源码，无需访问网站）。无 icon 时给出推荐图标(baseURL/favicon.ico 或文件内第一张图)。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}}, 'required': ['rule']}}
+            {'name': 'scan_rule_icons', 'description': '扫描规则内所有图片资源：提取 icon 字段，并全字段搜索所有带经典图片后缀(.png/.jpg/.jpeg/.ico/.gif/.webp/.avif/.svg)的图片URL（直接解析规则源码，无需访问网站）。无 icon 时给出推荐图标(baseURL/favicon.ico 或文件内第一张图)。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}}, 'required': ['rule']}},
+            {'name': 'fetch_site_icon', 'description': '网站图标搜索：输入规则或网站URL，自动请求站点探测真实可用的图标——尝试 /favicon.ico、解析首页 <link rel="icon"> / shortcut icon / apple-touch-icon，返回可用图标URL列表(验证HTTP 200+图片类型)。用于给无图标规则补图。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / yhdmgz://链接 / 网站URL(如 https://www.agedm.io/)'}}, 'required': ['rule']}},
+            {'name': 'batch_test', 'description': '批量巡检规则：输入多条规则(JSON数组 或 每行一条 yhdmgz://链接/JSON)与测试关键词，逐条真实抓站测试，输出每条的状态报告(✅搜索有结果 / ⚠️风控失败 / ❌死链)。', 'inputSchema': {'type': 'object', 'properties': {'rules': {'type': 'string', 'description': 'JSON数组 或 每行一条(规则JSON/yhdmgz://链接)'}, 'keyword': {'type': 'string', 'description': '测试关键词，如 仙逆'}}, 'required': ['rules', 'keyword']}},
+            {'name': 'diff_rules', 'description': '规则对比：输入两条规则(JSON/yhdmgz://链接)，逐字段对比，输出新增/删除/修改字段清单(含值变化)，用于升级前核对版本、baseURL、选择器改动。', 'inputSchema': {'type': 'object', 'properties': {'ruleA': {'type': 'string', 'description': '规则A'}, 'ruleB': {'type': 'string', 'description': '规则B(新版本)'}}, 'required': ['ruleA', 'ruleB']}},
+            {'name': 'suggest_rules', 'description': '同类模板推荐：输入新网站URL/域名，拉取规则仓库 index.json，按 baseURL 域名相似度匹配仓库内已有规则作为编写模板参考，并返回仓库规则清单(名称/baseURL/图标)。', 'inputSchema': {'type': 'object', 'properties': {'url': {'type': 'string', 'description': '新网站URL或域名'}}, 'required': ['url']}},
+            {'name': 'fix_rule', 'description': '规则自动修复：输入规则与测试关键词，先跑 test_rule 复现失败，再抓取搜索页真实DOM结构(前若干链接的href+文本)作为证据输出，指导修正 XPath/API 配置。返回:失败信息+页面真实结构+修复建议。', 'inputSchema': {'type': 'object', 'properties': {'rule': {'type': 'string', 'description': '规则JSON / Base64 / yhdmgz://链接'}, 'keyword': {'type': 'string', 'description': '测试关键词'}}, 'required': ['rule', 'keyword']}}
           ]}});
           break;
         case 'tools/call':
@@ -222,6 +231,25 @@ class McpServer {
           } else if (name == 'scan_rule_icons') {
             final result = _scanRuleIcons((args['rule'] ?? '').toString());
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else if (name == 'fetch_site_icon') {
+            _fetchSiteIcon((args['rule'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'batch_test') {
+            _batchTest((args['rules'] ?? '').toString(), (args['keyword'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'diff_rules') {
+            final result = _diffRules((args['ruleA'] ?? '').toString(), (args['ruleB'] ?? '').toString());
+            _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+          } else if (name == 'suggest_rules') {
+            _suggestRules((args['url'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
+          } else if (name == 'fix_rule') {
+            _fixRule((args['rule'] ?? '').toString(), (args['keyword'] ?? '').toString()).then((result) {
+              _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': jsonEncode(result)}]}});
+            });
           } else {
             final url = args['url'] ?? '';
             _ok(req, {'jsonrpc': '2.0', 'id': id, 'result': {'content': [{'type': 'text', 'text': '请分析网站 $url 并生成Kazumi规则。\n\n$_rulePrompt'}]}});
@@ -930,6 +958,247 @@ class McpServer {
                   ? '文件内第 1 张图可用作 icon；仍建议以站点实际 logo 为准'
                   : '推荐值 baseURL/favicon.ico 为站点常见默认图标，若站点有独立 logo 以实际路径为准')
               : '规则已有 icon，无需修改'),
+    };
+  }
+
+  /// 网站图标搜索：探测站点真实可用图标。
+  /// 先试常见路径(favicon.ico/png/apple-touch-icon)，再解析首页 <link rel="icon">。
+  Future<Map<String, dynamic>> _fetchSiteIcon(String raw) async {
+    var base = raw.trim();
+    final rule = _decodeRule(raw);
+    if (rule != null) {
+      base = (rule['baseURL'] ?? '').toString();
+    }
+    if (base.isEmpty) {
+      if (!base.startsWith('http')) base = 'https://$base';
+    }
+    if (!base.startsWith('http')) {
+      return {'ok': false, 'errors': ['无法解析出网站地址：请输入网站URL或含 baseURL 的规则']};
+    }
+    final baseTrim = base.replaceAll(RegExp(r'/$'), '');
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+    final icons = <String>[];
+    // 1) 常见路径探测
+    for (final c in ['$baseTrim/favicon.ico', '$baseTrim/favicon.png', '$baseTrim/apple-touch-icon.png']) {
+      try {
+        final req = await client.getUrl(Uri.parse(c));
+        req.headers.set('User-Agent', 'Mozilla/5.0 (Kazumi-MCP)');
+        final resp = await req.close().timeout(const Duration(seconds: 5));
+        final ct = resp.headers.contentType?.mimeType ?? '';
+        await resp.drain();
+        if (resp.statusCode == 200 && ct.startsWith('image')) {
+          icons.add(c);
+          break;
+        }
+      } catch (_) {}
+    }
+    // 2) 首页 <link rel="icon"> 解析
+    if (icons.isEmpty) {
+      try {
+        final req = await client.getUrl(Uri.parse(baseTrim));
+        req.headers.set('User-Agent', 'Mozilla/5.0 (Kazumi-MCP)');
+        final resp = await req.close().timeout(const Duration(seconds: 8));
+        final body = await resp.transform(utf8.decoder).join();
+        client.close();
+        if (resp.statusCode == 200) {
+          final doc = html_parser.parse(body);
+          final nodes = doc.querySelectorAll('link[rel]');
+          for (final l in nodes) {
+            final rel = (l.attributes['rel'] ?? '').toLowerCase();
+            final href = (l.attributes['href'] ?? '').trim();
+            if (rel.contains('icon') && href.isNotEmpty) {
+              final abs = href.startsWith('http')
+                  ? href
+                  : '$baseTrim/${href.replaceFirst(RegExp(r'^/'), '')}';
+              icons.add(abs);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    final uniq = <String>[];
+    for (final i in icons) {
+      if (!uniq.contains(i)) uniq.add(i);
+    }
+    return {
+      'ok': uniq.isNotEmpty,
+      'site': baseTrim,
+      'icons': uniq,
+      'suggestion': uniq.isEmpty ? null : uniq.first,
+      'note': uniq.isEmpty
+          ? '未探测到可用图标：站点可能拦截请求或路径特殊，建议人工打开首页查看源码'
+          : (uniq.length > 1 ? '推荐第 1 个，其余可人工选择' : ''),
+    };
+  }
+
+  /// 批量巡检：逐条 test_rule 聚合报告。
+  Future<Map<String, dynamic>> _batchTest(String rawRules, String keyword) async {
+    List<Object?> list;
+    final trimmed = rawRules.trim();
+    try {
+      if (trimmed.startsWith('[')) {
+        list = jsonDecode(trimmed) as List;
+      } else {
+        list = trimmed
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      return {'ok': false, 'errors': ['rules 需为 JSON 数组或每行一条(JSON/yhdmgz://链接)']};
+    }
+    if (list.isEmpty) return {'ok': false, 'errors': ['rules 为空']};
+    if (keyword.trim().length < 2) {
+      return {'ok': false, 'errors': ['关键词至少 2 个字符']};
+    }
+    final results = <Map<String, dynamic>>[];
+    var passed = 0;
+    for (final r in list) {
+      final raw = r is String ? r : jsonEncode(r);
+      final rule = _decodeRule(raw);
+      final name = rule?['name']?.toString() ?? 'unknown';
+      final t = await _testRule(raw, keyword);
+      final ok = t['ok'] == true;
+      if (ok) passed++;
+      final err = t['errors'];
+      results.add({
+        'name': name,
+        'ok': ok,
+        'status': ok ? '✅ 搜索有结果' : '❌ 失败',
+        'detail': err is List ? err.join('; ') : (t['error']?.toString() ?? ''),
+      });
+    }
+    return {
+      'ok': results.isNotEmpty,
+      'total': results.length,
+      'passed': passed,
+      'failed': results.length - passed,
+      'results': results,
+      'note': '失败原因多为：站点风控(403/418)、关键词无结果、或 XPath/API 配置与实际结构不符',
+    };
+  }
+
+  /// 规则对比：字段级 diff。
+  Map<String, dynamic> _diffRules(String rawA, String rawB) {
+    final a = _decodeRule(rawA);
+    final b = _decodeRule(rawB);
+    if (a == null || b == null) {
+      return {'ok': false, 'errors': ['规则解析失败：需为规则JSON / Base64 / yhdmgz://链接']};
+    }
+    final added = <String>[];
+    final removed = <String>[];
+    final changed = <Map<String, dynamic>>[];
+    final keys = {...a.keys, ...b.keys};
+    for (final k in keys) {
+      final va = a[k];
+      final vb = b[k];
+      final sa = va is String ? va : jsonEncode(va);
+      final sb = vb is String ? vb : jsonEncode(vb);
+      if (!a.containsKey(k)) {
+        added.add(k);
+      } else if (!b.containsKey(k)) {
+        removed.add(k);
+      } else if (sa != sb) {
+        changed.add({
+          'field': k,
+          'from': sa.length > 200 ? '${sa.substring(0, 200)}…' : sa,
+          'to': sb.length > 200 ? '${sb.substring(0, 200)}…' : sb,
+        });
+      }
+    }
+    return {
+      'ok': true,
+      'nameA': a['name'],
+      'nameB': b['name'],
+      'added': added,
+      'removed': removed,
+      'changed': changed,
+      'changedCount': changed.length,
+    };
+  }
+
+  /// 同类模板推荐：拉规则仓库 index 返回规则清单（含图标），供 AI 选模板。
+  Future<Map<String, dynamic>> _suggestRules(String url) async {
+    var host = url.trim();
+    if (host.isEmpty) return {'ok': false, 'errors': ['请输入网站URL或域名']};
+    if (!host.startsWith('http')) host = 'https://$host';
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+    List<dynamic>? idx;
+    for (final src in [
+      'https://api.atomgit.com/api/v5/repos/qldwi/yhdmgz/raw/index.json',
+      'https://raw.githubusercontent.com/qldwj/Kazuminb6Rules/main/index.json',
+    ]) {
+      try {
+        final req = await client.getUrl(Uri.parse(src));
+        req.headers.set('User-Agent', 'CycAndroid/5.6.1');
+        final resp = await req.close().timeout(const Duration(seconds: 8));
+        final body = await resp.transform(utf8.decoder).join();
+        final d = jsonDecode(body);
+        if (d is List) {
+          idx = d;
+          break;
+        }
+      } catch (_) {}
+    }
+    client.close();
+    if (idx == null) return {'ok': false, 'errors': ['规则仓库不可达（镜像与主源均失败）']};
+    final allRules = idx.map((e) {
+      final m = e as Map;
+      return {
+        'name': m['name'],
+        'icon': m['icon'] ?? '',
+      };
+    }).toList();
+    return {
+      'ok': true,
+      'target': host,
+      'total': idx.length,
+      'allRules': allRules,
+      'note': '仓库现有规则清单（名称+图标）。若新站点的结构（maccms/API/服务端HTML）与某条相近，可先 validate_rule 该条作模板再改字段；不确定结构时用 test_rule/fix_rule 实测目标站',
+    };
+  }
+
+  /// 规则自动修复：test 复现失败 + 抓首页真实DOM结构作证据 + 修复建议。
+  Future<Map<String, dynamic>> _fixRule(String raw, String keyword) async {
+    final t = await _testRule(raw, keyword);
+    final rule = _decodeRule(raw);
+    final base = (rule?['baseURL'] ?? '').toString().trim().replaceAll(RegExp(r'/$'), '');
+    final hints = <Map<String, String>>[];
+    if (t['ok'] != true && base.isNotEmpty) {
+      try {
+        final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+        final req = await client.getUrl(Uri.parse(base));
+        req.headers.set('User-Agent', 'Mozilla/5.0 (Kazumi-MCP)');
+        final resp = await req.close().timeout(const Duration(seconds: 8));
+        final body = await resp.transform(utf8.decoder).join();
+        client.close();
+        if (resp.statusCode == 200) {
+          final doc = html_parser.parse(body);
+          final anchors = doc.querySelectorAll('a[href]');
+          var n = 0;
+          for (final a in anchors) {
+            if (n >= 15) break;
+            final href = (a.attributes['href'] ?? '').trim();
+            final text = (a.text ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+            if (href.isNotEmpty && text.isNotEmpty && text.length < 40) {
+              hints.add({
+                'href': href.length > 90 ? href.substring(0, 90) : href,
+                'text': text.length > 40 ? text.substring(0, 40) : text,
+              });
+              n++;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    return {
+      'ok': false,
+      'testResult': t,
+      'domHints': hints,
+      'suggestion': hints.isEmpty
+          ? '站点页面不可达或结构为空：请人工打开站点确认是否需登录/验证码，或检查 baseURL 是否正确'
+          : '以下为站点首页真实链接结构（前若干条）：请据此核对 searchList / searchName / searchResult 的 XPath 层级，修正后重新 validate_rule + test_rule',
     };
   }
 }
