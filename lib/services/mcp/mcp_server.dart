@@ -77,9 +77,9 @@ class McpServer {
 - 人机验证应对与登录后观看（最重要：动手前必须先读这两份文档，按其完整规范处理，严禁只看本摘要就写）：
   · 《需要登录后才能观看》：https://qlyyz.xyz/docs/rules/login-required.html → 针对需要登录才能搜索/观看的站点（例：次元城 ciyuancheng，不只限它）。生成规则时必须配 needLogin=true + loginURL（该站的登录页地址），并在规则说明里提示用户需先在 App 内登录该站。不要遗漏 needLogin/loginURL 字段，否则用户导入后无法播放。
   · 《人机验证应对》：https://qlyyz.xyz/docs/rules/human-verification.html → 针对站点有人机验证的情况。先实测判断站点到底是哪种验证，再按文档选对应档位：
-    - 正常【图片验证码】（搜索/详情/播放页返回图片验证码）→ antiCrawlerConfig=1，配 captchaImage/captchaInput/captchaButton 等图片验证识别字段。
-    - 【非正常验证】需要点击/滑块/行为验证 → antiCrawlerConfig=2，走自动点击处理，配 captchaDetectType/captchaDetectValue/captchaScript。
-    - 【超级特殊验证】Cloudflare CF、Akamai 等智能风控 → antiCrawlerConfig=3，走自定义 JS 脚本，必要时配合 useWebview=true 用真实浏览器内核过验证。
+    - 正常【图片验证码】（搜索/详情/播放页返回图片验证码）→ antiCrawlerConfig=1（即 antiCrawlerConfig 对象内 captchaType=1），配 captchaImage/captchaInput/captchaButton 等图片验证识别字段。
+    - 【非正常验证】需要点击/滑块/行为验证 → antiCrawlerConfig=2（即 captchaType=2），走自动点击处理，配 captchaButton（放行按钮）与 captchaDetectType/captchaDetectValue 检测字段。
+    - 【超级特殊验证】Cloudflare CF、Akamai 等智能风控 → antiCrawlerConfig=3（即 captchaType=3），走自定义 JS 脚本（captchaScript），必要时配合 useWebview=true 用真实浏览器内核过验证。
     - 无论哪种，都要把 antiCrawlerConfig 对象完整给出（enabled 等字段），不能只给数字。实在无法自动处理时，在规则说明中标注需要用户手动配合。
 
 ✅ 规则模板（以此为基准，字段名和结构照抄；searchURL/XPath 仅是示例，务必替换为目标站实测值）：
