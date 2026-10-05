@@ -19,6 +19,7 @@ import 'package:yhdm/services/plugin/rule_engine_models.dart'
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yhdm/services/plugin/plugin_search_service.dart';
 import 'package:yhdm/pages/collect/collect_controller.dart';
+import 'package:yhdm/modules/collect/collect_type.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -135,6 +136,70 @@ class _SourceSheetState extends State<SourceSheet>
         _maybeAutoSelectSource();
       });
     }
+    // ⭐ 标星（想看）番：选源页出现即后台预解析第 1 集，点击直接播放
+    final isStarred = collectController.getCollectType(
+            widget.infoController.bangumiItem) ==
+        CollectType.planToWatch.value;
+    if (isStarred) {
+      _starredPreloadTimer =
+          Timer.periodic(const Duration(milliseconds: 200), (_) {
+        _maybePreloadStarredSource();
+      });
+    }
+  }
+
+  /// 标星番预解析：首个有结果的源 → 后台解析第 1 集直链（失败 3 秒后换源重试）
+  int _starredPreloadAttempts = 0;
+  Timer? _starredPreloadTimer;
+
+  void _maybePreloadStarredSource() {
+    if (_starredPreloadAttempts >= 2 || !mounted) {
+      _starredPreloadTimer?.cancel();
+      _starredPreloadTimer = null;
+      return;
+    }
+    final responses = List.of(widget.infoController.pluginSearchResponseList);
+    for (final resp in responses) {
+      if (resp.data.isEmpty) continue;
+      Plugin? matched;
+      for (final p in pluginsController.pluginList) {
+        if (p.name == resp.pluginName) {
+          matched = p;
+          break;
+        }
+      }
+      if (matched == null) continue;
+      _starredPreloadTimer?.cancel();
+      _starredPreloadTimer = null;
+      _starredPreloadAttempts++;
+      unawaited(_preloadStarred(matched, resp.data.first));
+      return;
+    }
+  }
+
+  Future<void> _preloadStarred(Plugin plugin, SearchItem searchItem) async {
+    try {
+      final roads = await plugin.queryChapterRoads(searchItem.src);
+      if (roads.isNotEmpty && roads.first.data.isNotEmpty && mounted) {
+        await VideoPageController.preloadFor(
+          widget.infoController.bangumiItem.id,
+          1,
+          currentPlugin: plugin,
+          pageUrl: roads.first.data.first,
+        );
+      }
+    } catch (e) {
+      KazumiLogger().w('SourceSheet: 标星预解析失败', error: e);
+    }
+    // 未命中缓存（解析失败）→ 3 秒后换下一个源重试
+    final key = '${widget.infoController.bangumiItem.id}:1';
+    if (!VideoPageController.incomingPreloadedUrls.containsKey(key) &&
+        mounted &&
+        _starredPreloadAttempts < 2) {
+      _starredPreloadTimer = Timer(const Duration(seconds: 3), () {
+        _maybePreloadStarredSource();
+      });
+    }
   }
 
   DateTime? _autoSelectStartedAt;
@@ -229,6 +294,8 @@ class _SourceSheetState extends State<SourceSheet>
   void dispose() {
     _autoSelectTimer?.cancel();
     _autoSelectTimer = null;
+    _starredPreloadTimer?.cancel();
+    _starredPreloadTimer = null;
     _sourceTabController.dispose();
     pluginSearchService?.cancel();
     pluginSearchService = null;

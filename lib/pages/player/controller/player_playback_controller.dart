@@ -526,6 +526,17 @@ abstract class _PlayerPlaybackController with Store {
             ),
           ]);
           break;
+        case SuperResolutionMode.balanced:
+          await pp.command([
+            'change-list',
+            'glsl-shaders',
+            'set',
+            buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path,
+              mpvAnime4KShadersBalanced,
+            ),
+          ]);
+          break;
         case SuperResolutionMode.efficiency:
           await pp.command([
             'change-list',
