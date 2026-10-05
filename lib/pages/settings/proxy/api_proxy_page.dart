@@ -25,7 +25,7 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   // 预设域名选项
   static const List<String> _presetDomains = [
     'https://api.kazumi.fyi',
-    'https://api.bgm.tv',
+    'https://api.qlyyz.top',
   ];
 
   // 原始端点 → 默认镜像路径

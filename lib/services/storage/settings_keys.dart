@@ -241,7 +241,7 @@ class SettingsKeys {
   );
   static const danmakuEnabledByDefault = SettingKey<bool>(
     _SettingBoxKey.danmakuEnabledByDefault,
-    false,
+    true,
     group: SettingGroup.danmaku,
   );
   static const danmakuBiliBiliSource = SettingKey<bool>(
