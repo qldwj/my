@@ -1132,11 +1132,9 @@ class _VideoPageState extends State<VideoPage>
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // ⭐ 播放页加载转圈：主题主色（tertiaryContainer 在黑底上不明显，换 primary，每个主题有对应）
-                                CircularProgressIndicator(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary),
+                                // ⭐ 播放页加载转圈：黄色（黑底上醒目）
+                                const CircularProgressIndicator(
+                                    color: Colors.amber),
                                 const SizedBox(height: 10),
                                 Text(
                                   videoPageController.loading
