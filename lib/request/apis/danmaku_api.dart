@@ -128,6 +128,9 @@ class DanmakuApi {
 
     for (var comment in comments) {
       DanmakuEntry danmaku = DanmakuEntry.fromJson(comment);
+      // 弹弹play 的 p 字段第 4 段是发送者 hash，不是来源名；统一标记为 Gamer
+      // （来源统计 countDanmakuSources 与播放过滤 _isDanmakuSourceEnabled 都按 Gamer 识别）
+      danmaku.source = 'Gamer';
       danmakus.add(danmaku);
     }
     return danmakus;
@@ -146,6 +149,8 @@ class DanmakuApi {
 
     for (var comment in comments) {
       DanmakuEntry danmaku = DanmakuEntry.fromJson(comment);
+      // 弹弹play 的 p 字段第 4 段是发送者 hash，不是来源名；统一标记为 Gamer
+      danmaku.source = 'Gamer';
       danmakus.add(danmaku);
     }
     return danmakus;
