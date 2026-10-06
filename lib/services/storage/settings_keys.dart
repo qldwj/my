@@ -402,7 +402,7 @@ class SettingsKeys {
         group: SettingGroup.proxy,
       );
 
-  // 官方 2.3.7：未设置时回退到旧镜像开关（enabled 默认）
+  // 官方 2.3.7：未设置（空字符串）时按 BangumiAcceleration.current 默认镜像
   static const bangumiAcceleration = SettingKey<String>(
     'bangumiAcceleration',
     '',

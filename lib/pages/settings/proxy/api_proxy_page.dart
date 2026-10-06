@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/services/network/bangumi_acceleration.dart';
 import 'package:yhdm/services/network/image_acceleration.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/network/proxy_manager.dart';
@@ -220,6 +221,40 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     }
   }
 
+  /// 🆕 番剧条目加速模式选择（直连 / ECH / 镜像）
+  Future<void> _selectBangumiItemAcceleration() async {
+    final l10n = AppLocalizations.of(context)!;
+    final current = BangumiAcceleration.current;
+    final selected = await KazumiDialog.show<BangumiAcceleration>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.setDBangumiItemAccel),
+        children: [
+          RadioGroup<BangumiAcceleration>(
+            groupValue: current,
+            onChanged: (value) => Navigator.of(ctx).pop(value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final mode in BangumiAcceleration.values)
+                  RadioListTile<BangumiAcceleration>(
+                    value: mode,
+                    title: Text(mode.label(l10n)),
+                    subtitle: Text(mode.description(l10n)),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (mounted && selected != null && selected != current) {
+      await GStorage.putSetting(SettingsKeys.bangumiAcceleration, selected.name);
+      ProxyManager.applyProxy();
+      setState(() {});
+    }
+  }
+
   /// 🆕 图片加速模式选择（直连 / ECH / 镜像）
   Future<void> _selectImageAcceleration() async {
     final l10n = AppLocalizations.of(context)!;
@@ -344,6 +379,24 @@ sheetAnimationStyle: kSheetAnimationStyle,
                     contentPadding: EdgeInsets.zero,
                   ),
                   const Divider(),
+                  // 🆕 番剧条目加速（直连 / ECH / 镜像 三选一）
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.travel_explore_rounded),
+                    title: Text(l10n.setDBangumiItemAccel),
+                    subtitle: Text(l10n.setDBangumiItemAccelDesc),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          BangumiAcceleration.current.label(l10n),
+                          style: TextStyle(color: cs.primary),
+                        ),
+                        const Icon(Icons.chevron_right_rounded),
+                      ],
+                    ),
+                    onTap: () => _selectBangumiItemAcceleration(),
+                  ),
                   // 🆕 图片加速（直连 / ECH / 镜像 三选一）
                   ListTile(
                     contentPadding: EdgeInsets.zero,
