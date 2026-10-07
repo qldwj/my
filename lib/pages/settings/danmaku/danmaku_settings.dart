@@ -33,6 +33,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuMassive;
   late bool danmakuDeduplication;
   late bool danmakuDanDanSource;
+  late bool danmakuBiliBiliSource;
+  late bool danmakuAnimekoSource;
   late bool danmakuCustom;
   late bool danmakuFollowSpeed;
 
@@ -67,6 +69,10 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.danmakuDeduplication);
     danmakuDanDanSource =
         GStorage.getSetting<bool>(SettingsKeys.danmakuDanDanSource);
+    danmakuBiliBiliSource =
+        GStorage.getSetting<bool>(SettingsKeys.danmakuBiliBiliSource);
+    danmakuAnimekoSource =
+        GStorage.getSetting<bool>(SettingsKeys.danmakuAnimekoSource);
     danmakuCustom =
         GStorage.getSetting<bool>(SettingsKeys.customDanmakuEnabled);
     danmakuFollowSpeed =
@@ -181,8 +187,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               title: Text(l10n.setBDanmakuSources,
                   style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                // 🔴 合并：弹弹play 一个开关（原 Gamer/BiliBili 重复开关移除），
-                // 弹弹/Gamer 来源弹幕统一由它控制；自建弹幕独立开关。
+                // 各弹幕源独立开关：弹弹play / B站 / Animeko / 自建
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     danmakuDanDanSource = value ?? !danmakuDanDanSource;
@@ -193,6 +198,28 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title:
                       Text('弹弹play', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDanDanSource,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuBiliBiliSource = value ?? !danmakuBiliBiliSource;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.danmakuBiliBiliSource, danmakuBiliBiliSource);
+                    setState(() {});
+                  },
+                  title: Text('BiliBili',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: danmakuBiliBiliSource,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuAnimekoSource = value ?? !danmakuAnimekoSource;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.danmakuAnimekoSource, danmakuAnimekoSource);
+                    setState(() {});
+                  },
+                  title: Text('Animeko',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: danmakuAnimekoSource,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

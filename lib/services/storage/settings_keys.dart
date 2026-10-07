@@ -265,6 +265,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
+  /// 🆕 Animeko 公益弹幕源开关
+  static const danmakuAnimekoSource = SettingKey<bool>(
+    'danmakuAnimekoSource',
+    true,
+    group: SettingGroup.danmaku,
+  );
   /// 自建弹幕（发送到自己的服务器 + 显示已审核弹幕）
   static const customDanmakuEnabled = SettingKey<bool>(
     _SettingBoxKey.customDanmakuEnabled,
@@ -1087,6 +1093,7 @@ class SettingsKeys {
     danmakuBiliBiliSource,
     danmakuGamerSource,
     danmakuDanDanSource,
+    danmakuAnimekoSource,
     customDanmakuEnabled,
     danmakuFontWeight,
     danmakuFollowSpeed,

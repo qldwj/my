@@ -11,6 +11,8 @@ import 'package:yhdm/pages/player/controller/player_danmaku_controller.dart';
 import 'package:yhdm/pages/player/danmaku_source_sheet.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/player/danmaku_import_service.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 动漫弹幕来源管理弹窗（从底部向上平移弹出，系统返回即关闭）
 ///
@@ -35,15 +37,18 @@ Future<void> showDanmakuManageSheet(
 }
 
 /// 按来源统计当前已加载弹幕条数
-({int gamer, int animeko, int local, int custom}) countDanmakuSources(
+({int gamer, int bili, int animeko, int local, int custom})
+    countDanmakuSources(
   PlayerDanmakuController controller,
 ) {
-  var gamer = 0, animeko = 0, local = 0, custom = 0;
+  var gamer = 0, bili = 0, animeko = 0, local = 0, custom = 0;
   for (final list in controller.danDanmakus.values) {
     for (final entry in list) {
       switch (entry.source) {
         case 'Gamer':
           gamer++;
+        case 'BiliBili':
+          bili++;
         case 'Animeko':
           animeko++;
         case DanmakuImportService.localSource:
@@ -53,7 +58,13 @@ Future<void> showDanmakuManageSheet(
       }
     }
   }
-  return (gamer: gamer, animeko: animeko, local: local, custom: custom);
+  return (
+    gamer: gamer,
+    bili: bili,
+    animeko: animeko,
+    local: local,
+    custom: custom,
+  );
 }
 
 class _DanmakuManageSheet extends StatefulWidget {
@@ -140,54 +151,91 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                 Observer(
                   builder: (_) {
                     final counts = countDanmakuSources(widget.danmakuController);
-                    // 🔴 Animeko 风格：每个来源一个 FilterChip，显示条数，点击切换开关
+                    final total = counts.gamer +
+                        counts.bili +
+                        counts.animeko +
+                        counts.custom +
+                        counts.local;
+                    // 各来源独立开关：点哪个只开关哪个
                     final chips = <Widget>[
                       _DanmakuSourceChip(
                         label: '弹弹play',
                         count: counts.gamer,
-                        enabled: widget.danmakuController.danmakuOn,
-                        onChanged: (value) => widget.danmakuController
-                            .setDanmakuEnabled(value),
+                        enabled:
+                            GStorage.getSetting(SettingsKeys.danmakuDanDanSource),
+                        onChanged: (value) {
+                          GStorage.putSetting(
+                              SettingsKeys.danmakuDanDanSource, value);
+                          setState(() {});
+                        },
+                      ),
+                      _DanmakuSourceChip(
+                        label: 'BiliBili',
+                        count: counts.bili,
+                        enabled:
+                            GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource),
+                        onChanged: (value) {
+                          GStorage.putSetting(
+                              SettingsKeys.danmakuBiliBiliSource, value);
+                          setState(() {});
+                        },
                       ),
                       _DanmakuSourceChip(
                         label: 'Animeko',
                         count: counts.animeko,
-                        enabled: widget.danmakuController.danmakuOn,
-                        onChanged: (value) => widget.danmakuController
-                            .setDanmakuEnabled(value),
+                        enabled:
+                            GStorage.getSetting(SettingsKeys.danmakuAnimekoSource),
+                        onChanged: (value) {
+                          GStorage.putSetting(
+                              SettingsKeys.danmakuAnimekoSource, value);
+                          setState(() {});
+                        },
                       ),
                       _DanmakuSourceChip(
                         label: '樱花弹幕',
                         count: counts.custom,
-                        enabled: true,
-                        onChanged: (_) {},
-                      ),
-                      _DanmakuSourceChip(
-                        label: '我的弹幕',
-                        count: counts.local,
-                        enabled: true,
-                        onChanged: (_) {},
+                        enabled:
+                            GStorage.getSetting(SettingsKeys.customDanmakuEnabled),
+                        onChanged: (value) {
+                          GStorage.putSetting(
+                              SettingsKeys.customDanmakuEnabled, value);
+                          setState(() {});
+                        },
                       ),
                     ];
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // 弹弹/Animeko 弹幕总开关
-                        SwitchListTile(
-                          dense: true,
-                          title: const Text('在线弹幕'),
-                          subtitle: const Text('开启后显示弹弹play / Animeko 弹幕'),
-                          value: widget.danmakuController.danmakuOn,
-                          onChanged: (value) => widget.danmakuController
-                              .setDanmakuEnabled(value),
+                        // 总共条数（所有来源合计）
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            '共加载 $total 条弹幕',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 4),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: chips,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
+                        // 我的弹幕：最后单独一行
+                        ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.person_outline),
+                          title: const Text('我的弹幕'),
+                          subtitle: Text(
+                            counts.local > 0
+                                ? '已加载 ${counts.local} 条'
+                                : '未添加，点击下方导入弹幕文件',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         const Divider(),
                         ListTile(
                           dense: true,
@@ -245,7 +293,7 @@ class _DanmakuSourceChip extends StatelessWidget {
       selected: enabled && count > 0,
       showCheckmark: false,
       onSelected: onChanged,
-      label: Text(count > 0 ? '$label · $count' : label),
+      label: Text(count > 0 ? '$label · $count' : '$label · 0'),
       labelStyle: TextStyle(
         fontSize: 13,
         color: enabled && count > 0 ? colors.onSecondaryContainer : null,

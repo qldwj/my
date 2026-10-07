@@ -875,6 +875,18 @@ abstract class _VideoPageController with Store implements Disposable {
     AsyncSession session,
   ) async {
     final danmakuSession = _danmakuSessions.begin();
+    // 🔴 开始观看后再拉弹幕：等播放器真正播放（首帧/playing），
+    // 避免弹幕请求抢视频首帧带宽导致开始变慢；用户不点播放则最多等 15 秒后照拉。
+    if (!playerController.playback.playing) {
+      final deadline =
+          DateTime.now().add(const Duration(seconds: 15));
+      while (session.isActive &&
+          danmakuSession.isActive &&
+          !playerController.playback.playing &&
+          DateTime.now().isBefore(deadline)) {
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    }
     playerController.danmaku.beginDanmakuLoad();
     try {
       final result = await playerController.danmaku.fetchDanmaku(
