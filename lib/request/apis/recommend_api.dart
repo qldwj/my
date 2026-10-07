@@ -1,12 +1,53 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:yhdm/modules/bangumi/bangumi_item.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/services/storage/storage.dart';
 
 /// 首页推荐接口（代理 Animeko 官方 /v2/home/recommendations）
 /// 后端：https://qlyyz.xyz/api/v0/recommendations.php?offset=&limit=
 class RecommendApi {
   static const String _baseUrl =
       'https://qlyyz.xyz/api/v0/recommendations';
+
+  /// 进程内缓存（避免退出页再进重复请求；冷启动时重置重新访问）
+  static List<BangumiItem>? _memoryCache;
+  static bool _loadedThisSession = false;
+
+  /// 进程内是否已加载过（App 不退出则不重新请求）
+  static bool get loadedThisSession => _loadedThisSession;
+
+  /// 读取进程内缓存
+  static List<BangumiItem>? memoryCache() => _memoryCache;
+
+  /// 同步读取本地 Hive 缓存（冷启动首帧直达，不闪加载）。
+  /// 无缓存/损坏时返回 null。
+  static List<BangumiItem>? cachedItems() {
+    final cached = GStorage.getSetting(SettingsKeys.recommendHomeCache);
+    if (cached is! String || cached.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(cached);
+      if (decoded is! List) return null;
+      final items = decoded
+          .whereType<Map>()
+          .map((e) => _toBangumiItem(Map<String, dynamic>.from(e)))
+          .where((item) => item.id > 0)
+          .toList();
+      return items.isEmpty ? null : items;
+    } catch (_) {
+      return null; // 缓存损坏则忽略，走网络重新拉取
+    }
+  }
+
+  /// 写入 Hive 缓存
+  static Future<void> _saveCache(List<BangumiItem> items) async {
+    try {
+      final payload = items.map((e) => e.toJson()).toList();
+      await GStorage.putSetting(
+          SettingsKeys.recommendHomeCache, jsonEncode(payload));
+    } catch (_) {}
+  }
 
   /// 拉取一页推荐。失败静默降级为空列表。
   /// 返回 (list, hasMore)，供无限分页使用。
@@ -41,6 +82,12 @@ class RecommendApi {
           .where((item) => item.id > 0)
           .toList();
       final hasMore = data['has_more'] == true;
+      // 首页成功拉取后写入进程内 + Hive 缓存（下次冷启动直达，App 不退出不重复请求）
+      if (offset == 0 && items.isNotEmpty) {
+        _memoryCache = items;
+        _loadedThisSession = true;
+        unawaited(_saveCache(items));
+      }
       return (list: items, hasMore: hasMore);
     } catch (e) {
       return (list: const <BangumiItem>[], hasMore: false);

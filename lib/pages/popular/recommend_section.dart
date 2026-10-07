@@ -24,10 +24,38 @@ class _RecommendSectionState extends State<RecommendSection> {
   }
 
   Future<void> _load() async {
+    // 🔴 缓存优先：进程内 → Hive → 无缓存才请求（冷启动重新访问，不退出不重复拉）
+    final memory = RecommendApi.memoryCache();
+    if (memory != null && memory.isNotEmpty) {
+      setState(() {
+        _loading = false;
+        _error = null;
+        _list..clear()..addAll(memory);
+      });
+      return;
+    }
+    final cached = RecommendApi.cachedItems();
+    if (cached != null && cached.isNotEmpty) {
+      setState(() {
+        _loading = false;
+        _error = null;
+        _list..clear()..addAll(cached);
+      });
+      // Hive 缓存直达后，冷启动才重新访问网络（会话内已加载过则不再请求）
+      if (!RecommendApi.loadedThisSession) {
+        _refreshFromNetwork();
+      }
+      return;
+    }
+    // 无缓存：骨架屏占位 + 请求
     setState(() {
       _loading = true;
       _error = null;
     });
+    await _refreshFromNetwork();
+  }
+
+  Future<void> _refreshFromNetwork() async {
     final r = await RecommendApi.fetchRecommendations(offset: 0, limit: 20);
     if (!mounted) return;
     setState(() {
@@ -35,7 +63,7 @@ class _RecommendSectionState extends State<RecommendSection> {
       if (r.list.isEmpty) {
         _error = '暂无推荐';
       } else {
-        _list.addAll(r.list);
+        _list..clear()..addAll(r.list);
       }
     });
   }
@@ -66,9 +94,17 @@ class _RecommendSectionState extends State<RecommendSection> {
           ),
           const SizedBox(height: 4),
           if (_loading && _list.isEmpty)
-            const SizedBox(
-              height: 150,
-              child: Center(child: CircularProgressIndicator()),
+            // 🔴 骨架屏：无网络/未解析时先展示占位卡片，解析后填真实内容
+            SizedBox(
+              height: 178,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: 5,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (ctx, i) => const _RecSkeletonCard(),
+              ),
             )
           else if (_list.isEmpty)
             SizedBox(
@@ -130,6 +166,51 @@ class _RecCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 骨架屏占位卡片（加载中/无网络时先显示）
+class _RecSkeletonCard extends StatelessWidget {
+  const _RecSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final fill = colors.surfaceContainerHighest;
+    return SizedBox(
+      width: 104,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 104,
+            height: 144,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Container(
+            width: 90,
+            height: 12,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 60,
+            height: 12,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
       ),
     );
   }
