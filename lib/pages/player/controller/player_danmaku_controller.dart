@@ -155,25 +155,39 @@ abstract class _PlayerDanmakuController with Store {
         episode,
       );
     }
-    // ⭐ 只拉弹弹play（按用户要求去掉 B站并发，省带宽，弱网首帧更快）
-    final result = await _fetchDanDanmakuByBgmBangumiID(
+    // ⭐ 并发拉取弹弹play + Animeko（互不影响失败；任一有弹幕即返回）
+    final danDanFuture = _fetchDanDanmakuByBgmBangumiID(
       bangumiId,
       episode,
     );
-
-    if (result.hasDanmakus) {
+    final animekoFuture = _fetchAnimekoDanmaku(
+      bangumiId,
+      episode,
+    );
+    final results = await Future.wait([danDanFuture, animekoFuture]);
+    final danDanResult = results[0] as DanmakuLoadResult;
+    final animekoResult = results[1] as DanmakuLoadResult;
+    // 弹弹有弹幕优先（更贴近播放进度）；Animeko 兜底合并/补充
+    final merged = <DanmakuEntry>[
+      ...danDanResult.danmakus,
+      ...animekoResult.danmakus,
+    ];
+    if (merged.isNotEmpty) {
       KazumiLogger().i(
-          'PlayerController: 弹弹play 拉取 ${result.danmakus.length} 条弹幕 (bangumiId=$bangumiId)');
+          'PlayerController: 弹弹+Animeko 拉取 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
       // 🆕 缓存到本地库（下次源挂了也能看）
       unawaited(DanmakuCacheService.save(
         bangumiId: bangumiId,
         episode: episode,
-        danmakus: result.danmakus.map((e) => e.toJson()).toList(),
+        danmakus: merged.map((e) => e.toJson()).toList(),
       ));
-      return result;
+      return DanmakuLoadResult.success(
+        danmakus: merged,
+        bangumiID: danDanResult.bangumiID,
+      );
     }
 
-    // 🆕 弹弹play 没弹幕 → 尝试本地缓存兜底
+    // 🆕 弹弹+Animeko 都没弹幕 → 尝试本地缓存兜底
     final cached = await DanmakuCacheService.load(
       bangumiId: bangumiId,
       episode: episode,
@@ -187,13 +201,13 @@ abstract class _PlayerDanmakuController with Store {
         KazumiLogger().i('PlayerController: 使用本地缓存弹幕 ${entries.length} 条');
         return DanmakuLoadResult.success(
           danmakus: entries,
-          bangumiID: bangumiId,
+          bangumiID: danDanResult.bangumiID,
         );
       }
     }
 
     // 都没有：返回失败（由上层提示）
-    return result;
+    return DanmakuLoadResult.failed(bangumiID: danDanResult.bangumiID);
   }
 
   /// 通过 B站搜索拉取弹幕（真正的 B站直连源）
@@ -367,6 +381,27 @@ abstract class _PlayerDanmakuController with Store {
           error: e);
     }
     return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
+  }
+
+  /// 🆕 Animeko 公益弹幕：先取 Bangumi 剧集 ID，再拉 Animeko 弹幕
+  Future<DanmakuLoadResult> _fetchAnimekoDanmaku(
+      int bgmBangumiID, int episode) async {
+    try {
+      final episodeInfo = await BangumiApi.getBangumiEpisodeByID(
+          bgmBangumiID, episode);
+      if (episodeInfo.id <= 0) {
+        return DanmakuLoadResult.success(
+            danmakus: const [], bangumiID: bgmBangumiID);
+      }
+      final res = await DanmakuApi.getAnimekoDanmaku(episodeInfo.id);
+      return DanmakuLoadResult.success(
+        danmakus: res,
+        bangumiID: bgmBangumiID,
+      );
+    } catch (e) {
+      KazumiLogger().w('PlayerController: Animeko 弹幕拉取失败', error: e);
+      return DanmakuLoadResult.failed(bangumiID: bgmBangumiID);
+    }
   }
 
   @action

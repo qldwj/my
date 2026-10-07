@@ -8,6 +8,7 @@ import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/modules/danmaku/danmaku_module.dart';
 import 'package:yhdm/modules/danmaku/danmaku_search_response.dart';
 import 'package:yhdm/modules/danmaku/danmaku_episode_response.dart';
+import 'package:yhdm/utils/danmaku.dart';
 import 'package:yhdm/utils/http_headers.dart';
 import 'package:yhdm/utils/string_similarity.dart';
 
@@ -500,5 +501,68 @@ for (final entry in sourceMap.entries) {
       stats[entry.key] = entry.value.length;
     }
     return stats;
+  }
+
+  // ============ Animeko 弹幕（公益弹幕服务器） ============
+  // 协议：GET https://danmaku-cn.myani.org/v1/danmaku/{Bangumi剧集ID}?maxCount=
+  // 返回 { danmakuList: [{ id, senderId, danmakuInfo: { playTime(ms), color(int), text, location(TOP/BOTTOM/NORMAL) } }] }
+  static const String _animekoCnBase = 'https://danmaku-cn.myani.org';
+  static const String _animekoGlobalBase = 'https://danmaku-global.myani.org';
+  static const String animekoSource = 'Animeko';
+
+  /// 拉取 Animeko 弹幕（按 Bangumi 剧集 ID），CN 服务器失败自动切 GLOBAL。
+  static Future<List<DanmakuEntry>> getAnimekoDanmaku(int episodeId) async {
+    if (episodeId <= 0) return const [];
+    for (final base in [_animekoCnBase, _animekoGlobalBase]) {
+      try {
+        final url =
+            '$base/v1/danmaku/$episodeId?maxCount=8000&fromTime=0&toTime=-1';
+        final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+        final request = await client.getUrl(Uri.parse(url));
+        request.headers.set('User-Agent', getRandomUA());
+        request.headers.set('Accept', 'application/json');
+        final response = await request.close().timeout(const Duration(seconds: 8));
+        final body = await response.transform(utf8.decoder).join();
+        client.close();
+        final json = jsonDecode(body);
+        final list = (json as Map<String, dynamic>)['danmakuList'];
+        if (list is! List || list.isEmpty) {
+          // 空列表继续试下一个服务器；解析失败也继续
+          if (list is List) return const [];
+          continue;
+        }
+        final entries = <DanmakuEntry>[];
+        for (final item in list) {
+          if (item is! Map<String, dynamic>) continue;
+          final info = item['danmakuInfo'];
+          if (info is! Map<String, dynamic>) continue;
+          final text = info['text']?.toString() ?? '';
+          if (text.isEmpty) continue;
+          final playTimeMs = (info['playTime'] as num?)?.toDouble() ?? 0;
+          final colorInt = (info['color'] as num?)?.toInt() ?? -1;
+          final location = info['location']?.toString() ?? 'NORMAL';
+          // playTime 毫秒 → 秒；TOP/BOTTOM → 顶部/底部弹幕，NORMAL → 滚动
+          final type = switch (location) {
+            'TOP' => 5,
+            'BOTTOM' => 4,
+            _ => 1,
+          };
+          entries.add(DanmakuEntry(
+            message: text,
+            time: playTimeMs / 1000,
+            type: type,
+            color: generateDanmakuColor(colorInt),
+            source: animekoSource,
+          ));
+        }
+        if (entries.isNotEmpty) {
+          KazumiLogger().i('Danmaku: Animeko 拉取到 ${entries.length} 条弹幕');
+          return entries;
+        }
+      } catch (e) {
+        KazumiLogger().w('AnimekoDanmaku: 拉取失败($base)', error: e);
+      }
+    }
+    return const [];
   }
 }
