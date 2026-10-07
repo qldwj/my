@@ -97,6 +97,13 @@ class _CheckinPageState extends State<CheckinPage> {
           onPressed: _goBack,
         ),
         title: const Text('追番打卡'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.leaderboard_rounded),
+            tooltip: '排行榜',
+            onPressed: () => context.pushNamed('/tab/my/checkin/rank'),
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

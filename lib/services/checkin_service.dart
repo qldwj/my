@@ -66,6 +66,9 @@ class CheckinService {
   /// 生成分享文案
   static Future<Map<String, dynamic>> share() => _post('share', null);
 
+  /// 🆕 排行榜：连续签到天数榜，每周一凌晨结算，前三名 +300/+200/+100 积分
+  static Future<Map<String, dynamic>> rank() => _post('rank', null);
+
   /// 🆕 成就系统：追番/连签/累计/积分/绑定账号/Bangumi 解锁列表 + 当前称号
   /// [collectCount] = 本机追番收藏数（看动漫维度）
   /// 结果 Hive 持久化（变化才写盘），请求失败时退回缓存
