@@ -24,9 +24,10 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
   late Map<String, TextEditingController> _pathControllers;
 
   // 预设域名选项
+  // 预设域名（照官方：qlyyz.top 自建镜像在前 + 官方 kazumi.fyi 兜底）
   static const List<String> _presetDomains = [
-    'https://api.kazumi.fyi',
     'https://api.qlyyz.top',
+    'https://api.kazumi.fyi',
   ];
 
   // 原始端点 → 默认镜像路径

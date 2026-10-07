@@ -128,8 +128,6 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _hideScroll;
   late bool _massiveMode;
   late bool _danmakuColor;
-  late bool _danmakuBiliBiliSource;
-  late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late double _danmakuDuration;
   late double _danmakuLineHeight;
@@ -972,16 +970,9 @@ class _PlayerItemState extends State<PlayerItem>
     if (danmaku.source.contains('Custom')) {
       return GStorage.getSetting(SettingsKeys.customDanmakuEnabled);
     }
-    if (!_danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
-      return false;
-    }
-    if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
-      return false;
-    }
-    if (!_danmakuDanDanSource) {
-      return false;
-    }
-    return true;
+    // 🔴 修复：弹弹/Gamer 来源弹幕统一由「弹弹play」开关控制，
+    // 不再有第二个开关无条件拦截全部弹幕（旧 Gamer/BiliBili 开关已合并移除）。
+    return _danmakuDanDanSource;
   }
 
   DanmakuItemType _danmakuItemType(DanmakuEntry danmaku) {
@@ -1584,11 +1575,7 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuColor = GStorage.getSetting(SettingsKeys.danmakuColor);
     _danmakuDuration = GStorage.getSetting(SettingsKeys.danmakuDuration);
     _danmakuLineHeight = GStorage.getSetting(SettingsKeys.danmakuLineHeight);
-    _danmakuBiliBiliSource =
-        GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource);
-    _danmakuGamerSource = GStorage.getSetting(SettingsKeys.danmakuGamerSource);
-    _danmakuDanDanSource =
-        GStorage.getSetting(SettingsKeys.danmakuDanDanSource);
+    _danmakuDanDanSource = GStorage.getSetting(SettingsKeys.danmakuDanDanSource);
     _danmakuFontWeight = GStorage.getSetting(SettingsKeys.danmakuFontWeight);
     _danmakuUseSystemFont = GStorage.getSetting(SettingsKeys.useSystemFont);
     _danmakuBorderSize = GStorage.getSetting(SettingsKeys.danmakuBorderSize);

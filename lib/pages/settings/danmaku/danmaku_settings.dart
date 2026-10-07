@@ -32,8 +32,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuColor;
   late bool danmakuMassive;
   late bool danmakuDeduplication;
-  late bool danmakuBiliBiliSource;
-  late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
   late bool danmakuCustom;
   late bool danmakuFollowSpeed;
@@ -67,10 +65,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     danmakuMassive = GStorage.getSetting(SettingsKeys.danmakuMassive);
     danmakuDeduplication =
         GStorage.getSetting<bool>(SettingsKeys.danmakuDeduplication);
-    danmakuBiliBiliSource =
-        GStorage.getSetting<bool>(SettingsKeys.danmakuBiliBiliSource);
-    danmakuGamerSource =
-        GStorage.getSetting<bool>(SettingsKeys.danmakuGamerSource);
     danmakuDanDanSource =
         GStorage.getSetting<bool>(SettingsKeys.danmakuDanDanSource);
     danmakuCustom =
@@ -187,29 +181,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               title: Text(l10n.setBDanmakuSources,
                   style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    danmakuBiliBiliSource = value ?? !danmakuBiliBiliSource;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.danmakuBiliBiliSource,
-                        danmakuBiliBiliSource);
-                    setState(() {});
-                  },
-                  title: Text('BiliBili',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: danmakuBiliBiliSource,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    danmakuGamerSource = value ?? !danmakuGamerSource;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.danmakuGamerSource, danmakuGamerSource);
-                    setState(() {});
-                  },
-                  title:
-                      Text('Gamer', style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: danmakuGamerSource,
-                ),
+                // 🔴 合并：弹弹play 一个开关（原 Gamer/BiliBili 重复开关移除），
+                // 弹弹/Gamer 来源弹幕统一由它控制；自建弹幕独立开关。
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     danmakuDanDanSource = value ?? !danmakuDanDanSource;
