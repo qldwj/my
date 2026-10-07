@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:yhdm/modules/danmaku/danmaku_module.dart';
 import 'package:yhdm/pages/player/controller/player_models.dart';
 import 'package:yhdm/pages/download/download_controller.dart';
+import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:yhdm/request/apis/danmaku_api.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
