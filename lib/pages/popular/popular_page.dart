@@ -18,7 +18,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
-import 'package:yhdm/services/announcement/announcement_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:yhdm/utils/device.dart';
@@ -308,7 +307,7 @@ class _PopularPageState extends State<PopularPage> {
   List<Widget> buildActions() {
     final l10n = AppLocalizations.of(context)!;
     final actions = <Widget>[];
-    // 搜索（左）→ 历史（右）→ 活动（最右）
+    // 搜索（左）→ 历史（右）
     actions.add(
       IconButton(
         tooltip: l10n.search,
@@ -321,14 +320,6 @@ class _PopularPageState extends State<PopularPage> {
         tooltip: l10n.setHHistory,
         onPressed: () => context.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
-      ),
-    );
-    // 🆕 活动：点击拉取并展示活动列表
-    actions.add(
-      IconButton(
-        tooltip: '活动',
-        onPressed: () => AnnouncementService.openActivities(),
-        icon: const Icon(Icons.campaign_outlined),
       ),
     );
     if (isDesktop()) {
