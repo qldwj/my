@@ -77,13 +77,22 @@ bool isStandardVideoUrl(String url) {
 ///
 /// 优化点（对比旧版）：使用 dart:io HttpClient 流式读取**前 1KB** 即断开，
 /// 无论服务器是否响应 Range，都不会下载整个响应体；
-/// 超时 1 秒，失败/超时立即返回 auto，绝不阻塞播放。
+/// 超时 1 秒，失败/超时立即返回 auto，绝不阻塞播放；
+/// 🆕 同 URL 结果内存缓存 10 分钟，重试/连播不再重复发请求。
 Future<VideoSourceFormat> sniffHlsFormat(
   String url, {
   Map<String, String>? headers,
   Duration timeout = const Duration(seconds: 2),
 }) async {
+  // 🆕 内存缓存：同一 URL 10 分钟内复用嗅探结果，避免切集/重试重复请求
+  final cacheKey = url;
+  final hit = _sniffCache[cacheKey];
+  if (hit != null &&
+      DateTime.now().difference(hit.savedAt) < const Duration(minutes: 10)) {
+    return hit.format;
+  }
   HttpClient? client;
+  var result = VideoSourceFormat.auto;
   try {
     client = HttpClient()..connectionTimeout = timeout;
     final req = await client
@@ -111,9 +120,11 @@ Future<VideoSourceFormat> sniffHlsFormat(
     final preview = trimmed.length > 80 ? trimmed.substring(0, 80) : trimmed;
     if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
       KazumiLogger().i('SniffHls: ✅ 命中 HLS, head: $preview');
-      return VideoSourceFormat.hls;
+      result = VideoSourceFormat.hls;
+    } else {
+      KazumiLogger().i('SniffHls: ❌ 未命中, head: $preview');
+      result = VideoSourceFormat.auto;
     }
-    KazumiLogger().i('SniffHls: ❌ 未命中, head: $preview');
   } catch (e) {
     KazumiLogger().w('SniffHls: ⚠️ 异常/超时, ${e.runtimeType}: $e');
   } finally {
@@ -121,5 +132,16 @@ Future<VideoSourceFormat> sniffHlsFormat(
       client?.close(force: true);
     } catch (_) {}
   }
-  return VideoSourceFormat.auto;
+  _sniffCache[cacheKey] = _SniffCacheEntry(result, DateTime.now());
+  return result;
+}
+
+/// 嗅探结果内存缓存（避免同一伪装流 URL 反复发请求）
+final Map<String, _SniffCacheEntry> _sniffCache = {};
+
+class _SniffCacheEntry {
+  const _SniffCacheEntry(this.format, this.savedAt);
+
+  final VideoSourceFormat format;
+  final DateTime savedAt;
 }

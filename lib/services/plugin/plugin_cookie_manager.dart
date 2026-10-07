@@ -16,8 +16,9 @@ class PluginCookieManager {
   PluginCookieManager._();
   static final PluginCookieManager instance = PluginCookieManager._();
 
-  /// Cookie 有效天数（默认 30，可在设置中自定义；超期视为失效需重新登录）。
-  static const int _defaultTtlDays = 30;
+  /// Cookie 有效天数（默认 1 天；紫色登录规则站点 cookie 过期快，
+  /// 30 天太久，超期后一直静默失败，改 1 天尽快提示重新登录）。
+  static const int _defaultTtlDays = 1;
   static const String _ttlDaysKey = 'plugin_cookie_ttl_days';
 
   /// 读取当前 Cookie 有效天数（默认 30）

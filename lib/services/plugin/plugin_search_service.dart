@@ -81,8 +81,19 @@ class PluginSearchService {
       infoController.pluginSearchStatus[plugin.name] =
           PluginSearchStatus.pending;
     }
+    // 🔴 修复：规则多时全量并发会把站点/本地连接打爆导致大量失败，
+    // 改为受限并发（同时最多 5 个），其余排队，大幅降低加载失败率。
+    const maxConcurrent = 5;
+    var next = 0;
+    Future<void> worker() async {
+      while (true) {
+        final i = next++;
+        if (i >= plugins.length) return;
+        await _queryPlugin(plugins[i], keyword);
+      }
+    }
     await Future.wait(
-      plugins.map((plugin) => _queryPlugin(plugin, keyword)),
+      List.generate(maxConcurrent.clamp(1, plugins.length), (_) => worker()),
     );
   }
 
