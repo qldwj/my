@@ -160,6 +160,61 @@ class DanmakuApi {
 
   // ============ B站弹幕源 ============
 
+  /// 众包共享后端：按 Bangumi ID + 集数查询 B站 cid（自己的 PHP）
+  static const String _biliCidApi = 'https://qlyyz.xyz/api/v0/danmaku_bili.php';
+
+  /// 查询 cid 映射（找不到返回 0）
+  static Future<int> queryBiliCidFromServer(int bangumiId, int episode) async {
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+      final url = '$_biliCidApi?action=query&bangumi_id=$bangumiId&episode=$episode';
+      final request = await client.getUrl(Uri.parse(url));
+      request.headers.set('User-Agent', getRandomUA());
+      final response = await request.close().timeout(const Duration(seconds: 6));
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final json = jsonDecode(body);
+      if (json is Map && json['found'] == true) {
+        return (json['cid'] as num?)?.toInt() ?? 0;
+      }
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: 查询 cid 映射失败', error: e);
+    }
+    return 0;
+  }
+
+  /// 上传 cid 映射（用户手动搜索匹配后）
+  static Future<bool> uploadBiliCidToServer(
+    int bangumiId,
+    int episode,
+    int cid, {
+    int epId = 0,
+    String title = '',
+  }) async {
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final request =
+          await client.postUrl(Uri.parse('$_biliCidApi?action=upload'));
+      request.headers.set('Content-Type', 'application/json; charset=utf-8');
+      request.headers.set('User-Agent', getRandomUA());
+      request.add(utf8.encode(jsonEncode({
+        'bangumi_id': bangumiId,
+        'episode': episode,
+        'cid': cid,
+        'ep_id': epId,
+        'title': title,
+      })));
+      final response = await request.close().timeout(const Duration(seconds: 8));
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final json = jsonDecode(body);
+      return json is Map && json['success'] == true;
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: 上传 cid 映射失败', error: e);
+      return false;
+    }
+  }
+
   /// 按番名搜索 B站视频（带重试机制）
   static Future<List<Map<String, dynamic>>> searchBiliVideos(
       String keyword, {
@@ -252,31 +307,193 @@ class DanmakuApi {
     return 0;
   }
 
-  /// 拉取 B站弹幕
+  /// 拉取 B站弹幕（优先 protobuf seg.so 分段，XML 兜底）
+  /// [cid] 视频 cid；分段按 6 分钟/段，拉满全片
   static Future<List<DanmakuEntry>> getBiliDanmaku(int cid) async {
     if (cid <= 0) return [];
-    
+    final entries = <DanmakuEntry>[];
+    // protobuf 分段拉取（每段 6 分钟，最多 20 段兜底）
+    for (int seg = 1; seg <= 20; seg++) {
+      final batch = await _getBiliSeg(cid, seg);
+      if (batch.isEmpty) break; // 该段无弹幕 = 到末尾
+      entries.addAll(batch);
+      if (batch.length < 6000) break; // 不满段 = 最后一段
+    }
+    if (entries.isNotEmpty) {
+      return entries;
+    }
+    // 旧 XML 兜底（deflate 解压）
+    return _getBiliXml(cid);
+  }
+
+  /// 拉取 B站弹幕分段（protobuf，content 字段=7）
+  static Future<List<DanmakuEntry>> _getBiliSeg(int cid, int segmentIndex) async {
     try {
-      final response = await Dio().get(
-        'https://api.bilibili.com/x/v1/dm/list.so',
-        queryParameters: {'oid': cid},
-        options: Options(
-          responseType: ResponseType.plain,
-          headers: {
-            'User-Agent': getRandomUA(),
-            'Referer': 'https://www.bilibili.com',
-            'Origin': 'https://www.bilibili.com',
-          },
-        ),
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final url =
+          'https://api.bilibili.com/x/v2/dm/list/seg.so?type=1&oid=$cid&segment_index=$segmentIndex';
+      final request = await client.getUrl(Uri.parse(url));
+      request.headers.set('User-Agent', getRandomUA());
+      request.headers.set('Referer', 'https://www.bilibili.com');
+      final response = await request.close().timeout(const Duration(seconds: 8));
+      final bytes = await response.fold<List<int>>(
+        <int>[],
+        (acc, chunk) => acc..addAll(chunk),
       );
-      
-      final xml = response.data?.toString() ?? '';
-      if (xml.isEmpty) return [];
-      
+      client.close();
+      if (bytes.isEmpty) return const [];
+      return _parseBiliProto(bytes);
+    } catch (e) {
+      KazumiLogger().w('BiliDanmaku: seg.so 分段 $segmentIndex 失败', error: e);
+      return const [];
+    }
+  }
+
+  /// 解析 B站弹幕 protobuf（DmSegMobileReply.elems → DanmakuElem）
+  /// 字段：1=id(int64) 2=progress(ms,int32) 3=mode 5=color 6=midHash 7=content(string)
+  static List<DanmakuEntry> _parseBiliProto(List<int> bytes) {
+    final entries = <DanmakuEntry>[];
+    var i = 0;
+    // 顶层字段：elems 是 field 1, wire type 2 (length-delimited)
+    while (i < bytes.length) {
+      final tagResult = _readVarint(bytes, i);
+      if (tagResult == null) break;
+      final (tag, ni) = tagResult;
+      i = ni;
+      final field = tag >> 3;
+      final wire = tag & 7;
+      if (field == 1 && wire == 2) {
+        final lenResult = _readVarint(bytes, i);
+        if (lenResult == null) break;
+        final (len, ni2) = lenResult;
+        i = ni2;
+        final elemEnd = i + len;
+        final entry = _parseProtoElem(bytes, i, elemEnd);
+        if (entry != null) entries.add(entry);
+        i = elemEnd;
+      } else {
+        // 跳过未知字段
+        final skip = _skipField(bytes, i, wire);
+        if (skip == null) break;
+        i = skip;
+      }
+    }
+    return entries;
+  }
+
+  /// 解析单条 DanmakuElem
+  static DanmakuEntry? _parseProtoElem(List<int> bytes, int start, int end) {
+    var progressMs = 0;
+    var mode = 1;
+    var colorInt = 0xFFFFFF;
+    String content = '';
+    var i = start;
+    while (i < end) {
+      final tagResult = _readVarint(bytes, i);
+      if (tagResult == null) break;
+      final (tag, ni) = tagResult;
+      i = ni;
+      final field = tag >> 3;
+      final wire = tag & 7;
+      if (wire == 0) {
+        final v = _readVarint(bytes, i);
+        if (v == null) break;
+        final (value, ni2) = v;
+        i = ni2;
+        if (field == 2) progressMs = value.toInt();
+        if (field == 3) mode = value.toInt();
+      } else if (wire == 2) {
+        final lenResult = _readVarint(bytes, i);
+        if (lenResult == null) break;
+        final (len, ni2) = lenResult;
+        i = ni2;
+        final strBytes = bytes.sublist(i, i + len);
+        i += len;
+        if (field == 7) {
+          content = utf8.decode(strBytes, allowMalformed: true);
+        }
+      } else if (wire == 5) {
+        if (i + 4 > end) break;
+        if (field == 5) {
+          colorInt = bytes[i] |
+              (bytes[i + 1] << 8) |
+              (bytes[i + 2] << 16) |
+              (bytes[i + 3] << 24);
+        }
+        i += 4;
+      } else {
+        // 其它 wire：尝试跳过
+        final skip = _skipField(bytes, i, wire);
+        if (skip == null) break;
+        i = skip;
+      }
+    }
+    if (content.isEmpty) return null;
+    // progress 毫秒→秒；mode 4/5 映射底部/顶部
+    final type = mode == 4 ? 4 : (mode == 5 ? 5 : 1);
+    return DanmakuEntry(
+      message: content,
+      time: progressMs / 1000.0,
+      type: type,
+      color: Color(0xFF000000 | colorInt),
+      source: 'BiliBili',
+    );
+  }
+
+  static (int, int)? _readVarint(List<int> bytes, int i) {
+    var result = 0;
+    var shift = 0;
+    while (i < bytes.length) {
+      final b = bytes[i];
+      i++;
+      result |= (b & 0x7f) << shift;
+      if ((b & 0x80) == 0) return (result, i);
+      shift += 7;
+      if (shift >= 70) return null;
+    }
+    return null;
+  }
+
+  static int? _skipField(List<int> bytes, int i, int wire) {
+    switch (wire) {
+      case 0:
+        final v = _readVarint(bytes, i);
+        return v?.$2;
+      case 1:
+        return i + 8 <= bytes.length ? i + 8 : null;
+      case 2:
+        final v = _readVarint(bytes, i);
+        if (v == null) return null;
+        return i + v.$1 <= bytes.length ? i + v.$1 : null;
+      case 5:
+        return i + 4 <= bytes.length ? i + 4 : null;
+      default:
+        return null;
+    }
+  }
+
+  /// 拉取 B站弹幕 XML（deflate 解压）
+  static Future<List<DanmakuEntry>> _getBiliXml(int cid) async {
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final request = await client
+          .getUrl(Uri.parse('https://comment.bilibili.com/$cid.xml'));
+      request.headers.set('User-Agent', getRandomUA());
+      request.headers.set('Referer', 'https://www.bilibili.com');
+      final response = await request.close().timeout(const Duration(seconds: 8));
+      final bytes = await response.fold<List<int>>(
+        <int>[],
+        (acc, chunk) => acc..addAll(chunk),
+      );
+      client.close();
+      if (bytes.isEmpty) return const [];
+      // deflate 解压（zlib raw）
+      final decoded = ZLibDecoder(raw: true).convert(bytes);
+      final xml = utf8.decode(decoded, allowMalformed: true);
       return _parseBiliXml(xml);
     } catch (e) {
-      KazumiLogger().e('BiliDanmaku: 拉取弹幕失败', error: e);
-      return [];
+      KazumiLogger().w('BiliDanmaku: XML 拉取失败', error: e);
+      return const [];
     }
   }
 
