@@ -34,7 +34,6 @@ import 'package:yhdm/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
 import 'package:yhdm/pages/download/download_controller.dart';
-import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/pages/download/download_episode_sheet.dart';
 import 'package:yhdm/modules/download/download_module.dart';
 import 'package:yhdm/services/player/timed_shutdown_service.dart';
@@ -411,17 +410,6 @@ class _VideoPageState extends State<VideoPage>
         currentRoad: currentRoad,
         offset: offset,
         playerController: playerController);
-  }
-
-  /// 该番上次看到的集数（来自历史记录）
-  int _lastWatchedEpisode() {
-    try {
-      final id = videoPageController.bangumiItem.id;
-      for (final h in HistoryRepository().getAllHistories()) {
-        if (h.bangumiItem.id == id) return h.lastWatchEpisode;
-      }
-    } catch (_) {}
-    return 0;
   }
 
   /// 源失效自动换源：切换到下一条线路重播当前集
@@ -1724,56 +1712,6 @@ class _VideoPageState extends State<VideoPage>
                                                 fontSize: 12,
                                                 color:
                                                     colors.onSurfaceVariant),
-                                          ),
-                                        ),
-                                        const Icon(Icons.chevron_right,
-                                            size: 18),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                            // ⭐ 下一集检测：上次看到第X集，第X+1集可看
-                            Builder(builder: (context) {
-                              final lastEp = _lastWatchedEpisode();
-                              final totalEp =
-                                  visibleRoad >= 0 &&
-                                          visibleRoad <
-                                              videoPageController.roadList.length
-                                      ? videoPageController
-                                          .roadList[visibleRoad].data.length
-                                      : 0;
-                              if (lastEp <= 0 || lastEp >= totalEp) {
-                                return const SizedBox.shrink();
-                              }
-                              return Material(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                child: InkWell(
-                                  onTap: () => changeEpisode(
-                                    lastEp + 1,
-                                    currentRoad: visibleRoad,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.play_circle_fill,
-                                          size: 20,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '上次看到第 $lastEp 集 · 第 ${lastEp + 1} 集可看，点击继续',
-                                            style: const TextStyle(
-                                                fontSize: 13),
                                           ),
                                         ),
                                         const Icon(Icons.chevron_right,
