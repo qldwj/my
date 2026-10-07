@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:window_manager/window_manager.dart';
@@ -51,8 +52,10 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (actions != null) {
       acs.addAll(actions!);
     }
-    if (isDesktop()) {
-      // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
+    final inSettingsPane = SettingsPaneScope.of(context)?.embedded ?? false;
+    if (isDesktop() && !inSettingsPane) {
+      // 🔴 修复：宽屏设置右栏面板（embedded）里不再补画窗口关闭按钮，
+      // 否则每个用 SysAppBar 的设置子页面都会多出一个 X（与面板内的返回按钮重复）。
       if (!showWindowButton()) {
         acs.add(CloseButton(onPressed: () => windowManager.close()));
       }
