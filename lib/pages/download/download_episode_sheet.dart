@@ -176,12 +176,17 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(48),
                         ),
-                        onPressed: _selectedEpisodes.isEmpty
+                        onPressed: selectableEpisodes.isEmpty
                             ? null
-                            : () => _startBatchDownload(context),
+                            : () {
+                                if (_selectedEpisodes.isEmpty) {
+                                  _selectedEpisodes.addAll(selectableEpisodes);
+                                }
+                                _startBatchDownload(context);
+                              },
                         icon: const Icon(Icons.download_rounded),
                         label: Text(_selectedEpisodes.isEmpty
-                            ? '开始下载'
+                            ? '下载整季'
                             : '下载 ${_selectedEpisodes.length} 集'),
                       ),
                     ),

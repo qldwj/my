@@ -109,6 +109,13 @@ class _DownloadPageState extends State<DownloadPage> {
           );
           KazumiDialog.showToast(message: '已开始恢复下载');
         },
+        onRetryFailed: () {
+          downloadController.retryAllFailed(
+            record.bangumiId,
+            record.pluginName,
+          );
+          KazumiDialog.showToast(message: '已重试失败的下载');
+        },
         onDeleteAll: () => _confirmDeleteRecord(record),
         totalSpeed: totalSpeed,
         episodeTileBuilder: () {

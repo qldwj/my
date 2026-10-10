@@ -18,6 +18,7 @@ class DownloadRecordCard extends StatelessWidget {
     required this.expanded,
     required this.onToggle,
     required this.onResumeAll,
+    required this.onRetryFailed,
     required this.onDeleteAll,
     required this.totalSpeed,
     required this.episodeTileBuilder,
@@ -27,6 +28,7 @@ class DownloadRecordCard extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggle;
   final VoidCallback onResumeAll;
+  final VoidCallback onRetryFailed;
   final VoidCallback onDeleteAll;
   final double totalSpeed;
 
@@ -134,6 +136,12 @@ class DownloadRecordCard extends StatelessWidget {
                     ),
                     menuChildren: [
                       KazumiMenuItem(label: '全部开始', onPressed: onResumeAll),
+                      if (episodes.any(
+                          (e) => e.status == DownloadStatus.failed))
+                        KazumiMenuItem(
+                          label: '重试失败',
+                          onPressed: onRetryFailed,
+                        ),
                       KazumiMenuItem(
                         label: '全部删除',
                         destructive: true,

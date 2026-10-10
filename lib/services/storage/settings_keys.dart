@@ -267,12 +267,6 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
-  /// 本地导入弹幕（“我的弹幕”）来源开关
-  static const danmakuLocalSource = SettingKey<bool>(
-    'danmakuLocalSource',
-    true,
-    group: SettingGroup.danmaku,
-  );
   // 官方 2.3.7 新增：弹幕简繁转换模式（0 不转换 / 1 简->繁 / 2 繁->简）
   static const danmakuChConvert = SettingKey<int>(
     'danmakuChConvert',
@@ -663,6 +657,12 @@ class SettingsKeys {
   static const downloadDanmaku = SettingKey<bool>(
     _SettingBoxKey.downloadDanmaku,
     true,
+    group: SettingGroup.download,
+  );
+  /// 仅 WiFi 下载：非 WiFi（移动数据）时不自动开始下载
+  static const downloadWifiOnly = SettingKey<bool>(
+    'downloadWifiOnly',
+    false,
     group: SettingGroup.download,
   );
   static const downloadDirectory = SettingKey<String>(
@@ -1083,7 +1083,6 @@ class SettingsKeys {
     danmakuDanDanSource,
     danmakuAnimekoSource,
     customDanmakuEnabled,
-    danmakuLocalSource,
     danmakuFontWeight,
     danmakuFollowSpeed,
     themeMode,
@@ -1149,6 +1148,7 @@ class SettingsKeys {
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
+    downloadWifiOnly,
     downloadDirectory,
     downloadDirectoryBookmark,
     shortcutDialogShown,
@@ -1216,7 +1216,6 @@ class _SettingBoxKey {
       danmakuEnabledByDefault = 'danmakuEnabledByDefault',
       danmakuDanDanSource = 'danmakuDanDanSource',
       customDanmakuEnabled = 'customDanmakuEnabled',
-      danmakuLocalSource = 'danmakuLocalSource',
       danmakuFontWeight = 'danmakuFontWeight',
       danmakuFollowSpeed = 'danmakuFollowSpeed',
       themeMode = 'themeMode',
@@ -1274,6 +1273,7 @@ class _SettingBoxKey {
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
+      downloadWifiOnly = 'downloadWifiOnly',
       downloadDirectory = 'downloadDirectory',
       shortcutDialogShown = 'shortcutDialogShown',
       bangumiSyncEnable = 'bangumiSyncEnable',

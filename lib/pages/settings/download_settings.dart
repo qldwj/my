@@ -24,6 +24,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   late int parallelSegments;
   late bool downloadDanmaku;
   late bool downloadNotify;
+  late bool downloadWifiOnly;
   String downloadDirectory = '';
   String defaultDownloadDirectory = '';
   bool isSelectingDirectory = false;
@@ -37,6 +38,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
         GStorage.getSetting(SettingsKeys.downloadParallelSegments);
     downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
     downloadNotify = GStorage.getSetting(SettingsKeys.downloadCompleteNotify);
+    downloadWifiOnly = GStorage.getSetting(SettingsKeys.downloadWifiOnly);
     downloadDirectory =
         GStorage.getSetting(SettingsKeys.downloadDirectory).trim();
     _loadDefaultDownloadDirectory();
@@ -289,6 +291,20 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                   style: TextStyle(fontFamily: fontFamily),
                 ),
                 initialValue: downloadNotify,
+              ),
+              SettingsTile.switchTile(
+                onToggle: (value) {
+                  setState(() => downloadWifiOnly = value ?? !downloadWifiOnly);
+                  GStorage.putSetting(
+                      SettingsKeys.downloadWifiOnly, downloadWifiOnly);
+                },
+                title: Text('仅 WiFi 下载',
+                    style: TextStyle(fontFamily: fontFamily)),
+                description: Text(
+                  '开启后仅在 WiFi/有线网络下开始下载，移动数据下先排队',
+                  style: TextStyle(fontFamily: fontFamily),
+                ),
+                initialValue: downloadWifiOnly,
               ),
             ],
           ),

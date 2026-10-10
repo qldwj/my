@@ -15,6 +15,7 @@ import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/video_source/services.dart';
 import 'package:yhdm/request/apis/danmaku_api.dart';
 import 'package:mobx/mobx.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 part 'download_controller.g.dart';
 
@@ -536,6 +537,16 @@ abstract class _DownloadController with Store {
     await _repository.putRecord(record);
     refreshRecords();
 
+    // 仅 WiFi：非 WiFi 时先登记为排队，等切到 WiFi 后再开始
+    if (GStorage.getSetting(SettingsKeys.downloadWifiOnly) &&
+        !await _isOnWifiNetwork()) {
+      episode.status = DownloadStatus.pending;
+      episode.errorMessage = '等待 WiFi 网络';
+      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      refreshRecords();
+      return;
+    }
+
     _resolveQueue.add(_ResolveRequest(
       recordKey: recordKey,
       bangumiId: bangumiId,
@@ -1047,6 +1058,35 @@ abstract class _DownloadController with Store {
     if (incompleteEpisodes.isNotEmpty) {
       KazumiLogger().i(
         'DownloadController: resumed ${incompleteEpisodes.length} downloads for $recordKey',
+      );
+    }
+  }
+
+  /// 当前是否处于 WiFi / 有线网络（“仅 WiFi 下载”用）
+  Future<bool> _isOnWifiNetwork() async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      return results.contains(ConnectivityResult.wifi) ||
+          results.contains(ConnectivityResult.ethernet);
+    } catch (_) {
+      return true; // 探测失败不阻断下载
+    }
+  }
+
+  /// 批量重试该番剧所有失败的集
+  Future<void> retryAllFailed(int bangumiId, String pluginName) async {
+    final recordKey = '${pluginName}_$bangumiId';
+    final record = _repository.getRecord(recordKey);
+    if (record == null) return;
+    final failed = record.episodes.entries
+        .where((e) => e.value.status == DownloadStatus.failed)
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    for (final entry in failed) {
+      await retryDownload(
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        episodeNumber: entry.key,
       );
     }
   }
