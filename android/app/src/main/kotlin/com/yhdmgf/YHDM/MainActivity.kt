@@ -78,7 +78,7 @@ class MainActivity: AudioServiceActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && androidFullscreen) {
-            applyAndroidFullscreen()
+            applyAndroidSystemBarsHidden(true)
         }
     }
 
@@ -110,6 +110,9 @@ class MainActivity: AudioServiceActivity() {
                 result.success(null)
             } else if (call.method == "exitFullscreen") {
                 exitAndroidFullscreen()
+                result.success(null)
+            } else if (call.method == "setSystemBarsHidden") {
+                applyAndroidSystemBarsHidden(call.arguments as? Boolean ?: false)
                 result.success(null)
             } else {
                 result.notImplemented()
@@ -226,24 +229,24 @@ class MainActivity: AudioServiceActivity() {
     }
 
     private fun enterAndroidFullscreen() {
-        androidFullscreen = true
-        applyAndroidFullscreen()
-    }
-
-    private fun applyAndroidFullscreen() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            hide(WindowInsetsCompat.Type.systemBars())
-        }
+        applyAndroidSystemBarsHidden(true)
     }
 
     private fun exitAndroidFullscreen() {
-        androidFullscreen = false
+        applyAndroidSystemBarsHidden(false)
+    }
+
+    private fun applyAndroidSystemBarsHidden(hidden: Boolean) {
+        androidFullscreen = hidden
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView)
-            .show(WindowInsetsCompat.Type.systemBars())
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (hidden) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     private fun isPictureInPictureSupported(): Boolean {

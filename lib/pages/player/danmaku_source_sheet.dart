@@ -204,7 +204,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
           .getDanDanmakuByEpisodeID(episode.episodeId);
       if (!mounted) return;
       widget.danmakuController.setDanmakuEnabled(hasDanmakus);
-      KazumiDialog.dismiss();
+      Navigator.of(context).maybePop();
       KazumiDialog.showToast(
         message: hasDanmakus ? '已切换弹幕源' : '暂无弹幕',
       );
@@ -307,7 +307,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
                 animeTitle: _animeTitle,
                 onBack:
                     _step == _SourceStep.search || _loading ? null : _goBack,
-                onClose: () => KazumiDialog.dismiss(),
+                onClose: () => Navigator.of(context).maybePop(),
               ),
               Flexible(child: _loading ? _buildLoading() : _buildBody()),
             ],
@@ -420,7 +420,7 @@ class _DanmakuSourceSheetState extends State<_DanmakuSourceSheet> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () => KazumiDialog.dismiss(),
+                  onPressed: () => Navigator.of(context).maybePop(),
                   child: const Text('取消'),
                 ),
                 const SizedBox(width: 10),

@@ -137,7 +137,7 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
       children: [
         MaterialBottomSheetHeader(
           title: '动漫弹幕来源',
-          onClose: () => KazumiDialog.dismiss(),
+          onClose: () => Navigator.of(context).maybePop(),
         ),
         Flexible(
           child: SingleChildScrollView(

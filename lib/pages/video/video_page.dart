@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:yhdm/pages/player/player_controller.dart';
 import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/pages/video/danmaku_send_sheet.dart';
+import 'package:yhdm/pages/video/video_system_bars.dart';
 import 'package:yhdm/pages/video/video_playback_args.dart';
 import 'package:yhdm/pages/playlist/play_queue_page.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
@@ -751,7 +752,10 @@ class _VideoPageState extends State<VideoPage>
           }
         }
         return Observer(builder: (context) {
-          return Scaffold(
+          return VideoSystemBars(
+            fullscreen: videoPageController.isFullscreen,
+            isPip: videoPageController.isPip,
+            child: Scaffold(
             appBar: null,
             body: SafeArea(
                 top: !videoPageController.isFullscreen,
@@ -810,6 +814,7 @@ class _VideoPageState extends State<VideoPage>
                     ],
                   ],
                 )),
+            ),
           );
         });
       }),
