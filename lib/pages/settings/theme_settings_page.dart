@@ -6,12 +6,12 @@ import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
+import 'package:yhdm/bean/settings/settings_list.dart';
 import 'package:yhdm/bean/settings/theme_provider.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/settings/color_type.dart';
 import 'package:yhdm/services/font_service.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/utils/device.dart';
 import 'package:yhdm/utils/theme.dart';
@@ -193,7 +193,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   },
                   onChanged: updateTheme,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   enabled: !useDynamicColor,
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
@@ -274,7 +274,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useSystemFont,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) => _pickCustomFont(),
                   title:
                       Text(l10n.setBCustomFont, style: TextStyle(fontFamily: fontFamily)),
@@ -324,7 +324,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             if (Platform.isAndroid)
               SettingsSection(
                 tiles: [
-                  SettingsTile.navigation(
+                  SettingsTile(
                     onPressed: (_) async {
                       context.pushNamed('/settings/theme/display');
                     },

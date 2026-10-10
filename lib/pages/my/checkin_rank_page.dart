@@ -93,6 +93,7 @@ class _CheckinRankPageState extends State<CheckinRankPage> {
                     ],
                   ),
                 ),
+      ),
     );
   }
 

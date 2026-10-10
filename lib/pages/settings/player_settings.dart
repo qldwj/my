@@ -4,13 +4,13 @@ import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
+import 'package:yhdm/bean/settings/settings_list.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/pages/player/controller/player_aspect_ratio.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/player/pip_utils.dart';
 import 'package:yhdm/services/player/skip_segments_service.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/utils/device.dart';
 
@@ -422,7 +422,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text(l10n.setAHwDecode, style: TextStyle(fontFamily: fontFamily)),
                   initialValue: hAenable,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     await context.pushNamed('/settings/player/decoder');
                   },
@@ -432,7 +432,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 if (Platform.isAndroid) ...[
-                  SettingsTile.navigation(
+                  SettingsTile(
                     onPressed: (_) async {
                       await context.pushNamed('/settings/player/renderer');
                     },
@@ -471,7 +471,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     initialValue: androidEnableOpenSLES,
                   ),
                 ],
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     context.pushNamed('/settings/player/super');
                   },
@@ -616,7 +616,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoSkipOpEd,
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) => _showDefaultSkipDialog(isOp: true),
                   title: Text(l10n.setASkipOpTitle, style: TextStyle(fontFamily: fontFamily)),
                   description: Text(l10n.setASkipOpDefaultDesc(duration: _formatDuration(skipOpDefault)),
@@ -624,7 +624,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   value: Text(_formatDuration(skipOpDefault),
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) => _showDefaultSkipDialog(isOp: false),
                   title: Text(l10n.setASkipEdTitle, style: TextStyle(fontFamily: fontFamily)),
                   description: Text(l10n.setASkipEdDefaultDesc(duration: _formatDuration(skipEdDefault)),
@@ -772,7 +772,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     },
                   ),
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   description: Slider(
                     value: playerArrowKeySkipTime.toDouble(),
                     min: 0,
@@ -794,7 +794,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text(l10n.setAArrowSkipSecs,
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) async {
                     await updateButtonSkipTime();
                   },
@@ -833,7 +833,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             ),
             SettingsSection(
               tiles: [
-                SettingsTile.navigation(
+                SettingsTile(
                   onPressed: (_) => resetPlayerSettings(),
                   title:
                       Text(l10n.setAResetDefaults, style: TextStyle(fontFamily: fontFamily)),

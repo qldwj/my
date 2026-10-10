@@ -935,7 +935,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     },
                     menuChildren: [
                       for (final double i
-                          in defaultPlaySpeedList) ...<MenuItemButton>[
+                          in defaultPlaySpeedList) ...[
                         KazumiMenuItem(
                           label: '${i}x',
                           selected: i ==

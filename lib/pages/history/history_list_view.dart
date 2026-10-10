@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:yhdm/bean/widget/empty_state_widget.dart';
 import 'package:yhdm/bean/widget/state_presentation.dart';
 import 'package:yhdm/modules/history/history_module.dart';
 import 'package:yhdm/pages/history/history_list_query.dart';

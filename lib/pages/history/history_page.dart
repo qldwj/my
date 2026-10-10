@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/dialog/dialog_task.dart';
 import 'package:yhdm/modules/collect/collect_type.dart';
 import 'package:yhdm/modules/history/history_module.dart';
 import 'package:yhdm/pages/collect/collect_controller.dart';
