@@ -10,6 +10,7 @@ import 'package:yhdm/pages/player/controller/player_aspect_ratio.dart';
 import 'package:yhdm/pages/player/controller/player_super_resolution.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
 import 'package:yhdm/pages/player/player_panel_hold.dart';
+import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/services/player/pip_utils.dart';
 import 'package:yhdm/services/player/skip_segments_service.dart';
 import 'package:yhdm/services/player/auto_skip_service.dart';
