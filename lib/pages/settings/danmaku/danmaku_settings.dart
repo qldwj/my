@@ -35,6 +35,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuDanDanSource;
   late bool danmakuAnimekoSource;
   late bool danmakuCustom;
+  late bool danmakuLocalSource;
   late bool danmakuFollowSpeed;
 
   @override
@@ -72,6 +73,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.danmakuAnimekoSource);
     danmakuCustom =
         GStorage.getSetting<bool>(SettingsKeys.customDanmakuEnabled);
+    danmakuLocalSource =
+        GStorage.getSetting<bool>(SettingsKeys.danmakuLocalSource);
     danmakuFollowSpeed =
         GStorage.getSetting<bool>(SettingsKeys.danmakuFollowSpeed);
   }
@@ -219,6 +222,19 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   description: Text(l10n.setBCustomDanmakuDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuCustom,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuLocalSource = value ?? !danmakuLocalSource;
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.danmakuLocalSource, danmakuLocalSource);
+                    setState(() {});
+                  },
+                  title: Text('我的弹幕',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('本地导入的弹幕文件，关闭后不再显示',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: danmakuLocalSource,
                 ),
               ],
             ),

@@ -978,7 +978,7 @@ class _PlayerItemState extends State<PlayerItem>
       return _danmakuAnimekoSource;
     }
     if (danmaku.source.contains('Local')) {
-      return true; // 本地导入弹幕恒显示
+      return GStorage.getSetting(SettingsKeys.danmakuLocalSource);
     }
     // 弹弹play（source 标记为 Gamer）以其开关为准
     return _danmakuDanDanSource;

@@ -219,6 +219,15 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                                 ? '已加载 ${counts.local} 条'
                                 : '未添加，点击下方导入弹幕文件',
                           ),
+                          trailing: Switch(
+                            value: GStorage.getSetting(
+                                SettingsKeys.danmakuLocalSource),
+                            onChanged: (value) {
+                              GStorage.putSetting(
+                                  SettingsKeys.danmakuLocalSource, value);
+                              setState(() {});
+                            },
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Divider(),

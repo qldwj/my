@@ -267,6 +267,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
+  /// 本地导入弹幕（“我的弹幕”）来源开关
+  static const danmakuLocalSource = SettingKey<bool>(
+    'danmakuLocalSource',
+    true,
+    group: SettingGroup.danmaku,
+  );
   // 官方 2.3.7 新增：弹幕简繁转换模式（0 不转换 / 1 简->繁 / 2 繁->简）
   static const danmakuChConvert = SettingKey<int>(
     'danmakuChConvert',
@@ -1077,6 +1083,7 @@ class SettingsKeys {
     danmakuDanDanSource,
     danmakuAnimekoSource,
     customDanmakuEnabled,
+    danmakuLocalSource,
     danmakuFontWeight,
     danmakuFollowSpeed,
     themeMode,
@@ -1209,6 +1216,7 @@ class _SettingBoxKey {
       danmakuEnabledByDefault = 'danmakuEnabledByDefault',
       danmakuDanDanSource = 'danmakuDanDanSource',
       customDanmakuEnabled = 'customDanmakuEnabled',
+      danmakuLocalSource = 'danmakuLocalSource',
       danmakuFontWeight = 'danmakuFontWeight',
       danmakuFollowSpeed = 'danmakuFollowSpeed',
       themeMode = 'themeMode',
