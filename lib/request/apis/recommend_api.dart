@@ -43,11 +43,21 @@ class RecommendApi {
   /// 写入 Hive 缓存
   static Future<void> _saveCache(List<BangumiItem> items) async {
     try {
-      final payload = items.map((e) => e.toJson()).toList();
+      final payload = items.map(_fromBangumiItem).toList();
       await GStorage.putSetting(
           SettingsKeys.recommendHomeCache, jsonEncode(payload));
     } catch (_) {}
   }
+
+  /// 与 [_toBangumiItem] 对称的序列化（仅保留推荐卡所需字段）。
+  static Map<String, dynamic> _fromBangumiItem(BangumiItem item) => {
+        'id': item.id,
+        'name': item.name,
+        'nameCn': item.nameCn,
+        'image': item.images['large'] ?? '',
+        'desc1': item.airDate,
+        'desc2': item.summary,
+      };
 
   /// 拉取一页推荐。失败静默降级为空列表。
   /// 返回 (list, hasMore)，供无限分页使用。
