@@ -167,7 +167,16 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
+                        // Shrink under large system font so the collect button
+                        // stays inside the fixed-height card.
+                        Flexible(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.topLeft,
+                              child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -245,6 +254,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               ),
                             ),
                           ],
+                        ),
+                            ),
+                          ),
                         ),
                         SizedBox(
                           width: 120,

@@ -536,17 +536,9 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
           PlayerPanelHoldMenuAnchor(
             acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
             onVisibilityChanged: widget.onMenuVisibilityChanged,
-            consumeOutsideTap: true,
-            builder: (BuildContext context, MenuController controller,
-                Widget? child) {
+            builder: (context, toggle) {
               return IconButton(
-                onPressed: () {
-                  if (controller.isOpen) {
-                    controller.close();
-                  } else {
-                    controller.open();
-                  }
-                },
+                onPressed: toggle,
                 tooltip: '更多选项',
                 icon: const Icon(
                   Icons.more_vert,

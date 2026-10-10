@@ -6,6 +6,7 @@ import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 import 'package:yhdm/modules/collect/collect_module.dart';
 import 'package:yhdm/modules/collect/collect_type.dart';
 import 'package:yhdm/pages/collect/collect_library_query.dart';
+import 'package:yhdm/bean/widget/kazumi_menu.dart';
 
 part 'collect_library_card.dart';
 
@@ -460,42 +461,35 @@ class _CollectLibraryViewState extends State<CollectLibraryView> {
           Theme.of(context).colorScheme.onSurfaceVariant),
       minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
     );
-    return MenuAnchor(
-      consumeOutsideTap: true,
+    return KazumiMenuButton(
       menuChildren: [
         for (final sort in CollectSort.values)
-          MenuItemButton(
-            trailingIcon:
-                _sort == sort ? const Icon(Icons.check_rounded) : null,
+          KazumiMenuItem(
+            selected: _sort == sort,
             onPressed: () {
               setState(() {
                 _sort = sort;
                 _resetResults();
               });
             },
-            child: Text(sort.label),
+            label: sort.label,
           ),
       ],
-      builder: (context, controller, child) {
-        void toggleMenu() =>
-            controller.isOpen ? controller.close() : controller.open();
-
-        return Tooltip(
-          message: '排序：${_sort.label}',
-          child: expanded
-              ? TextButton.icon(
-                  style: style,
-                  onPressed: toggleMenu,
-                  icon: const Icon(Icons.sort_rounded, size: 20),
-                  label: Text(_sort.label),
-                )
-              : IconButton(
-                  style: style,
-                  onPressed: toggleMenu,
-                  icon: const Icon(Icons.sort_rounded, size: 20),
-                ),
-        );
-      },
+      builder: (context, toggle) => Tooltip(
+        message: '排序：${_sort.label}',
+        child: expanded
+            ? TextButton.icon(
+                style: style,
+                onPressed: toggle,
+                icon: const Icon(Icons.sort_rounded, size: 20),
+                label: Text(_sort.label),
+              )
+            : IconButton(
+                style: style,
+                onPressed: toggle,
+                icon: const Icon(Icons.sort_rounded, size: 20),
+              ),
+      ),
     );
   }
 

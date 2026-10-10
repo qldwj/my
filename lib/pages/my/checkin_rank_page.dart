@@ -54,8 +54,19 @@ class _CheckinRankPageState extends State<CheckinRankPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('打卡排行榜')),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goBack,
+          ),
+          title: const Text('打卡排行榜'),
+        ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error.isNotEmpty
@@ -83,6 +94,12 @@ class _CheckinRankPageState extends State<CheckinRankPage> {
                   ),
                 ),
     );
+  }
+
+  /// 返回上一页（回打卡页，一层一层返回）；系统返回与左上角按钮统一走这里
+  void _goBack() {
+    if (!mounted) return;
+    context.maybePop();
   }
 
   Widget _buildRewardBanner(ColorScheme cs) {

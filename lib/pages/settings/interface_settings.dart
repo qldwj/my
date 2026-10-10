@@ -4,6 +4,7 @@ import 'package:card_settings_ui/tile/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/services/storage/storage.dart';
 
@@ -20,7 +21,6 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late bool minorMode;
   late bool liquidGlass;
   late String defaultPage;
-  final MenuController defaultPageMenuController = MenuController();
 
   @override
   void initState() {
@@ -57,51 +57,15 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       body: SettingsList(
         sections: [
           SettingsSection(tiles: [
-            SettingsTile.navigation(
-              onPressed: (_) async {
-                if (defaultPageMenuController.isOpen) {
-                  defaultPageMenuController.close();
-                } else {
-                  defaultPageMenuController.open();
-                }
-              },
+            SettingsDropdownTile<String>(
               title: Text(l10n.setBStartupPage,
                   style: TextStyle(fontFamily: fontFamily)),
               description: Text(l10n.setBStartupPageDesc,
                   style: TextStyle(fontFamily: fontFamily)),
-              value: MenuAnchor(
-                consumeOutsideTap: true,
-                controller: defaultPageMenuController,
-                builder: (_, __, ___) {
-                  return Text(
-                    defaultPageMap[defaultPage] ?? l10n.setBPageRecommended,
-                    style: TextStyle(fontFamily: fontFamily),
-                  );
-                },
-                menuChildren: [
-                  for (final entry in defaultPageMap.entries)
-                    MenuItemButton(
-                      requestFocusOnHover: false,
-                      onPressed: () => updateDefaultPage(entry.key),
-                      child: Container(
-                        height: 48,
-                        constraints: BoxConstraints(minWidth: 112),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            entry.value,
-                            style: TextStyle(
-                              color: entry.key == defaultPage
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
-                              fontFamily: fontFamily,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              value: defaultPage,
+              options: defaultPageMap,
+              fallbackLabel: l10n.setBPageRecommended,
+              onChanged: updateDefaultPage,
             ),
           ]),
           SettingsSection(tiles: [

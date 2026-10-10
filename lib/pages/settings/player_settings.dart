@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/pages/player/controller/player_aspect_ratio.dart';
 import 'package:yhdm/utils/constants.dart';
@@ -55,8 +56,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
   late int playerControllerLayerDisappearTime;
-  final MenuController playerAspectRatioMenuController = MenuController();
-  final MenuController playerLogLevelMenuController = MenuController();
 
   /// 格式化秒数为 X分X秒
   String _formatDuration(int seconds) {
@@ -731,48 +730,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playerDebugMode,
                 ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    if (playerLogLevelMenuController.isOpen) {
-                      playerLogLevelMenuController.close();
-                    } else {
-                      playerLogLevelMenuController.open();
-                    }
-                  },
+                SettingsDropdownTile<int>(
                   title: Text(l10n.setALogLevel, style: TextStyle(fontFamily: fontFamily)),
                   description: Text(l10n.setALogLevelDesc,
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: MenuAnchor(
-                    consumeOutsideTap: true,
-                    controller: playerLogLevelMenuController,
-                    builder: (_, __, ___) {
-                      return Text(
-                        playerLogLevelMap[playerLogLevel] ?? '???',
-                      );
-                    },
-                    menuChildren: [
-                      for (final entry in playerLogLevelMap.entries)
-                        MenuItemButton(
-                          requestFocusOnHover: false,
-                          onPressed: () => updatePlayerLogLevel(entry.key),
-                          child: Container(
-                            height: 48,
-                            constraints: BoxConstraints(minWidth: 112),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                entry.value,
-                                style: TextStyle(
-                                  color: entry.key == playerLogLevel
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  value: playerLogLevel,
+                  options: playerLogLevelMap,
+                  fallbackLabel: '???',
+                  onChanged: updatePlayerLogLevel,
                 ),
               ],
             ),
@@ -855,51 +820,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     onChanged: updatePlayerControllerLayerDisappearSeconds,
                   ),
                 ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    if (playerAspectRatioMenuController.isOpen) {
-                      playerAspectRatioMenuController.close();
-                    } else {
-                      playerAspectRatioMenuController.open();
-                    }
-                  },
+                SettingsDropdownTile<PlayerAspectRatio>(
                   title:
                       Text(l10n.setADefaultAspectRatio, style: TextStyle(fontFamily: fontFamily)),
-                  value: MenuAnchor(
-                    consumeOutsideTap: true,
-                    controller: playerAspectRatioMenuController,
-                    builder: (_, __, ___) {
-                      return Text(
-                        defaultAspectRatioMode.label,
-                        style: TextStyle(fontFamily: fontFamily),
-                      );
-                    },
-                    menuChildren: [
-                      for (final aspectRatioMode in PlayerAspectRatio.values)
-                        MenuItemButton(
-                          requestFocusOnHover: false,
-                          onPressed: () =>
-                              updateDefaultAspectRatioMode(aspectRatioMode),
-                          child: Container(
-                            height: 48,
-                            constraints: BoxConstraints(minWidth: 112),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                aspectRatioMode.label,
-                                style: TextStyle(
-                                  color: aspectRatioMode ==
-                                          defaultAspectRatioMode
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  value: defaultAspectRatioMode,
+                  options: {
+                    for (final mode in PlayerAspectRatio.values) mode: mode.label,
+                  },
+                  onChanged: updateDefaultAspectRatioMode,
                 ),
               ],
             ),

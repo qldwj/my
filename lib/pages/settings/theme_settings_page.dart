@@ -5,6 +5,7 @@ import 'package:yhdm/bean/card/palette_card.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
 import 'package:yhdm/bean/settings/theme_provider.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/settings/color_type.dart';
@@ -57,7 +58,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool showWindowButton;
   late bool useSystemFont;
   late final ThemeProvider themeProvider;
-  final MenuController menuController = MenuController();
 
   /// ⭐ 选择自定义字体文件并应用
   Future<void> _pickCustomFont() async {
@@ -176,124 +176,22 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               title: Text(l10n.themeAppearance,
                   style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    if (menuController.isOpen) {
-                      menuController.close();
-                    } else {
-                      menuController.open();
-                    }
-                  },
+                SettingsDropdownTile<String>(
                   title: Text(l10n.setBDarkModeTitle,
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: MenuAnchor(
-                    consumeOutsideTap: true,
-                    controller: menuController,
-                    builder: (_, __, ___) {
-                      return Text(
-                        defaultThemeMode == 'light'
-                            ? l10n.lightMode
-                            : (defaultThemeMode == 'dark' ? l10n.darkMode : l10n.languageFollowSystem),
-                        style: TextStyle(fontFamily: fontFamily),
-                      );
-                    },
-                    menuChildren: [
-                      MenuItemButton(
-                        requestFocusOnHover: false,
-                        onPressed: () => updateTheme('system'),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.brightness_auto_rounded,
-                                  color: defaultThemeMode == 'system'
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  l10n.languageFollowSystem,
-                                  style: TextStyle(
-                                    color: defaultThemeMode == 'system'
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                    fontFamily: fontFamily,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        requestFocusOnHover: false,
-                        onPressed: () => updateTheme('light'),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.light_mode_rounded,
-                                  color: defaultThemeMode == 'light'
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  l10n.lightMode,
-                                  style: TextStyle(
-                                      color: defaultThemeMode == 'light'
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                          : null,
-                                      fontFamily: fontFamily),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        requestFocusOnHover: false,
-                        onPressed: () => updateTheme('dark'),
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.dark_mode_rounded,
-                                  color: defaultThemeMode == 'dark'
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  l10n.darkMode,
-                                  style: TextStyle(
-                                    color: defaultThemeMode == 'dark'
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                    fontFamily: fontFamily,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  value: defaultThemeMode,
+                  fallbackLabel: l10n.languageFollowSystem,
+                  options: {
+                    'system': l10n.languageFollowSystem,
+                    'light': l10n.lightMode,
+                    'dark': l10n.darkMode,
+                  },
+                  icons: const {
+                    'system': Icons.brightness_auto_rounded,
+                    'light': Icons.light_mode_rounded,
+                    'dark': Icons.dark_mode_rounded,
+                  },
+                  onChanged: updateTheme,
                 ),
                 SettingsTile.navigation(
                   enabled: !useDynamicColor,

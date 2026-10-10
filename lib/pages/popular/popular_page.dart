@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
-import 'package:yhdm/bean/widget/custom_dropdown_menu.dart';
+import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/last_watch_card.dart';
 import 'package:yhdm/modules/history/history_module.dart';
@@ -39,9 +39,6 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage> {
   late final ScrollController scrollController;
   PopularController get popularController => widget.controller;
-
-  // Key used to position the dropdown menu for the tag selector
-  final GlobalKey selectorKey = GlobalKey();
 
   // ===== 上次观看弹窗 =====
   History? _lastHistory;
@@ -270,24 +267,47 @@ class _PopularPageState extends State<PopularPage> {
                         child: Observer(
                           builder: (_) {
                             final bool isTrend = popularController.currentTag == '';
-                            return InkWell(
-                              key: selectorKey,
-                              borderRadius: BorderRadius.circular(8),
-                              onTap: showTagMenu,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isTrend ? AppLocalizations.of(context)!.setHTrending : popularController.currentTag,
-                                    style: theme.textTheme.headlineMedium!.copyWith(
-                                      fontWeight: fontWeight,
-                                      fontSize: fontSize,
-                                    ),
+                            return KazumiMenuButton(
+                              animated: true,
+                              style: const MenuStyle(
+                                maximumSize:
+                                    WidgetStatePropertyAll(Size(240, 350)),
+                              ),
+                              menuChildren: [
+                                for (final tag in ['', ...defaultAnimeTags])
+                                  KazumiMenuItem(
+                                    label: tag.isEmpty
+                                        ? AppLocalizations.of(context)!
+                                            .setHTrending
+                                        : tag,
+                                    selected:
+                                        tag == popularController.currentTag,
+                                    onPressed: () => _selectTag(tag),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Icon(Icons.keyboard_arrow_down,
-                                      size: fontSize, color: theme.iconTheme.color),
-                                ],
+                              ],
+                              builder: (context, toggle) => InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: toggle,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      isTrend
+                                          ? AppLocalizations.of(context)!
+                                              .setHTrending
+                                          : popularController.currentTag,
+                                      style: theme.textTheme.headlineMedium!
+                                          .copyWith(
+                                        fontWeight: fontWeight,
+                                        fontSize: fontSize,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.keyboard_arrow_down,
+                                        size: fontSize,
+                                        color: theme.iconTheme.color),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -347,52 +367,17 @@ class _PopularPageState extends State<PopularPage> {
 
   /// 🆕 用户菜单弹窗
 
-  Future<void> showTagMenu() async {
-    // Calculate the position of the button manually to position the dropdown menu.
-    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
-    // and to support different font sizes in the button and menu items.
-    final RenderBox renderBox =
-        selectorKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-
-    final selected = await Navigator.push<String>(
-      context,
-      PageRouteBuilder(
-        opaque: false,
-        barrierDismissible: true,
-        barrierColor: Colors.transparent,
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return CustomDropdownMenu(
-            offset: offset,
-            buttonSize: size,
-            animation: animation,
-            maxWidth: 80,
-            items: [
-              '',
-              ...defaultAnimeTags,
-            ],
-            itemBuilder: (item) => item.isEmpty ? AppLocalizations.of(context)!.setHTrending : item,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 200),
-        reverseTransitionDuration: const Duration(milliseconds: 150),
-      ),
-    );
-
-    if (selected == null) return;
-    if (selected == '' && popularController.currentTag != '') {
-      scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      popularController.setCurrentTag('');
+  Future<void> _selectTag(String selected) async {
+    if (!mounted || selected == popularController.currentTag) return;
+    scrollController.animateTo(0,
+        duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    popularController.setCurrentTag(selected);
+    if (selected.isEmpty) {
       popularController.clearBangumiList();
       if (popularController.trendList.isEmpty) {
         await popularController.queryBangumiByTrend();
       }
-    } else if (selected != '' && selected != popularController.currentTag) {
-      scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      popularController.setCurrentTag(selected);
+    } else {
       await popularController.queryBangumiByTag(type: 'init');
     }
   }

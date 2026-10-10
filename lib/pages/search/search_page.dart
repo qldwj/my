@@ -6,6 +6,7 @@ import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/material_bottom_sheet.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/card/bangumi_card.dart';
+import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 import 'package:yhdm/pages/search/search_controller.dart';

@@ -120,15 +120,9 @@ class _CollectLibraryCard extends StatelessWidget {
   }
 
   Widget _statusMenu(BuildContext context, CollectType type, String title) {
-    final colors = Theme.of(context).colorScheme;
-    const itemStyle = ButtonStyle(
-      visualDensity: VisualDensity.standard,
-      padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-      minimumSize: WidgetStatePropertyAll(Size(192, 48)),
-    );
-
-    return MenuAnchor(
-      consumeOutsideTap: true,
+    return KazumiMenuButton(
+      enabled: onChangeType != null,
+      crossAxisUnconstrained: false,
       style: MenuStyle(
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -137,25 +131,23 @@ class _CollectLibraryCard extends StatelessWidget {
       menuChildren: [
         for (final status
             in CollectType.values.where((type) => type.isCollected))
-          MenuItemButton(
-            style: itemStyle,
-            trailingIcon:
-                status == type ? const Icon(Icons.check_rounded) : null,
+          KazumiMenuItem(
+            selected: status == type,
             onPressed: onChangeType == null || status == type
                 ? null
                 : () => onChangeType!(status),
-            child: Text(status.label),
+            label: status.label,
           ),
         const Divider(indent: 16, endIndent: 16),
-        MenuItemButton(
-          style: itemStyle,
+        KazumiMenuItem(
           onPressed: onChangeType == null
               ? null
               : () => onChangeType!(CollectType.none),
-          child: Text('取消收藏', style: TextStyle(color: colors.error)),
+          label: '取消收藏',
+          destructive: true,
         ),
       ],
-      builder: (context, controller, child) => Tooltip(
+      builder: (context, toggle) => Tooltip(
         message: '调整《$title》的观看状态',
         child: FilledButton.tonalIcon(
           style: FilledButton.styleFrom(
@@ -164,10 +156,7 @@ class _CollectLibraryCard extends StatelessWidget {
             minimumSize: const Size(0, 40),
             padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 12, 0),
           ),
-          onPressed: onChangeType == null
-              ? null
-              : () =>
-                  controller.isOpen ? controller.close() : controller.open(),
+          onPressed: toggle,
           iconAlignment: IconAlignment.end,
           icon: const Icon(Icons.expand_more_rounded, size: 18),
           label: Text(type.label),

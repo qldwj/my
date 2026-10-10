@@ -9,6 +9,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/card/rule_card.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
+import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
@@ -1211,22 +1212,13 @@ class _PluginViewPageState extends State<PluginViewPage>
   }
 
   Widget _popupMenuButton(Plugin plugin) {
-    return MenuAnchor(
-      consumeOutsideTap: true,
-      builder: (BuildContext context, MenuController controller, Widget? child) {
-        return IconButton(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          icon: const Icon(Icons.more_vert),
-        );
-      },
+    return KazumiMenuButton(
+      builder: (context, toggle) => IconButton(
+        onPressed: toggle,
+        icon: const Icon(Icons.more_vert),
+      ),
       menuChildren: [
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () async {
             final l10n = AppLocalizations.of(context)!;
             try {
@@ -1249,32 +1241,36 @@ class _PluginViewPageState extends State<PluginViewPage>
                     pluginsController, plugin.name, installing: false);
             }
           },
-          child: _menuItem(Icons.update_rounded, AppLocalizations.of(context)!.setEUpdate),
+          label: AppLocalizations.of(context)!.setEUpdate,
+          leadingIcon: Icon(Icons.update_rounded),
         ),
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () {
             context.pushNamed('/settings/plugin/editor', arguments: plugin);
           },
-          child: _menuItem(Icons.edit, AppLocalizations.of(context)!.setCEdit),
+          label: AppLocalizations.of(context)!.setCEdit,
+          leadingIcon: Icon(Icons.edit),
         ),
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () {
             context.pushNamed('/settings/plugin/test', arguments: plugin);
           },
-          child: _menuItem(Icons.bug_report_outlined, '测试'),
+          label: '测试',
+          leadingIcon: Icon(Icons.bug_report_outlined),
         ),
         if (!plugin.isCollection &&
             PluginCookieManager.instance.hasSaved(plugin.name))
-          MenuItemButton(
+          KazumiMenuItem(
             onPressed: () async {
               await PluginCookieManager.instance.clear(plugin.name);
               if (mounted) setState(() {});
               KazumiDialog.showToast(
                   message: '已清除「${plugin.name}」的登录态(Cookie)，下次播放会重新要求登录');
             },
-            child: _menuItem(Icons.cookie_outlined, '清除 Cookie'),
+            label: '清除 Cookie',
+          leadingIcon: Icon(Icons.cookie_outlined),
           ),
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () {
             final pluginJson = json.encode(plugin.toJson());
             final httpLink = jsonToShareUrl(pluginJson);
@@ -1321,9 +1317,10 @@ class _PluginViewPageState extends State<PluginViewPage>
               );
             });
           },
-          child: _menuItem(Icons.share, AppLocalizations.of(context)!.setEShare),
+          label: AppLocalizations.of(context)!.setEShare,
+          leadingIcon: Icon(Icons.share),
         ),
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () async {
             final pluginJson = json.encode(plugin.toJson());
             // 上传前确认 + 选择来源站分类
@@ -1403,9 +1400,10 @@ class _PluginViewPageState extends State<PluginViewPage>
               KazumiDialog.showToast(message: result);
             }
           },
-          child: _menuItem(Icons.cloud_upload_outlined, AppLocalizations.of(context)!.setEUploadToMarket),
+          label: AppLocalizations.of(context)!.setEUploadToMarket,
+          leadingIcon: Icon(Icons.cloud_upload_outlined),
         ),
-        MenuItemButton(
+        KazumiMenuItem(
           onPressed: () async {
             try {
               await pluginsController.removePlugin(plugin);
@@ -1414,21 +1412,11 @@ class _PluginViewPageState extends State<PluginViewPage>
               KazumiDialog.showToast(message: '删除规则失败');
             }
           },
-          child: _menuItem(Icons.delete, '删除'),
+          label: '删除',
+          leadingIcon: Icon(Icons.delete),
         ),
       ],
     );
   }
 
-  Widget _menuItem(IconData icon, String label) {
-    return Container(
-      height: 48,
-      constraints: const BoxConstraints(minWidth: 112),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
-            children: [Icon(icon), const SizedBox(width: 8), Text(label)]),
-      ),
-    );
-  }
 }
