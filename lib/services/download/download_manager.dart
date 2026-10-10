@@ -77,6 +77,7 @@ class DownloadRequest {
   final String recordKey;
   final int bangumiId;
   final String pluginName;
+  final String bangumiName;
   final int episodeNumber;
   final String m3u8Url;
   final Map<String, String> httpHeaders;
@@ -87,6 +88,7 @@ class DownloadRequest {
     required this.recordKey,
     required this.bangumiId,
     required this.pluginName,
+    required this.bangumiName,
     required this.episodeNumber,
     required this.m3u8Url,
     required this.httpHeaders,
@@ -108,7 +110,7 @@ abstract class IDownloadManager {
   String? getLocalVideoPath(DownloadEpisode? episode);
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
-      {DownloadEpisode? episode});
+      {DownloadEpisode? episode, String bangumiName = ''});
   Future<void> deleteRecordFiles(int bangumiId, String pluginName,
       {DownloadRecord? record});
   double getSpeed(String recordKey, int episodeNumber);
@@ -244,9 +246,21 @@ class DownloadManager implements IDownloadManager {
   }
 
   String _getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
-      int episodeNumber) {
-    return path.join(
-        downloadBase, '${bangumiId}_$pluginName', '$episodeNumber');
+      int episodeNumber, String bangumiName) {
+    final safeName = _sanitizeDirectoryName(bangumiName);
+    final folder = safeName.isNotEmpty ? safeName : '${bangumiId}_$pluginName';
+    return path.join(downloadBase, folder, '$episodeNumber');
+  }
+
+  /// 目录名净化：去掉非法字符与结尾点/空格，供“按番剧名建目录”使用。
+  static String _sanitizeDirectoryName(String name) {
+    final cleaned =
+        name.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_').trim();
+    final withoutTrailing = cleaned.replaceAll(RegExp(r'[. ]+$'), '');
+    if (withoutTrailing.isEmpty) return '';
+    return withoutTrailing.length > 80
+        ? withoutTrailing.substring(0, 80)
+        : withoutTrailing;
   }
 
   /// Resolves the episode directory (kept from a previous attempt if any),
@@ -256,12 +270,13 @@ class DownloadManager implements IDownloadManager {
     int bangumiId,
     String pluginName,
     int episodeNumber,
+    String bangumiName,
   ) async {
     final storedDir = episode.downloadDirectory.trim();
     final episodeDir = storedDir.isNotEmpty
         ? storedDir
-        : _getEpisodeDir(
-            await _downloadBaseDir, bangumiId, pluginName, episodeNumber);
+        : _getEpisodeDir(await _downloadBaseDir, bangumiId, pluginName,
+            episodeNumber, bangumiName);
     await ensureDirectoryWritable(episodeDir);
     episode.downloadDirectory = episodeDir;
     await _checkStorageSpace(episodeDir);
@@ -275,11 +290,12 @@ class DownloadManager implements IDownloadManager {
     int bangumiId,
     String pluginName,
     int episodeNumber,
+    String bangumiName,
   ) async {
     final storedDir = episode?.downloadDirectory.trim() ?? '';
     if (storedDir.isNotEmpty) return storedDir;
     return _getEpisodeDir(await getDefaultDownloadDirectory(), bangumiId,
-        pluginName, episodeNumber);
+        pluginName, episodeNumber, bangumiName);
   }
 
   @override
@@ -299,6 +315,7 @@ class DownloadManager implements IDownloadManager {
         task: task,
         bangumiId: request.bangumiId,
         pluginName: request.pluginName,
+        bangumiName: request.bangumiName,
         m3u8Url: request.m3u8Url,
         httpHeaders: request.httpHeaders,
         adBlockerEnabled: request.adBlockerEnabled,
@@ -334,6 +351,7 @@ class DownloadManager implements IDownloadManager {
       task: task,
       bangumiId: request.bangumiId,
       pluginName: request.pluginName,
+      bangumiName: request.bangumiName,
       m3u8Url: request.m3u8Url,
       httpHeaders: request.httpHeaders,
       adBlockerEnabled: request.adBlockerEnabled,
@@ -368,6 +386,7 @@ class DownloadManager implements IDownloadManager {
         task: task,
         bangumiId: request.bangumiId,
         pluginName: request.pluginName,
+        bangumiName: request.bangumiName,
         m3u8Url: request.m3u8Url,
         httpHeaders: request.httpHeaders,
         adBlockerEnabled: request.adBlockerEnabled,
@@ -408,6 +427,7 @@ class DownloadManager implements IDownloadManager {
         task: existingTask,
         bangumiId: request.bangumiId,
         pluginName: request.pluginName,
+        bangumiName: request.bangumiName,
         m3u8Url: request.m3u8Url,
         httpHeaders: request.httpHeaders,
         adBlockerEnabled: request.adBlockerEnabled,
@@ -420,6 +440,7 @@ class DownloadManager implements IDownloadManager {
     required DownloadTask task,
     required int bangumiId,
     required String pluginName,
+    required String bangumiName,
     required String m3u8Url,
     required Map<String, String> httpHeaders,
     required bool adBlockerEnabled,
@@ -428,7 +449,7 @@ class DownloadManager implements IDownloadManager {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
       final episodeDir = await _prepareEpisodeDir(
-          episode, bangumiId, pluginName, task.episodeNumber);
+          episode, bangumiId, pluginName, task.episodeNumber, bangumiName);
 
       episode.status = DownloadStatus.downloading;
       episode.networkM3u8Url = m3u8Url;
@@ -446,6 +467,7 @@ class DownloadManager implements IDownloadManager {
           task: task,
           bangumiId: bangumiId,
           pluginName: pluginName,
+          bangumiName: bangumiName,
           videoUrl: m3u8Url,
           httpHeaders: httpHeaders,
           adBlockerEnabled: adBlockerEnabled,
@@ -675,6 +697,7 @@ class DownloadManager implements IDownloadManager {
           episode: episode,
           bangumiId: bangumiId,
           pluginName: pluginName,
+          bangumiName: bangumiName,
           sourceUrl: m3u8Url,
           httpHeaders: httpHeaders,
           adBlockerEnabled: adBlockerEnabled,
@@ -689,6 +712,7 @@ class DownloadManager implements IDownloadManager {
         episode: episode,
         bangumiId: bangumiId,
         pluginName: pluginName,
+        bangumiName: bangumiName,
         sourceUrl: m3u8Url,
         httpHeaders: httpHeaders,
         adBlockerEnabled: adBlockerEnabled,
@@ -704,6 +728,7 @@ class DownloadManager implements IDownloadManager {
     required DownloadTask task,
     required int bangumiId,
     required String pluginName,
+    required String bangumiName,
     required String videoUrl,
     required Map<String, String> httpHeaders,
     required bool adBlockerEnabled,
@@ -712,7 +737,7 @@ class DownloadManager implements IDownloadManager {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
       final episodeDir = await _prepareEpisodeDir(
-          episode, bangumiId, pluginName, task.episodeNumber);
+          episode, bangumiId, pluginName, task.episodeNumber, bangumiName);
 
       final filePath = path.join(episodeDir, 'video.mp4');
       final tmpPath = '$filePath.tmp';
@@ -843,6 +868,7 @@ class DownloadManager implements IDownloadManager {
           episode: episode,
           bangumiId: bangumiId,
           pluginName: pluginName,
+          bangumiName: bangumiName,
           sourceUrl: videoUrl,
           httpHeaders: httpHeaders,
           adBlockerEnabled: adBlockerEnabled,
@@ -857,6 +883,7 @@ class DownloadManager implements IDownloadManager {
         episode: episode,
         bangumiId: bangumiId,
         pluginName: pluginName,
+        bangumiName: bangumiName,
         sourceUrl: videoUrl,
         httpHeaders: httpHeaders,
         adBlockerEnabled: adBlockerEnabled,
@@ -876,6 +903,7 @@ class DownloadManager implements IDownloadManager {
     required DownloadEpisode episode,
     required int bangumiId,
     required String pluginName,
+    required String bangumiName,
     required String sourceUrl,
     required Map<String, String> httpHeaders,
     required bool adBlockerEnabled,
@@ -903,6 +931,7 @@ class DownloadManager implements IDownloadManager {
           recordKey: task.recordKey,
           bangumiId: bangumiId,
           pluginName: pluginName,
+          bangumiName: bangumiName,
           episodeNumber: task.episodeNumber,
           m3u8Url: sourceUrl,
           httpHeaders: httpHeaders,
@@ -1024,9 +1053,9 @@ class DownloadManager implements IDownloadManager {
   @override
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber,
-      {DownloadEpisode? episode}) async {
+      {DownloadEpisode? episode, String bangumiName = ''}) async {
     final dir = Directory(await _episodeDirForDeletion(
-        episode, bangumiId, pluginName, episodeNumber));
+        episode, bangumiId, pluginName, episodeNumber, bangumiName));
     if (await dir.exists()) {
       await dir.delete(recursive: true);
     }
@@ -1049,7 +1078,7 @@ class DownloadManager implements IDownloadManager {
     final parentDirs = <String>{};
     for (final entry in record.episodes.entries) {
       final episodeDir = await _episodeDirForDeletion(
-          entry.value, bangumiId, pluginName, entry.key);
+          entry.value, bangumiId, pluginName, entry.key, record.bangumiName);
       final dir = Directory(episodeDir);
       if (await dir.exists()) {
         await dir.delete(recursive: true);

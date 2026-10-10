@@ -143,12 +143,24 @@ abstract class _PlayerDanmakuController with Store {
 
   // Fetching must not mutate current danmaku state; VideoPageController applies
   // the result only after confirming the playback session is still current.
+  Future<DanmakuLoadResult>? _danDanPrefetch;
+  int _danDanPrefetchKey = -1;
+
+  /// 弹弹play 预取：在视频解析/缓冲阶段就先发起，先于其他来源。
+  Future<DanmakuLoadResult> prefetchDanDan(int bangumiId, int episode) {
+    final key = bangumiId * 100000 + episode;
+    if (_danDanPrefetch == null || _danDanPrefetchKey != key) {
+      _danDanPrefetchKey = key;
+      _danDanPrefetch = _fetchDanDanmakuByBgmBangumiID(bangumiId, episode);
+    }
+    return _danDanPrefetch!;
+  }
+
   Future<DanmakuLoadResult> fetchDanmaku(
     int bangumiId,
     String pluginName,
-    int episode, {
-    String bangumiName = '',
-  }) async {
+    int episode,
+  ) async {
     if (isLocalPlayback()) {
       return await _fetchCachedDanmaku(
         bangumiId,
@@ -156,33 +168,26 @@ abstract class _PlayerDanmakuController with Store {
         episode,
       );
     }
-    // 🔴 四源并发拉取：弹弹play / B站 / Animeko（互不影响失败；自建独立补拉）
-    final danDanFuture = _fetchDanDanmakuByBgmBangumiID(
-      bangumiId,
-      episode,
-    );
-    final animekoFuture = _fetchAnimekoDanmaku(
-      bangumiId,
-      episode,
-    );
-    final biliFuture = _fetchBiliDanmaku(
-      bangumiId,
-      bangumiName,
-      episode,
-    );
-    final results = await Future.wait([danDanFuture, biliFuture, animekoFuture]);
-    final danDanResult = results[0] as DanmakuLoadResult;
-    final biliResult = results[1] as DanmakuLoadResult;
-    final animekoResult = results[2] as DanmakuLoadResult;
-    // 弹弹优先排最前，B站 / Animeko 合并补充
+    // 🔴 弹弹play 优先：先出弹幕，其余来源后台补，不拖慢首屏。
+    final danDanResult = await prefetchDanDan(bangumiId, episode);
+    if (danDanResult.hasDanmakus) {
+      unawaited(_appendOtherSources(bangumiId, episode));
+      unawaited(DanmakuCacheService.save(
+        bangumiId: bangumiId,
+        episode: episode,
+        danmakus: danDanResult.danmakus.map((e) => e.toJson()).toList(),
+      ));
+      return danDanResult;
+    }
+    // 弹弹play 无结果：再等其余来源，避免误判"无弹幕"
+    final other = await _fetchOtherSources(bangumiId, episode);
     final merged = <DanmakuEntry>[
       ...danDanResult.danmakus,
-      ...biliResult.danmakus,
-      ...animekoResult.danmakus,
+      ...other.danmakus,
     ];
     if (merged.isNotEmpty) {
       KazumiLogger().i(
-          'PlayerController: 弹弹+B站+Animeko 拉取 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
+          'PlayerController: 弹弹+其余来源拉取 ${merged.length} 条弹幕 (bangumiId=$bangumiId)');
       // 🆕 缓存到本地库（下次源挂了也能看）
       unawaited(DanmakuCacheService.save(
         bangumiId: bangumiId,
@@ -195,7 +200,7 @@ abstract class _PlayerDanmakuController with Store {
       );
     }
 
-    // 🆕 弹弹+Animeko 都没弹幕 → 尝试本地缓存兜底
+    // 🆕 弹弹+其余都没弹幕 → 尝试本地缓存兜底
     final cached = await DanmakuCacheService.load(
       bangumiId: bangumiId,
       episode: episode,
@@ -218,52 +223,28 @@ abstract class _PlayerDanmakuController with Store {
     return DanmakuLoadResult.failed(bangumiID: danDanResult.bangumiID);
   }
 
-  /// 通过 B站搜索拉取弹幕（真正的 B站直连源）
-  Future<DanmakuLoadResult> _fetchBiliDanmaku(
-      int bgmBangumiID, String bangumiName, int episode) async {
+  /// 其余来源（Animeko 等）；失败静默，不影响弹弹play。
+  Future<DanmakuLoadResult> _fetchOtherSources(
+      int bangumiId, int episode) async {
+    final results = await Future.wait([
+      _fetchAnimekoDanmaku(bangumiId, episode),
+    ]);
+    final animekoResult = results[0] as DanmakuLoadResult;
+    return DanmakuLoadResult.success(
+      danmakus: animekoResult.danmakus,
+      bangumiID: animekoResult.bangumiID,
+    );
+  }
+
+  /// 弹弹play 已有结果时，其余来源后台补齐（追加到已显示的弹幕上）。
+  Future<void> _appendOtherSources(int bangumiId, int episode) async {
     try {
-      // 🔴 先查众包共享后端（自己的 PHP）：输入 Bangumi ID 拿 cid，避免每次被 B站 412 卡搜索
-      var cid = await DanmakuApi.queryBiliCidFromServer(bgmBangumiID, episode);
-      var fromServer = cid > 0;
-      // 未命中才自己搜索（番名 → bvid → cid）
-      if (cid <= 0) {
-        final videos = await DanmakuApi.searchBiliVideos(bangumiName);
-        if (videos.isEmpty) {
-          return DanmakuLoadResult.failed(bangumiID: bgmBangumiID);
-        }
-        final first = videos.first;
-        cid = await DanmakuApi.getBiliCid(
-          bvid: first['bvid']?.toString() ?? '',
-          aid: (first['aid'] as num?)?.toInt() ?? 0,
-          episode: episode,
-        );
-        if (cid > 0) {
-          // 搜索成功 → 回传共享（别人也能用）
-          unawaited(DanmakuApi.uploadBiliCidToServer(
-            bgmBangumiID,
-            episode,
-            cid,
-            title: bangumiName,
-          ));
-        }
+      final other = await _fetchOtherSources(bangumiId, episode);
+      if (other.hasDanmakus) {
+        addDanmakus(other.danmakus);
       }
-      if (cid <= 0) {
-        return DanmakuLoadResult.failed(bangumiID: bgmBangumiID);
-      }
-      final danmakus = await DanmakuApi.getBiliDanmaku(cid);
-      if (danmakus.isEmpty) {
-        return DanmakuLoadResult.failed(bangumiID: bgmBangumiID);
-      }
-      KazumiLogger().i(
-          'PlayerController: 从 B站拉取到 ${danmakus.length} 条弹幕 '
-          '($bangumiName EP$episode${fromServer ? ", 来源:共享cid" : ""})');
-      return DanmakuLoadResult.success(
-        danmakus: danmakus,
-        bangumiID: bgmBangumiID,
-      );
     } catch (e) {
-      KazumiLogger().w('PlayerController: B站弹幕拉取异常', error: e);
-      return DanmakuLoadResult.failed(bangumiID: bgmBangumiID);
+      KazumiLogger().w('PlayerController: 补充其他来源弹幕失败', error: e);
     }
   }
 

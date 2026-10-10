@@ -128,8 +128,6 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _hideScroll;
   late bool _massiveMode;
   late bool _danmakuColor;
-  late bool _danmakuBiliBiliSource;
-  late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late bool _danmakuAnimekoSource;
   late double _danmakuDuration;
@@ -979,14 +977,11 @@ class _PlayerItemState extends State<PlayerItem>
     if (danmaku.source.contains('Animeko')) {
       return _danmakuAnimekoSource;
     }
-    if (danmaku.source.contains('BiliBili')) {
-      return _danmakuBiliBiliSource;
-    }
     if (danmaku.source.contains('Local')) {
       return true; // 本地导入弹幕恒显示
     }
-    // 弹弹/Gamer
-    return _danmakuGamerSource || _danmakuDanDanSource;
+    // 弹弹play（source 标记为 Gamer）以其开关为准
+    return _danmakuDanDanSource;
   }
 
   DanmakuItemType _danmakuItemType(DanmakuEntry danmaku) {
@@ -1589,9 +1584,6 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuColor = GStorage.getSetting(SettingsKeys.danmakuColor);
     _danmakuDuration = GStorage.getSetting(SettingsKeys.danmakuDuration);
     _danmakuLineHeight = GStorage.getSetting(SettingsKeys.danmakuLineHeight);
-    _danmakuBiliBiliSource =
-        GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource);
-    _danmakuGamerSource = GStorage.getSetting(SettingsKeys.danmakuGamerSource);
     _danmakuDanDanSource =
         GStorage.getSetting(SettingsKeys.danmakuDanDanSource);
     _danmakuAnimekoSource =

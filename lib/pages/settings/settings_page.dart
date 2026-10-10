@@ -54,9 +54,12 @@ class _SettingsPageState extends State<SettingsPage> {
   void _selectEntry(SettingsEntrySpec entry) {
     final path = entry.path;
     if (path != null) {
+      final normalized = _normalizeSettingsPath(path);
+      // 已经停在当前条目上时不再触发导航，否则右栏会反复嵌套同一页
+      if (normalized == _location) return;
       // 路由里带不带结尾斜杠都能被 outlet 解析，这里原样传入
       _outletKey.currentState?.navigate(path);
-      setState(() => _location = _normalizeSettingsPath(path));
+      setState(() => _location = normalized);
       return;
     }
     final page = entry.page;

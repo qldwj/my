@@ -37,18 +37,16 @@ Future<void> showDanmakuManageSheet(
 }
 
 /// 按来源统计当前已加载弹幕条数
-({int gamer, int bili, int animeko, int local, int custom})
+({int gamer, int animeko, int local, int custom})
     countDanmakuSources(
   PlayerDanmakuController controller,
 ) {
-  var gamer = 0, bili = 0, animeko = 0, local = 0, custom = 0;
+  var gamer = 0, animeko = 0, local = 0, custom = 0;
   for (final list in controller.danDanmakus.values) {
     for (final entry in list) {
       switch (entry.source) {
         case 'Gamer':
           gamer++;
-        case 'BiliBili':
-          bili++;
         case 'Animeko':
           animeko++;
         case DanmakuImportService.localSource:
@@ -60,7 +58,6 @@ Future<void> showDanmakuManageSheet(
   }
   return (
     gamer: gamer,
-    bili: bili,
     animeko: animeko,
     local: local,
     custom: custom,
@@ -152,7 +149,6 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                   builder: (_) {
                     final counts = countDanmakuSources(widget.danmakuController);
                     final total = counts.gamer +
-                        counts.bili +
                         counts.animeko +
                         counts.custom +
                         counts.local;
@@ -166,17 +162,6 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                         onChanged: (value) {
                           GStorage.putSetting(
                               SettingsKeys.danmakuDanDanSource, value);
-                          setState(() {});
-                        },
-                      ),
-                      _DanmakuSourceChip(
-                        label: 'BiliBili',
-                        count: counts.bili,
-                        enabled:
-                            GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource),
-                        onChanged: (value) {
-                          GStorage.putSetting(
-                              SettingsKeys.danmakuBiliBiliSource, value);
                           setState(() {});
                         },
                       ),

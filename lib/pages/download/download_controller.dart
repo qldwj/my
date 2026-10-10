@@ -662,6 +662,7 @@ abstract class _DownloadController with Store {
         recordKey: request.recordKey,
         bangumiId: request.bangumiId,
         pluginName: request.pluginName,
+        bangumiName: _repository.getRecord(request.recordKey)?.bangumiName ?? '',
         episodeNumber: request.episodeNumber,
         m3u8Url: m3u8Url,
         httpHeaders: httpHeaders,
@@ -875,6 +876,7 @@ abstract class _DownloadController with Store {
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
+        bangumiName: record.bangumiName,
         episodeNumber: episodeNumber,
         m3u8Url: episode.networkM3u8Url,
         httpHeaders: httpHeaders,
@@ -913,6 +915,7 @@ abstract class _DownloadController with Store {
       pluginName,
       episodeNumber,
       episode: episode,
+      bangumiName: _repository.getRecord(recordKey)?.bangumiName ?? '',
     );
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
@@ -952,6 +955,7 @@ abstract class _DownloadController with Store {
       pluginName,
       episodeNumber,
       episode: episode,
+      bangumiName: _repository.getRecord(recordKey)?.bangumiName ?? '',
     );
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
@@ -993,6 +997,7 @@ abstract class _DownloadController with Store {
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
+        bangumiName: record.bangumiName,
         episodeNumber: episodeNumber,
         m3u8Url: episode.networkM3u8Url,
         httpHeaders: httpHeaders,

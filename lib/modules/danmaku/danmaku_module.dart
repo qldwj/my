@@ -10,7 +10,7 @@ class DanmakuEntry {
   int type;
   // 弹幕颜色
   Color color;
-  // 弹幕来源 ([BiliBili], [Gamer])
+  // 弹幕来源 ([Gamer]/弹弹play, [Animeko], [Custom], [Local])
   String source;
 
   DanmakuEntry(

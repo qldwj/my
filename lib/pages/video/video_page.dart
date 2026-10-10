@@ -158,8 +158,6 @@ class _VideoPageState extends State<VideoPage>
     });
     // ⭐ 众包跳过：进入播放页拉取该番众包片头/片尾时长（未手动设置时自动生效）
     unawaited(SkipSegmentsService.fetchCrowd(videoPageController.bangumiItem.id));
-    // ⭐ 夜间护眼：深夜自动降低屏幕亮度
-    unawaited(_applyNightEye());
     // ⭐ 下一集预加载：接近结尾时提前解析下一集直链（设置可关）
     _preloadTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted) return;
@@ -303,38 +301,11 @@ class _VideoPageState extends State<VideoPage>
   }
 
   @override
-  /// ⭐ 夜间护眼：深夜(22-6点)自动降低屏幕亮度
-  double? _nightEyeOriginalBrightness;
-
-  Future<void> _applyNightEye() async {
-    if (!GStorage.getSetting(SettingsKeys.nightEyeProtection)) return;
-    final hour = DateTime.now().hour;
-    if (hour >= 22 || hour < 6) {
-      try {
-        _nightEyeOriginalBrightness =
-            await ScreenBrightnessPlatform.instance.application;
-        await ScreenBrightnessPlatform.instance
-            .setApplicationScreenBrightness(0.4);
-      } catch (_) {}
-    }
-  }
-
-  Future<void> _restoreNightEyeBrightness() async {
-    if (_nightEyeOriginalBrightness != null) {
-      try {
-        await ScreenBrightnessPlatform.instance
-            .setApplicationScreenBrightness(_nightEyeOriginalBrightness!);
-      } catch (_) {}
-      _nightEyeOriginalBrightness = null;
-    }
-  }
-
   void dispose() {
     _sourceFailedSubscription?.cancel();
     _sourceFailedSubscription = null;
     _preloadTimer?.cancel();
     _preloadTimer = null;
-    unawaited(_restoreNightEyeBrightness());
     try {
       windowManager.removeListener(this);
     } catch (_) {}

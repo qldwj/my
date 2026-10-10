@@ -875,6 +875,11 @@ abstract class _VideoPageController with Store implements Disposable {
     AsyncSession session,
   ) async {
     final danmakuSession = _danmakuSessions.begin();
+    // ⭐ 弹弹play 在解析/缓冲阶段就先进入搜索，先于其他来源；其余来源后台补。
+    unawaited(playerController.danmaku.prefetchDanDan(
+      params.bangumiId,
+      params.danmakuEpisodeNumber,
+    ));
     // 🔴 开始观看后再拉弹幕：等播放器真正播放（首帧/playing），
     // 避免弹幕请求抢视频首帧带宽导致开始变慢；用户不点播放则最多等 15 秒后照拉。
     if (!playerController.playback.playing) {
@@ -893,7 +898,6 @@ abstract class _VideoPageController with Store implements Disposable {
         params.bangumiId,
         params.pluginName,
         params.danmakuEpisodeNumber,
-        bangumiName: params.bangumiName ?? '',
       );
       if (session.isActive && danmakuSession.isActive) {
         if (result.hasDanmakus) {

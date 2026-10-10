@@ -1,46 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:yhdm/bean/card/palette_card.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
-import 'package:yhdm/bean/settings/settings_dropdown_tile.dart';
 import 'package:yhdm/bean/settings/settings_list.dart';
 import 'package:yhdm/bean/settings/theme_provider.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
-import 'package:yhdm/bean/settings/color_type.dart';
 import 'package:yhdm/services/font_service.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/utils/device.dart';
 import 'package:yhdm/utils/theme.dart';
-
-/// Resolve a [colorThemeTypes] labelKey to its localized label.
-String _colorLabel(String labelKey, AppLocalizations l10n) {
-  switch (labelKey) {
-    case 'setDColorPink':
-      return l10n.setDColorPink;
-    case 'setDColorDefault':
-      return l10n.setDColorDefault;
-    case 'setDColorTeal':
-      return l10n.setDColorTeal;
-    case 'setDColorBlue':
-      return l10n.setDColorBlue;
-    case 'setDColorIndigo':
-      return l10n.setDColorIndigo;
-    case 'setDColorViolet':
-      return l10n.setDColorViolet;
-    case 'setDColorYellow':
-      return l10n.setDColorYellow;
-    case 'setDColorOrange':
-      return l10n.setDColorOrange;
-    case 'setDColorDeepOrange':
-      return l10n.setDColorDeepOrange;
-    default:
-      return labelKey;
-  }
-}
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -51,8 +21,6 @@ class ThemeSettingsPage extends StatefulWidget {
 
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultDanmakuArea;
-  late dynamic defaultThemeMode;
-  late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
   late bool showWindowButton;
@@ -75,7 +43,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
-    defaultThemeMode = GStorage.getSetting(SettingsKeys.themeMode);
     defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     useDynamicColor = GStorage.getSetting(SettingsKeys.useDynamicColor);
@@ -92,7 +59,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void setTheme(Color? color) {
-    final seedColor = color ?? const Color(0xffEC407A);
+    final seedColor = color ?? const Color(0xFFFF6FA5);
     var lightTheme = ThemeData(
       useMaterial3: true,
       fontFamily: themeProvider.currentFontFamily,
@@ -121,37 +88,15 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void resetTheme() {
-    // 默认配色 = 绿色；统一走 setTheme 存具体 ARGB，不再使用 'default' 特例
-    setTheme(const Color(0xffEC407A));
-  }
-
-  void updateTheme(String theme) async {
-    if (theme == 'dark') {
-      themeProvider.setThemeMode(ThemeMode.dark);
-    }
-    if (theme == 'light') {
-      themeProvider.setThemeMode(ThemeMode.light);
-    }
-    if (theme == 'system') {
-      themeProvider.setThemeMode(ThemeMode.system);
-    }
-    await GStorage.putSetting(SettingsKeys.themeMode, theme);
-    setState(() {
-      defaultThemeMode = theme;
-    });
-
-    // Update Windows title bar theme
-    if (Platform.isWindows) {
-      await windowManager.setBrightness(
-          themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
-    }
+    // 默认配色 = 粉色；统一走 setTheme 存具体 ARGB，不再使用 'default' 特例
+    setTheme(const Color(0xFFFF6FA5));
   }
 
   void updateOledEnhance() {
     dynamic color;
     oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     if (defaultThemeColor == 'default') {
-      color = const Color(0xffEC407A);
+      color = const Color(0xFFFF6FA5);
     } else {
       color = Color(int.parse(defaultThemeColor, radix: 16));
     }
@@ -176,71 +121,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               title: Text(l10n.themeAppearance,
                   style: TextStyle(fontFamily: fontFamily)),
               tiles: [
-                SettingsDropdownTile<String>(
-                  title: Text(l10n.setBDarkModeTitle,
-                      style: TextStyle(fontFamily: fontFamily)),
-                  value: defaultThemeMode,
-                  fallbackLabel: l10n.languageFollowSystem,
-                  options: {
-                    'system': l10n.languageFollowSystem,
-                    'light': l10n.lightMode,
-                    'dark': l10n.darkMode,
-                  },
-                  icons: const {
-                    'system': Icons.brightness_auto_rounded,
-                    'light': Icons.light_mode_rounded,
-                    'dark': Icons.dark_mode_rounded,
-                  },
-                  onChanged: updateTheme,
-                ),
-                SettingsTile(
-                  enabled: !useDynamicColor,
-                  onPressed: (_) async {
-                    KazumiDialog.show(builder: (context) {
-                      return AlertDialog(
-                        title: Text(l10n.setBColorScheme,
-                            style: TextStyle(fontFamily: fontFamily)),
-                        content: StatefulBuilder(builder:
-                            (BuildContext context, StateSetter setState) {
-                          final List<Map<String, dynamic>> colorThemes =
-                              colorThemeTypes;
-                          return Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: isDesktop() ? 8 : 0,
-                            children: [
-                              ...colorThemes.map(
-                                (e) {
-                                  final index = colorThemes.indexOf(e);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setTheme(e['color']);
-                                      KazumiDialog.dismiss();
-                                    },
-                                    child: Column(
-                                      children: [
-                                        PaletteCard(
-                                          color: e['color'],
-                                          selected:
-                                              (e['color'].toARGB32().toRadixString(16) ==
-                                                      defaultThemeColor ||
-                                                  (defaultThemeColor == 'default' &&
-                                                      index == 0)),
-                                        ),
-                                        Text(_colorLabel(e['labelKey'], l10n)),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              )
-                            ],
-                          );
-                        }),
-                      );
-                    });
-                  },
-                  title: Text(l10n.setBColorScheme, style: TextStyle(fontFamily: fontFamily)),
-                ),
                 SettingsTile.switchTile(
                   enabled: !Platform.isIOS,
                   onToggle: (value) async {
@@ -261,7 +141,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setFontFamily(useSystemFont);
                     dynamic color;
                     if (defaultThemeColor == 'default') {
-                      color = const Color(0xffEC407A);
+                      color = const Color(0xFFFF6FA5);
                     } else {
                       color = Color(int.parse(defaultThemeColor, radix: 16));
                     }

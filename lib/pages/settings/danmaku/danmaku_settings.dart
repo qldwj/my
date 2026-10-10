@@ -33,7 +33,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuMassive;
   late bool danmakuDeduplication;
   late bool danmakuDanDanSource;
-  late bool danmakuBiliBiliSource;
   late bool danmakuAnimekoSource;
   late bool danmakuCustom;
   late bool danmakuFollowSpeed;
@@ -69,8 +68,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.danmakuDeduplication);
     danmakuDanDanSource =
         GStorage.getSetting<bool>(SettingsKeys.danmakuDanDanSource);
-    danmakuBiliBiliSource =
-        GStorage.getSetting<bool>(SettingsKeys.danmakuBiliBiliSource);
     danmakuAnimekoSource =
         GStorage.getSetting<bool>(SettingsKeys.danmakuAnimekoSource);
     danmakuCustom =
@@ -198,17 +195,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title:
                       Text('弹弹play', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDanDanSource,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    danmakuBiliBiliSource = value ?? !danmakuBiliBiliSource;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.danmakuBiliBiliSource, danmakuBiliBiliSource);
-                    setState(() {});
-                  },
-                  title: Text('BiliBili',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: danmakuBiliBiliSource,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

@@ -250,16 +250,6 @@ class SettingsKeys {
     true,
     group: SettingGroup.danmaku,
   );
-  static const danmakuBiliBiliSource = SettingKey<bool>(
-    _SettingBoxKey.danmakuBiliBiliSource,
-    true,
-    group: SettingGroup.danmaku,
-  );
-  static const danmakuGamerSource = SettingKey<bool>(
-    _SettingBoxKey.danmakuGamerSource,
-    true,
-    group: SettingGroup.danmaku,
-  );
   static const danmakuDanDanSource = SettingKey<bool>(
     _SettingBoxKey.danmakuDanDanSource,
     true,
@@ -327,12 +317,6 @@ class SettingsKeys {
   static const preloadNextEpisode = SettingKey<bool>(
     _SettingBoxKey.preloadNextEpisode,
     true,
-    group: SettingGroup.player,
-  );
-  /// 夜间护眼：深夜(22:00-06:00)播放页自动降低屏幕亮度
-  static const nightEyeProtection = SettingKey<bool>(
-    _SettingBoxKey.nightEyeProtection,
-    false,
     group: SettingGroup.player,
   );
   /// 完整预缓冲：开启后持续缓冲直到视频下载完（内存占用高，默认关）
@@ -1090,8 +1074,6 @@ class SettingsKeys {
     danmakuLineHeight,
     danmakuTimeOffset,
     danmakuEnabledByDefault,
-    danmakuBiliBiliSource,
-    danmakuGamerSource,
     danmakuDanDanSource,
     danmakuAnimekoSource,
     customDanmakuEnabled,
@@ -1103,7 +1085,6 @@ class SettingsKeys {
     autoPlay,
     autoPlayNext,
     preloadNextEpisode,
-    nightEyeProtection,
     fullBuffer,
     autoSelectSource,
     playResume,
@@ -1226,8 +1207,6 @@ class _SettingBoxKey {
       danmakuLineHeight = 'danmakuLineHeight',
       danmakuTimeOffset = 'danmakuTimeOffset',
       danmakuEnabledByDefault = 'danmakuEnabledByDefault',
-      danmakuBiliBiliSource = 'danmakuBiliBiliSource',
-      danmakuGamerSource = 'danmakuGamerSource',
       danmakuDanDanSource = 'danmakuDanDanSource',
       customDanmakuEnabled = 'customDanmakuEnabled',
       danmakuFontWeight = 'danmakuFontWeight',
@@ -1239,7 +1218,6 @@ class _SettingBoxKey {
       autoPlay = 'autoPlay',
       autoPlayNext = 'autoPlayNext',
       preloadNextEpisode = 'preloadNextEpisode',
-      nightEyeProtection = 'nightEyeProtection',
       fullBuffer = 'fullBuffer',
       autoSelectSource = 'autoSelectSource',
       playResume = 'playResume',

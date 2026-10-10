@@ -30,8 +30,8 @@ class _AnimeSkin {
 }
 
 const List<_AnimeSkin> _skins = [
-  _AnimeSkin('default', Color(0xff4CAF50)),
-  _AnimeSkin('sakura', Color(0xffEC407A)),
+  _AnimeSkin('default', Color(0xFFFF6FA5)),
+  _AnimeSkin('sakura', Color(0xFF009688)),
   _AnimeSkin('gate', Color(0xff2196F3)),
   _AnimeSkin('violet', Color(0xff6750a4)),
   _AnimeSkin('camp', Color(0xff4fc3f7)),
@@ -39,6 +39,7 @@ const List<_AnimeSkin> _skins = [
   _AnimeSkin('golden', Color(0xfffbc02d)),
   _AnimeSkin('mint', Color(0xff26a69a)),
   _AnimeSkin('mecha', Color(0xff607d8b)),
+  _AnimeSkin('snow', Color(0xFFFFFFFF)),
 ];
 
 /// Localized theme display name, keyed by [_AnimeSkin.id].
@@ -62,6 +63,8 @@ String _skinName(String id, AppLocalizations l10n) {
       return l10n.setDThemeMint;
     case 'mecha':
       return l10n.setDThemeMecha;
+    case 'snow':
+      return l10n.setDThemeSnow;
     default:
       return id;
   }
@@ -88,6 +91,8 @@ String _skinDesc(String id, AppLocalizations l10n) {
       return l10n.setDThemeMintGreen;
     case 'mecha':
       return l10n.setDThemeMechaSilver;
+    case 'snow':
+      return l10n.setDThemeSnowWhite;
     default:
       return id;
   }

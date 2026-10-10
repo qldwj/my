@@ -42,7 +42,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool forceAdBlocker;
   late bool autoPlayNext;
   late bool preloadNextEpisode;
-  late bool nightEye;
   late bool autoSource;
   late bool fullBuffer;
   late bool autoSwitchSource;
@@ -101,7 +100,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<bool>(SettingsKeys.playSpeedMemoryEnabled);
     preloadNextEpisode =
         GStorage.getSetting<bool>(SettingsKeys.preloadNextEpisode);
-    nightEye = GStorage.getSetting<bool>(SettingsKeys.nightEyeProtection);
     autoSource = GStorage.getSetting<bool>(SettingsKeys.autoSelectSource);
     fullBuffer = GStorage.getSetting<bool>(SettingsKeys.fullBuffer);
     autoSwitchSource =
@@ -567,18 +565,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text(l10n.setAPreloadNextDesc,
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: preloadNextEpisode,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    nightEye = value ?? !nightEye;
-                    await GStorage.putSetting<bool>(
-                        SettingsKeys.nightEyeProtection, nightEye);
-                    setState(() {});
-                  },
-                  title: Text(l10n.setANightEye, style: TextStyle(fontFamily: fontFamily)),
-                  description: Text(l10n.setANightEyeDesc,
-                      style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: nightEye,
                 ),
               ],
             ),
