@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
-import 'package:http/http.dart' as http;
 import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
@@ -232,17 +230,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     _submitToBangumi(localType);
                   },
                 ),
-              if (isLoggedIn)
-                ListTile(
-                  leading: const Icon(Icons.comment, color: Colors.blue),
-                  title: const Text('发送到樱花动漫'),
-                  subtitle: const Text('发表到樱花动漫评论系统'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _submitToServer(localType);
-                  },
-                ),
               const SizedBox(height: 8),
             ],
           ),
@@ -261,128 +248,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
           return updated;
         },
       ),
-    );
-  }
-
-  void _submitToServer(int localType) {
-    var serverRating = 0;
-    final commentController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              title: const Text('发表吐槽'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('评分: '),
-                      // 🆕 FittedBox 自动缩放，10 颗星不溢出弹窗、都能点
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (int i = 1; i <= 10; i++)
-                              GestureDetector(
-                                onTap: () =>
-                                    setDialogState(() => serverRating = i),
-                                child: Icon(
-                                  i <= serverRating
-                                      ? Icons.star
-                                      : Icons.star_outline,
-                                  color: i <= serverRating
-                                      ? Colors.amber
-                                      : Colors.grey,
-                                  size: 24,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: commentController,
-                    maxLines: 3,
-                    maxLength: 500,
-                    decoration: const InputDecoration(
-                      hintText: '写下你的吐槽...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-                FilledButton(
-                  onPressed: () async {
-                    final text = commentController.text.trim();
-                    if (text.isEmpty && serverRating == 0) {
-                      KazumiDialog.showToast(message: '请输入评分或评论');
-                      return;
-                    }
-                    Navigator.pop(ctx);
-                    try {
-                      // 🆕 修复：带 Bearer token 且正确判断成功
-                      final token = AuthService.getLocalToken();
-                      if (token == null) {
-                        KazumiDialog.showToast(message: AppLocalizations.of(ctx)!.setIRequireLoginSakura);
-                        return;
-                      }
-                      final user = SocialService.myProfile;
-                      final http.Response res;
-                      try {
-                        res = await http.post(
-                          Uri.parse('https://qlyyz.xyz/api/v0/comment.php?action=add'),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer $token',
-                          },
-                          body: jsonEncode({
-                            'subjectId': infoController.bangumiItem.id,
-                            'episode': 0,
-                            'text': text,
-                            'sender': user?.nickname ?? '匿名',
-                            'uid': user?.uid ?? '',
-                            'avatar': user?.avatar ?? '',
-                            'rating': serverRating,
-                          }),
-                        );
-                      } catch (e) {
-                        KazumiDialog.showToast(message: '网络连接失败');
-                        return;
-                      }
-                      try {
-                        final data = jsonDecode(res.body) as Map<String, dynamic>;
-                        if (res.statusCode == 200 && data['success'] == true) {
-                          KazumiDialog.showToast(message: '吐槽发表成功');
-                          unawaited(infoController.queryBangumiCommentsByID(
-                              infoController.bangumiItem.id));
-                        } else {
-                          KazumiDialog.showToast(
-                              message: data['error']?.toString() ?? '发表失败');
-                        }
-                      } catch (e) {
-                        KazumiDialog.showToast(message: '服务器返回异常，请稍后重试');
-                      }
-                    } catch (e) {
-                      KazumiDialog.showToast(message: '网络错误: $e');
-                    }
-                  },
-                  child: const Text('发表'),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 

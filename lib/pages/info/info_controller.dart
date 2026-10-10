@@ -11,7 +11,6 @@ import 'package:mobx/mobx.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/modules/comments/comment_item.dart';
-import 'package:yhdm/request/apis/custom_comment_api.dart';
 import 'package:yhdm/request/config/api_endpoints.dart';
 import 'package:yhdm/modules/characters/character_item.dart';
 import 'package:yhdm/modules/staff/staff_item.dart';
@@ -169,106 +168,9 @@ abstract class _InfoController with Store {
           ? value.commentList.length
           : _commentsOffset + value.commentList.length;
       _removeCurrentUserFromPublicComments();
-      // ⭐ 自建评论：我的服务器评论优先显示（排在 Bangumi 评论前面）
-      await _mergeCustomComments(id);
     });
     KazumiLogger().i(
         'InfoController: loaded comments list length ${commentsList.length}, offset $_commentsOffset');
-  }
-
-  /// 自建评论头像 URL：在自有服务器上，直连加载（不走代理）；
-  /// 空则用默认 logo。Bangumi 评论头像的代理逻辑在别处保持不变。
-  String _avatarUrl(String avatar) {
-    return avatar.isNotEmpty ? avatar : 'https://qlyyz.xyz/logo.webp';
-  }
-
-  /// ⭐ 拉取自建评论（我的服务器）并合并到列表最前（优先显示）
-  Future<void> _mergeCustomComments(int subjectId) async {
-    try {
-      // 🔧 先移除已存在的 server 评论，避免加载更多/重复刷新时累积重复
-      commentsList.removeWhere((c) => c.source == 'server');
-      // 若 2 秒内自建(qlyyz)吐槽未拉取完成，则放弃合并，仅保留 Bangumi 吐槽
-      final res = await CustomCommentApi.fetch(subjectId: subjectId)
-          .timeout(const Duration(seconds: 2));
-      final custom = res.items;
-      if (custom.isEmpty) return;
-      // 🔧 按内容去重（数据库可能存在历史重复提交），置顶优先、其次保留最新
-      final deduped = <CustomCommentItem>[];
-      final seen = <String>{};
-      final sorted = List<CustomCommentItem>.from(custom)
-        ..sort((a, b) {
-          if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
-          return b.createdAt.compareTo(a.createdAt);
-        });
-      for (final c in sorted) {
-        final key = '${c.uid}|${c.text}';
-        if (seen.contains(key)) continue;
-        seen.add(key);
-        deduped.add(c);
-      }
-      final adminNick = res.adminNickname;
-      final items = deduped.map((c) => CommentItem(
-            user: User(
-              id: -c.id,
-              username: 'server',
-              // 置顶评论且无发送者时显示管理员昵称
-              nickname: c.sender.isNotEmpty
-                  ? c.sender
-                  : (c.pinned && adminNick.isNotEmpty ? adminNick : '樱花用户'),
-              // 🆕 使用评论者自己的头像（未上传则用默认 logo）
-              avatar: UserAvatar(
-                small: _avatarUrl(c.avatar),
-                medium: _avatarUrl(c.avatar),
-                large: _avatarUrl(c.avatar),
-              ),
-              sign: '',
-              joinedAt: c.createdAt,
-            ),
-            comment: Comment(
-              rate: c.rating.clamp(0, 10),
-              comment: c.text,
-              updatedAt: c.createdAt,
-            ),
-            source: 'server',
-            pinned: c.pinned,
-            uid: c.uid,
-            votes: c.votes,
-            parentId: c.parentId > 0 ? -c.parentId : 0,
-            title: c.title,
-            coins: c.coins,
-          )).toList();
-      commentsList.insertAll(0, items);
-      // 🆕 合并后统一按时间排序（置顶优先 + 最新在前），不再"樱花优先"
-      commentsList.sort((a, b) {
-        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
-        return b.comment.updatedAt.compareTo(a.comment.updatedAt);
-      });
-      KazumiLogger().i('InfoController: 合并自建评论 ${items.length} 条');
-    } catch (e) {
-      KazumiLogger().w('InfoController: 自建评论拉取失败', error: e);
-    }
-  }
-
-  /// ⭐ 发表评论到樱花服务器（rating 0-10，0=不评分），成功后刷新评论列表
-  /// 自动携带登录用户资料（uid/昵称/头像）用于评论显示
-  Future<String?> addCustomComment(String text, {int rating = 0}) async {
-    final id = bangumiItem.id;
-    // 登录用户资料（未登录则匿名，匿名用户仍用默认昵称）
-    SocialService.restoreLocalProfile();
-    final profile = SocialService.myProfile;
-    final error = await CustomCommentApi.add(
-      subjectId: id,
-      text: text,
-      sender: profile?.nickname ?? '樱花用户',
-      rating: rating,
-      uid: profile?.uid ?? '',
-      avatar: profile?.avatar ?? '',
-    );
-    if (error == null) {
-      // 重新加载评论（我的服务器评论优先显示）
-      unawaited(queryBangumiCommentsByID(id));
-    }
-    return error;
   }
 
   Future<void> refreshBangumiCommentsSilently(int id) async {

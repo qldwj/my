@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yhdm/bean/widget/bangumi_avatar.dart';
 import 'package:yhdm/modules/comments/comment_item.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:yhdm/utils/date_time.dart';
 import 'package:yhdm/request/apis/custom_comment_api.dart';
@@ -198,19 +197,10 @@ class CommentsCard extends StatelessWidget {
                   ),
                 ],
               ),
-              // 评分星星 + 积分（独立一行，不挤不溢）
+              // 积分（独立一行，不挤不溢）
               const SizedBox(height: 8),
               Row(
                 children: [
-                  RatingBarIndicator(
-                    itemCount: 5,
-                    rating: item.comment.rate.toDouble() / 2,
-                    itemBuilder: (context, index) => const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFB300),
-                    ),
-                    itemSize: 18.0,
-                  ),
                   const Spacer(),
                   if (item.coins > 0)
                     Container(

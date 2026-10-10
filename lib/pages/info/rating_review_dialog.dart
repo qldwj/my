@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 import 'package:yhdm/modules/bangumi/bangumi_tag.dart';
@@ -391,8 +390,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildScoreSection(theme),
-        const SizedBox(height: 12),
         _buildCommentSection(theme),
         const SizedBox(height: 12),
         _buildTagSummarySection(theme),
@@ -419,72 +416,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       ),
       maxLength: _maxCommentLength,
       textInputAction: TextInputAction.newline,
-    );
-  }
-
-  Widget _buildScoreSection(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-    final hasScore = score > 0;
-
-    return _buildSurfaceSection(
-      theme: theme,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('我的评分', style: theme.textTheme.titleMedium),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 160),
-                child: SizedBox(
-                  key: ValueKey(score),
-                  width: 116,
-                  child: Text(
-                    hasScore ? '$score / 10  $scoreLabel' : scoreLabel,
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: hasScore
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                      fontWeight: hasScore ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: RatingBar(
-              initialRating: score / 2,
-              minRating: 0,
-              maxRating: 5,
-              allowHalfRating: true,
-              itemCount: 5,
-              itemSize: 34,
-              glow: false,
-              ignoreGestures: _isSubmitting,
-              ratingWidget: RatingWidget(
-                full: Icon(Icons.star_rounded, color: colorScheme.primary),
-                half: Icon(Icons.star_half_rounded, color: colorScheme.primary),
-                empty: Icon(
-                  Icons.star_outline_rounded,
-                  color: colorScheme.outline,
-                ),
-              ),
-              onRatingUpdate: (value) {
-                final newScore = (value * 2).round().clamp(0, 10);
-                if (newScore != score) {
-                  setState(() => score = newScore);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 
