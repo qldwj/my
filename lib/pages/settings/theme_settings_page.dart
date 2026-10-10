@@ -21,6 +21,7 @@ class ThemeSettingsPage extends StatefulWidget {
 
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultDanmakuArea;
+  late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
   late bool showWindowButton;
