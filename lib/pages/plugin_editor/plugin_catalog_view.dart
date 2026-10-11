@@ -6,7 +6,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:yhdm/bean/card/rule_card.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
-import 'package:yhdm/bean/widget/source_rating_widget.dart';
 import 'package:yhdm/modules/plugin/plugin_http_module.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_update_actions.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
@@ -26,7 +25,6 @@ class PluginCatalogView extends StatefulWidget {
     this.showRefreshButton = false,
     this.compactLastUpdate = false,
     this.errorMessage,
-    this.showRating = true,
   });
 
   final PluginsController controller;
@@ -35,9 +33,6 @@ class PluginCatalogView extends StatefulWidget {
   final bool showRefreshButton;
   final bool compactLastUpdate;
   final String? errorMessage;
-
-  /// 是否在源卡片上显示稳定性评分（规则仓/首页向导显示，规则管理页可关）
-  final bool showRating;
 
   @override
   State<PluginCatalogView> createState() => PluginCatalogViewState();
@@ -214,6 +209,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
           final item = items[index];
           final status = _controller.pluginStatus(item);
           return RuleCard(
+            key: ValueKey('rule-${item.name}'),
             title: item.name,
             iconUrl: item.icon.isNotEmpty ? item.icon : null,
             tags: [
@@ -237,7 +233,6 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
             ],
             caption:
                 item.lastUpdate > 0 ? _formatLastUpdate(item.lastUpdate, l10n) : null,
-            ratingSourceId: widget.showRating ? item.name : null,
             trailing: RuleCardActionButton(
               label: switch (status) {
                 PluginCatalogItemStatus.install => l10n.setFInstall,

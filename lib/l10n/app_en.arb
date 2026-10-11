@@ -1106,7 +1106,6 @@
   "setFAutoSelectSourceSub": "When starting playback, automatically play with the first available source.",
   "setFStarredRules": "Starred rules (always play first · WebDAV sync)",
   "setFNoRules": "No rules",
-  "setFSourceStabilityRating": "Source stability rating (helps source selection)",
   "setFSourceSorting": "Source sorting (combine multiple; defaults to speed)",
   "setFDefaultSort": "Default (by response speed)",
   "setFHighestQuality": "Highest quality",

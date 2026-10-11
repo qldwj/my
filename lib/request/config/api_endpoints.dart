@@ -30,9 +30,6 @@ class ApiEndpoints {
   /// 自建弹幕接口
   static const String danmakuApi = 'https://qlyyz.xyz/api/v0/danmaku.php';
 
-  /// 🆕 规则源稳定性评分接口
-  static const String sourceRatingApi = 'https://qlyyz.xyz/api/v0/rating.php';
-
   /// 🆕 追番打卡接口（v1/checkin.php）
   static const String checkinApi = 'https://qlyyz.xyz/api/v1/checkin.php';
   /// 🆕 公开个人主页接口（api/u.php）

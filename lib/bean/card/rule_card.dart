@@ -1,14 +1,11 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:yhdm/bean/widget/source_rating_widget.dart';
 import 'package:yhdm/services/plugin/plugin_icon_cache.dart';
 
 /// Rounded tonal card for a rule entry, shared by the rule manage page,
 /// the rule shop page and the onboarding rule step.
 ///
-/// 视觉采用官方 2.3.7 重设计（动画容器 + 前导图标块 + 响应式堆叠 + trailing 焦点隔离），
-/// 同时保留 my 自定义的稳定性评分槽位（[ratingSourceId] 非空时在 tags 行渲染
-/// [SourceRatingWidget]）。
+/// 视觉采用官方 2.3.7 重设计（动画容器 + 前导图标块 + 响应式堆叠 + trailing 焦点隔离）。
 class RuleCard extends StatelessWidget {
   const RuleCard({
     super.key,
@@ -21,7 +18,6 @@ class RuleCard extends StatelessWidget {
     this.onLongPress,
     this.selected = false,
     this.installed = false,
-    this.ratingSourceId,
     this.iconUrl,
   });
 
@@ -36,9 +32,6 @@ class RuleCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final bool selected;
   final bool installed;
-
-  /// 非空则在卡片上显示该源的稳定性评分（点击可打分）
-  final String? ratingSourceId;
 
   /// 该规则的动漫图标 URL（Hive 永久缓存）。为空或加载失败时显示默认图标。
   final String? iconUrl;
@@ -129,7 +122,7 @@ class RuleCard extends StatelessWidget {
                                   style: text.bodySmall?.copyWith(
                                       color: colors.onSurfaceVariant)),
                             ],
-                            if (tags.isNotEmpty || ratingSourceId != null) ...[
+                            if (tags.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 6,
@@ -137,9 +130,6 @@ class RuleCard extends StatelessWidget {
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   ...tags,
-                                  if (ratingSourceId != null)
-                                    SourceRatingWidget(
-                                        sourceId: ratingSourceId!),
                                 ],
                               ),
                             ],
@@ -254,19 +244,45 @@ class _RuleIcon extends StatefulWidget {
 class _RuleIconState extends State<_RuleIcon> {
   Uint8List? _bytes;
 
+  /// 当前 State 正在显示 / 正在加载的 URL。
+  /// 列表过滤（已安装/可更新/搜索）后 ListView 会在同一位置复用本 State，
+  /// 若只靠 initState 加载，就会把上一张图留在屏幕上（图片不跟着换的根因）。
+  String? _currentUrl;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant _RuleIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // URL 变化 -> 必须换图；清掉旧字节避免闪现上一张
+    if (oldWidget.url != widget.url) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final url = widget.url;
-    if (url == null || url.isEmpty) return;
+    _currentUrl = url;
+    // URL 为空：立刻回到默认占位，不能继续显示上一张图
+    if (url == null || url.isEmpty) {
+      if (mounted && _bytes != null) {
+        setState(() => _bytes = null);
+      }
+      return;
+    }
     final bytes = await PluginIconCache.instance.load(url);
     if (!mounted) return;
+    // 异步竞态保护：等待期间 URL 又变了，则丢弃这次结果
+    if (_currentUrl != url) return;
     if (bytes != null && bytes.isNotEmpty) {
       setState(() => _bytes = bytes);
+    } else if (_bytes != null) {
+      // 新 URL 加载失败：清掉旧图，回退到默认图标而不是留旧图
+      setState(() => _bytes = null);
     }
   }
 

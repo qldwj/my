@@ -4,7 +4,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/settings_section_card.dart';
-import 'package:yhdm/bean/widget/source_rating_widget.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
@@ -172,25 +171,6 @@ class _RuleSettingsPageState extends State<RuleSettingsPage> {
                     ),
                     value: _starred.contains(p.name),
                     onChanged: (_) => _toggleStar(p.name),
-                  ),
-            ],
-          ),
-          SettingsSectionCard(
-            title: l10n.setFSourceStabilityRating,
-            children: [
-              if (plugins.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(l10n.setFNoRules),
-                )
-              else
-                for (final p in plugins)
-                  ListTile(
-                    dense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    title: Text(p.name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: SourceRatingWidget(sourceId: p.name),
                   ),
             ],
           ),
