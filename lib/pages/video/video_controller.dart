@@ -489,10 +489,24 @@ abstract class _VideoPageController with Store implements Disposable {
         ? bangumiItem.name
         : bangumiItem.nameCn;
 
-    final results = await _searchAllSources(keyword);
+    // 🆕 选源阶段就提前预取弹幕（不等源确定，先按历史集数预取弹弹play）
+    unawaited(() async {
+      try {
+        final historyRepo = inject<IHistoryRepository>();
+        final ep = historyRepo
+                .getHistory('', bangumiItem)
+                ?.lastWatchEpisode ??
+            1;
+        await playerController.danmaku
+            .prefetchDanDan(bangumiItem.id, ep < 1 ? 1 : ep);
+      } catch (_) {}
+    }());
+
+    // 🆕 累计够 3 个可用结果就提前收工，不等慢源（用户可在换源面板手动切换）
+    final results = await _searchAllSources(keyword, minResults: 3);
     if (!_autoResolvePending) return;
 
-    // 评分排序（与详情页选源面板同一套规则）
+    // 评分排序（标星规则永远最优先，与详情页选源面板同一套规则）
     final sorted = List<PluginSearchResponse>.from(results)
       ..sort((a, b) =>
           _scoreAutoResolveSource(b).compareTo(_scoreAutoResolveSource(a)));
@@ -527,6 +541,10 @@ abstract class _VideoPageController with Store implements Disposable {
           currentRoad: 0,
           playerController: playerController,
         );
+        // 🆕 如果选中的是标星规则，明确提示用户（否则不知道为什么直接用它）
+        if (_isStarred(plugin.name)) {
+          KazumiDialog.showToast(message: '已优先使用标星规则「${plugin.name}」');
+        }
         return;
       } catch (e) {
         KazumiLogger().w(
@@ -556,10 +574,12 @@ abstract class _VideoPageController with Store implements Disposable {
     forcedSourceFormat = VideoSourceFormat.auto;
   }
 
-  /// 并发搜索全部可用源（受限并发 5，合集展开为子规则）
+  /// 并发搜索全部可用源（受限并发 5，合集展开为子规则）。
+  /// 🆕 [minResults]：累计够这么多可用结果就提前返回，不等慢源。
   Future<List<PluginSearchResponse>> _searchAllSources(
-    String keyword,
-  ) async {
+    String keyword, {
+    int minResults = 3,
+  }) async {
     final pluginsController = inject<PluginsController>();
     final plugins = <Plugin>[];
     for (final p in pluginsController.pluginList) {
@@ -578,8 +598,10 @@ abstract class _VideoPageController with Store implements Disposable {
     captchaSourceNames.clear();
     const maxConcurrent = 5;
     var next = 0;
+    var enough = false; // 🆕 够数标志，worker 见此即停
     Future<void> worker() async {
       while (true) {
+        if (enough) return;
         final i = next++;
         if (i >= plugins.length) return;
         final plugin = plugins[i];
@@ -591,8 +613,14 @@ abstract class _VideoPageController with Store implements Disposable {
           }
           final result =
               await plugin.queryBangumi(keyword, shouldRethrow: true);
+          if (enough) return;
           if (result.data.isNotEmpty) {
             results.add(result);
+            // 🆕 够 minResults 个可用结果就提前收工，不等其余慢源
+            if (results.length >= minResults) {
+              enough = true;
+              return;
+            }
           }
         } on CaptchaRequiredException {
           // 🆕 需要验证码：记录下来，换源面板显示盾牌，点击可验证
@@ -609,15 +637,28 @@ abstract class _VideoPageController with Store implements Disposable {
     return results;
   }
 
+  /// 是否已标星（starRules）
+  bool _isStarred(String pluginName) {
+    try {
+      return GStorage
+          .getStringListSettingByName('starRules')
+          .contains(pluginName);
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 与详情页选源面板一致的源评分规则
   int _scoreAutoResolveSource(PluginSearchResponse resp) {
     var score = 0;
+    // 🆕 标星规则永远优先（用户在规则设置里标星的源）
+    if (_isStarred(resp.pluginName)) score += 10000;
     final useDefault = GStorage.getSetting(SettingsKeys.ruleSortDefault);
     final byQuality = GStorage.getSetting(SettingsKeys.ruleSortQuality);
     final byEpisodes = GStorage.getSetting(SettingsKeys.ruleSortEpisodes);
     final bySpeed = GStorage.getSetting(SettingsKeys.ruleSortSpeed);
     if (useDefault && !byQuality && !byEpisodes && !bySpeed) {
-      return 0;
+      return score;
     }
     if (byEpisodes) {
       score += resp.data.length * 10;
