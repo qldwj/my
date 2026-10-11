@@ -520,7 +520,7 @@ class _VideoPageState extends State<VideoPage>
         builder: (context) {
           final size = MediaQuery.sizeOf(context);
           return SizedBox(
-            width: math.min(440, size.width * 0.46),
+            width: min(440.0, size.width * 0.46),
             height: double.infinity,
             child: Material(
               color: Theme.of(context).colorScheme.surface,
