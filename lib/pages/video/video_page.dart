@@ -11,6 +11,9 @@ import 'package:yhdm/pages/video/danmaku_send_sheet.dart';
 import 'package:yhdm/pages/video/video_system_bars.dart';
 import 'package:yhdm/pages/video/video_playback_args.dart';
 import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/services/plugin/captcha_verification_service.dart';
+import 'package:yhdm/plugins/anti_crawler_config.dart';
+import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/pages/playlist/play_queue_page.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/services/playlist/play_queue_service.dart';
@@ -478,17 +481,27 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  /// 🆕 切换线路（换源）面板：列出自动解析搜索到的全部源
+  /// 🆕 切换线路（换源）面板：列出自动解析搜索到的全部源 + 需验证的源
   void _showSourceSwitchSheet() {
     final candidates = List.of(videoPageController.autoResolveCandidates);
-    if (candidates.isEmpty) {
+    // 🆕 需验证的源：不在候选里，单独追加，点击进入验证流程
+    final captchaPlugins = <Plugin>[];
+    final candidateNames = candidates.map((e) => e.pluginName).toSet();
+    for (final name in videoPageController.captchaSourceNames) {
+      if (candidateNames.contains(name)) continue;
+      final plugin = videoPageController.findPluginByName(name);
+      if (plugin != null) captchaPlugins.add(plugin);
+    }
+    if (candidates.isEmpty && captchaPlugins.isEmpty) {
       KazumiDialog.showToast(message: '暂无可切换线路，请稍后重试');
       return;
     }
+    final totalItems = candidates.length + captchaPlugins.length;
     showAdaptiveBottomSheet<void>(
       context: context,
       builder: (context) {
         final currentPluginName = videoPageController.activePluginName;
+        final colors = Theme.of(context).colorScheme;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -501,58 +514,84 @@ class _VideoPageState extends State<VideoPage>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: colors.onSurface,
                   ),
                 ),
               ),
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
-                  itemCount: candidates.length,
+                  itemCount: totalItems,
                   itemBuilder: (context, index) {
-                    final resp = candidates[index];
-                    final isCurrent =
-                        resp.pluginName == currentPluginName;
+                    if (index < candidates.length) {
+                      final resp = candidates[index];
+                      final isCurrent =
+                          resp.pluginName == currentPluginName;
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          isCurrent
+                              ? Icons.play_circle_fill
+                              : Icons.circle_outlined,
+                          size: 20,
+                          color: isCurrent ? colors.primary : null,
+                        ),
+                        title: Text(
+                          resp.pluginName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: resp.data.isEmpty
+                            ? null
+                            : Text(
+                                resp.data.first.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                        trailing: Text(
+                          '${resp.data.length}个结果',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.outline,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          unawaited(_switchSourceTo(resp));
+                        },
+                      );
+                    }
+                    // 🆕 需验证的源：盾牌图标，点击进入验证流程
+                    final plugin =
+                        captchaPlugins[index - candidates.length];
                     return ListTile(
                       dense: true,
-                      leading: Icon(
-                        isCurrent
-                            ? Icons.play_circle_fill
-                            : Icons.circle_outlined,
+                      leading: const Icon(
+                        Icons.shield_outlined,
                         size: 20,
-                        color: isCurrent
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
+                        color: Colors.blue,
                       ),
                       title: Text(
-                        resp.pluginName,
+                        plugin.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
+                        style: const TextStyle(fontSize: 14),
                       ),
-                      subtitle: resp.data.isEmpty
-                          ? null
-                          : Text(
-                              resp.data.first.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                      trailing: Text(
-                        '${resp.data.length}个结果',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+                      subtitle: const Text(
+                        '需要验证码验证',
+                        style: TextStyle(fontSize: 12),
                       ),
+                      trailing: const Icon(Icons.chevron_right, size: 18),
                       onTap: () {
                         Navigator.of(context).pop();
-                        unawaited(_switchSourceTo(resp));
+                        _showCaptchaForPlugin(plugin);
                       },
                     );
                   },
@@ -564,6 +603,205 @@ class _VideoPageState extends State<VideoPage>
         );
       },
     );
+  }
+
+  // ─── 🆕 需验证源的验证流程（移植自详情页选源面板） ────────────────
+
+  /// 按验证类型分发：图片验证码 / 自动点击按钮 / 自定义脚本
+  void _showCaptchaForPlugin(Plugin plugin) {
+    switch (plugin.antiCrawlerConfig.captchaType) {
+      case CaptchaType.customJavaScript:
+        _showAutomatedCaptcha(plugin, customScript: true);
+        break;
+      case CaptchaType.autoClickButton:
+        _showAutomatedCaptcha(plugin, customScript: false);
+        break;
+      default:
+        _showImageCaptcha(plugin);
+    }
+  }
+
+  /// 图片验证码弹窗 + 提交
+  void _showImageCaptcha(Plugin plugin) {
+    final service = CaptchaVerificationService();
+    final keyword = _currentKeyword;
+    final searchUrl = plugin.searchURL
+        .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+    service.loadForCaptcha(
+      searchUrl,
+      plugin.antiCrawlerConfig.captchaImage,
+      inputXpath: plugin.antiCrawlerConfig.captchaInput,
+    );
+    var verified = false;
+    Timer? timeout;
+
+    Future<void> submitCaptcha(String captchaCode) async {
+      await service.submitCaptcha(
+        captchaCode: captchaCode.trim(),
+        inputXpath: plugin.antiCrawlerConfig.captchaInput,
+        buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+        pluginName: plugin.name,
+        onVerified: () {
+          verified = true;
+          timeout?.cancel();
+          KazumiDialog.dismiss();
+          KazumiDialog.showTimedSuccessDialog(
+            title: '验证通过',
+            message: '验证通过，正在重新检索…',
+            onComplete: () {
+              unawaited(_onCaptchaVerified(plugin));
+            },
+          );
+        },
+      );
+      if (!verified) {
+        timeout?.cancel();
+        timeout = Timer(const Duration(seconds: 8), () {
+          if (!verified) KazumiDialog.dismiss();
+        });
+      }
+    }
+
+    KazumiDialog.show(
+      onDismiss: () async {
+        timeout?.cancel();
+        if (!verified) {
+          await service.saveAndUnload(plugin.name);
+        }
+        service.dispose();
+      },
+      builder: (context) => _PlayCaptchaDialog(
+        pluginName: plugin.name,
+        captchaImageStream: service.onCaptchaImageUrl,
+        onSubmit: submitCaptcha,
+      ),
+    );
+  }
+
+  /// 自动验证（按钮点击 / 自定义脚本）
+  void _showAutomatedCaptcha(Plugin plugin, {required bool customScript}) {
+    final service = CaptchaVerificationService();
+    final keyword = _currentKeyword;
+    final searchUrl = plugin.searchURL
+        .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+    var verified = false;
+
+    Future<void> start() async {
+      try {
+        if (customScript) {
+          await service.loadForCustomScript(
+            url: searchUrl,
+            script: plugin.antiCrawlerConfig.captchaScript,
+            pluginName: plugin.name,
+            onVerified: () {
+              if (verified) return;
+              verified = true;
+              KazumiDialog.dismiss();
+              KazumiDialog.showTimedSuccessDialog(
+                title: '验证成功',
+                message: '验证通过，正在重新检索…',
+                onComplete: () {
+                  unawaited(_onCaptchaVerified(plugin));
+                },
+              );
+            },
+          );
+        } else {
+          await service.loadForButtonClick(
+            url: searchUrl,
+            buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+            pluginName: plugin.name,
+            onVerified: () {
+              if (verified) return;
+              verified = true;
+              KazumiDialog.dismiss();
+              KazumiDialog.showTimedSuccessDialog(
+                title: '验证成功',
+                message: '验证通过，正在重新检索…',
+                onComplete: () {
+                  unawaited(_onCaptchaVerified(plugin));
+                },
+              );
+            },
+          );
+        }
+      } catch (e) {
+        KazumiLogger().w('Captcha: ${plugin.name} 自动验证失败', error: e);
+        KazumiDialog.dismiss();
+        if (mounted) {
+          KazumiDialog.showToast(message: '验证失败：$e');
+        }
+      }
+    }
+
+    KazumiDialog.show(
+      onDismiss: () async {
+        if (!verified) {
+          await service.saveAndUnload(plugin.name);
+        }
+        service.dispose();
+      },
+      builder: (context) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  customScript ? '正在执行验证脚本' : '正在自动验证',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${plugin.name}\n已加载验证页面，请稍候…',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    unawaited(start());
+  }
+
+  /// 验证通过后：重新搜索该源并尝试播放
+  Future<void> _onCaptchaVerified(Plugin plugin) async {
+    final keyword = _currentKeyword;
+    try {
+      final result =
+          await plugin.queryBangumi(keyword, shouldRethrow: true);
+      if (result.data.isNotEmpty) {
+        videoPageController.captchaSourceNames.remove(plugin.name);
+        await _switchSourceTo(result);
+      } else {
+        if (mounted) {
+          KazumiDialog.showToast(message: '验证通过，但该源暂无结果');
+        }
+      }
+    } catch (e) {
+      KazumiLogger().w('CaptchaVerified: ${plugin.name} 重新检索失败', error: e);
+      if (mounted) {
+        KazumiDialog.showToast(message: '验证后重新检索失败：$e');
+      }
+    }
+  }
+
+  String get _currentKeyword {
+    final bangumi = videoPageController.bangumiItem;
+    return bangumi.nameCn.isEmpty ? bangumi.name : bangumi.nameCn;
   }
 
   /// 🆕 切换到指定源：重新解析分集并播放当前集
@@ -1424,40 +1662,6 @@ class _VideoPageState extends State<VideoPage>
           // 播放线路 + 集数 + 定位/下载按钮
           Row(
             children: [
-              // 🆕 切换线路（换源）：列出自动解析搜索到的全部源
-              if (videoPageController.autoResolveCandidates.isNotEmpty) ...[
-                Tooltip(
-                  message: '切换线路（换源）',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => _showSourceSwitchSheet(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color:
-                            Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.swap_horiz, size: 16),
-                          SizedBox(width: 2),
-                          Text(
-                            '换源',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
               // 播放线路选择
               MenuAnchor(
                 consumeOutsideTap: true,
@@ -1821,6 +2025,106 @@ class _VideoPageState extends State<VideoPage>
                         controller: observerController,
                         child: Column(
                           children: [
+                            // 🆕 换源头部条（仿 AnimeFlow）：点击切换线路
+                            Observer(builder: (context) {
+                              final colors = Theme.of(context).colorScheme;
+                              final isAutoResolving =
+                                  videoPageController.isAutoResolvePending;
+                              final pluginName =
+                                  videoPageController.activePluginName;
+                              final hasCandidates = videoPageController
+                                  .autoResolveCandidates
+                                  .isNotEmpty;
+                              return Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    12, 10, 12, 4),
+                                child: Material(
+                                  color: colors.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(14),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: hasCandidates
+                                        ? () => _showSourceSwitchSheet()
+                                        : null,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 11),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: colors.primaryContainer,
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
+                                            ),
+                                            child: Icon(
+                                              Icons.swap_horiz,
+                                              size: 16,
+                                              color:
+                                                  colors.onPrimaryContainer,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          const Text(
+                                            '播放线路',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              isAutoResolving
+                                                  ? '自动匹配中...'
+                                                  : (pluginName.isEmpty
+                                                      ? '点击选择线路'
+                                                      : pluginName),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color:
+                                                    colors.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isAutoResolving)
+                                            const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2),
+                                            )
+                                          else
+                                            Icon(
+                                              Icons.chevron_right,
+                                              size: 18,
+                                              color: colors.outline,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                            // 🆕 加载进度条：自动解析 / 弹幕加载中显示
+                            Observer(builder: (context) {
+                              final loading = videoPageController.loading ||
+                                  playerController.danmaku.danmakuLoading;
+                              return AnimatedOpacity(
+                                opacity: loading ? 1 : 0,
+                                duration:
+                                    const Duration(milliseconds: 200),
+                                child: loading
+                                    ? const LinearProgressIndicator(
+                                        minHeight: 2,
+                                      )
+                                    : const SizedBox(height: 2),
+                              );
+                            }),
                             // ⭐ 动漫弹幕来源（选集上方）：弹弹play N 条 / 我的 N 条
                             Observer(builder: (context) {
                               final danmakuController =
@@ -1840,52 +2144,58 @@ class _VideoPageState extends State<VideoPage>
                               final keyword = bangumi.nameCn.isEmpty
                                   ? bangumi.name
                                   : bangumi.nameCn;
-                              return Material(
-                                color: on
-                                    ? colors.primaryContainer
-                                        .withValues(alpha: 0.45)
-                                    : colors.surfaceContainerLow,
-                                child: InkWell(
-                                  onTap: () => showDanmakuManageSheet(
-                                    context,
-                                    bangumiId: bangumi.id,
-                                    initialKeyword: keyword,
-                                    danmakuController: danmakuController,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.subtitles_outlined,
-                                          size: 18,
-                                          color: colors.primary,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Text(
-                                          '动漫弹幕来源',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            parts.isEmpty
-                                                ? '弹弹play 未加载 · 点击添加'
-                                                : parts.join(' · '),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color:
-                                                    colors.onSurfaceVariant),
+                              return Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    12, 4, 12, 6),
+                                child: Material(
+                                  color: on
+                                      ? colors.primaryContainer
+                                          .withValues(alpha: 0.45)
+                                      : colors.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(14),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () => showDanmakuManageSheet(
+                                      context,
+                                      bangumiId: bangumi.id,
+                                      initialKeyword: keyword,
+                                      danmakuController: danmakuController,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 10),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.subtitles_outlined,
+                                            size: 18,
+                                            color: colors.primary,
                                           ),
-                                        ),
-                                        const Icon(Icons.chevron_right,
-                                            size: 18),
-                                      ],
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            '动漫弹幕来源',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              parts.isEmpty
+                                                  ? '弹弹play 未加载 · 点击添加'
+                                                  : parts.join(' · '),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      colors.onSurfaceVariant),
+                                            ),
+                                          ),
+                                          const Icon(Icons.chevron_right,
+                                              size: 18),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1907,6 +2217,145 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 🆕 播放页内验证码弹窗（图片验证码：显示图片 + 输入 + 提交）
+class _PlayCaptchaDialog extends StatefulWidget {
+  const _PlayCaptchaDialog({
+    required this.pluginName,
+    required this.captchaImageStream,
+    required this.onSubmit,
+  });
+
+  final String pluginName;
+  final Stream<String?> captchaImageStream;
+  final Future<void> Function(String captchaCode) onSubmit;
+
+  @override
+  State<_PlayCaptchaDialog> createState() => _PlayCaptchaDialogState();
+}
+
+class _PlayCaptchaDialogState extends State<_PlayCaptchaDialog> {
+  final ValueNotifier<String?> _captchaImageNotifier =
+      ValueNotifier<String?>(null);
+  final ValueNotifier<bool> _submittingNotifier = ValueNotifier<bool>(false);
+  late final StreamSubscription<String?> _imageSub;
+  String _captchaCode = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _imageSub = widget.captchaImageStream.listen((url) {
+      if (!mounted || url == null) return;
+      _captchaImageNotifier.value = url;
+    });
+  }
+
+  @override
+  void dispose() {
+    _imageSub.cancel();
+    _captchaImageNotifier.dispose();
+    _submittingNotifier.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_submittingNotifier.value) return;
+    final captchaCode = _captchaCode.trim();
+    if (captchaCode.isEmpty) {
+      KazumiDialog.showToast(message: '请输入验证码');
+      return;
+    }
+    _submittingNotifier.value = true;
+    await widget.onSubmit(captchaCode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '${widget.pluginName} 需要验证',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<String?>(
+                valueListenable: _captchaImageNotifier,
+                builder: (context, url, _) {
+                  if (url == null) {
+                    return Container(
+                      height: 80,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  }
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      url,
+                      height: 80,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 80,
+                        alignment: Alignment.center,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        child: const Text('验证码加载失败'),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                onChanged: (v) => _captchaCode = v,
+                decoration: const InputDecoration(
+                  hintText: '输入验证码',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<bool>(
+                valueListenable: _submittingNotifier,
+                builder: (context, submitting, _) {
+                  return FilledButton(
+                    onPressed: submitting ? null : _submit,
+                    child: submitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('提交验证'),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

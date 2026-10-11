@@ -37,6 +37,7 @@ import 'package:yhdm/modules/search/plugin_search_module.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:yhdm/repositories/history_repository.dart';
+import 'package:yhdm/services/plugin/rule_engine_models.dart';
 
 part 'video_controller.g.dart';
 
@@ -412,6 +413,9 @@ abstract class _VideoPageController with Store implements Disposable {
   /// 自动解析搜索到的全部候选源（供播放页「切换线路」面板使用）
   List<PluginSearchResponse> autoResolveCandidates = [];
 
+  /// 需要验证码的源（搜索时抛 CaptchaRequiredException 记录，供换源面板展示）
+  Set<String> captchaSourceNames = {};
+
   bool get isAutoResolvePending => _autoResolvePending;
 
   /// 当前生效源名称；自动解析未完成时 currentPlugin 可能未赋值，安全读取
@@ -571,6 +575,7 @@ abstract class _VideoPageController with Store implements Disposable {
       }
     }
     final results = <PluginSearchResponse>[];
+    captchaSourceNames.clear();
     const maxConcurrent = 5;
     var next = 0;
     Future<void> worker() async {
@@ -589,6 +594,9 @@ abstract class _VideoPageController with Store implements Disposable {
           if (result.data.isNotEmpty) {
             results.add(result);
           }
+        } on CaptchaRequiredException {
+          // 🆕 需要验证码：记录下来，换源面板显示盾牌，点击可验证
+          captchaSourceNames.add(plugin.name);
         } catch (_) {
           // 单源失败静默，交给评分排序跳过
         }

@@ -129,6 +129,21 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
     }
   }
 
+  /// 🆕 修复：切换来源开关；全部关闭时立即清空已显示弹幕并关闭弹幕
+  void _toggleSource(SettingKey<bool> key, bool value) {
+    GStorage.putSetting(key, value);
+    final allOff = !GStorage.getSetting(SettingsKeys.danmakuDanDanSource) &&
+        !GStorage.getSetting(SettingsKeys.danmakuAnimekoSource) &&
+        !GStorage.getSetting(SettingsKeys.customDanmakuEnabled);
+    if (allOff) {
+      widget.danmakuController.clearAndInvalidateScheduledDanmakus();
+      widget.danmakuController.setDanmakuEnabled(false);
+      KazumiLogger()
+          .i('DanmakuManageSheet: 全部弹幕来源已关闭，立即清空弹幕');
+    }
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -160,9 +175,7 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                         enabled:
                             GStorage.getSetting(SettingsKeys.danmakuDanDanSource),
                         onChanged: (value) {
-                          GStorage.putSetting(
-                              SettingsKeys.danmakuDanDanSource, value);
-                          setState(() {});
+                          _toggleSource(SettingsKeys.danmakuDanDanSource, value);
                         },
                       ),
                       _DanmakuSourceChip(
@@ -171,9 +184,7 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                         enabled:
                             GStorage.getSetting(SettingsKeys.danmakuAnimekoSource),
                         onChanged: (value) {
-                          GStorage.putSetting(
-                              SettingsKeys.danmakuAnimekoSource, value);
-                          setState(() {});
+                          _toggleSource(SettingsKeys.danmakuAnimekoSource, value);
                         },
                       ),
                       _DanmakuSourceChip(
@@ -182,9 +193,7 @@ class _DanmakuManageSheetState extends State<_DanmakuManageSheet> {
                         enabled:
                             GStorage.getSetting(SettingsKeys.customDanmakuEnabled),
                         onChanged: (value) {
-                          GStorage.putSetting(
-                              SettingsKeys.customDanmakuEnabled, value);
-                          setState(() {});
+                          _toggleSource(SettingsKeys.customDanmakuEnabled, value);
                         },
                       ),
                     ];
