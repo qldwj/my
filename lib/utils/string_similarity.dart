@@ -62,7 +62,8 @@ int matchScorePercent({
 /// 归一化：去掉空白、常见分隔符与标点，统一小写。
 String _normalize(String s) {
   var r = s.toLowerCase();
-  r = r.replaceAll(RegExp(r'[\s\-_:：·・,，.。!！?？~～"“”\'‘’()（）\[\]【】]'), '');
+  r = r.replaceAll(
+      RegExp(r"""[\s\-_:：·・,，.。!！?？~～"“”'‘’()（）\[\]【】]"""), '');
   return r;
 }
 
