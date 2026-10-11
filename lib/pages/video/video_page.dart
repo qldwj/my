@@ -481,7 +481,10 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  /// 🆕 切换线路（换源）面板：圆角横条卡片，标星置顶，状态图标一目了然
+  /// 🆕 切换线路（换源）面板：
+  /// - 横屏：从右侧滑出侧边栏（与「弹幕来源」面板一致的交互）
+  /// - 竖屏：底部弹窗
+  /// 内容：标星置顶 + 当前源高亮 + 需验证源带验证类型图标
   void _showSourceSwitchSheet() {
     final candidates = List.of(videoPageController.autoResolveCandidates);
     // 🆕 需验证的源：不在候选里，单独追加，点击进入验证流程
@@ -503,227 +506,168 @@ class _VideoPageState extends State<VideoPage>
       final sb = starSet.contains(b.pluginName) ? 0 : 1;
       return sa.compareTo(sb);
     });
-    final totalItems = candidates.length + captchaPlugins.length;
+
+    final builder = (BuildContext context) => _buildSourceSwitchContent(
+          candidates: candidates,
+          captchaPlugins: captchaPlugins,
+          starSet: starSet,
+        );
+
+    // 横屏：右侧滑出侧边栏（对齐弹幕来源面板）
+    if (MediaQuery.orientationOf(context) == Orientation.landscape) {
+      KazumiDialog.show<void>(
+        context: context,
+        builder: (context) {
+          final size = MediaQuery.sizeOf(context);
+          return SizedBox(
+            width: math.min(440, size.width * 0.46),
+            height: double.infinity,
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.horizontal(left: Radius.circular(28)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: SafeArea(child: builder(context)),
+            ),
+          );
+        },
+      );
+      return;
+    }
+
+    // 竖屏：底部弹窗
     showAdaptiveBottomSheet<void>(
       context: context,
-      builder: (context) {
-        final currentPluginName = videoPageController.activePluginName;
-        final colors = Theme.of(context).colorScheme;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      maxHeightFactor: 0.88,
+      builder: builder,
+    );
+  }
+
+  /// 换源面板内容（横竖屏共用）
+  Widget _buildSourceSwitchContent({
+    required List<PluginSearchResponse> candidates,
+    required List<Plugin> captchaPlugins,
+    required Set<String> starSet,
+  }) {
+    final currentPluginName = videoPageController.activePluginName;
+    final colors = Theme.of(context).colorScheme;
+    final totalItems = candidates.length + captchaPlugins.length;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.swap_horiz, size: 18, color: colors.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      '切换线路',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${candidates.length + captchaPlugins.length} 条线路',
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(Icons.swap_horiz,
+                    size: 16, color: colors.onPrimaryContainer),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '切换线路',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
                 ),
               ),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(bottom: 8),
-                  itemCount: totalItems,
-                  itemBuilder: (context, index) {
-                    if (index < candidates.length) {
-                      final resp = candidates[index];
-                      final isCurrent =
-                          resp.pluginName == currentPluginName;
-                      final isStarred = starSet.contains(resp.pluginName);
-                      // 🆕 圆角横条卡片（与弹幕来源卡片同款风格）
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: Material(
-                          color: isCurrent
-                              ? colors.primaryContainer
-                                  .withValues(alpha: 0.5)
-                              : colors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(14),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              unawaited(_switchSourceTo(resp));
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(7),
-                                    decoration: BoxDecoration(
-                                      color: isCurrent
-                                          ? colors.primary
-                                          : colors.surfaceContainerHighest,
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(
-                                      isCurrent
-                                          ? Icons.check_circle
-                                          : Icons.public,
-                                      size: 16,
-                                      color: isCurrent
-                                          ? colors.onPrimary
-                                          : colors.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                resp.pluginName,
-                                                maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: isCurrent
-                                                      ? FontWeight.w700
-                                                      : FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                            if (isStarred) ...[
-                                              const SizedBox(width: 4),
-                                              const Icon(Icons.star,
-                                                  size: 14,
-                                                  color: Colors.amber),
-                                            ],
-                                          ],
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          resp.data.isEmpty
-                                              ? '搜索中…'
-                                              : resp.data.first.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: colors.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${resp.data.length}个',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: colors.outline,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(Icons.chevron_right,
-                                      size: 18, color: colors.outline),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    // 🆕 需验证的源：蓝色盾牌图标 + 说明，点击进入验证
-                    final plugin =
-                        captchaPlugins[index - candidates.length];
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: Material(
-                        color: Colors.blue.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(14),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            _showCaptchaForPlugin(plugin);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(7),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.shield_outlined,
-                                    size: 16,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        plugin.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '需要验证码验证 · 点击去验证',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.blue.shade300,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right,
-                                    size: 18, color: Colors.blue.shade300),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              const Spacer(),
+              Text(
+                '$totalItems 条线路',
+                style:
+                    TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: '关闭',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.close_rounded, size: 20),
+              ),
             ],
           ),
-        );
-      },
+        ),
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: 8),
+            itemCount: totalItems,
+            itemBuilder: (context, index) {
+              if (index < candidates.length) {
+                final resp = candidates[index];
+                final isCurrent = resp.pluginName == currentPluginName;
+                final isStarred = starSet.contains(resp.pluginName);
+                return _SourceSwitchTile(
+                  name: resp.pluginName,
+                  subtitle: resp.data.isEmpty
+                      ? '搜索中…'
+                      : resp.data.first.name,
+                  trailingText: '${resp.data.length}个',
+                  isCurrent: isCurrent,
+                  isStarred: isStarred,
+                  accent: colors.primary,
+                  leadingIcon: isCurrent
+                      ? Icons.check_circle
+                      : Icons.public,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    unawaited(_switchSourceTo(resp));
+                  },
+                );
+              }
+              final plugin = captchaPlugins[index - candidates.length];
+              return _SourceSwitchTile(
+                name: plugin.name,
+                subtitle: '${_captchaTypeLabel(plugin)} · 点击去验证',
+                trailingText: null,
+                isCurrent: false,
+                isStarred: starSet.contains(plugin.name),
+                accent: Colors.blue,
+                leadingIcon: _captchaTypeIcon(plugin),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showCaptchaForPlugin(plugin);
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
+  }
+
+  /// 验证类型图标：图片验证码 / 自动点击 / 自定义脚本
+  IconData _captchaTypeIcon(Plugin plugin) {
+    switch (plugin.antiCrawlerConfig.captchaType) {
+      case CaptchaType.autoClickButton:
+        return Icons.touch_app_outlined;
+      case CaptchaType.customJavaScript:
+        return Icons.code_rounded;
+      default:
+        return Icons.shield_outlined;
+    }
+  }
+
+  /// 验证类型文案
+  String _captchaTypeLabel(Plugin plugin) {
+    switch (plugin.antiCrawlerConfig.captchaType) {
+      case CaptchaType.autoClickButton:
+        return '需要点击验证';
+      case CaptchaType.customJavaScript:
+        return '需要脚本验证';
+      default:
+        return '需要验证码验证';
+    }
   }
 
   // ─── 🆕 需验证源的验证流程（移植自详情页选源面板） ────────────────
@@ -2476,6 +2420,148 @@ class _PlayCaptchaDialogState extends State<_PlayCaptchaDialog> {
                 },
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 🆕 换源面板的单条线路卡片（横竖屏共用）：
+/// 圆角横条 + 前导图标块 + 源名（标星高亮）+ 副标题 + 尾部信息。
+/// 标星规则：金色星标徽章 + 左侧金色描边，让「置顶的星标源」一眼可辨。
+class _SourceSwitchTile extends StatelessWidget {
+  const _SourceSwitchTile({
+    required this.name,
+    required this.subtitle,
+    required this.trailingText,
+    required this.isCurrent,
+    required this.isStarred,
+    required this.accent,
+    required this.leadingIcon,
+    required this.onTap,
+  });
+
+  final String name;
+  final String subtitle;
+  final String? trailingText;
+  final bool isCurrent;
+  final bool isStarred;
+  final Color accent;
+  final IconData leadingIcon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final bg = isCurrent
+        ? colors.primaryContainer.withValues(alpha: 0.5)
+        : colors.surfaceContainerLow;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: isStarred
+                  ? Border.all(color: Colors.amber.withValues(alpha: 0.7), width: 1.4)
+                  : null,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? accent
+                        : accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    leadingIcon,
+                    size: 16,
+                    color: isCurrent ? colors.onPrimary : accent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isCurrent
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (isStarred) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.star_rounded,
+                                      size: 12, color: Colors.amber),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    '置顶',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.amber,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailingText != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    trailingText!,
+                    style: TextStyle(fontSize: 11, color: colors.outline),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, size: 18, color: colors.outline),
+              ],
+            ),
           ),
         ),
       ),

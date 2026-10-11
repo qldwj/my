@@ -832,6 +832,62 @@ class _SourceSheetState extends State<SourceSheet>
     );
   }
 
+  /// 🆕 顶部提示条：列出当前需要「验证」或「登录」才能使用的源。
+  /// 没有任何需处理的源时不占空间（返回 SizedBox.shrink）。
+  Widget _buildAttentionBar() {
+    final statusMap = widget.infoController.pluginSearchStatus;
+    final needsCaptcha = <Plugin>[];
+    final needsLogin = <Plugin>[];
+    for (final plugin in _filteredPlugins) {
+      final status = statusMap[plugin.name];
+      if (status == PluginSearchStatus.captcha) {
+        needsCaptcha.add(plugin);
+      } else if (status == PluginSearchStatus.login) {
+        needsLogin.add(plugin);
+      }
+    }
+    if (needsCaptcha.isEmpty && needsLogin.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final plugin in needsCaptcha)
+            _AttentionCard(
+              icon: Icons.shield_outlined,
+              accent: Colors.blue,
+              title: plugin.name,
+              subtitle: '需要验证码验证 · 点击去验证',
+              actionText: '去验证',
+              onAction: () => showAntiCrawlerDialog(plugin),
+              onTap: () => _jumpToPluginTab(plugin),
+            ),
+          for (final plugin in needsLogin)
+            _AttentionCard(
+              icon: Icons.lock_outline,
+              accent: Colors.purple,
+              title: plugin.name,
+              subtitle: '需要登录后才能观看 · 点击去登录',
+              actionText: '去登录',
+              onAction: () => _openPluginLogin(plugin),
+              onTap: () => _jumpToPluginTab(plugin),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 切到指定源所在的 Tab（让用户能直接看到该源的详情）
+  void _jumpToPluginTab(Plugin plugin) {
+    final index = _filteredPlugins.indexWhere((p) => p.name == plugin.name);
+    if (index < 0) return;
+    if (index >= _sourceTabController.length) return;
+    _sourceTabController.animateTo(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -882,6 +938,8 @@ class _SourceSheetState extends State<SourceSheet>
               ),
             ),
           ),
+          // 🆕 需要验证 / 需要登录的源提示条：一眼看出哪些源当前不可直接用
+          Observer(builder: (_) => _buildAttentionBar()),
           Observer(
             builder: (context) => MaterialBottomSheetTabBar(
               isScrollable: true,
@@ -1193,6 +1251,94 @@ class _AliasDialogState extends State<_AliasDialog> {
               }).toList(),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+/// 🆕 「需要验证 / 需要登录」源的高亮提示卡片：
+/// 左侧彩色图标块 + 源名 + 说明，右侧「去验证 / 去登录」按钮。
+class _AttentionCard extends StatelessWidget {
+  const _AttentionCard({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.subtitle,
+    required this.actionText,
+    required this.onAction,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String title;
+  final String subtitle;
+  final String actionText;
+  final VoidCallback onAction;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 18, color: accent),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: colors.outline),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                FilledButton.tonal(
+                  onPressed: onAction,
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    backgroundColor: accent.withValues(alpha: 0.20),
+                    foregroundColor: accent,
+                  ),
+                  child:
+                      Text(actionText, style: const TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
