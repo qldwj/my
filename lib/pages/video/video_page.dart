@@ -27,6 +27,7 @@ import 'package:yhdm/request/apis/custom_danmaku_api.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/player/pip_utils.dart';
 import 'package:yhdm/utils/media.dart';
+import 'package:yhdm/utils/string_similarity.dart';
 import 'package:yhdm/utils/http_headers.dart';
 import 'package:yhdm/services/video_source/video_source_format.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -501,16 +502,41 @@ class _VideoPageState extends State<VideoPage>
     }
     // 🆕 标星规则置顶（与评分逻辑一致）
     final starSet = GStorage.getStringListSettingByName('starRules').toSet();
+    final bangumi = videoPageController.bangumiItem;
+    final titles = <String>[
+      if (bangumi.nameCn.isNotEmpty) bangumi.nameCn,
+      bangumi.name,
+      ...bangumi.alias,
+    ];
+    // 🆕 匹配度：该源所有搜索结果里与番剧名的最高分（0~100）
+    final scoreOf = <String, int>{};
+    for (final resp in candidates) {
+      var best = 0;
+      for (final item in resp.data) {
+        final s = matchScorePercent(titles: titles, target: item.name);
+        if (s > best) best = s;
+      }
+      scoreOf[resp.pluginName] = best;
+    }
+    // 排序：标星优先 → 有结果优先 → 匹配度降序 → 结果条数降序
     candidates.sort((a, b) {
       final sa = starSet.contains(a.pluginName) ? 0 : 1;
       final sb = starSet.contains(b.pluginName) ? 0 : 1;
-      return sa.compareTo(sb);
+      if (sa != sb) return sa.compareTo(sb);
+      final ea = a.data.isEmpty ? 1 : 0;
+      final eb = b.data.isEmpty ? 1 : 0;
+      if (ea != eb) return ea.compareTo(eb);
+      final ma = scoreOf[a.pluginName] ?? 0;
+      final mb = scoreOf[b.pluginName] ?? 0;
+      if (ma != mb) return mb.compareTo(ma);
+      return b.data.length.compareTo(a.data.length);
     });
 
     final builder = (BuildContext context) => _buildSourceSwitchContent(
           candidates: candidates,
           captchaPlugins: captchaPlugins,
           starSet: starSet,
+          scoreOf: scoreOf,
         );
 
     // 横屏：右侧滑出侧边栏（对齐弹幕来源面板）
@@ -550,6 +576,7 @@ class _VideoPageState extends State<VideoPage>
     required List<PluginSearchResponse> candidates,
     required List<Plugin> captchaPlugins,
     required Set<String> starSet,
+    required Map<String, int> scoreOf,
   }) {
     final currentPluginName = videoPageController.activePluginName;
     final colors = Theme.of(context).colorScheme;
@@ -606,12 +633,16 @@ class _VideoPageState extends State<VideoPage>
                 final resp = candidates[index];
                 final isCurrent = resp.pluginName == currentPluginName;
                 final isStarred = starSet.contains(resp.pluginName);
+                final match = scoreOf[resp.pluginName] ?? 0;
                 return _SourceSwitchTile(
                   name: resp.pluginName,
                   subtitle: resp.data.isEmpty
-                      ? '搜索中…'
+                      ? '无搜索结果 · 该源可能已失效'
                       : resp.data.first.name,
-                  trailingText: '${resp.data.length}个',
+                  trailingText: resp.data.isEmpty
+                      ? null
+                      : '${resp.data.length}个',
+                  matchScore: resp.data.isEmpty ? null : match,
                   isCurrent: isCurrent,
                   isStarred: isStarred,
                   accent: colors.primary,
@@ -2440,6 +2471,7 @@ class _SourceSwitchTile extends StatelessWidget {
     required this.accent,
     required this.leadingIcon,
     required this.onTap,
+    this.matchScore,
   });
 
   final String name;
@@ -2450,6 +2482,9 @@ class _SourceSwitchTile extends StatelessWidget {
   final Color accent;
   final IconData leadingIcon;
   final VoidCallback onTap;
+
+  /// 🆕 匹配度 0~100（null 表示无结果不显示）
+  final int? matchScore;
 
   @override
   Widget build(BuildContext context) {
@@ -2551,6 +2586,10 @@ class _SourceSwitchTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (matchScore != null) ...[
+                  const SizedBox(width: 8),
+                  _MatchBadge(score: matchScore!),
+                ],
                 if (trailingText != null) ...[
                   const SizedBox(width: 8),
                   Text(
@@ -2564,6 +2603,44 @@ class _SourceSwitchTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 🆕 匹配度徽章：0~100 分，颜色随分数变化（高=绿/中=橙/低=灰）。
+class _MatchBadge extends StatelessWidget {
+  const _MatchBadge({required this.score});
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = score >= 85
+        ? Colors.green
+        : score >= 60
+            ? Colors.orange
+            : Colors.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

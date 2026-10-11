@@ -417,6 +417,33 @@ class _SourceSheetState extends State<SourceSheet>
           });
         }
       }
+      // 🆕 需登录的源：解析章节失败时明确提示「需要登录」并给出去登录入口，
+      // 而不是丢一个看不懂的通用错误（次元城等站点搜索不需要登录、播放需要）。
+      if (plugin.needLogin && mounted) {
+        final saved = PluginCookieManager.instance.hasSaved(plugin.name);
+        if (!saved) {
+          KazumiDialog.show(
+            builder: (context) => AlertDialog(
+              title: const Text('需要登录'),
+              content: Text('${plugin.name} 需要登录后才能观看。\n'
+                  '请使用内置浏览器登录该站并保存 Cookie 后再试。'),
+              actions: [
+                TextButton(
+                  onPressed: () => KazumiDialog.dismiss(),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    KazumiDialog.dismiss();
+                    _openPluginLogin(plugin);
+                  },
+                  child: const Text('去登录'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
     }
   }
 

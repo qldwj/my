@@ -34,7 +34,6 @@ import 'package:yhdm/utils/async_session.dart';
 import 'package:yhdm/services/platform/display_mode_service.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/modules/search/plugin_search_module.dart';
-import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/services/plugin/rule_engine_models.dart';
@@ -576,9 +575,15 @@ abstract class _VideoPageController with Store implements Disposable {
 
   /// 并发搜索全部可用源（受限并发 5，合集展开为子规则）。
   /// 🆕 [minResults]：累计够这么多可用结果就提前返回，不等慢源。
+  /// 并发搜索全部可用源（受限并发，合集展开为子规则）。
+  ///
+  /// 🆕 速度优先策略（解决「一直正在解析」）：
+  /// - 按「优先级」顺序发起：标星 → 历史验证可用 → 其余
+  /// - 只要累计够 [minResults] 个可用结果就立刻返回，不等慢源
+  /// - 默认 [minResults]=1：谁先搜出结果就用谁，剩余慢源直接放弃
   Future<List<PluginSearchResponse>> _searchAllSources(
     String keyword, {
-    int minResults = 3,
+    int minResults = 1,
   }) async {
     final pluginsController = inject<PluginsController>();
     final plugins = <Plugin>[];
@@ -594,11 +599,23 @@ abstract class _VideoPageController with Store implements Disposable {
         plugins.add(p);
       }
     }
+    // 🆕 优先级排序：标星最前，其次历史验证可用的源，最后其余
+    final starSet =
+        GStorage.getStringListSettingByName('starRules').toSet();
+    final tracker = pluginsController.validityTracker;
+    int priority(Plugin p) {
+      if (starSet.contains(p.name)) return 0;
+      if (tracker.isSearchValid(p.name)) return 1;
+      return 2;
+    }
+    plugins.sort((a, b) => priority(a).compareTo(priority(b)));
+
     final results = <PluginSearchResponse>[];
     captchaSourceNames.clear();
-    const maxConcurrent = 5;
+    // 并发数适中：太大反而拖慢单个源、触发风控
+    const maxConcurrent = 4;
     var next = 0;
-    var enough = false; // 🆕 够数标志，worker 见此即停
+    var enough = false; // 够数标志，worker 见此即停
     Future<void> worker() async {
       while (true) {
         if (enough) return;
@@ -606,11 +623,9 @@ abstract class _VideoPageController with Store implements Disposable {
         if (i >= plugins.length) return;
         final plugin = plugins[i];
         try {
-          // 需登录但未保存 Cookie 的源跳过
-          if (plugin.needLogin &&
-              !PluginCookieManager.instance.hasSaved(plugin.name)) {
-            continue;
-          }
+          // ⚠️ 不因 needLogin 而跳过搜索：很多站点（如次元城）搜索接口无需登录，
+          // 只有播放/解析章节才需要。跳过后源会从列表消失，用户以为「不能用」。
+          // 未登录的源搜索结果仍会进入候选；真正播放失败时再提示去登录。
           final result =
               await plugin.queryBangumi(keyword, shouldRethrow: true);
           if (enough) return;
