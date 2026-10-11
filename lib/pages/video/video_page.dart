@@ -10,6 +10,7 @@ import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/pages/video/danmaku_send_sheet.dart';
 import 'package:yhdm/pages/video/video_system_bars.dart';
 import 'package:yhdm/pages/video/video_playback_args.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
 import 'package:yhdm/pages/playlist/play_queue_page.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/services/playlist/play_queue_service.dart';
@@ -261,6 +262,29 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     _showTabBodyImmediately(locateEpisode: false);
 
+    // 🆕 AnimeFlow式：自动解析模式（详情页直接进播放页，未指定源）
+    if (videoPageController.isAutoResolvePending) {
+      _logSubscription = videoPageController.logStream.listen((log) {
+        if (mounted) {
+          setState(() {
+            webviewLogLines.add(log);
+            if (webviewLogLines.length > 100) {
+              webviewLogLines.removeAt(0);
+            }
+          });
+        }
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        unawaited(videoPageController.autoResolveAndPlay(
+          playerController: playerController,
+        ));
+      });
+      return;
+    }
+
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
@@ -451,6 +475,138 @@ class _VideoPageState extends State<VideoPage>
           KazumiDialog.showToast(message: '缓存已清理，请重新加载');
         },
       );
+    }
+  }
+
+  /// 🆕 切换线路（换源）面板：列出自动解析搜索到的全部源
+  void _showSourceSwitchSheet() {
+    final candidates = List.of(videoPageController.autoResolveCandidates);
+    if (candidates.isEmpty) {
+      KazumiDialog.showToast(message: '暂无可切换线路，请稍后重试');
+      return;
+    }
+    showAdaptiveBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        final currentPluginName = videoPageController.activePluginName;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                child: Text(
+                  '切换线路',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: candidates.length,
+                  itemBuilder: (context, index) {
+                    final resp = candidates[index];
+                    final isCurrent =
+                        resp.pluginName == currentPluginName;
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(
+                        isCurrent
+                            ? Icons.play_circle_fill
+                            : Icons.circle_outlined,
+                        size: 20,
+                        color: isCurrent
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      title: Text(
+                        resp.pluginName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: resp.data.isEmpty
+                          ? null
+                          : Text(
+                              resp.data.first.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                      trailing: Text(
+                        '${resp.data.length}个结果',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        unawaited(_switchSourceTo(resp));
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 🆕 切换到指定源：重新解析分集并播放当前集
+  Future<void> _switchSourceTo(PluginSearchResponse resp) async {
+    final plugin = videoPageController.findPluginByName(resp.pluginName);
+    if (plugin == null) {
+      KazumiDialog.showToast(message: '未找到线路 ${resp.pluginName}');
+      return;
+    }
+    if (resp.data.isEmpty) {
+      KazumiDialog.showToast(message: '${resp.pluginName} 无可用结果');
+      return;
+    }
+    KazumiDialog.showLoading(msg: '正在解析 ${resp.pluginName}...');
+    try {
+      final roads = await plugin.queryChapterRoads(resp.data.first.src);
+      if (roads.isEmpty) {
+        KazumiDialog.dismiss();
+        KazumiDialog.showToast(message: '该线路解析分集失败');
+        return;
+      }
+      videoPageController.applyAutoResolvedSource(
+        plugin: plugin,
+        title: resp.data.first.name,
+        src: resp.data.first.src,
+        roads: roads,
+      );
+      // 保持当前集数，超出新线路选集数则回退第 1 集
+      final currentEp = videoPageController.selectedEpisode.episode;
+      var ep = currentEp;
+      if (ep < 1 || ep > roads.first.data.length) ep = 1;
+      KazumiDialog.dismiss();
+      await videoPageController.changeEpisode(
+        ep,
+        currentRoad: 0,
+        playerController: playerController,
+      );
+    } catch (e) {
+      KazumiDialog.dismiss();
+      KazumiLogger().w('SwitchSource: ${resp.pluginName} 失败', error: e);
+      if (mounted) {
+        KazumiDialog.showToast(message: '切换线路失败：$e');
+      }
     }
   }
 
@@ -1101,9 +1257,12 @@ class _VideoPageState extends State<VideoPage>
                                     color: Colors.amber),
                                 const SizedBox(height: 10),
                                 Text(
-                                  videoPageController.loading
-                                      ? '视频资源解析中'
-                                      : '视频资源解析成功, 播放器加载中',
+                                  videoPageController.autoResolveStatus !=
+                                          null
+                                      ? videoPageController.autoResolveStatus!
+                                      : videoPageController.loading
+                                          ? '视频资源解析中'
+                                          : '视频资源解析成功, 播放器加载中',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ],
@@ -1265,6 +1424,40 @@ class _VideoPageState extends State<VideoPage>
           // 播放线路 + 集数 + 定位/下载按钮
           Row(
             children: [
+              // 🆕 切换线路（换源）：列出自动解析搜索到的全部源
+              if (videoPageController.autoResolveCandidates.isNotEmpty) ...[
+                Tooltip(
+                  message: '切换线路（换源）',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => _showSourceSwitchSheet(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.swap_horiz, size: 16),
+                          SizedBox(width: 2),
+                          Text(
+                            '换源',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               // 播放线路选择
               MenuAnchor(
                 consumeOutsideTap: true,

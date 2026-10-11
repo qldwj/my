@@ -32,6 +32,11 @@ import 'package:yhdm/utils/http_headers.dart';
 import 'package:yhdm/utils/media.dart';
 import 'package:yhdm/utils/async_session.dart';
 import 'package:yhdm/services/platform/display_mode_service.dart';
+import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/modules/search/plugin_search_module.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/storage/settings_keys.dart';
+import 'package:yhdm/repositories/history_repository.dart';
 
 part 'video_controller.g.dart';
 
@@ -395,6 +400,37 @@ abstract class _VideoPageController with Store implements Disposable {
 
   late Plugin currentPlugin;
 
+  // ─── 🆕 自动解析模式（AnimeFlow式：直接进播放页，页内自动选源） ───
+  /// 是否处于「未指定源、进入播放页后自动解析」模式
+  bool _autoResolvePending = false;
+
+  /// 自动解析的加载状态文案（正在搜索线路... / 正在解析 xx...）
+  /// 普通字段即可：首次赋值伴随 _loading=true 触发一次重建，
+  /// 解析完成由 _finishLoading/_failLoading 响应式收尾。
+  String? autoResolveStatus;
+
+  /// 自动解析搜索到的全部候选源（供播放页「切换线路」面板使用）
+  List<PluginSearchResponse> autoResolveCandidates = [];
+
+  bool get isAutoResolvePending => _autoResolvePending;
+
+  /// 当前生效源名称；自动解析未完成时 currentPlugin 可能未赋值，安全读取
+  String get activePluginName {
+    try {
+      return currentPlugin.name;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// 进入自动解析模式：详情页点「开始观看」直接进播放页时调用
+  void enterAutoResolveMode() {
+    _autoResolvePending = true;
+    _loading = true;
+    _errorMessage = null;
+    autoResolveStatus = '正在搜索线路...';
+  }
+
   String _offlinePluginName = '';
 
   final HistoryController historyController;
@@ -421,6 +457,10 @@ abstract class _VideoPageController with Store implements Disposable {
         src = args.src;
         roadList.clear();
         roadList.addAll(args.roads);
+      case AutoResolveVideoPlaybackArgs():
+        // 🆕 AnimeFlow式：未指定源，进入播放页后自动搜索+选源+解析
+        bangumiItem = args.bangumiItem;
+        enterAutoResolveMode();
       case OfflineVideoPlaybackArgs():
         _initForOfflinePlayback(
           bangumiItem: args.bangumiItem,
@@ -430,6 +470,178 @@ abstract class _VideoPageController with Store implements Disposable {
           downloadedEpisodes: args.downloadedEpisodes,
         );
     }
+  }
+
+  // ─── 🆕 自动解析核心流程（AnimeFlow式） ──────────────────────────────
+
+  /// 播放页初始化后调用：自动 搜索全部源 → 评分选优 → 解析分集 → 播放。
+  /// 解析失败的源自动换下一个，全部失败才提示。
+  Future<void> autoResolveAndPlay({
+    required PlayerController playerController,
+  }) async {
+    if (!_autoResolvePending || isOfflineMode) return;
+    autoResolveStatus = '正在搜索线路...';
+    final keyword = bangumiItem.nameCn.isEmpty
+        ? bangumiItem.name
+        : bangumiItem.nameCn;
+
+    final results = await _searchAllSources(keyword);
+    if (!_autoResolvePending) return;
+
+    // 评分排序（与详情页选源面板同一套规则）
+    final sorted = List<PluginSearchResponse>.from(results)
+      ..sort((a, b) =>
+          _scoreAutoResolveSource(b).compareTo(_scoreAutoResolveSource(a)));
+    autoResolveCandidates = sorted;
+
+    for (final resp in sorted) {
+      if (!_autoResolvePending) return;
+      final plugin = findPluginByName(resp.pluginName);
+      if (plugin == null) continue;
+      if (resp.data.isEmpty) continue;
+      autoResolveStatus = '正在解析 ${resp.pluginName}...';
+      try {
+        final roads = await plugin.queryChapterRoads(resp.data.first.src);
+        if (roads.isEmpty) continue;
+        // 应用源：标题/直链分集列表全部就位，进入正常播放流程
+        applyAutoResolvedSource(
+          plugin: plugin,
+          title: resp.data.first.name,
+          src: resp.data.first.src,
+          roads: roads,
+        );
+        // 读取历史：看过则续播上次集数，否则第 1 集
+        final historyRepo = inject<IHistoryRepository>();
+        var episode =
+            historyRepo.getHistory(plugin.name, bangumiItem)?.lastWatchEpisode ??
+                1;
+        if (episode < 1 || episode > roads.first.data.length) episode = 1;
+        _autoResolvePending = false;
+        autoResolveStatus = null;
+        await changeEpisode(
+          episode,
+          currentRoad: 0,
+          playerController: playerController,
+        );
+        return;
+      } catch (e) {
+        KazumiLogger().w(
+            'AutoResolve: ${resp.pluginName} 解析失败，换下一个源',
+            error: e);
+        continue;
+      }
+    }
+    _autoResolvePending = false;
+    autoResolveStatus = null;
+    _failLoading('所有线路均解析失败，请重试或更换番剧');
+  }
+
+  /// 把自动选中的源应用到播放页（标题/分集列表就位）
+  @action
+  void applyAutoResolvedSource({
+    required Plugin plugin,
+    required String title,
+    required String src,
+    required List<Road> roads,
+  }) {
+    currentPlugin = plugin;
+    this.title = title;
+    this.src = src;
+    roadList.clear();
+    roadList.addAll(roads);
+    forcedSourceFormat = VideoSourceFormat.auto;
+  }
+
+  /// 并发搜索全部可用源（受限并发 5，合集展开为子规则）
+  Future<List<PluginSearchResponse>> _searchAllSources(
+    String keyword,
+  ) async {
+    final pluginsController = inject<PluginsController>();
+    final plugins = <Plugin>[];
+    for (final p in pluginsController.pluginList) {
+      if (!p.enabled) continue;
+      if (p.isCollection) {
+        for (final child in p.childPlugins) {
+          if (child.enabled && child.searchURL.isNotEmpty) {
+            plugins.add(child);
+          }
+        }
+      } else {
+        plugins.add(p);
+      }
+    }
+    final results = <PluginSearchResponse>[];
+    const maxConcurrent = 5;
+    var next = 0;
+    Future<void> worker() async {
+      while (true) {
+        final i = next++;
+        if (i >= plugins.length) return;
+        final plugin = plugins[i];
+        try {
+          // 需登录但未保存 Cookie 的源跳过
+          if (plugin.needLogin &&
+              !PluginCookieManager.instance.hasSaved(plugin.name)) {
+            continue;
+          }
+          final result =
+              await plugin.queryBangumi(keyword, shouldRethrow: true);
+          if (result.data.isNotEmpty) {
+            results.add(result);
+          }
+        } catch (_) {
+          // 单源失败静默，交给评分排序跳过
+        }
+      }
+    }
+
+    await Future.wait(
+      List.generate(maxConcurrent.clamp(1, plugins.length), (_) => worker()),
+    );
+    return results;
+  }
+
+  /// 与详情页选源面板一致的源评分规则
+  int _scoreAutoResolveSource(PluginSearchResponse resp) {
+    var score = 0;
+    final useDefault = GStorage.getSetting(SettingsKeys.ruleSortDefault);
+    final byQuality = GStorage.getSetting(SettingsKeys.ruleSortQuality);
+    final byEpisodes = GStorage.getSetting(SettingsKeys.ruleSortEpisodes);
+    final bySpeed = GStorage.getSetting(SettingsKeys.ruleSortSpeed);
+    if (useDefault && !byQuality && !byEpisodes && !bySpeed) {
+      return 0;
+    }
+    if (byEpisodes) {
+      score += resp.data.length * 10;
+    }
+    if (byQuality) {
+      final text = resp.data
+          .map((s) => '${s.name} ${s.src}')
+          .join(' ')
+          .toLowerCase();
+      if (RegExp(r'1080|2160|4k|hd|高清|超清|bluray|web-dl')
+          .hasMatch(text)) {
+        score += 100;
+      }
+    }
+    if (bySpeed) {
+      score += 1;
+    }
+    return score;
+  }
+
+  /// 按插件名查找插件（主列表 + 合集子规则）
+  Plugin? findPluginByName(String name) {
+    final pluginsController = inject<PluginsController>();
+    for (final p in pluginsController.pluginList) {
+      if (p.name == name) return p;
+      if (p.isCollection) {
+        for (final child in p.childPlugins) {
+          if (child.name == name) return child;
+        }
+      }
+    }
+    return null;
   }
 
   @action

@@ -919,12 +919,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               : FloatingActionButton.extended(
                   tooltip: '开始观看',
                   onPressed: () {
-                    showAdaptiveBottomSheet<void>(
-                      context: context,
-                      builder: (context) {
-                        return SourceSheet(
-                            infoController: infoController);
-                      },
+                    // 🆕 AnimeFlow式：不再先弹选源面板，直接进播放页，
+                    // 播放页内自动搜索源→评分选源→解析分集→播放。
+                    context.pushNamed(
+                      '/video/',
+                      arguments: AutoResolveVideoPlaybackArgs(
+                        bangumiItem: infoController.bangumiItem,
+                      ),
                     );
                   },
                   label: const Text('开始观看'),
