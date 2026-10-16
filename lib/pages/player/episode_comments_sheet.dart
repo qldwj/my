@@ -7,7 +7,6 @@ import 'package:yhdm/modules/comments/comment_item.dart' show EpisodeCommentItem
 import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:yhdm/services/comment/episode_comment_service.dart';
-import 'package:yhdm/widgets/comment/comment_editor.dart';
 import 'package:yhdm/widgets/comment/comment_item.dart';
 
 /// 播放页评论 Tab（樱花动漫评论系统）
@@ -357,34 +356,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                               ),
                             ),
                           ),
-          ),
-          // 底部评论输入框
-          ColoredBox(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).colorScheme.surface
-                : Colors.white,
-            child: CommentEditor(
-              subjectId: videoPageController.bangumiItem.id,
-              episode: _episode == 0 ? widget.episode : _episode,
-              onSubmitted: (res) {
-                if (res != null && res['success'] == true) {
-                  setState(() {
-                    _comments.insert(0, EpisodeComment(
-                      id: res['id'] ?? 0,
-                      subjectId: videoPageController.bangumiItem.id,
-                      episode: _episode == 0 ? widget.episode : _episode,
-                      content: res['content'] ?? '',
-                      sender: res['sender'] ?? '匿名',
-                      uid: res['uid'] ?? '',
-                      avatar: res['avatar'] ?? '',
-                      source: 'sakura',
-                      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-                    ));
-                  });
-                }
-                _loadComments();
-              },
-            ),
           ),
         ],
       ),

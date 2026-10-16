@@ -7,6 +7,7 @@ import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/pages/social/public_profile_page.dart';
 import 'package:yhdm/widgets/comment/bgm_rich_text.dart';
+import 'package:yhdm/bean/widget/bangumi_avatar.dart';
 
 class CommentItemWidget extends StatefulWidget {
   final EpisodeComment comment;
@@ -50,25 +51,25 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                     }
                   }
                 },
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: c.isSakura ? cs.primaryContainer : Colors.orange.shade100,
-                  child: c.avatar.isNotEmpty && c.isSakura
-                      ? ClipOval(
-                          child: Image.network(
-                            SocialService.proxiedAvatar(c.avatar),
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Text(
-                              c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
-                              style: TextStyle(fontSize: 14, color: c.isSakura ? cs.primary : Colors.orange),
-                            ),
-                          ),
-                        )
-                      : Text(c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
-                          style: TextStyle(fontSize: 14, color: c.isSakura ? cs.primary : Colors.orange)),
-                ),
+                child: c.avatar.isNotEmpty
+                    ? ClipOval(
+                        child: BangumiAvatar(
+                          url: c.avatar,
+                          size: 32,
+                        ),
+                      )
+                    : CircleAvatar(
+                        radius: 16,
+                        backgroundColor: c.isSakura
+                            ? cs.primaryContainer
+                            : Colors.orange.shade100,
+                        child: Text(
+                          c.sender.isNotEmpty ? c.sender[0].toUpperCase() : '?',
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: c.isSakura ? cs.primary : Colors.orange),
+                        ),
+                      ),
               ),
               const SizedBox(width: 8),
               Expanded(child: Column(
