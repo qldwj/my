@@ -1,7 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'dart:io';
-import 'package:yhdm/torrent/torrent_service.dart';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
@@ -455,26 +454,12 @@ abstract class _PlayerPlaybackController with Store {
         }
       }
 
-      // 🆕 BT/磁力源：RSS 规则返回 magnet 磁链，media_kit 无法直接播，
-      // 这里通过 libtorrent 顺序下载 + 本地 HTTP 流中转，转成可播地址。
-      String playUrl = videoUrl();
-      if (TorrentService.isMagnet(playUrl)) {
-        final magnet = playUrl;
-        try {
-          playUrl = await TorrentService.instance.resolveStreamUrl(magnet);
-        } catch (e) {
-          KazumiLogger().e('TorrentService: 磁力解析失败 $e');
-          KazumiDialog.showToast(message: '磁力链接解析失败，请检查做种数或稍后重试');
-          return await _discardIfNotCurrent(candidate);
-        }
-        // libtorrent 流是「原始文件流」(HTTP byte-range)，不是 HLS。
-        // 流 URL 无扩展名，media_kit 自动探测会报"无法识别文件格式"，
-        // 故按种子实际文件类型(.mkv/.mp4…)指定 lavf demuxer 格式。
-        final btFmt = TorrentService.instance.getDemuxerFormat(magnet);
-        if (btFmt != null && btFmt.isNotEmpty) {
-          final btPp = player.platform as NativePlayer;
-          await btPp.setProperty('demuxer-lavf-format', btFmt);
-        }
+      // 注：BT/磁力源播放（libtorrent）已移除 —— 该依赖需在 CI 编译
+      // libtorrent + OpenSSL，构建不可靠。此处遇到 magnet 链接直接提示不支持。
+      final String playUrl = videoUrl();
+      if (playUrl.startsWith('magnet:')) {
+        KazumiDialog.showToast(message: '当前版本不支持磁力（BT）播放');
+        return await _discardIfNotCurrent(candidate);
       }
 
       await player.open(
