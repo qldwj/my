@@ -532,11 +532,16 @@ class _VideoPageState extends State<VideoPage>
       return b.data.length.compareTo(a.data.length);
     });
 
-    final builder = (BuildContext context) => _buildSourceSwitchContent(
+    final builder = (BuildContext context) => _SourceSwitchPanel(
           candidates: candidates,
           captchaPlugins: captchaPlugins,
           starSet: starSet,
           scoreOf: scoreOf,
+          currentPluginName: videoPageController.activePluginName,
+          bangumiTitles: titles,
+          onPickResult: _switchSourceToItem,
+          onVerifyPlugin: _showCaptchaForPlugin,
+          findPlugin: videoPageController.findPluginByName,
         );
 
     // 横屏：右侧滑出侧边栏（对齐弹幕来源面板）
@@ -571,135 +576,6 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  /// 换源面板内容（横竖屏共用）
-  Widget _buildSourceSwitchContent({
-    required List<PluginSearchResponse> candidates,
-    required List<Plugin> captchaPlugins,
-    required Set<String> starSet,
-    required Map<String, int> scoreOf,
-  }) {
-    final currentPluginName = videoPageController.activePluginName;
-    final colors = Theme.of(context).colorScheme;
-    final totalItems = candidates.length + captchaPlugins.length;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(Icons.swap_horiz,
-                    size: 16, color: colors.onPrimaryContainer),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '切换线路',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colors.onSurface,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$totalItems 条线路',
-                style:
-                    TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip: '关闭',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.close_rounded, size: 20),
-              ),
-            ],
-          ),
-        ),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true,
-            padding: const EdgeInsets.only(bottom: 8),
-            itemCount: totalItems,
-            itemBuilder: (context, index) {
-              if (index < candidates.length) {
-                final resp = candidates[index];
-                final isCurrent = resp.pluginName == currentPluginName;
-                final isStarred = starSet.contains(resp.pluginName);
-                final match = scoreOf[resp.pluginName] ?? 0;
-                return _SourceSwitchTile(
-                  name: resp.pluginName,
-                  subtitle: resp.data.isEmpty
-                      ? '无搜索结果 · 该源可能已失效'
-                      : resp.data.first.name,
-                  trailingText: resp.data.isEmpty
-                      ? null
-                      : '${resp.data.length}个',
-                  matchScore: resp.data.isEmpty ? null : match,
-                  isCurrent: isCurrent,
-                  isStarred: isStarred,
-                  accent: colors.primary,
-                  leadingIcon: isCurrent
-                      ? Icons.check_circle
-                      : Icons.public,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    unawaited(_switchSourceTo(resp));
-                  },
-                );
-              }
-              final plugin = captchaPlugins[index - candidates.length];
-              return _SourceSwitchTile(
-                name: plugin.name,
-                subtitle: '${_captchaTypeLabel(plugin)} · 点击去验证',
-                trailingText: null,
-                isCurrent: false,
-                isStarred: starSet.contains(plugin.name),
-                accent: Colors.blue,
-                leadingIcon: _captchaTypeIcon(plugin),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showCaptchaForPlugin(plugin);
-                },
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-
-  /// 验证类型图标：图片验证码 / 自动点击 / 自定义脚本
-  IconData _captchaTypeIcon(Plugin plugin) {
-    switch (plugin.antiCrawlerConfig.captchaType) {
-      case CaptchaType.autoClickButton:
-        return Icons.touch_app_outlined;
-      case CaptchaType.customJavaScript:
-        return Icons.code_rounded;
-      default:
-        return Icons.shield_outlined;
-    }
-  }
-
-  /// 验证类型文案
-  String _captchaTypeLabel(Plugin plugin) {
-    switch (plugin.antiCrawlerConfig.captchaType) {
-      case CaptchaType.autoClickButton:
-        return '需要点击验证';
-      case CaptchaType.customJavaScript:
-        return '需要脚本验证';
-      default:
-        return '需要验证码验证';
-    }
-  }
 
   // ─── 🆕 需验证源的验证流程（移植自详情页选源面板） ────────────────
 
@@ -911,9 +787,14 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.showToast(message: '${resp.pluginName} 无可用结果');
       return;
     }
-    KazumiDialog.showLoading(msg: '正在解析 ${resp.pluginName}...');
+    await _switchSourceToItem(plugin, resp.data.first);
+  }
+
+  /// 🆕 换源到「指定搜索结果」：二级菜单里用户点的那一条
+  Future<void> _switchSourceToItem(Plugin plugin, SearchItem item) async {
+    KazumiDialog.showLoading(msg: '正在解析 ${plugin.name}...');
     try {
-      final roads = await plugin.queryChapterRoads(resp.data.first.src);
+      final roads = await plugin.queryChapterRoads(item.src);
       if (roads.isEmpty) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(message: '该线路解析分集失败');
@@ -921,8 +802,8 @@ class _VideoPageState extends State<VideoPage>
       }
       videoPageController.applyAutoResolvedSource(
         plugin: plugin,
-        title: resp.data.first.name,
-        src: resp.data.first.src,
+        title: item.name,
+        src: item.src,
         roads: roads,
       );
       // 保持当前集数，超出新线路选集数则回退第 1 集
@@ -937,7 +818,7 @@ class _VideoPageState extends State<VideoPage>
       );
     } catch (e) {
       KazumiDialog.dismiss();
-      KazumiLogger().w('SwitchSource: ${resp.pluginName} 失败', error: e);
+      KazumiLogger().w('SwitchSource: ${plugin.name} 失败', error: e);
       if (mounted) {
         KazumiDialog.showToast(message: '切换线路失败：$e');
       }
@@ -2458,33 +2339,382 @@ class _PlayCaptchaDialogState extends State<_PlayCaptchaDialog> {
   }
 }
 
-/// 🆕 换源面板的单条线路卡片（横竖屏共用）：
-/// 圆角横条 + 前导图标块 + 源名（标星高亮）+ 副标题 + 尾部信息。
-/// 标星规则：金色星标徽章 + 左侧金色描边，让「置顶的星标源」一眼可辨。
+/// 🆕 匹配度徽章：0~100 分，颜色随分数变化（高=绿/中=橙/低=灰）。
+class _MatchBadge extends StatelessWidget {
+  const _MatchBadge({required this.score});
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = score >= 85
+        ? Colors.green
+        : score >= 60
+            ? Colors.orange
+            : Colors.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 🆕 换源面板（两级标签）：
+/// - 一级「切换线路」：规则/线路列表（标星置顶 + 匹配度），默认选中匹配度最高
+/// - 点某条线路 → 自动跳到二级「选结果」
+/// - 二级「选结果」：列出该线路搜到的全部结果（按匹配度降序），点击即播放
+class _SourceSwitchPanel extends StatefulWidget {
+  const _SourceSwitchPanel({
+    required this.candidates,
+    required this.captchaPlugins,
+    required this.starSet,
+    required this.scoreOf,
+    required this.currentPluginName,
+    required this.bangumiTitles,
+    required this.onPickResult,
+    required this.onVerifyPlugin,
+    required this.findPlugin,
+  });
+
+  final List<PluginSearchResponse> candidates;
+  final List<Plugin> captchaPlugins;
+  final Set<String> starSet;
+  final Map<String, int> scoreOf;
+  final String currentPluginName;
+  final List<String> bangumiTitles;
+  final Future<void> Function(Plugin plugin, SearchItem item) onPickResult;
+  final void Function(Plugin plugin) onVerifyPlugin;
+  final Plugin? Function(String name) findPlugin;
+
+  @override
+  State<_SourceSwitchPanel> createState() => _SourceSwitchPanelState();
+}
+
+class _SourceSwitchPanelState extends State<_SourceSwitchPanel> {
+  /// 0 = 切换线路（一级），1 = 选结果（二级）
+  int _tab = 0;
+
+  /// 当前在二级查看的线路名（null = 未选）
+  String? _pickedPlugin;
+
+  @override
+  void initState() {
+    super.initState();
+    // 默认选中匹配度最高 / 标星最优的那条线路（即 candidates 排序后的第一条），
+    // 用户切到「选结果」时直接有内容。
+    if (widget.candidates.isNotEmpty) {
+      _pickedPlugin = widget.candidates.first.pluginName;
+    }
+  }
+
+  PluginSearchResponse? get _pickedResp {
+    if (_pickedPlugin == null) return null;
+    for (final c in widget.candidates) {
+      if (c.pluginName == _pickedPlugin) return c;
+    }
+    return null;
+  }
+
+  /// 二级：按匹配度降序排列该线路的结果
+  List<({SearchItem item, int score})> _scoredResults(List<SearchItem> data) {
+    final titles = widget.bangumiTitles;
+    final list = data
+        .map((e) => (
+              item: e,
+              score: matchScorePercent(titles: titles, target: e.name),
+            ))
+        .toList()
+      ..sort((a, b) => b.score.compareTo(a.score));
+    return list;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── 两级标签栏 ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+          child: Row(
+            children: [
+              _TabChip(
+                icon: Icons.swap_horiz,
+                label: '切换线路',
+                selected: _tab == 0,
+                onTap: () => setState(() => _tab = 0),
+              ),
+              const SizedBox(width: 8),
+              _TabChip(
+                icon: Icons.playlist_play,
+                label: '选结果',
+                selected: _tab == 1,
+                onTap: () => setState(() => _tab = 1),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: '关闭',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.close_rounded, size: 20),
+              ),
+            ],
+          ),
+        ),
+        Flexible(
+          child: _tab == 0 ? _buildRuleList(colors) : _buildResultList(colors),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  // ── 一级：线路/规则列表 ──
+  Widget _buildRuleList(ColorScheme colors) {
+    final total = widget.candidates.length + widget.captchaPlugins.length;
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: const EdgeInsets.only(bottom: 8),
+      itemCount: total + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Text(
+              '共 $total 条线路 · 点一条查看它的搜索结果',
+              style: TextStyle(fontSize: 12, color: colors.outline),
+            ),
+          );
+        }
+        final i = index - 1;
+        if (i < widget.candidates.length) {
+          final resp = widget.candidates[i];
+          final isCurrent = resp.pluginName == widget.currentPluginName;
+          final isStarred = widget.starSet.contains(resp.pluginName);
+          final match = widget.scoreOf[resp.pluginName] ?? 0;
+          return _SourceSwitchTile(
+            name: resp.pluginName,
+            subtitle: resp.data.isEmpty
+                ? '无搜索结果 · 该源可能已失效'
+                : '${resp.data.length} 个结果',
+            matchScore: resp.data.isEmpty ? null : match,
+            isCurrent: isCurrent,
+            isStarred: isStarred,
+            accent: colors.primary,
+            leadingIcon: isCurrent ? Icons.check_circle : Icons.public,
+            onTap: () {
+              setState(() {
+                _pickedPlugin = resp.pluginName;
+                _tab = 1; // 选完一级自动跳到二级
+              });
+            },
+          );
+        }
+        final plugin = widget.captchaPlugins[i - widget.candidates.length];
+        return _SourceSwitchTile(
+          name: plugin.name,
+          subtitle: '${_captchaLabel(plugin)} · 点击去验证',
+          matchScore: null,
+          isCurrent: false,
+          isStarred: widget.starSet.contains(plugin.name),
+          accent: Colors.blue,
+          leadingIcon: _captchaIcon(plugin),
+          onTap: () {
+            Navigator.of(context).pop();
+            widget.onVerifyPlugin(plugin);
+          },
+        );
+      },
+    );
+  }
+
+  // ── 二级：该线路的搜索结果（按匹配度降序）──
+  Widget _buildResultList(ColorScheme colors) {
+    final resp = _pickedResp;
+    if (resp == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        child: Center(
+          child: Text('请先在「切换线路」里选择一条线路',
+              style: TextStyle(fontSize: 13, color: colors.outline)),
+        ),
+      );
+    }
+    final scored = _scoredResults(resp.data);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+          child: Row(
+            children: [
+              Icon(Icons.public, size: 14, color: colors.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${resp.pluginName} · 共 ${scored.length} 个结果',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Flexible(
+          child: scored.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text('该线路暂无搜索结果',
+                        style: TextStyle(fontSize: 13, color: colors.outline)),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  itemCount: scored.length,
+                  itemBuilder: (context, index) {
+                    final s = scored[index];
+                    final plugin = widget.findPlugin(resp.pluginName);
+                    return _ResultTile(
+                      title: s.item.name,
+                      matchScore: s.score,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        if (plugin != null) {
+                          unawaited(widget.onPickResult(plugin, s.item));
+                        }
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 🆕 验证类型图标 / 文案（换源面板复用）
+IconData _captchaIcon(Plugin plugin) {
+  switch (plugin.antiCrawlerConfig.captchaType) {
+    case CaptchaType.autoClickButton:
+      return Icons.touch_app_outlined;
+    case CaptchaType.customJavaScript:
+      return Icons.code_rounded;
+    default:
+      return Icons.shield_outlined;
+  }
+}
+
+String _captchaLabel(Plugin plugin) {
+  switch (plugin.antiCrawlerConfig.captchaType) {
+    case CaptchaType.autoClickButton:
+      return '需要点击验证';
+    case CaptchaType.customJavaScript:
+      return '需要脚本验证';
+    default:
+      return '需要验证码验证';
+  }
+}
+
+/// 🆕 两级标签按钮
+class _TabChip extends StatelessWidget {
+  const _TabChip({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? colors.primaryContainer : colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 15,
+                  color: selected
+                      ? colors.onPrimaryContainer
+                      : colors.onSurfaceVariant),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected
+                      ? colors.onPrimaryContainer
+                      : colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 🆕 一级：单条线路卡片
 class _SourceSwitchTile extends StatelessWidget {
   const _SourceSwitchTile({
     required this.name,
     required this.subtitle,
-    required this.trailingText,
+    required this.matchScore,
     required this.isCurrent,
     required this.isStarred,
     required this.accent,
     required this.leadingIcon,
     required this.onTap,
-    this.matchScore,
   });
 
   final String name;
   final String subtitle;
-  final String? trailingText;
+  final int? matchScore;
   final bool isCurrent;
   final bool isStarred;
   final Color accent;
   final IconData leadingIcon;
   final VoidCallback onTap;
-
-  /// 🆕 匹配度 0~100（null 表示无结果不显示）
-  final int? matchScore;
 
   @override
   Widget build(BuildContext context) {
@@ -2504,7 +2734,8 @@ class _SourceSwitchTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: isStarred
-                  ? Border.all(color: Colors.amber.withValues(alpha: 0.7), width: 1.4)
+                  ? Border.all(
+                      color: Colors.amber.withValues(alpha: 0.7), width: 1.4)
                   : null,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -2513,16 +2744,11 @@ class _SourceSwitchTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: isCurrent
-                        ? accent
-                        : accent.withValues(alpha: 0.15),
+                    color: isCurrent ? accent : accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    leadingIcon,
-                    size: 16,
-                    color: isCurrent ? colors.onPrimary : accent,
-                  ),
+                  child: Icon(leadingIcon,
+                      size: 16, color: isCurrent ? colors.onPrimary : accent),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2559,14 +2785,11 @@ class _SourceSwitchTile extends StatelessWidget {
                                   Icon(Icons.star_rounded,
                                       size: 12, color: Colors.amber),
                                   SizedBox(width: 2),
-                                  Text(
-                                    '置顶',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.amber,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  Text('置顶',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.amber,
+                                          fontWeight: FontWeight.w700)),
                                 ],
                               ),
                             ),
@@ -2579,9 +2802,7 @@ class _SourceSwitchTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: colors.onSurfaceVariant,
-                        ),
+                            fontSize: 12, color: colors.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -2589,13 +2810,6 @@ class _SourceSwitchTile extends StatelessWidget {
                 if (matchScore != null) ...[
                   const SizedBox(width: 8),
                   _MatchBadge(score: matchScore!),
-                ],
-                if (trailingText != null) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    trailingText!,
-                    style: TextStyle(fontSize: 11, color: colors.outline),
-                  ),
                 ],
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right, size: 18, color: colors.outline),
@@ -2608,39 +2822,49 @@ class _SourceSwitchTile extends StatelessWidget {
   }
 }
 
-/// 🆕 匹配度徽章：0~100 分，颜色随分数变化（高=绿/中=橙/低=灰）。
-class _MatchBadge extends StatelessWidget {
-  const _MatchBadge({required this.score});
+/// 🆕 二级：单条搜索结果卡片
+class _ResultTile extends StatelessWidget {
+  const _ResultTile({
+    required this.title,
+    required this.matchScore,
+    required this.onTap,
+  });
 
-  final int score;
+  final String title;
+  final int matchScore;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = score >= 85
-        ? Colors.green
-        : score >= 60
-            ? Colors.orange
-            : Colors.grey;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.auto_awesome, size: 10, color: color),
-          const SizedBox(width: 3),
-          Text(
-            '$score',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Material(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _MatchBadge(score: matchScore),
+                const SizedBox(width: 6),
+                Icon(Icons.play_arrow_rounded, size: 20, color: colors.primary),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
