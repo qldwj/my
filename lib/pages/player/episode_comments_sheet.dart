@@ -6,13 +6,12 @@ import 'package:yhdm/modules/bangumi/episode_item.dart';
 import 'package:yhdm/modules/comments/comment_item.dart' show EpisodeCommentItem;
 import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
-import 'package:yhdm/services/comment/episode_comment_service.dart';
 import 'package:yhdm/widgets/comment/comment_item.dart';
 
-/// 播放页评论 Tab（樱花动漫评论系统）
+/// 播放页评论 Tab（仅 Bangumi 评论）
 ///
-/// - 列表：读取樱花动漫评论（当前集数）
-/// - 底部：评论输入框，自动匹配当前观看集数
+/// - 列表：读取 Bangumi 评论（当前集数）
+/// - 只读：已移除输入框/发送按钮/樱花动漫评论
 class EpisodeCommentsSheet extends StatefulWidget {
   const EpisodeCommentsSheet({
     super.key,
@@ -60,12 +59,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       _error = false;
     });
     try {
-      // 1. 加载樱花动漫评论
-      final sakuraComments = await EpisodeCommentService.getComments(
-        subjectId: videoPageController.bangumiItem.id,
-        episode: _episode,
-      );
-      // 2. 加载 Bangumi 评论（结果存到 episodeCommentsList）
+      // 🆕 只加载 Bangumi 评论（已移除樱花动漫评论）
       bool bangumiLoaded = false;
       try {
         bangumiLoaded = await videoPageController.queryBangumiEpisodeCommentsByID(
@@ -73,15 +67,12 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           _episode,
         );
       } catch (_) {
-        // Bangumi 评论加载失败不影响樱花评论
+        // Bangumi 评论加载失败
       }
 
       if (!mounted) return;
 
-      // 合并列表：樱花在前，Bangumi 在后
       final merged = <EpisodeComment>[];
-      // 樱花评论（已自带 source='sakura'）
-      merged.addAll(sakuraComments);
       // Bangumi 评论（转成 EpisodeComment 格式）
       if (bangumiLoaded) {
         for (final item in videoPageController.episodeCommentsList) {

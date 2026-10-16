@@ -5,7 +5,7 @@ import 'package:yhdm/services/network/bangumi_image_url_rewriter.dart';
 /// Bangumi 头像/网格图组件
 ///
 /// 统一加载 Bangumi 图片：
-/// - 头像【始终走图片代理】（无论镜像开关是否开启，保证能加载）
+/// - 传原始 Bangumi 地址，由图片管线按当前加速模式处理（ECH / 镜像 / 直连）
 /// - 支持动态 GIF
 /// - 空地址/加载失败时显示占位头像
 ///
@@ -37,9 +37,13 @@ class BangumiAvatar extends StatelessWidget {
     final src = (url == null || url!.isEmpty)
         ? 'https://bangumi.tv/img/info_only.png'
         : url!;
-    // 头像始终走图片代理（enabled: true，不受镜像开关影响）
+    // 🆕 不做 wsrv 预重写：把原始 Bangumi 地址交给图片管线，
+    //    由 ImageFileService 按当前加速模式处理
+    //    （ECH / 镜像 / 直连）。预重写成 wsrv://?url=... 会让
+    //    isBangumiImage() 认不出被包裹的 lain.bgm.tv，导致 ECH 永远不生效。
+    //    enabled:false 时 rewriteString 只做协议归一化 + 强制 https。
     return NetworkImgLayer(
-      src: BangumiImageUrlRewriter.rewriteString(src, enabled: true),
+      src: BangumiImageUrlRewriter.rewriteString(src, enabled: false),
       width: side,
       height: side,
       type: 'avatar',
