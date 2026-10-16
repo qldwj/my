@@ -94,7 +94,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev libasound2-dev
+          sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev libasound2-dev libssl-dev pkg-config
         shell: bash
 
       - name: Set up JDK 17
@@ -164,6 +164,16 @@ jobs:
           echo "SIG_P15=9ba" >> $GITHUB_ENV
           echo "SIG_P16=ee62" >> $GITHUB_ENV
           echo "签名指纹已拆分为 16 段不等长注入"
+        shell: bash
+
+      - name: Clean stale libtorrent native build cache
+        run: |
+          # libtorrent_flutter 优先用预编译 .so；若 pub-cache 里残留上一次的
+          # android/.cxx 缓存，gradle 会误触发 CMake 源码编译 → 缺 openssl 头报错。
+          # 这里清掉 .cxx，确保走「预编译原生库」路径。
+          find ~/.pub-cache -type d -name ".cxx" -path "*libtorrent_flutter*" -prune -exec rm -rf {} + 2>/dev/null || true
+          find ~/.pub-cache -type d -name "libtorrent_flutter*" -exec sh -c 'rm -rf "$1/android/.cxx"' _ {} \; 2>/dev/null || true
+          echo "libtorrent_flutter .cxx 清理完成"
         shell: bash
 
       - name: Build Flutter for Android
