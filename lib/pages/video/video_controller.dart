@@ -484,9 +484,23 @@ abstract class _VideoPageController with Store implements Disposable {
   }) async {
     if (!_autoResolvePending || isOfflineMode) return;
     autoResolveStatus = '正在搜索线路...';
-    final keyword = bangumiItem.nameCn.isEmpty
-        ? bangumiItem.name
-        : bangumiItem.nameCn;
+    // 🆕 搜索关键词候选：中文名优先，原名/别名兜底
+    //    （中文名为空、或中文名搜到的源太少时，用原名/别名补搜）
+    final searchKeywords = <String>[
+      if (bangumiItem.nameCn.isNotEmpty) bangumiItem.nameCn,
+      bangumiItem.name,
+      ...bangumiItem.alias,
+    ]
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+    if (searchKeywords.isEmpty) {
+      _autoResolvePending = false;
+      autoResolveStatus = null;
+      _failLoading('番剧名为空，无法搜索');
+      return;
+    }
 
     // 🆕 选源阶段就提前预取弹幕（不等源确定，先按历史集数预取弹弹play）
     unawaited(() async {
@@ -501,8 +515,25 @@ abstract class _VideoPageController with Store implements Disposable {
       } catch (_) {}
     }());
 
-    // 🆕 累计够 3 个可用结果就提前收工，不等慢源（用户可在换源面板手动切换）
-    final results = await _searchAllSources(keyword, minResults: 3);
+    // 🆕 主关键词搜索：先出先用（minResults=1）；命中太少再用原名/别名补搜
+    var results = await _searchAllSources(searchKeywords.first, minResults: 1);
+    if (!_autoResolvePending) return;
+    // 🆕 主关键词命中太少 → 用原名/别名补搜（最多再补 2 个词），按源名合并去重
+    if (results.length < 2 && searchKeywords.length > 1) {
+      for (final kw in searchKeywords.skip(1).take(2)) {
+        if (!_autoResolvePending) return;
+        final more = await _searchAllSources(kw, minResults: 1);
+        for (final r in more) {
+          final i =
+              results.indexWhere((e) => e.pluginName == r.pluginName);
+          if (i < 0) {
+            results.add(r);
+          } else if (r.data.length > results[i].data.length) {
+            results[i] = r;
+          }
+        }
+      }
+    }
     if (!_autoResolvePending) return;
 
     // 评分排序（标星规则永远最优先，与详情页选源面板同一套规则）

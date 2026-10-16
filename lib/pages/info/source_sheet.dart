@@ -111,9 +111,13 @@ class _SourceSheetState extends State<SourceSheet>
   @override
   void initState() {
     super.initState();
-    keyword = widget.infoController.bangumiItem.nameCn.isEmpty
-        ? widget.infoController.bangumiItem.name
-        : widget.infoController.bangumiItem.nameCn;
+    // 🆕 搜索关键词：中文名优先；为空依次回退别名首项 → 原名
+    final b = widget.infoController.bangumiItem;
+    keyword = b.nameCn.isNotEmpty
+        ? b.nameCn
+        : (b.alias.isNotEmpty && b.alias.first.trim().isNotEmpty
+            ? b.alias.first
+            : b.name);
     _sourceTabController = TabController(
       length: _filteredPlugins.length,
       vsync: this,
