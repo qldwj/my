@@ -325,10 +325,10 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
-  /// 自动选择视频源：点击开始观看后自动用最快可用的源播放，无需手动选择
+  /// 自动选择视频源：点击开始观看后自动用第一个可用的源播放，无需手动选择
   static const autoSelectSource = SettingKey<bool>(
     _SettingBoxKey.autoSelectSource,
-    true,
+    false,
     group: SettingGroup.player,
   );
   static const playResume = SettingKey<bool>(

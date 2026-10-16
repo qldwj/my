@@ -27,14 +27,6 @@ class OnlineVideoPlaybackArgs extends VideoPlaybackArgs {
   final List<Road> roads;
 }
 
-/// 自动解析模式：详情页点「开始观看」直接进播放页，
-/// 播放页内自动完成 搜索源 → 评分选源 → 解析分集 → 播放。
-class AutoResolveVideoPlaybackArgs extends VideoPlaybackArgs {
-  const AutoResolveVideoPlaybackArgs({
-    required super.bangumiItem,
-  });
-}
-
 class OfflineVideoPlaybackArgs extends VideoPlaybackArgs {
   const OfflineVideoPlaybackArgs({
     required super.bangumiItem,

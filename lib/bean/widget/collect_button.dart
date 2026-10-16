@@ -64,38 +64,18 @@ class _CollectButtonState extends State<CollectButton> {
     return KazumiMenuButton(
       onClose: widget.onClose,
       onOpen: widget.onOpen,
-      animated: true, // 🆕 菜单弹出动画
       crossAxisUnconstrained: false,
-      builder: (context, toggle) {
-        // 🆕 状态切换时图标平滑过渡（缩放+淡入淡出）
-        final animatedIcon = AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) =>
-              ScaleTransition(scale: animation, child: child),
-          child: Icon(
-            _iconFor(collectType),
-            key: ValueKey(collectType),
-            color: widget.color,
-          ),
-        );
-        return widget._isExtended
-            ? FilledButton.icon(
-                onPressed: toggle,
-                icon: animatedIcon,
-                label: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: Text(
-                    _labelFor(collectType),
-                    key: ValueKey(collectType),
-                  ),
-                ),
-              )
-            : IconButton(
-                onPressed: toggle,
-                tooltip: _labelFor(collectType),
-                icon: animatedIcon,
-              );
-      },
+      builder: (context, toggle) => widget._isExtended
+          ? FilledButton.icon(
+              onPressed: toggle,
+              icon: Icon(_iconFor(collectType)),
+              label: Text(_labelFor(collectType)),
+            )
+          : IconButton(
+              onPressed: toggle,
+              tooltip: _labelFor(collectType),
+              icon: Icon(_iconFor(collectType), color: widget.color),
+            ),
       menuChildren: [
         for (final type in CollectType.values)
           KazumiMenuItem(

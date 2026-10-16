@@ -30,7 +30,6 @@ import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/plugins/anti_crawler_config.dart';
 import 'package:yhdm/utils/device.dart';
-import 'package:yhdm/utils/string_similarity.dart';
 
 // ─── 补全缺失的定义 ──────────────────────────────────────────────────────
 
@@ -111,13 +110,9 @@ class _SourceSheetState extends State<SourceSheet>
   @override
   void initState() {
     super.initState();
-    // 🆕 搜索关键词：中文名优先；为空依次回退别名首项 → 原名
-    final b = widget.infoController.bangumiItem;
-    keyword = b.nameCn.isNotEmpty
-        ? b.nameCn
-        : (b.alias.isNotEmpty && b.alias.first.trim().isNotEmpty
-            ? b.alias.first
-            : b.name);
+    keyword = widget.infoController.bangumiItem.nameCn.isEmpty
+        ? widget.infoController.bangumiItem.name
+        : widget.infoController.bangumiItem.nameCn;
     _sourceTabController = TabController(
       length: _filteredPlugins.length,
       vsync: this,
@@ -254,61 +249,21 @@ class _SourceSheetState extends State<SourceSheet>
       if (matched == null) continue;
       _autoSelected = true;
       _autoSelectTimer?.cancel();
-      // 🆕 自动播放时选匹配度最高的那条结果，而不是第一条
-      _playWithSource(matched, _bestMatchItem(resp.data));
+      _playWithSource(matched, resp.data.first);
       return;
     }
   }
 
-  /// 在一组搜索结果中选匹配度最高的一条（无别名/名称为空时回退第一条）
-  SearchItem _bestMatchItem(List<SearchItem> data) {
-    if (data.length <= 1) return data.first;
-    final titles = <String>[
-      if (widget.infoController.bangumiItem.nameCn.isNotEmpty)
-        widget.infoController.bangumiItem.nameCn,
-      widget.infoController.bangumiItem.name,
-      ...widget.infoController.bangumiItem.alias,
-    ];
-    var best = data.first;
-    var bestScore = -1;
-    for (final item in data) {
-      final s = matchScorePercent(titles: titles, target: item.name);
-      if (s > bestScore) {
-        bestScore = s;
-        best = item;
-      }
-    }
-    return best;
-  }
-
   int _scoreSource(dynamic resp) {
     var score = 0;
-    final data = (resp.data is List) ? resp.data as List : const [];
-    // 🆕 匹配度优先：该源结果里最高的匹配分（0~100），直接影响源排序
-    try {
-      if (data.isNotEmpty) {
-        final titles = <String>[
-          if (widget.infoController.bangumiItem.nameCn.isNotEmpty)
-            widget.infoController.bangumiItem.nameCn,
-          widget.infoController.bangumiItem.name,
-          ...widget.infoController.bangumiItem.alias,
-        ];
-        var bestMatch = 0;
-        for (final s in data) {
-          final name = (s as dynamic).name?.toString() ?? '';
-          final m = matchScorePercent(titles: titles, target: name);
-          if (m > bestMatch) bestMatch = m;
-        }
-        score += bestMatch;
-      }
-    } catch (_) {}
     final useDefault = GStorage.getSetting(SettingsKeys.ruleSortDefault);
     final byQuality = GStorage.getSetting(SettingsKeys.ruleSortQuality);
     final byEpisodes = GStorage.getSetting(SettingsKeys.ruleSortEpisodes);
     final bySpeed = GStorage.getSetting(SettingsKeys.ruleSortSpeed);
     if (useDefault && !byQuality && !byEpisodes && !bySpeed) {
-      return score;
+      return 0;
     }
+    final data = (resp.data is List) ? resp.data as List : const [];
     if (byEpisodes) {
       score += data.length * 10;
     }
@@ -460,33 +415,6 @@ class _SourceSheetState extends State<SourceSheet>
               const Duration(milliseconds: 100), (_) {
             _maybeAutoSelectSource();
           });
-        }
-      }
-      // 🆕 需登录的源：解析章节失败时明确提示「需要登录」并给出去登录入口，
-      // 而不是丢一个看不懂的通用错误（次元城等站点搜索不需要登录、播放需要）。
-      if (plugin.needLogin && mounted) {
-        final saved = PluginCookieManager.instance.hasSaved(plugin.name);
-        if (!saved) {
-          KazumiDialog.show(
-            builder: (context) => AlertDialog(
-              title: const Text('需要登录'),
-              content: Text('${plugin.name} 需要登录后才能观看。\n'
-                  '请使用内置浏览器登录该站并保存 Cookie 后再试。'),
-              actions: [
-                TextButton(
-                  onPressed: () => KazumiDialog.dismiss(),
-                  child: const Text('取消'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    KazumiDialog.dismiss();
-                    _openPluginLogin(plugin);
-                  },
-                  child: const Text('去登录'),
-                ),
-              ],
-            ),
-          );
         }
       }
     }
@@ -904,62 +832,6 @@ class _SourceSheetState extends State<SourceSheet>
     );
   }
 
-  /// 🆕 顶部提示条：列出当前需要「验证」或「登录」才能使用的源。
-  /// 没有任何需处理的源时不占空间（返回 SizedBox.shrink）。
-  Widget _buildAttentionBar() {
-    final statusMap = widget.infoController.pluginSearchStatus;
-    final needsCaptcha = <Plugin>[];
-    final needsLogin = <Plugin>[];
-    for (final plugin in _filteredPlugins) {
-      final status = statusMap[plugin.name];
-      if (status == PluginSearchStatus.captcha) {
-        needsCaptcha.add(plugin);
-      } else if (status == PluginSearchStatus.login) {
-        needsLogin.add(plugin);
-      }
-    }
-    if (needsCaptcha.isEmpty && needsLogin.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final plugin in needsCaptcha)
-            _AttentionCard(
-              icon: Icons.shield_outlined,
-              accent: Colors.blue,
-              title: plugin.name,
-              subtitle: '需要验证码验证 · 点击去验证',
-              actionText: '去验证',
-              onAction: () => showAntiCrawlerDialog(plugin),
-              onTap: () => _jumpToPluginTab(plugin),
-            ),
-          for (final plugin in needsLogin)
-            _AttentionCard(
-              icon: Icons.lock_outline,
-              accent: Colors.purple,
-              title: plugin.name,
-              subtitle: '需要登录后才能观看 · 点击去登录',
-              actionText: '去登录',
-              onAction: () => _openPluginLogin(plugin),
-              onTap: () => _jumpToPluginTab(plugin),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// 切到指定源所在的 Tab（让用户能直接看到该源的详情）
-  void _jumpToPluginTab(Plugin plugin) {
-    final index = _filteredPlugins.indexWhere((p) => p.name == plugin.name);
-    if (index < 0) return;
-    if (index >= _sourceTabController.length) return;
-    _sourceTabController.animateTo(index);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1010,8 +882,6 @@ class _SourceSheetState extends State<SourceSheet>
               ),
             ),
           ),
-          // 🆕 需要验证 / 需要登录的源提示条：一眼看出哪些源当前不可直接用
-          Observer(builder: (_) => _buildAttentionBar()),
           Observer(
             builder: (context) => MaterialBottomSheetTabBar(
               isScrollable: true,
@@ -1057,58 +927,42 @@ class _SourceSheetState extends State<SourceSheet>
               builder: (context) => TabBarView(
                 controller: _sourceTabController,
                 children: [
+                  // ⭐ 关键修复：使用 `}),` 正确闭合 List.generate
                   ...List.generate(
                     _filteredPlugins.length,
                     (pluginIndex) {
-                      final plugin = _filteredPlugins[pluginIndex];
-                      // 🆕 二级菜单：取出该源的所有搜索结果
-                      final items = <SearchItem>[];
-                      for (final searchResponse
+                      var plugin = _filteredPlugins[pluginIndex];
+                      var cardList = <Widget>[];
+                      for (var searchResponse
                           in widget.infoController.pluginSearchResponseList) {
                         if (searchResponse.pluginName == plugin.name) {
-                          items.addAll(searchResponse.data);
+                          for (var searchItem in searchResponse.data) {
+                            cardList.add(
+                              Card(
+                                elevation: 0,
+                                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                                clipBehavior: Clip.antiAlias,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+                                ),
+                                margin: const EdgeInsets.only(left: 10, right: 10, top: 10),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(materialBottomSheetRadius),
+                                  onTap: () => _playWithSource(plugin, searchItem),
+                                  onLongPress: () => _addResultToQueue(plugin, searchItem),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Text(searchItem.name),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
                         }
                       }
-                      // 🆕 按匹配度从高到低排序（点进二级默认第一条=最匹配）
-                      final titles = <String>[
-                        if (widget.infoController.bangumiItem.nameCn.isNotEmpty)
-                          widget.infoController.bangumiItem.nameCn,
-                        widget.infoController.bangumiItem.name,
-                        ...widget.infoController.bangumiItem.alias,
-                      ];
-                      final scored = items
-                          .map((e) => (
-                                item: e,
-                                score: matchScorePercent(
-                                    titles: titles, target: e.name),
-                              ))
-                          .toList()
-                        ..sort((a, b) => b.score.compareTo(a.score));
-                      final cardList = <Widget>[
-                        if (scored.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-                            child: Text(
-                              '共 ${scored.length} 个结果 · 按匹配度排序',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                          ),
-                        for (final s in scored)
-                          _SearchResultCard(
-                            title: s.item.name,
-                            matchScore: s.score,
-                            onTap: () => _playWithSource(plugin, s.item),
-                            onLongPress: () =>
-                                _addResultToQueue(plugin, s.item),
-                          ),
-                      ];
                       return buildPluginView(plugin, cardList);
                     },
-                  ),
+                  ), // ← 这里 `}),` 正确：闭包后跟右括号和逗号
                 ],
               ),
             ),
@@ -1339,177 +1193,6 @@ class _AliasDialogState extends State<_AliasDialog> {
               }).toList(),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-/// 🆕 「需要验证 / 需要登录」源的高亮提示卡片：
-/// 左侧彩色图标块 + 源名 + 说明，右侧「去验证 / 去登录」按钮。
-class _AttentionCard extends StatelessWidget {
-  const _AttentionCard({
-    required this.icon,
-    required this.accent,
-    required this.title,
-    required this.subtitle,
-    required this.actionText,
-    required this.onAction,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color accent;
-  final String title;
-  final String subtitle;
-  final String actionText;
-  final VoidCallback onAction;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Material(
-        color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 18, color: accent),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: colors.outline),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                FilledButton.tonal(
-                  onPressed: onAction,
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    backgroundColor: accent.withValues(alpha: 0.20),
-                    foregroundColor: accent,
-                  ),
-                  child:
-                      Text(actionText, style: const TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 🆕 二级菜单：单个搜索结果卡片。
-/// 显示匹配度徽章（高=绿/中=橙/低=灰），点击播放，长按加入队列。
-class _SearchResultCard extends StatelessWidget {
-  const _SearchResultCard({
-    required this.title,
-    required this.matchScore,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final String title;
-  final int matchScore;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final scoreColor = matchScore >= 85
-        ? Colors.green
-        : matchScore >= 60
-            ? Colors.orange
-            : Colors.grey;
-    return Card(
-      elevation: 0,
-      color: colors.surfaceContainerLow,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-      ),
-      margin: const EdgeInsets.only(left: 10, right: 10, top: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(materialBottomSheetRadius),
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // 匹配度徽章
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: scoreColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 11, color: scoreColor),
-                    const SizedBox(width: 3),
-                    Text(
-                      '$matchScore',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: scoreColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.play_arrow_rounded,
-                  size: 20, color: colors.primary),
-            ],
-          ),
         ),
       ),
     );

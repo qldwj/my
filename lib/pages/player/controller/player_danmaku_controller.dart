@@ -148,11 +148,6 @@ abstract class _PlayerDanmakuController with Store {
 
   /// 弹弹play 预取：在视频解析/缓冲阶段就先发起，先于其他来源。
   Future<DanmakuLoadResult> prefetchDanDan(int bangumiId, int episode) {
-    // 🆕 修复：弹弹play 来源关闭时跳过预取
-    if (!GStorage.getSetting(SettingsKeys.danmakuDanDanSource)) {
-      return Future.value(
-          DanmakuLoadResult.success(danmakus: const [], bangumiID: bangumiId));
-    }
     final key = bangumiId * 100000 + episode;
     if (_danDanPrefetch == null || _danDanPrefetchKey != key) {
       _danDanPrefetchKey = key;
@@ -166,18 +161,6 @@ abstract class _PlayerDanmakuController with Store {
     String pluginName,
     int episode,
   ) async {
-    // 🆕 修复：所有弹幕来源都关闭时，直接不拉弹幕、不用缓存兜底
-    final danDanOn =
-        GStorage.getSetting(SettingsKeys.danmakuDanDanSource);
-    final animekoOn =
-        GStorage.getSetting(SettingsKeys.danmakuAnimekoSource);
-    final customOn =
-        GStorage.getSetting(SettingsKeys.customDanmakuEnabled);
-    if (!danDanOn && !animekoOn && !customOn) {
-      KazumiLogger().i(
-          'PlayerController: 所有弹幕来源已关闭，跳过弹幕加载 (episode=$episode)');
-      return DanmakuLoadResult.failed(bangumiID: bangumiId);
-    }
     if (isLocalPlayback()) {
       return await _fetchCachedDanmaku(
         bangumiId,
@@ -243,13 +226,6 @@ abstract class _PlayerDanmakuController with Store {
   /// 其余来源（Animeko 等）；失败静默，不影响弹弹play。
   Future<DanmakuLoadResult> _fetchOtherSources(
       int bangumiId, int episode) async {
-    // 🆕 修复：Animeko 来源关闭时跳过
-    if (!GStorage.getSetting(SettingsKeys.danmakuAnimekoSource)) {
-      return DanmakuLoadResult.success(
-        danmakus: const [],
-        bangumiID: bangumiId,
-      );
-    }
     final results = await Future.wait([
       _fetchAnimekoDanmaku(bangumiId, episode),
     ]);
