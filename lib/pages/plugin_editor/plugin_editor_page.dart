@@ -407,126 +407,277 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     return const JsonEncoder.withIndent('  ').convert(value);
   }
 
+  // 🆕 向导式编辑器：当前步骤（0=基本 1=搜索 2=选集 3=高级）
+  int _step = 0;
+  static const _stepTitles = ['基本', '搜索', '选集', '高级'];
+  static const _stepIcons = [
+    Icons.badge_rounded,
+    Icons.search_rounded,
+    Icons.playlist_play_rounded,
+    Icons.tune_rounded,
+  ];
+
+  void _goStep(int step) {
+    if (step < 0 || step >= _stepTitles.length) return;
+    setState(() => _step = step);
+  }
+
+  /// 保存当前规则
+  Future<void> _savePlugin() async {
+    final editedPlugin = _tryBuildEditedPlugin();
+    if (editedPlugin == null) return;
+    try {
+      await pluginsController.updatePlugin(editedPlugin);
+    } catch (error) {
+      _showEditorError(error);
+      return;
+    }
+    if (!context.mounted) return;
+    context.pop();
+  }
+
+  /// 打开规则测试页
+  void _testPlugin() {
+    final editedPlugin = _tryBuildEditedPlugin();
+    if (editedPlugin == null) return;
+    context.pushNamed(
+      '/settings/plugin/test',
+      arguments: editedPlugin,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
         title: const Text(_RuleEditorText.pageTitle),
-        actions: [
-          IconButton(
-            tooltip: _RuleEditorText.testRule,
-            icon: const Icon(Icons.bug_report_outlined),
-            onPressed: () {
-              final editedPlugin = _tryBuildEditedPlugin();
-              if (editedPlugin == null) return;
-              context.pushNamed(
-                '/settings/plugin/test',
-                arguments: editedPlugin,
-              );
-            },
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Column(
-              spacing: 16,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                EditorSectionCard(
-                  icon: Icons.badge_rounded,
-                  title: _RuleEditorText.sectionBasic,
-                  description: _RuleEditorText.sectionBasicDesc,
-                  children: [
-                    EditorTextField(
-                      controller: nameController,
-                      label: _RuleEditorText.ruleName,
-                    ),
-                    EditorTextField(
-                      controller: versionController,
-                      label: _RuleEditorText.ruleVersion,
-                    ),
-                    EditorTextField(
-                      controller: baseURLController,
-                      label: _RuleEditorText.baseUrl,
-                    ),
-                    EditorTextField(
-                      controller: iconController,
-                      label: '图标 URL（动漫头像，可留空用默认）',
-                    ),
-                  ],
+      body: Column(
+        children: [
+          // 顶部步骤指示器
+          _buildStepIndicator(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: _buildCurrentStep(),
                 ),
-                EditorSectionCard(
-                  icon: Icons.search_rounded,
-                  title: _RuleEditorText.sectionSearch,
-                  description: _RuleEditorText.sectionSearchDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.searchRuleType,
-                      value: searchMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => searchMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: searchMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: searchMode == RuleMode.xpath
-                            ? _buildXPathSearchFields()
-                            : _buildApiSearchFields(),
-                      ),
-                    ),
-                  ],
-                ),
-                EditorSectionCard(
-                  icon: Icons.playlist_play_rounded,
-                  title: _RuleEditorText.sectionChapter,
-                  description: _RuleEditorText.sectionChapterDesc,
-                  children: [
-                    EditorSegmentedField<String>(
-                      label: _RuleEditorText.chapterRuleType,
-                      value: chapterMode,
-                      segments: _ruleModeSegments,
-                      onChanged: (value) => setState(() => chapterMode = value),
-                    ),
-                    EditorAnimatedSection(
-                      activeKey: chapterMode,
-                      child: Column(
-                        spacing: 16,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: chapterMode == RuleMode.xpath
-                            ? _buildXPathChapterFields()
-                            : _buildApiChapterFields(),
-                      ),
-                    ),
-                  ],
-                ),
-                _buildAdvancedOptionsCard(),
-              ],
+              ),
             ),
           ),
+          // 底部按钮栏
+          _buildBottomBar(context),
+        ],
+      ),
+    );
+  }
+
+  /// 当前步骤对应的内容
+  Widget _buildCurrentStep() {
+    switch (_step) {
+      case 0:
+        return EditorSectionCard(
+          icon: Icons.badge_rounded,
+          title: _RuleEditorText.sectionBasic,
+          description: _RuleEditorText.sectionBasicDesc,
+          children: [
+            EditorTextField(
+              controller: nameController,
+              label: _RuleEditorText.ruleName,
+            ),
+            EditorTextField(
+              controller: versionController,
+              label: _RuleEditorText.ruleVersion,
+            ),
+            EditorTextField(
+              controller: baseURLController,
+              label: _RuleEditorText.baseUrl,
+            ),
+            EditorTextField(
+              controller: iconController,
+              label: '图标 URL（动漫头像，可留空用默认）',
+            ),
+          ],
+        );
+      case 1:
+        return EditorSectionCard(
+          icon: Icons.search_rounded,
+          title: _RuleEditorText.sectionSearch,
+          description: _RuleEditorText.sectionSearchDesc,
+          children: [
+            EditorSegmentedField<String>(
+              label: _RuleEditorText.searchRuleType,
+              value: searchMode,
+              segments: _ruleModeSegments,
+              onChanged: (value) => setState(() => searchMode = value),
+            ),
+            EditorAnimatedSection(
+              activeKey: searchMode,
+              child: Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: searchMode == RuleMode.xpath
+                    ? _buildXPathSearchFields()
+                    : _buildApiSearchFields(),
+              ),
+            ),
+          ],
+        );
+      case 2:
+        return EditorSectionCard(
+          icon: Icons.playlist_play_rounded,
+          title: _RuleEditorText.sectionChapter,
+          description: _RuleEditorText.sectionChapterDesc,
+          children: [
+            EditorSegmentedField<String>(
+              label: _RuleEditorText.chapterRuleType,
+              value: chapterMode,
+              segments: _ruleModeSegments,
+              onChanged: (value) => setState(() => chapterMode = value),
+            ),
+            EditorAnimatedSection(
+              activeKey: chapterMode,
+              child: Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: chapterMode == RuleMode.xpath
+                    ? _buildXPathChapterFields()
+                    : _buildApiChapterFields(),
+              ),
+            ),
+          ],
+        );
+      default:
+        return _buildAdvancedOptionsCard();
+    }
+  }
+
+  /// 顶部步骤指示器（1 基本 → 2 搜索 → 3 选集 → 4 高级）
+  Widget _buildStepIndicator(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          bottom: BorderSide(color: colors.outlineVariant.withOpacity(0.5)),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        icon: const Icon(Icons.save_rounded),
-        label: const Text(_RuleEditorText.save),
-        onPressed: () async {
-          final editedPlugin = _tryBuildEditedPlugin();
-          if (editedPlugin == null) return;
-          try {
-            await pluginsController.updatePlugin(editedPlugin);
-          } catch (error) {
-            _showEditorError(error);
-            return;
-          }
-          if (!context.mounted) return;
-          context.pop();
-        },
+      child: Row(
+        children: [
+          for (var i = 0; i < _stepTitles.length; i++) ...[
+            if (i > 0)
+              Expanded(
+                child: Container(
+                  height: 2,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  color: i <= _step
+                      ? colors.primary
+                      : colors.outlineVariant.withOpacity(0.5),
+                ),
+              ),
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _goStep(i),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: i == _step
+                            ? colors.primary
+                            : i < _step
+                                ? colors.primaryContainer
+                                : colors.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                      ),
+                      child: i < _step
+                          ? Icon(Icons.check_rounded,
+                              size: 18, color: colors.onPrimaryContainer)
+                          : Icon(
+                              _stepIcons[i],
+                              size: 16,
+                              color: i == _step
+                                  ? colors.onPrimary
+                                  : colors.onSurfaceVariant,
+                            ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _stepTitles[i],
+                      style: text.labelSmall?.copyWith(
+                        color: i == _step
+                            ? colors.primary
+                            : colors.onSurfaceVariant,
+                        fontWeight:
+                            i == _step ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 底部按钮栏：左下「测试」+「上一步」，右下「下一页 / 保存」
+  Widget _buildBottomBar(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isLast = _step == _stepTitles.length - 1;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          top: BorderSide(color: colors.outlineVariant.withOpacity(0.5)),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // 左下：测试
+            OutlinedButton.icon(
+              onPressed: _testPlugin,
+              icon: const Icon(Icons.bug_report_outlined, size: 18),
+              label: const Text('测试'),
+            ),
+            const SizedBox(width: 8),
+            // 上一步
+            if (_step > 0)
+              TextButton.icon(
+                onPressed: () => _goStep(_step - 1),
+                icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                label: const Text('上一步'),
+              ),
+            const Spacer(),
+            // 右下：下一页 / 保存
+            if (isLast)
+              FilledButton.icon(
+                onPressed: _savePlugin,
+                icon: const Icon(Icons.save_rounded, size: 18),
+                label: const Text(_RuleEditorText.save),
+              )
+            else
+              FilledButton.icon(
+                onPressed: () => _goStep(_step + 1),
+                icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                label: const Text('下一页'),
+              ),
+          ],
+        ),
       ),
     );
   }

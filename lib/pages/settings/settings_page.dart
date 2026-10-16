@@ -226,12 +226,6 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           path: '/settings/danmaku/',
         ),
         SettingsEntrySpec(
-          icon: Icons.notifications_active_rounded,
-          title: l10n.followNotify,
-          description: l10n.followNotifyDesc,
-          path: '/settings/notification',
-        ),
-        SettingsEntrySpec(
           icon: Icons.vpn_key_rounded,
           title: l10n.mirrorProxy,
           description: l10n.mirrorProxyDesc,
