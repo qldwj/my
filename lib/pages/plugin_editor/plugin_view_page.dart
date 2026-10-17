@@ -12,6 +12,7 @@ import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
@@ -123,6 +124,141 @@ class _PluginViewPageState extends State<PluginViewPage>
       ensureCatalog: true,
     );
     if (mounted) setState(() {});
+  }
+
+  /// 🆕 检查登录 Cookie 状态：展示每条 needLogin 规则的真实过期时间与缓存情况，
+  /// 并提供「重新登录 / 清除」操作。
+  void _showCookieStatusSheet(BuildContext context) {
+    final needLogin = pluginsController.pluginList
+        .where((p) => p.needLogin)
+        .toList();
+    KazumiDialog.show(builder: (ctx) {
+      final cs = Theme.of(ctx).colorScheme;
+      return AlertDialog(
+        title: const Text('登录状态检查'),
+        content: SizedBox(
+          width: 460,
+          child: needLogin.isEmpty
+              ? const Text('当前没有需要登录的规则')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final p in needLogin) ...[
+                      _cookieStatusTile(ctx, p),
+                      if (p != needLogin.last)
+                        Divider(color: cs.outlineVariant.withOpacity(0.4)),
+                    ],
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: const Text('关闭'),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _cookieStatusTile(BuildContext context, Plugin plugin) {
+    final cs = Theme.of(context).colorScheme;
+    final status = PluginCookieManager.instance.cookieStatus(plugin.name);
+    final hasCookie = status['hasCookie'] == true;
+    final valid = status['valid'] == true;
+    final expiresAt = status['expiresAt'] as DateTime?;
+    final savedAt = status['savedAt'] as DateTime?;
+    final isSession = status['isSession'] == true;
+    final count = status['cookieCount'] as int? ?? 0;
+
+    String fmt(DateTime? d) {
+      if (d == null) return '—';
+      final local = d.toLocal();
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${local.year}-${two(local.month)}-${two(local.day)} '
+          '${two(local.hour)}:${two(local.minute)}';
+    }
+
+    final statusColor = !hasCookie
+        ? cs.outline
+        : valid
+            ? Colors.green
+            : cs.error;
+    final statusText = !hasCookie
+        ? '未登录 / 无缓存'
+        : valid
+            ? '有效'
+            : '已过期';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(plugin.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(statusText,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: statusColor,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Cookie：${count} 条 · 保存于 ${fmt(savedAt)}',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          Text(
+            isSession
+                ? '真实过期：该站未下发 expires（会话级）'
+                : '真实过期：${fmt(expiresAt)}',
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  KazumiDialog.dismiss();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PluginLoginPage(plugin: plugin),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.login_rounded, size: 16),
+                label: Text(valid ? '重新登录' : '去登录'),
+              ),
+              TextButton.icon(
+                onPressed: hasCookie
+                    ? () async {
+                        await PluginCookieManager.instance.clear(plugin.name);
+                        if (!context.mounted) return;
+                        KazumiDialog.dismiss();
+                        KazumiDialog.showToast(message: '已清除「${plugin.name}」登录缓存');
+                      }
+                    : null,
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: const Text('清除缓存'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleAdd() {
@@ -844,6 +980,13 @@ class _PluginViewPageState extends State<PluginViewPage>
                 tooltip: AppLocalizations.of(context)!.setEDeleteSelected,
               ),
             ] else ...[
+              // 🆕 检查登录 Cookie 状态（真实过期时间）；仅当存在 needLogin 规则时显示
+              if (pluginsController.pluginList.any((p) => p.needLogin))
+                IconButton(
+                  onPressed: () => _showCookieStatusSheet(context),
+                  tooltip: '检查登录状态',
+                  icon: const Icon(Icons.verified_user_outlined),
+                ),
               // 收纳进「更多」菜单，右上角不再图标堆叠（AI生成器/规则设置/更新全部 全保留）
               PopupMenuButton<String>(
                 tooltip: AppLocalizations.of(context)!.setEMore,

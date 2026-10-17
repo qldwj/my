@@ -225,6 +225,19 @@ class BangumiSyncService {
                 'Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
           }
         }
+
+        // 🆕 元数据补齐：本地已有但总集数缺失（显示“集数未知”）的条目，
+        // 用远端真实数据刷新本地（不改收藏类型，与优先级无关）。
+        if (mergePlan.metadataRefreshes.isNotEmpty) {
+          onProgress?.call('正在补齐番剧集数信息', syncedCount, totalOperations);
+          for (final mutation in mergePlan.metadataRefreshes) {
+            await GStorage.putCollectible(mutation.collectible);
+            syncedCount++;
+            onProgress?.call(
+                '正在补齐番剧集数信息', syncedCount, totalOperations);
+          }
+        }
+
         onProgress?.call('Bangumi 状态同步完成', 1, 1);
         return true;
       } catch (e) {

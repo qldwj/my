@@ -45,14 +45,69 @@ class PluginCookieManager {
   }
 
   /// 该规则是否已保存【未过期】的 Cookie
+  ///
+  /// 🆕 优先按 Cookie 自带真实过期时间（expiresAt）判断；
+  /// 若是会话级（无 expires），则回退 TTL（默认 1 天）；
+  /// 若已过期，返回 false。
   bool hasSaved(String pluginName) {
     final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
     if (data is! Map) return false;
+    return _isValid(data);
+  }
+
+  /// 🆕 判断一份已存 cookie 数据是否仍在有效期
+  bool _isValid(Map data) {
     final savedAt = data['savedAt'];
     if (savedAt is! int) return false;
-    final age =
-        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(savedAt));
+    final expiresAt = data['expiresAt'];
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (expiresAt is int) {
+      // 有真实过期时间：以此为准
+      return now < expiresAt;
+    }
+    // 会话级（无 expires）：回退固定 TTL
+    final age = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(savedAt));
     return age < cookieTtl;
+  }
+
+  /// 🆕 Cookie 状态详情（供 UI 展示：是否有效/真实过期时间/是否有缓存）
+  ///
+  /// 返回 Map：
+  /// - hasCookie: 是否存过 cookie
+  /// - valid: 是否仍有效
+  /// - savedAt: 保存时间（DateTime?）
+  /// - expiresAt: 真实过期时间（DateTime?，null=会话级无 expires）
+  /// - isSession: 是否会话级（无 expires）
+  /// - cookieCount: cookie 条数
+  Map<String, dynamic> cookieStatus(String pluginName) {
+    final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
+    if (data is! Map) {
+      return {
+        'hasCookie': false,
+        'valid': false,
+        'savedAt': null,
+        'expiresAt': null,
+        'isSession': false,
+        'cookieCount': 0,
+      };
+    }
+    final savedAtMs = data['savedAt'];
+    final expiresAtMs = data['expiresAt'];
+    final raw = data['cookies'];
+    final count = raw is List ? raw.length : 0;
+    return {
+      'hasCookie': true,
+      'valid': _isValid(data),
+      'savedAt': savedAtMs is int
+          ? DateTime.fromMillisecondsSinceEpoch(savedAtMs)
+          : null,
+      'expiresAt': expiresAtMs is int
+          ? DateTime.fromMillisecondsSinceEpoch(expiresAtMs)
+          : null,
+      'isSession': expiresAtMs is! int,
+      'cookieCount': count,
+    };
   }
 
   /// Cookie 保存时间戳（毫秒）；未保存过返回 null
@@ -93,12 +148,13 @@ class PluginCookieManager {
     if (uri == null) return;
 
     final jar = _getJar(pluginName);
-    final cookies = _parseCookieString(cookieString, uri);
+    final parsed = _parseCookieString(cookieString, uri);
+    final cookies = parsed.cookies;
     if (cookies.isEmpty) return;
 
     await jar.saveFromResponse(uri, cookies);
 
-    // 🆕 Hive 持久化：存 cookie 三元组 + UA + 保存时间
+    // 🆕 Hive 持久化：存 cookie 三元组 + UA + 保存时间 + 真实过期时间
     final cookieData = cookies
         .map((c) => {'name': c.name, 'value': c.value, 'domain': c.domain})
         .toList();
@@ -106,14 +162,20 @@ class PluginCookieManager {
       'cookies': cookieData,
       'userAgent': userAgent ?? _userAgents[pluginName],
       'savedAt': DateTime.now().millisecondsSinceEpoch,
+      // 🆕 真实过期时间（毫秒）；null 表示该站 cookie 无 expires（会话级）
+      'expiresAt': parsed.latestExpiryMs,
     });
     KazumiLogger().i(
-        '[PluginCookieManager] Saved ${cookies.length} cookies for $pluginName (Hive, ${cookieTtl.inDays}天)');
+        '[PluginCookieManager] Saved ${cookies.length} cookies for $pluginName '
+        '(Hive, 真实过期=${parsed.latestExpiryMs == null ? '无(会话级)' : DateTime.fromMillisecondsSinceEpoch(parsed.latestExpiryMs!)})');
   }
 
-  /// 解析字符串为 [Cookie] 列表
-  List<Cookie> _parseCookieString(String raw, Uri uri) {
+  /// 解析字符串为 cookie 列表，并提取真实过期时间
+  ({List<Cookie> cookies, int? latestExpiryMs}) _parseCookieString(
+      String raw, Uri uri) {
     final cookies = <Cookie>[];
+    int? maxAgeMs;
+    String? expiresStr;
     for (final part in raw.split(';')) {
       final trimmed = part.trim();
       if (trimmed.isEmpty) continue;
@@ -121,6 +183,28 @@ class PluginCookieManager {
       if (eqIndex <= 0) continue;
       final name = trimmed.substring(0, eqIndex).trim();
       final value = trimmed.substring(eqIndex + 1).trim();
+      final lower = name.toLowerCase();
+      // 🆕 提取 cookie 元属性（用于真实过期判定）
+      if (lower == 'max-age') {
+        final secs = int.tryParse(value);
+        if (secs != null && secs > 0) {
+          maxAgeMs = DateTime.now()
+              .add(Duration(seconds: secs))
+              .millisecondsSinceEpoch;
+        }
+        continue;
+      }
+      if (lower == 'expires') {
+        expiresStr = value;
+        continue;
+      }
+      if (lower == 'path' ||
+          lower == 'domain' ||
+          lower == 'samesite' ||
+          lower == 'secure' ||
+          lower == 'httponly') {
+        continue;
+      }
       try {
         final cookie = Cookie(name, value)
           ..domain = uri.host
@@ -128,7 +212,42 @@ class PluginCookieManager {
         cookies.add(cookie);
       } catch (_) {}
     }
-    return cookies;
+    // 优先用 max-age；否则解析 expires（RFC 1123 格式）
+    int? latestExpiryMs = maxAgeMs;
+    if (latestExpiryMs == null && expiresStr != null) {
+      final dt = _parseHttpDate(expiresStr);
+      latestExpiryMs = dt?.millisecondsSinceEpoch;
+    }
+    return (cookies: cookies, latestExpiryMs: latestExpiryMs);
+  }
+
+  /// 解析 HTTP 日期（如 Wed, 21 Oct 2026 07:28:00 GMT）
+  DateTime? _parseHttpDate(String s) {
+    const months = {
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    };
+    // 去掉 "Wed, " 前缀，按空格拆
+    final cleaned = s.replaceAll(',', ' ').trim();
+    final parts = cleaned.split(RegExp(r'\s+'));
+    // 期望：[weekday] dd Mon yyyy HH:mm:ss GMT
+    for (var i = 0; i < parts.length - 4; i++) {
+      final day = int.tryParse(parts[i]);
+      final mon = months[parts[i + 1].toLowerCase()];
+      final year = int.tryParse(parts[i + 2]);
+      if (day != null && mon != null && year != null && parts[i + 3].contains(':')) {
+        final time = parts[i + 3].split(':');
+        final hh = int.tryParse(time[0]) ?? 0;
+        final mm = time.length > 1 ? int.tryParse(time[1]) ?? 0 : 0;
+        final ss = time.length > 2 ? int.tryParse(time[2]) ?? 0 : 0;
+        try {
+          return DateTime.utc(year, mon, day, hh, mm, ss);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return null;
   }
 
   /// 合并内存 + Hive（重启后从 Hive 恢复）；过期返回空列表
@@ -144,12 +263,7 @@ class PluginCookieManager {
     // 🆕 Hive 恢复（重启后仍有效）
     final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
     if (data is! Map) return <Cookie>[];
-    final savedAt = data['savedAt'];
-    if (savedAt is int) {
-      final age = DateTime.now()
-          .difference(DateTime.fromMillisecondsSinceEpoch(savedAt));
-      if (age >= cookieTtl) return <Cookie>[]; // 已过期
-    }
+    if (!_isValid(data)) return <Cookie>[]; // 已过期（按真实 expires）
     final result = <Cookie>[];
     final raw = data['cookies'];
     if (raw is List) {

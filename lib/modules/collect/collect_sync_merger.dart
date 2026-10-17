@@ -40,6 +40,7 @@ class BangumiCollectiblesMergePlan {
     required this.remoteOnlyPuts,
     required this.conflictUploads,
     required this.conflictLocalUpdates,
+    this.metadataRefreshes = const <BangumiLocalMutation>[],
   });
 
   final List<BangumiUploadMutation> localOnlyUploads;
@@ -47,11 +48,16 @@ class BangumiCollectiblesMergePlan {
   final List<BangumiUploadMutation> conflictUploads;
   final List<BangumiLocalMutation> conflictLocalUpdates;
 
+  /// 🆕 元数据补齐：本地已有该条目，但元数据缺失（如总集数=0），
+  /// 用远端数据刷新本地（不改收藏类型）。与 priority 无关。
+  final List<BangumiLocalMutation> metadataRefreshes;
+
   int get totalOperations =>
       localOnlyUploads.length +
       remoteOnlyPuts.length +
       conflictUploads.length +
-      conflictLocalUpdates.length;
+      conflictLocalUpdates.length +
+      metadataRefreshes.length;
 }
 
 class CollectSyncMerger {
@@ -172,6 +178,26 @@ class CollectSyncMerger {
         ),
     ];
 
+    // 🆕 元数据补齐：共有条目里，本地总集数为 0（显示“集数未知”）而远端有真实集数时，
+    // 用远端数据刷新本地（不改收藏类型，与 priority 无关）。
+    final metadataRefreshes = <BangumiLocalMutation>[];
+    for (final id in sharedIds) {
+      final local = localMap[id]!;
+      final remote = remoteMap[id]!;
+      if (local.bangumiItem.totalEpisodes <= 0 && remote.eps > 0) {
+        final refreshed = _fromBangumiCollection(remote);
+        // 保留本地收藏类型（远端类型可能因冲突而不同，这里不改类型）
+        metadataRefreshes.add(BangumiLocalMutation(
+          collectible: CollectedBangumi(
+            refreshed.bangumiItem,
+            local.time,
+            local.type,
+          ),
+          changeAction: 2,
+        ));
+      }
+    }
+
     final conflictUploads = <BangumiUploadMutation>[];
     final conflictLocalUpdates = <BangumiLocalMutation>[];
     if (priority == BangumiSyncPriority.localFirst) {
@@ -214,6 +240,7 @@ class CollectSyncMerger {
       remoteOnlyPuts: remoteOnlyPuts,
       conflictUploads: conflictUploads,
       conflictLocalUpdates: conflictLocalUpdates,
+      metadataRefreshes: metadataRefreshes,
     );
   }
 

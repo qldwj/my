@@ -356,6 +356,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     nameController.dispose();
     versionController.dispose();
     userAgentController.dispose();
@@ -417,9 +418,20 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     Icons.tune_rounded,
   ];
 
+  /// 🆕 左右滑动切换步骤用的 PageController
+  late final PageController _pageController =
+      PageController(initialPage: _step);
+
   void _goStep(int step) {
     if (step < 0 || step >= _stepTitles.length) return;
     setState(() => _step = step);
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        step,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   /// 保存当前规则
@@ -457,12 +469,18 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           // 顶部步骤指示器
           _buildStepIndicator(context),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1000),
-                  child: _buildCurrentStep(),
+            // 🆕 左右滑动切换步骤
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _stepTitles.length,
+              onPageChanged: (i) => setState(() => _step = i),
+              itemBuilder: (context, index) => SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
+                    child: _buildStepContent(index),
+                  ),
                 ),
               ),
             ),
@@ -475,8 +493,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   /// 当前步骤对应的内容
-  Widget _buildCurrentStep() {
-    switch (_step) {
+  Widget _buildCurrentStep() => _buildStepContent(_step);
+
+  /// 指定步骤的内容
+  Widget _buildStepContent(int step) {
+    switch (step) {
       case 0:
         return EditorSectionCard(
           icon: Icons.badge_rounded,

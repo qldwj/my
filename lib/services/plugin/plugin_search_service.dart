@@ -3,7 +3,6 @@ import 'package:yhdm/pages/info/info_controller.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/logging/logger.dart';
-import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/services/plugin/rule_engine_models.dart';
 import 'package:yhdm/utils/async_session.dart';
 
@@ -99,13 +98,10 @@ class PluginSearchService {
 
   Future<void> _queryPlugin(Plugin plugin, String keyword) async {
     if (_isCancelled) return;
-    // 🆕 需登录规则：未保存有效 Cookie 时标记「需要登录」（紫色），不发起搜索
-    if (plugin.needLogin &&
-        !PluginCookieManager.instance.hasSaved(plugin.name)) {
-      infoController.pluginSearchStatus[plugin.name] =
-          PluginSearchStatus.login;
-      return;
-    }
+    // ⚠️ needLogin 只代表「播放/解析章节需要登录」，很多站点（如次元城）的
+    // 搜索接口本身并不需要登录。这里不能因为未登录就跳过搜索，否则源会从列表
+    // 直接消失，用户会以为「这个源不能用」。照常搜索，真正需要登录的环节
+    // （如 API 返回未授权）会自然地失败并在下方 catch 中体现。
     final session = _querySessions
         .putIfAbsent(plugin.name, AsyncSessionOwner.new)
         .begin();

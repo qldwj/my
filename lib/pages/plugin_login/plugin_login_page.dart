@@ -59,6 +59,73 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     }
   }
 
+  /// 🆕 粘贴自己的 Cookie 并保存（内置浏览器抓取不准时的兜底）
+  Future<void> _pasteCookie() async {
+    final ctrl = TextEditingController();
+    final result = await KazumiDialog.show<String>(
+      builder: (ctx) => AlertDialog(
+        title: const Text('粘贴 Cookie'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('把浏览器里复制到的 Cookie 字符串粘贴进来（形如 a=1; b=2）。',
+                style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                hintText: '在此粘贴 Cookie',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => KazumiDialog.dismiss(popWith: ctrl.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (result == null || result.isEmpty) return;
+
+    _saving = true;
+    setState(() => _statusText = '正在保存粘贴的 Cookie…');
+    try {
+      final url = await _webViewController.currentUrl() ?? widget.plugin.loginUrl;
+      final uri = Uri.parse(url);
+      final hostUrl = Uri(scheme: 'https', host: uri.host, port: uri.port).toString();
+      await PluginCookieManager.instance
+          .saveFromWebView(widget.plugin.name, hostUrl, result);
+      final st = PluginCookieManager.instance.cookieStatus(widget.plugin.name);
+      final valid = st['valid'] == true;
+      final expiresAt = st['expiresAt'] as DateTime?;
+      if (!mounted) return;
+      KazumiDialog.showToast(
+        message: valid
+            ? '✅ Cookie 已保存${expiresAt != null ? '，有效期至 ${expiresAt.toLocal()}' : ''}'
+            : '⚠️ Cookie 已保存，但可能已过期（无 expires 或已超时）',
+      );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      KazumiLogger().e('[PluginLoginPage] 粘贴 Cookie 保存失败', error: e);
+      _saving = false;
+      if (mounted) {
+        setState(() => _statusText = '保存失败：$e');
+        KazumiDialog.showToast(message: '❌ 保存失败: $e');
+      }
+    }
+  }
+
   Future<void> _finishAndSave(String currentUrl) async {
     if (_saving) return;
     _saving = true;
@@ -136,6 +203,12 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       appBar: SysAppBar(
         title: Text('登录「${widget.plugin.name}」'),
         actions: [
+          // 🆕 粘贴 Cookie：直接从剪贴板粘贴自己的 Cookie（内置浏览器抓取不准时的兜底）
+          IconButton(
+            tooltip: '粘贴 Cookie',
+            icon: const Icon(Icons.content_paste_rounded),
+            onPressed: _saving ? null : _pasteCookie,
+          ),
           TextButton(
             onPressed: _saving ? null : () async {
               final url = await _webViewController.currentUrl();

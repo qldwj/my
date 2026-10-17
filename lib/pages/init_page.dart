@@ -27,9 +27,11 @@ import 'package:yhdm/services/social/chat_banner_service.dart';
 import 'package:yhdm/services/shortcut_service.dart';
 import 'package:yhdm/services/social/chat_notification_poller.dart';
 import 'package:yhdm/services/sync/kazumi_sync_service.dart';
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
+import 'package:yhdm/navigation.dart';
 import 'package:yhdm/pages/info/info_page.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
-import 'package:yhdm/navigation.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
 
 class InitPage extends StatefulWidget {
@@ -429,6 +431,7 @@ class _InitPageState extends State<InitPage> {
     try {
       await pluginsController.init();
       unawaited(_pluginUpdate());
+      unawaited(_checkLoginCookiesOnStartup());
     } catch (error, stackTrace) {
       KazumiLogger().e(
         'Plugin: failed to initialize rules',
@@ -436,6 +439,44 @@ class _InitPageState extends State<InitPage> {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  /// 🆕 启动时检查 needLogin 规则的登录 Cookie 是否已过期，
+  /// 过期或缺失时统一提示（避免用户进播放页才静默失败）。
+  Future<void> _checkLoginCookiesOnStartup() async {
+    try {
+      final cookies = PluginCookieManager.instance;
+      final needLogin =
+          pluginsController.pluginList.where((p) => p.needLogin).toList();
+      final expired = <String>[];
+      for (final p in needLogin) {
+        final st = cookies.cookieStatus(p.name);
+        if (st['hasCookie'] != true || st['valid'] != true) {
+          expired.add(p.name);
+        }
+      }
+      if (expired.isEmpty) return;
+      KazumiDialog.showToast(
+        message: '${expired.join('、')} 的登录已过期，请重新登录',
+        showActionButton: true,
+        actionLabel: '去登录',
+        onActionPressed: () {
+          final first = needLogin.firstWhere(
+            (p) => expired.contains(p.name),
+            orElse: () => needLogin.first,
+          );
+          final navContext = rootNavigatorKey.currentContext;
+          if (navContext != null) {
+            Navigator.of(navContext).push(
+              MaterialPageRoute(
+                builder: (_) => PluginLoginPage(plugin: first),
+              ),
+            );
+          }
+        },
+        duration: const Duration(seconds: 6),
+      );
+    } catch (_) {}
   }
 
   Future<void> _pluginUpdate() async {
