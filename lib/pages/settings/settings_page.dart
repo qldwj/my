@@ -53,6 +53,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// 宽屏点左栏：替换右栏内容（不留返回栈），与官方 _replaceCategory 同理
   void _selectEntry(SettingsEntrySpec entry) {
+    // 🆕 新手引导重放：不推空白页，跳回大厅首页后从头开始
+    if (entry.page is TutorialReplayPage) {
+      startTutorialReplay(context);
+      return;
+    }
     final path = entry.path;
     if (path != null) {
       final normalized = _normalizeSettingsPath(path);
