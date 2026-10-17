@@ -30,6 +30,13 @@ class CreditsPage extends StatelessWidget {
                 subtitle: 'Pixiv',
                 url: ApiEndpoints.iconUrl,
               ),
+              // 🆕 致谢 Kazumi：提供本项目的规则编写模板
+              const AboutLinkTile(
+                icon: Icons.dashboard_customize_rounded,
+                title: 'Kazumi',
+                subtitle: '项目模板 · 感谢提供本项目模板',
+                url: 'https://github.com/Predidit/Kazumi',
+              ),
             ],
           ),
           const SizedBox(height: 24),

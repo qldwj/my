@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
 import 'package:yhdm/bean/widget/content_section.dart';
@@ -112,7 +113,7 @@ class _ProjectHeader extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              'Kazumi',
+              '樱花动漫',
               style: theme.textTheme.displayMedium?.copyWith(
                 color: colors.primary,
                 fontWeight: FontWeight.w600,
@@ -140,10 +141,8 @@ class _ProjectHeader extends StatelessWidget {
               CheckUpdateButton(onCheckUpdate: onCheckUpdate),
               TextButton(
                 style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-                onPressed: () => openAboutLink(
-                  context,
-                  '${ApiEndpoints.sourceUrl}/releases',
-                ),
+                // 🆕 不再跳网页：进入内置的版本历史页（镜像 API 拉取）
+                onPressed: () => context.pushNamed('/about/releases'),
                 child: const Text('更新日志'),
               ),
             ],
