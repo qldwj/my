@@ -14,7 +14,7 @@ final aboutModule = createModule(
       ..route(
         '/',
         child: (context, state) => AboutPage(
-          controller: inject<MyController>(),
+          onCheckUpdate: inject<MyController>().checkUpdate,
         ),
       )
       ..route('/logs', child: (context, state) => const LogsPage())
