@@ -301,47 +301,62 @@ class _ReleaseHistoryPageState extends State<ReleaseHistoryPage> {
               ),
             ),
           ),
-          if (isOpen) ...[
-            if (item.body.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  item.body.trim(),
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.6,
-                    color: cs.onSurfaceVariant,
+          // 🆕 展开/收起使用高度动画（AnimatedSize），不再是瞬间显示
+          AnimatedSize(
+            duration: Duration(milliseconds: isOpen ? 240 : 180),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: isOpen ? 1.0 : 0.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+              if (item.body.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Text(
+                    item.body.trim(),
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ),
+              const Divider(height: 1),
+              // 底部信息条：日期 / 大小 / 右下角 GitHub 图标
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+                child: Row(
+                  children: [
+                    if (date.isNotEmpty)
+                      Text(date,
+                          style: TextStyle(fontSize: 12, color: cs.outline)),
+                    if (date.isNotEmpty && item.apkSize.isNotEmpty)
+                      Text(' · ', style: TextStyle(color: cs.outline)),
+                    if (item.apkSize.isNotEmpty)
+                      Text(item.apkSize,
+                          style: TextStyle(fontSize: 12, color: cs.outline)),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: '在 GitHub 打开',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: item.url.isEmpty
+                          ? null
+                          : () => openAboutLink(context, item.url),
+                      icon: Icon(Icons.code_rounded,
+                          size: 20, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
               ),
-            const Divider(height: 1),
-            // 底部信息条：日期 / 大小 / 右下角 GitHub 图标
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
-              child: Row(
-                children: [
-                  if (date.isNotEmpty)
-                    Text(date,
-                        style: TextStyle(fontSize: 12, color: cs.outline)),
-                  if (date.isNotEmpty && item.apkSize.isNotEmpty)
-                    Text(' · ', style: TextStyle(color: cs.outline)),
-                  if (item.apkSize.isNotEmpty)
-                    Text(item.apkSize,
-                        style: TextStyle(fontSize: 12, color: cs.outline)),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: '在 GitHub 打开',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: item.url.isEmpty
-                        ? null
-                        : () => openAboutLink(context, item.url),
-                    icon: Icon(Icons.code_rounded,
-                        size: 20, color: cs.onSurfaceVariant),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
