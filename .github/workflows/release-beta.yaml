@@ -33,6 +33,10 @@ on:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
         default: '0'
+      changelog:
+        description: '更新内容（填写后显示在「更新日志」下方，可多行）'
+        required: false
+        default: ''
 
 env:
   DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
@@ -213,11 +217,16 @@ jobs:
         run: |
           TAG="${{ env.tag }}"
           REPO="qldwj/Kazumikfc"
-          NOTES="测试版 v$TAG
+          CHANGELOG="${{ github.event.inputs.changelog }}"
+          if [ -z "$CHANGELOG" ]; then CHANGELOG="暂无更新说明"; fi
+          NOTES="更新日志
 
-          注意：这是测试版本，可能不稳定。
-          如果遇到闪退、卡顿或其他异常情况，请安装正式版本。
-          正式版下载地址：https://qlyyz.xyz "
+          $CHANGELOG
+
+          下载
+          android: arm64(新手机,推荐用这个)
+
+          (测试版，可能不稳定；出问题请装正式版：https://qlyyz.xyz )"
           # 覆盖同名 beta tag
           if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
             echo "Tag $TAG 已存在，删除重建..."

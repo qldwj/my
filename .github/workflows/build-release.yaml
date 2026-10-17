@@ -29,6 +29,10 @@ on:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
         default: '0'
+      changelog:
+        description: '更新内容（填写后显示在「更新日志」下方，可多行）'
+        required: false
+        default: ''
 
 env:
   DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
@@ -196,10 +200,18 @@ jobs:
             sleep 2
           fi
           # 正式 release：不加 --prerelease，正式通道 latest 会返回它
+          CHANGELOG="${{ github.event.inputs.changelog }}"
+          if [ -z "$CHANGELOG" ]; then CHANGELOG="暂无更新说明"; fi
+          NOTES="更新日志
+
+          $CHANGELOG
+
+          下载
+          android: arm64(新手机,推荐用这个)"
           gh release create "$TAG" \
             --repo "$REPO" \
             --title "v$TAG" \
-            --notes "樱花动漫 正式版 v$TAG" \
+            --notes "$NOTES" \
             YHDM_android_${{ env.tag }}.apk
         shell: bash
 

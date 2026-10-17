@@ -15,6 +15,10 @@ on:
         description: '签名校验 (0=不开启, 1=开启)'
         required: true
         default: '0'
+      changelog:
+        description: '更新内容（填写后显示在「更新日志」下方，可多行）'
+        required: false
+        default: ''
 
 env:
   DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
@@ -176,9 +180,17 @@ jobs:
             git push --delete https://x-access-token:${GH_TOKEN}@github.com/qldwj/my.git "$TAG" 2>/dev/null || true
             sleep 2
           fi
+          CHANGELOG="${{ github.event.inputs.changelog }}"
+          if [ -z "$CHANGELOG" ]; then CHANGELOG="暂无更新说明"; fi
+          NOTES="更新日志
+
+          $CHANGELOG
+
+          下载
+          android: arm64(新手机,推荐用这个)"
           gh release create "$TAG" \
             --repo qldwj/my \
             --title "v$TAG 测试构建" \
-            --notes "测试构建 v$TAG，仅用于本地验证，非正式发布。" \
+            --notes "$NOTES" \
             YHDM_android_${{ env.tag }}.apk
         shell: bash
