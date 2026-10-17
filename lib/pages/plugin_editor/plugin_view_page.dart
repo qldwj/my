@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/bean/card/rule_card.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/kazumi_menu.dart';
@@ -1032,6 +1033,7 @@ class _PluginViewPageState extends State<PluginViewPage>
                 ],
               ),
               IconButton(
+                key: TutorialKeys.ruleInstall,
                 onPressed: _handleAdd,
                 tooltip: AppLocalizations.of(context)!.setEAddRule,
                 icon: const Icon(Icons.add),

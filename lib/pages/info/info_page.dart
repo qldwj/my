@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
@@ -917,6 +918,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   icon: const Icon(Icons.rate_review_rounded),
                 )
               : FloatingActionButton.extended(
+                  key: TutorialKeys.infoStartWatch,
                   tooltip: '开始观看',
                   onPressed: () {
                     showAdaptiveBottomSheet<void>(

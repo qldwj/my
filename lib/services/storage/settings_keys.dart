@@ -139,6 +139,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.update,
   );
+  /// 🆕 新手引导是否已看过（首次启动看完后置 true，不再自动弹）
+  static const tutorialSeen = SettingKey<bool>(
+    'tutorialSeen',
+    false,
+    group: SettingGroup.interface,
+  );
   static const alwaysOntop = SettingKey<bool>(
     _SettingBoxKey.alwaysOntop,
     false,

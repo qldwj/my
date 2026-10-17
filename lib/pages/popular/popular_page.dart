@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/widget/kazumi_menu.dart';
@@ -331,6 +332,7 @@ class _PopularPageState extends State<PopularPage> {
     // 搜索（左）→ 历史（右）→ 活动（最右）
     actions.add(
       IconButton(
+        key: TutorialKeys.homeSearch,
         tooltip: l10n.search,
         onPressed: () => context.pushNamed('/search/'),
         icon: const Icon(Icons.search),

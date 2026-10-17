@@ -5,6 +5,7 @@ import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
 import 'package:yhdm/bean/widget/settings_section_card.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/pages/settings/player_settings.dart';
+import 'package:yhdm/pages/settings/tutorial_replay_page.dart';
 import 'package:yhdm/utils/constants.dart';
 
 /// 设置主页（总设置）
@@ -207,6 +208,12 @@ List<_SettingsGroup> _buildGroups(AppLocalizations l10n) {
           title: l10n.ruleManager,
           description: l10n.ruleManagerDesc,
           path: '/settings/plugin/',
+        ),
+        SettingsEntrySpec(
+          icon: Icons.school_rounded,
+          title: '新手引导',
+          description: '重看从安装规则到播放的图文教程',
+          page: const TutorialReplayPage(),
         ),
       ],
     ),

@@ -19,6 +19,7 @@ import 'package:yhdm/navigation.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/utils/device.dart';
 import 'package:yhdm/utils/theme.dart';
+import 'package:yhdm/bean/widget/tutorial_overlay.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -148,7 +149,9 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Widget _animatedThemeBuilder(BuildContext context, Widget? child) {
-    return _AnimatedTheme(child: child ?? const SizedBox.shrink());
+    final base = _AnimatedTheme(child: child ?? const SizedBox.shrink());
+    // 🆕 新手引导聚光灯层：悬浮在全部页面之上
+    return TutorialOverlay(child: base);
   }
 
   ThemeMode _storedThemeMode() {

@@ -30,6 +30,8 @@ import 'package:yhdm/services/sync/kazumi_sync_service.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/navigation.dart';
+import 'package:yhdm/services/tutorial/tutorial_controller.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/pages/info/info_page.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
@@ -174,6 +176,18 @@ class _InitPageState extends State<InitPage> {
       },
     ));
     _startDefaultPage();
+    _maybeStartTutorial();
+  }
+
+  /// 🆕 首次启动且未看过引导时，自动开始新手引导
+  Future<void> _maybeStartTutorial() async {
+    try {
+      if (GStorage.getSetting(SettingsKeys.tutorialSeen)) return;
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      TutorialController.instance.start(buildTutorialSteps());
+      await GStorage.putSetting(SettingsKeys.tutorialSeen, true);
+    } catch (_) {}
   }
 
   /// 桌面快捷方式点击：打开番剧详情页并自动弹出选源（点一下源即播放）
