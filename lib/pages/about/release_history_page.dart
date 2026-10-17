@@ -109,7 +109,7 @@ class _ReleaseHistoryPageState extends State<ReleaseHistoryPage> {
 
     // ② GitHub 兜底（分页用 page/per_page）
     final raw = await _getPlain(
-      '${ApiEndpoints.allAppReleases}&page=$page&per_page=$pageSize',
+      '${ApiEndpoints.allAppReleases}&page=$page&per_page=$_pageSize',
     );
     final decoded = json.decode(raw);
     if (decoded is List) return _parseList(decoded);
