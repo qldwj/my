@@ -421,7 +421,50 @@ class _SourceSheetState extends State<SourceSheet>
             _maybeAutoSelectSource();
           });
         }
+        // 自动选源失败：静默换下一个源
+        return;
       }
+
+      if (!mounted) return;
+
+      // 🆕 解析失败时诊断登录状态：需登录但 Cookie 已过期 → 提示去重新登录
+      final needsLogin = plugin.needLogin;
+      final cookieValid = PluginCookieManager.instance.hasSaved(plugin.name);
+      if (needsLogin && !cookieValid) {
+        final savedAt = PluginCookieManager.instance.savedAtMs(plugin.name);
+        KazumiDialog.show(
+          builder: (ctx) => AlertDialog(
+            title: const Text('需要登录'),
+            content: Text(
+              savedAt != null
+                  ? '「${plugin.name}」的登录已过期，请重新登录后再试。\n\n'
+                      '（站点需要登录才能解析播放地址）'
+                  : '「${plugin.name}」需要登录后才能观看。\n\n'
+                      '请使用内置浏览器登录并保存 Cookie。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  KazumiDialog.dismiss();
+                  _openPluginLogin(plugin);
+                },
+                child: const Text('去登录'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      KazumiDialog.showToast(
+        message: needsLogin
+            ? '「${plugin.name}」解析失败，若已登录请检查 Cookie 是否过期'
+            : '「${plugin.name}」解析失败，请换个源试试',
+      );
     }
   }
 
