@@ -68,15 +68,25 @@ class _ReleaseHistoryPageState extends State<ReleaseHistoryPage> {
       if (!mounted) return;
       setState(() {
         final seen = _items.map((e) => e.tag).toSet();
+        var added = 0;
         for (final r in list) {
-          if (!seen.contains(r.tag)) _items.add(r);
+          if (!seen.contains(r.tag)) {
+            _items.add(r);
+            added++;
+          }
         }
         // 第一页时默认展开最新版本
         if (_page == 1 && _items.isNotEmpty) {
           _expanded.add(_items.first.tag);
         }
         _page++;
-        _hasMore = list.length >= _pageSize;
+        // 🆕 本页没有任何新条目（重复数据）→ 视为到底，避免服务端不支持分页
+        //    时无限重复请求同一页
+        if (added == 0) {
+          _hasMore = false;
+        } else {
+          _hasMore = list.length >= _pageSize;
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -88,29 +98,25 @@ class _ReleaseHistoryPageState extends State<ReleaseHistoryPage> {
 
   /// 拉取第 [page] 页（每页 [_pageSize] 条），镜像优先、GitHub 兜底
   Future<List<_ReleaseItem>> _fetchPage(int page) async {
-    final skip = (page - 1) * _pageSize;
-
-    // ① 镜像（国内快）
+    // ① 镜像优先：带 page/per_page，服务端透传给 GitHub 即可翻页
+    //    （若服务端未支持分页，只会返回前 10 条，下面的 GitHub 兜底仍可补充）
     try {
-      final raw = await _getPlain(ApiEndpoints.allAppReleasesMirror);
+      final mirrorUrl =
+          '${ApiEndpoints.allAppReleasesMirror}?page=$page&per_page=$_pageSize';
+      final raw = await _getPlain(mirrorUrl);
       final decoded = json.decode(raw);
       if (decoded is List) {
-        final all = _parseList(decoded);
-        if (all.isNotEmpty) {
-          final slice = skip >= all.length
-              ? <_ReleaseItem>[]
-              : all.skip(skip).take(_pageSize).toList();
-          return slice;
-        }
+        final list = _parseList(decoded);
+        if (list.isNotEmpty) return list;
+        return const []; // 空 = 没有更多了
       }
     } catch (_) {
-      // 镜像失败 → 走 GitHub
+      // 镜像失败 → 落到 GitHub
     }
 
-    // ② GitHub 兜底（分页用 page/per_page）
-    final raw = await _getPlain(
-      '${ApiEndpoints.allAppReleases}&page=$page&per_page=$_pageSize',
-    );
+    // ② GitHub 兜底（支持 page/per_page）
+    final baseUrl = ApiEndpoints.allAppReleases.split('?').first;
+    final raw = await _getPlain('$baseUrl?per_page=$_pageSize&page=$page');
     final decoded = json.decode(raw);
     if (decoded is List) return _parseList(decoded);
     return const [];
