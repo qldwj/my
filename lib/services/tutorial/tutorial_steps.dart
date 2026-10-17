@@ -22,6 +22,19 @@ class TutorialKeys {
   static final playButton = GlobalKey();
 }
 
+/// 🆕 引导事件名（由真实操作触发，推进等待中的步骤）
+class TutorialEvents {
+  TutorialEvents._();
+  /// 安装完一条规则
+  static const installedRule = 'installed_rule';
+  /// 打开番剧详情页
+  static const openedInfo = 'opened_info';
+  /// 详情页点了「开始观看」→ 选源面板
+  static const openSourceSheet = 'open_source_sheet';
+  /// 选源面板点了某个源
+  static const pickedSource = 'picked_source';
+}
+
 /// 🆕 新手引导步骤（跟随真实操作，逐层推进）
 ///
 /// 顺序：安装规则 → 挑一部番 → 详情页介绍 → 开始观看 → 选绿色源 → 播放

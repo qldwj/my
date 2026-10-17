@@ -142,8 +142,14 @@ class _ProjectHeader extends StatelessWidget {
               TextButton(
                 style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
                 // 🆕 不再跳网页：进入内置的版本历史页（镜像 API 拉取）
-                onPressed: () => context.pushNamed('/about/releases'),
+                onPressed: () => context.pushNamed('/settings/about/releases'),
                 child: const Text('更新日志'),
+              ),
+              // 🆕 错误日志入口（原 about 页的 /logs 路由，新版布局补回）
+              TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                onPressed: () => context.pushNamed('/settings/about/logs'),
+                child: const Text('错误日志'),
               ),
             ],
           ),

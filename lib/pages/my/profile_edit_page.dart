@@ -10,6 +10,7 @@ import 'package:yhdm/services/account_status_cache.dart';
 import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/services/checkin_service.dart';
 import 'package:yhdm/services/social/social_service.dart';
+import 'package:yhdm/pages/my/bangumi_login_page.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,6 +27,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   Map<String, bool> _status = {
     'has_qq': false, 'has_wechat': false,
     'has_telegram': false, 'has_douyin': false,
+    'has_bangumi': false,
   };
   bool _uploading = false;
   String _currentTitle = '';
@@ -43,6 +45,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         'has_wechat': cached['has_wechat'] == true,
         'has_telegram': cached['has_telegram'] == true,
         'has_douyin': cached['has_douyin'] == true,
+        'has_bangumi': cached['has_bangumi'] == true,
       };
     }
     _loadStatus();
@@ -76,6 +79,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             'has_wechat': d['has_wechat'] ?? false,
             'has_telegram': d['has_telegram'] ?? false,
             'has_douyin': d['has_douyin'] ?? false,
+            'has_bangumi': d['has_bangumi'] ?? false,
           };
         });
         // 🆕 落到 Hive，下次进页面秒显示
@@ -422,6 +426,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           _providerTile('assets/images/icons/wechat.png', '微信', _status['has_wechat']!, 'wechat'),
           _providerTile('assets/images/icons/telegram.png', 'Telegram', _status['has_telegram']!, 'telegram'),
           _providerTile('assets/images/icons/douyin.png', '抖音', _status['has_douyin']!, 'douyin'),
+          _bangumiTile(),
         ],
       ),
     );
@@ -521,6 +526,72 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       trailing: onTap != null ? const Icon(Icons.chevron_right, size: 20) : null,
       onTap: onTap,
     );
+  }
+
+  /// 🆕 Bangumi 绑定行（以本地 access token 为准，最可靠）
+  Widget _bangumiTile() {
+    final bound =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim().isNotEmpty;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+      leading:
+          Image.asset('assets/images/icons/bangumi.png', width: 28, height: 28),
+      title: const Text('Bangumi'),
+      trailing: bound
+          ? OutlinedButton(
+              onPressed: _unbindBangumi,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(60, 32),
+                foregroundColor: Theme.of(context).colorScheme.error,
+                side: BorderSide(color: Theme.of(context).colorScheme.error),
+              ),
+              child: const Text('解绑', style: TextStyle(fontSize: 12)),
+            )
+          : TextButton(
+              onPressed: _bindBangumi,
+              child: const Text('去绑定', style: TextStyle(fontSize: 12)),
+            ),
+    );
+  }
+
+  Future<void> _bindBangumi() async {
+    final r = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+    if (r == true && mounted) {
+      setState(() {});
+      _loadStatus();
+    }
+  }
+
+  Future<void> _unbindBangumi() async {
+    final confirm = await KazumiDialog.show<bool>(
+      builder: (ctx) => AlertDialog(
+        title: const Text('解绑 Bangumi'),
+        content: const Text('确定解绑 Bangumi 吗？解绑后将停止同步收藏与进度。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('解绑',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await GStorage.putSetting(SettingsKeys.bangumiAccessToken, '');
+    // 通知后端解除绑定（失败不影响本地清理）
+    try {
+      final token = AuthService.getLocalToken();
+      if (token != null) {
+        await AuthService.requestUnbindBangumi(token);
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {});
+    KazumiDialog.showToast(message: 'Bangumi 已解绑');
   }
 
   Widget _providerTile(String iconPath, String name, bool bound, String provider) {
