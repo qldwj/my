@@ -913,32 +913,44 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               );
             }),
           ),
-          floatingActionButton: showRatingFab
-              ? FloatingActionButton.extended(
+          // 🆕 「开始观看」始终显示（主操作）；
+          //    「发表吐槽」只在吐槽 tab 时叠在它上方。
+          //    之前是二选一，停在吐槽 tab 时右下角就没有「开始观看」了。
+          floatingActionButton: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (showRatingFab) ...[
+                FloatingActionButton.extended(
+                  heroTag: 'fab_comment',
                   key: TutorialKeys.infoComment,
                   tooltip: '吐槽',
                   onPressed: onBangumiRatingTap,
                   label: const Text('发表吐槽'),
                   icon: const Icon(Icons.rate_review_rounded),
-                )
-              : FloatingActionButton.extended(
-                  key: TutorialKeys.infoStartWatch,
-                  tooltip: '开始观看',
-                  onPressed: () {
-                    // 🆕 引导：用户真的点开选源面板，推进第⑤步
-                    TutorialController.instance
-                        .notifyEvent(TutorialEvents.openSourceSheet);
-                    showAdaptiveBottomSheet<void>(
-                      context: context,
-                      builder: (context) {
-                        return SourceSheet(
-                            infoController: infoController);
-                      },
-                    );
-                  },
-                  label: const Text('开始观看'),
-                  icon: const Icon(Icons.play_arrow_rounded),
                 ),
+                const SizedBox(height: 12),
+              ],
+              FloatingActionButton.extended(
+                heroTag: 'fab_start_watch',
+                key: TutorialKeys.infoStartWatch,
+                tooltip: '开始观看',
+                onPressed: () {
+                  // 🆕 引导：用户真的点开选源面板，推进第⑤步
+                  TutorialController.instance
+                      .notifyEvent(TutorialEvents.openSourceSheet);
+                  showAdaptiveBottomSheet<void>(
+                    context: context,
+                    builder: (context) {
+                      return SourceSheet(infoController: infoController);
+                    },
+                  );
+                },
+                label: const Text('开始观看'),
+                icon: const Icon(Icons.play_arrow_rounded),
+              ),
+            ],
+          ),
         ),
       ),
     );
