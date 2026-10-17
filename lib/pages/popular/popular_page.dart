@@ -220,9 +220,14 @@ class _PopularPageState extends State<PopularPage> {
         ),
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
-            return bangumiList.isNotEmpty
+            final card = bangumiList.isNotEmpty
                 ? BangumiCardV(bangumiItem: bangumiList[index])
                 : null;
+            // 🆕 引导：圈住第一张番剧卡
+            if (card != null && index == 0) {
+              return KeyedSubtree(key: TutorialKeys.homeList, child: card);
+            }
+            return card;
           },
           childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
         ),

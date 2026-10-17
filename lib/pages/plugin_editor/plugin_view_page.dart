@@ -1033,7 +1033,7 @@ class _PluginViewPageState extends State<PluginViewPage>
                 ],
               ),
               IconButton(
-                key: TutorialKeys.ruleInstall,
+                key: TutorialKeys.ruleAdd,
                 onPressed: _handleAdd,
                 tooltip: AppLocalizations.of(context)!.setEAddRule,
                 icon: const Icon(Icons.add),

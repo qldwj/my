@@ -1,3 +1,5 @@
+import 'package:yhdm/services/tutorial/tutorial_controller.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'dart:async';
 
@@ -234,6 +236,7 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
             caption:
                 item.lastUpdate > 0 ? _formatLastUpdate(item.lastUpdate, l10n) : null,
             trailing: RuleCardActionButton(
+              key: index == 0 ? TutorialKeys.ruleInstall : null,
               label: switch (status) {
                 PluginCatalogItemStatus.install => l10n.setFInstall,
                 PluginCatalogItemStatus.installed => l10n.setFInstalled,
@@ -249,6 +252,9 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
                         context: context,
                       );
                       if (result == PluginUpdateResult.updated && mounted) {
+                        // 🆕 引导：安装完成后推进教程
+                        TutorialController.instance
+                            .notifyEvent(TutorialEvents.installedRule);
                         setState(() {});
                       }
                     },

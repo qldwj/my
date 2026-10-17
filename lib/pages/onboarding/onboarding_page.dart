@@ -17,6 +17,8 @@ import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/update/startup_update_check.dart';
+import 'package:yhdm/services/tutorial/tutorial_controller.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
@@ -42,6 +44,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
   PluginsController get pluginsController => widget.pluginsController;
 
   int get stepCount => Platform.isAndroid ? 5 : 4;
+
+  /// 🆕 是否已在「导入规则」步骤启动过教程
+  bool _tutorialStarted = false;
+
+  /// 🆕 到达最后一步（导入规则）时自动启动新手引导
+  void _maybeStartTutorial(int index) {
+    if (_tutorialStarted) return;
+    if (index != stepCount - 1) return;
+    _tutorialStarted = true;
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      TutorialController.instance.start(buildTutorialSteps());
+    });
+  }
 
   @override
   void dispose() {
@@ -289,6 +305,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   setState(() {
                     currentIndex = index;
                   });
+                  _maybeStartTutorial(index);
                 },
                 children: [
                   for (final body in _buildStepBodies())

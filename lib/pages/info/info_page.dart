@@ -256,6 +256,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // 🆕 引导：进入详情页 → 推进「挑一部番」步骤
+    TutorialController.instance.notifyEvent(TutorialEvents.openedInfo);
     // ⭐ 深链带入集数时，首帧后自动弹出选集面板
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeAutoOpenSourceFromDeepLink();
@@ -913,6 +915,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
           ),
           floatingActionButton: showRatingFab
               ? FloatingActionButton.extended(
+                  key: TutorialKeys.infoComment,
                   tooltip: '吐槽',
                   onPressed: onBangumiRatingTap,
                   label: const Text('发表吐槽'),
