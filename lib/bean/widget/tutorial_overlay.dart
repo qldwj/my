@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/services/tutorial/tutorial_controller.dart';
 
@@ -104,49 +103,22 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
         : null;
 
     return Positioned.fill(
-      child: Material(
-        color: Colors.transparent,
-        child: Stack(
-          children: [
-            // 遮罩 + 挖孔 + 连接线
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _SpotlightPainter(hole: hole, bubble: bubbleRect),
-                ),
+      child: Stack(
+        children: [
+          // 遮罩 + 挖孔 + 连接线：IgnorePointer 保证完全不接收任何手势
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _SpotlightPainter(hole: hole, bubble: bubbleRect),
               ),
             ),
-            // 交互拦截：只有挖孔区域可点，其余全部吸收
-            ..._buildBlockers(hole, size),
-            // 气泡
-            _buildBubble(context, hole, size, bubbleTop, bubbleLeft),
-          ],
-        ),
+          ),
+          // 🆕 不做任何交互拦截：用户可自由点击界面；
+          // 进度通过气泡里的「下一步」推进（若顺手完成了高亮处操作也会自动推进）
+          _buildBubble(context, hole, size, bubbleTop, bubbleLeft),
+        ],
       ),
     );
-  }
-
-  /// 拦截层：挖孔四周各放一块透明吸收层，孔内不拦截（手势穿透到下层按钮）
-  /// 目标找不到（hole==null）时不拦截，避免用户卡死
-  /// 拦截层：用一块全屏 Listener 拦截所有点击，但挖孔区域放行
-  /// （用 hitTest 判断点是否落在孔内；孔内返回 false 让手势穿透到下层按钮）
-  List<Widget> _buildBlockers(Rect? hole, Size size) {
-    if (hole == null) {
-      // 无目标：不拦截（气泡内会显示「下一步」让用户继续）
-      return const [];
-    }
-
-    // 把挖孔限制在屏幕内
-    final h = Rect.fromLTRB(
-      hole.left.clamp(0.0, size.width),
-      hole.top.clamp(0.0, size.height),
-      hole.right.clamp(0.0, size.width),
-      hole.bottom.clamp(0.0, size.height),
-    );
-
-    return [
-      Positioned.fill(child: _HoleAwareBox(hole: h)),
-    ];
   }
 
   Widget _buildBubble(BuildContext context, Rect? hole, Size size,
@@ -214,22 +186,12 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
                   child: const Text('上一步'),
                 ),
               const SizedBox(width: 4),
-              if (step.showNextButton)
-                FilledButton(
-                  onPressed: () => _controller.next(),
-                  child: Text(isLast ? '完成' : '下一步'),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '请点击高亮处',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: cs.primary),
-                  ),
-                ),
+              // 🆕 不拦截手势后，每步都提供「下一步」，用户随时可手动推进；
+              // 若他也完成了高亮处的真实操作，事件同样会自动推进
+              FilledButton(
+                onPressed: () => _controller.next(),
+                child: Text(isLast ? '完成' : '下一步'),
+              ),
             ],
           ),
         ],
@@ -299,45 +261,4 @@ class _SpotlightPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpotlightPainter old) =>
       old.hole != hole || old.bubble != bubble;
-}
-
-/// 🆕 拦截盒：全屏吸收点击，但挖孔（hole）范围内不参与命中，
-/// 让手势穿透到下面的真实按钮。
-class _HoleAwareBox extends SingleChildRenderObjectWidget {
-  const _HoleAwareBox({required this.hole, super.child});
-
-  final Rect hole;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _HoleAwareRenderObject(hole: hole);
-  }
-
-  @override
-  void updateRenderObject(BuildContext context, _HoleAwareRenderObject renderObject) {
-    renderObject.hole = hole;
-  }
-}
-
-class _HoleAwareRenderObject extends RenderProxyBox {
-  _HoleAwareRenderObject({required Rect hole}) : _hole = hole;
-
-  Rect _hole;
-
-  Rect get hole => _hole;
-  set hole(Rect value) {
-    if (_hole == value) return;
-    _hole = value;
-    markNeedsPaint();
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
-      false;
-
-  @override
-  bool hitTestSelf(Offset position) {
-    // 孔内不拦截（让手势穿透到下层真实按钮）；孔外拦截
-    return !_hole.contains(position);
-  }
 }
