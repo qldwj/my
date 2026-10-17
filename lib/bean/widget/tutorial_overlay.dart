@@ -105,7 +105,7 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
     return Positioned.fill(
       child: Stack(
         children: [
-          // 遮罩 + 挖孔 + 连接线：IgnorePointer 保证完全不接收任何手势
+          // 透明背景 + 点击检测：点中孔内区域自动推进
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -113,8 +113,15 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
               ),
             ),
           ),
-          // 🆕 不做任何交互拦截：用户可自由点击界面；
-          // 进度通过气泡里的「下一步」推进（若顺手完成了高亮处操作也会自动推进）
+          // 点击穿透层：检测孔内点击 → 自动推进
+          if (hole != null)
+            Positioned.fill(
+              child: _TutorialTapDetector(
+                hole: hole,
+                onTapInside: () => _controller.next(),
+              ),
+            ),
+          // 气泡
           _buildBubble(context, hole, size, bubbleTop, bubbleLeft),
         ],
       ),
@@ -213,7 +220,8 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withValues(alpha: 0.62);
+    // 🆕 背景透明：只保留挖孔高亮描边和连接线
+    final paint = Paint()..color = Colors.transparent;
     final full = Offset.zero & size;
     if (hole == null) {
       canvas.drawRect(full, paint);
@@ -261,4 +269,30 @@ class _SpotlightPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpotlightPainter old) =>
       old.hole != hole || old.bubble != bubble;
+}
+
+/// 🆕 透明点击检测层：点中孔内区域时触发回调（自动推进教程）
+class _TutorialTapDetector extends StatelessWidget {
+  const _TutorialTapDetector({
+    required this.hole,
+    required this.onTapInside,
+  });
+
+  final Rect hole;
+  final VoidCallback onTapInside;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (details) {
+        // 转换为全局坐标判断是否在孔内
+        final globalPos = details.globalPosition;
+        if (hole.contains(globalPos)) {
+          onTapInside();
+        }
+      },
+      child: const SizedBox.expand(),
+    );
+  }
 }
