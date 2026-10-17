@@ -288,13 +288,37 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
               Row(
                 children: [
                   Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500))),
-                  Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: colorScheme.outline),
+                  // 🆕 箭头随展开状态旋转（带过渡）
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 220),
+                    child: Icon(Icons.expand_more, color: colorScheme.outline),
+                  ),
                 ],
               ),
-              if (isExpanded) ...[
-                const SizedBox(height: 8),
-                Text(content, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant, height: 1.5)),
-              ],
+              // 🆕 展开/收起使用高度动画，不再是瞬间跳变
+              AnimatedSize(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeInOutCubic,
+                alignment: Alignment.topCenter,
+                child: ClipRect(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    heightFactor: isExpanded ? 1.0 : 0.0,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        content,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
