@@ -83,19 +83,36 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
     final hole = rawRect?.inflate(step.highlightPadding);
 
     // 计算气泡位置
+    // 🆕 优先放目标上方，避免遮挡底部按钮（如右下角「开始观看」FAB）
     const bubbleWidth = 320.0;
+    const bubbleHeight = 300.0; // 保守估计，够长文案也不压住目标
     double? bubbleTop;
     double? bubbleLeft;
     if (hole != null) {
       bubbleLeft = (hole.center.dx - bubbleWidth / 2)
           .clamp(12.0, (size.width - bubbleWidth - 12.0).clamp(12.0, size.width));
-      const bubbleHeight = 210.0;
-      final below = hole.bottom + 20;
-      if (below + bubbleHeight < size.height) {
+
+      final above = hole.top - bubbleHeight - 16;
+      final below = hole.bottom + 16;
+      final canAbove = above >= 12;
+      final canBelow = below + bubbleHeight <= size.height - 12;
+
+      if (canAbove) {
+        // 上方有空间 → 放上方（不会挡住目标）
+        bubbleTop = above;
+      } else if (canBelow) {
         bubbleTop = below;
       } else {
-        bubbleTop =
-            (hole.top - bubbleHeight - 20).clamp(12.0, size.height - bubbleHeight);
+        // 上下都不够 → 选空间大的一侧贴边，并保证不覆盖目标
+        bubbleTop = (hole.center.dy > size.height / 2)
+            ? 12.0
+            : (size.height - bubbleHeight - 12.0).clamp(12.0, size.height);
+      }
+      // 最终兜底：确保气泡不与目标重叠
+      if (bubbleTop != null &&
+          bubbleTop + bubbleHeight > hole.top &&
+          bubbleTop < hole.bottom) {
+        bubbleTop = (hole.top - bubbleHeight - 16).clamp(12.0, size.height);
       }
     }
     final bubbleRect = (bubbleTop != null && bubbleLeft != null)
@@ -284,11 +301,11 @@ class _TutorialTapDetector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+      // 🆕 translucent：孔外点击直接穿透给下层按钮，不吞手势
+      behavior: HitTestBehavior.translucent,
       onTapDown: (details) {
-        // 转换为全局坐标判断是否在孔内
-        final globalPos = details.globalPosition;
-        if (hole.contains(globalPos)) {
+        // 点在孔内 → 自动推进教程（同时事件仍会传给下层按钮）
+        if (hole.contains(details.globalPosition)) {
           onTapInside();
         }
       },
