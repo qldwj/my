@@ -1,3 +1,4 @@
+import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/modules/search/plugin_search_module.dart';
 import 'package:yhdm/pages/info/info_controller.dart';
 import 'package:yhdm/plugins/plugins.dart';
@@ -112,8 +113,18 @@ class PluginSearchService {
         cancelToken: _cancelToken,
       );
       if (_isCancelled || session.isStale) return;
-      infoController.pluginSearchStatus[plugin.name] =
-          PluginSearchStatus.success;
+      // 🆕 需登录的规则（如次元城）：搜索本身不需要登录，但观看需要。
+      // 未登录/已过期时状态标为「需要登录」（紫色），而不是 success（绿色），
+      // 否则用户以为可用，点播放却失败。已登录则正常 success。
+      final needsLogin = plugin.needLogin &&
+          !PluginCookieManager.instance.hasSaved(plugin.name);
+      if (needsLogin) {
+        infoController.pluginSearchStatus[plugin.name] =
+            PluginSearchStatus.login;
+      } else {
+        infoController.pluginSearchStatus[plugin.name] =
+            PluginSearchStatus.success;
+      }
       if (result.data.isNotEmpty) {
         pluginsController.validityTracker.markSearchValid(plugin.name);
       }

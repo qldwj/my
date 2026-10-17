@@ -408,12 +408,12 @@ class _AppWidgetState extends State<AppWidget>
       return;
     }
     if (Platform.isWindows) {
-      await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');
+      await trayManager.setIcon('assets/images/logo/logo_android.png');
     } else if (Platform.environment.containsKey('FLATPAK_ID') ||
         Platform.environment.containsKey('SNAP')) {
       await trayManager.setIcon('io.github.Predidit.Kazumi');
     } else {
-      await trayManager.setIcon('assets/images/logo/logo_rounded.png');
+      await trayManager.setIcon('assets/images/logo/logo_android.png');
     }
 
     if (!Platform.isLinux) {

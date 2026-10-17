@@ -1224,6 +1224,13 @@ class _PluginViewPageState extends State<PluginViewPage>
               background: colorScheme.tertiaryContainer,
               foreground: colorScheme.onTertiaryContainer,
             ),
+          // 🆕 需登录的规则（如次元城）：紫色标签提示，与选源面板的紫色状态一致
+          if (plugin.needLogin)
+            const RuleTag(
+              label: '需登录',
+              background: Color(0xFFF3E8FF),
+              foreground: Color(0xFF7B3FF2),
+            ),
         ];
 
         // 合集卡片点击 → 打开合集详情
