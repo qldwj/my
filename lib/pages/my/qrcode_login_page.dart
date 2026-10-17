@@ -489,16 +489,11 @@ class _QrcodeLoginPageState extends State<QrcodeLoginPage> {
                                   'https://api.qrserver.com/v1/create-qr-code/?size=220x220&ecc=H&data=${Uri.encodeComponent(_qrcodeUrl!)}',
                                   errorBuilder: (_, __, ___) => Icon(Icons.qr_code, size: 180, color: colorScheme.primary),
                                 ),
-                                // 🆕 二维码中心加樱花动漫 LOGO（白底圆角；H 纠错下可正常扫码）
-                                Container(
+                                // 🆕 二维码中心 LOGO：无白底、无边框，直接叠在二维码上
+                                //    （ecc=H 高纠错，中心遮挡仍可正常扫码）
+                                SizedBox(
                                   width: 46,
                                   height: 46,
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
                                   child: Image.asset(
                                     'assets/images/logo/logo_android.png',
                                     fit: BoxFit.contain,
