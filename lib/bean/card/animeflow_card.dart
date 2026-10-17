@@ -49,11 +49,11 @@ class AnimeFlowCard extends StatelessWidget {
     return '未知';
   }
 
-  /// 集数文字
+  /// 集数文字（未知时返回空串 → 界面不显示该 chip）
   String get _episodeText {
     final total = bangumiItem.totalEpisodes;
     if (total > 0) return '$total 集';
-    return '集数未知';
+    return '';
   }
 
   /// 评分文字
@@ -121,14 +121,15 @@ class AnimeFlowCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    // 类型 · 年份 · 集数
+                    // 类型 · 年份 · 集数（集数未知则不显示）
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
                       children: [
                         _infoChip(context, _typeText),
                         _infoChip(context, _yearText),
-                        _infoChip(context, _episodeText),
+                        if (_episodeText.isNotEmpty)
+                          _infoChip(context, _episodeText),
                       ],
                     ),
                     const SizedBox(height: 8),
