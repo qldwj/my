@@ -186,10 +186,22 @@ class _TutorialOverlayState extends State<TutorialOverlay> {
                   child: const Text('上一步'),
                 ),
               const SizedBox(width: 4),
-              FilledButton(
-                onPressed: () => _controller.next(),
-                child: Text(isLast ? '完成' : '下一步'),
-              ),
+              if (step.showNextButton)
+                FilledButton(
+                  onPressed: () => _controller.next(),
+                  child: Text(isLast ? '完成' : '下一步'),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    '请点击高亮处',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.primary),
+                  ),
+                ),
             ],
           ),
         ],

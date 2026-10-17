@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:yhdm/services/tutorial/tutorial_controller.dart';
 import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
@@ -921,6 +922,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   key: TutorialKeys.infoStartWatch,
                   tooltip: '开始观看',
                   onPressed: () {
+                    // 🆕 引导：用户真的点开选源面板，推进第⑤步
+                    TutorialController.instance
+                        .notifyEvent(TutorialEvents.openSourceSheet);
                     showAdaptiveBottomSheet<void>(
                       context: context,
                       builder: (context) {

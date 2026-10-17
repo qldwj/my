@@ -1,3 +1,5 @@
+import 'package:yhdm/services/tutorial/tutorial_controller.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/bean/widget/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -121,6 +123,9 @@ class _SourceSheetState extends State<SourceSheet>
       if (_sourceTabController.indexIsChanging ||
           _sourceTabController.index != _currentTabIndex) {
         _currentTabIndex = _sourceTabController.index;
+        // 🆕 引导：用户真的切换/选择了某个源，推进第⑥步
+        TutorialController.instance
+            .notifyEvent(TutorialEvents.pickedSource);
       }
     });
     pluginSearchService = PluginSearchService(
@@ -883,41 +888,44 @@ class _SourceSheetState extends State<SourceSheet>
             ),
           ),
           Observer(
-            builder: (context) => MaterialBottomSheetTabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.center,
-              controller: _sourceTabController,
-              tabs: _filteredPlugins
-                  .map(
-                    (plugin) => Tab(
-                      child: Row(
-                        children: [
-                          Text(plugin.name, overflow: TextOverflow.ellipsis),
-                          const SizedBox(width: 5.0),
-                          Container(
-                            width: 8.0,
-                            height: 8.0,
-                            decoration: BoxDecoration(
-                              color: switch (widget.infoController.pluginSearchStatus[plugin.name]) {
-                                PluginSearchStatus.success => Colors.green,
-                                PluginSearchStatus.noResult => Colors.orange,
-                                PluginSearchStatus.captcha => Colors.blue,
-                                PluginSearchStatus.error => Colors.red,
-                                PluginSearchStatus.login => Colors.purple,
-                                _ => Colors.grey,
-                              },
-                              shape: BoxShape.circle,
+            builder: (context) => KeyedSubtree(
+              key: TutorialKeys.sourceSheet,
+              child: MaterialBottomSheetTabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.center,
+                controller: _sourceTabController,
+                tabs: _filteredPlugins
+                    .map(
+                      (plugin) => Tab(
+                        child: Row(
+                          children: [
+                            Text(plugin.name, overflow: TextOverflow.ellipsis),
+                            const SizedBox(width: 5.0),
+                            Container(
+                              width: 8.0,
+                              height: 8.0,
+                              decoration: BoxDecoration(
+                                color: switch (widget.infoController.pluginSearchStatus[plugin.name]) {
+                                  PluginSearchStatus.success => Colors.green,
+                                  PluginSearchStatus.noResult => Colors.orange,
+                                  PluginSearchStatus.captcha => Colors.blue,
+                                  PluginSearchStatus.error => Colors.red,
+                                  PluginSearchStatus.login => Colors.purple,
+                                  _ => Colors.grey,
+                                },
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              trailing: IconButton(
-                tooltip: '在浏览器中打开',
-                onPressed: _openInBrowser,
-                icon: const Icon(Icons.open_in_browser_rounded),
+                    )
+                    .toList(),
+                trailing: IconButton(
+                  tooltip: '在浏览器中打开',
+                  onPressed: _openInBrowser,
+                  icon: const Icon(Icons.open_in_browser_rounded),
+                ),
               ),
             ),
           ),

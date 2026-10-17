@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
+import 'package:yhdm/services/tutorial/tutorial_steps.dart';
 import 'package:yhdm/pages/player/player_controller.dart';
 import 'package:yhdm/pages/video/video_controller.dart';
 import 'package:yhdm/pages/video/danmaku_send_sheet.dart';
@@ -1267,6 +1268,7 @@ class _VideoPageState extends State<VideoPage>
             children: [
               // 播放线路选择
               MenuAnchor(
+                key: TutorialKeys.playButton,
                 consumeOutsideTap: true,
                 builder: (_, MenuController controller, __) {
                   return GestureDetector(
