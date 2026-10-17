@@ -1,6 +1,7 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/utils/set_cookie_parser.dart';
 
 /// 每条规则的 Cookie 管理器（Hive 持久化）
 ///
@@ -170,12 +171,43 @@ class PluginCookieManager {
         '(Hive, 真实过期=${parsed.latestExpiryMs == null ? '无(会话级)' : DateTime.fromMillisecondsSinceEpoch(parsed.latestExpiryMs!)})');
   }
 
-  /// 解析字符串为 cookie 列表，并提取真实过期时间
+  /// 解析 cookie 字符串为 cookie 列表 + 真实过期时间
+  ///
+  /// 支持两种输入：
+  /// 1. **Set-Cookie 单条**（含属性，如 `sid=x; Path=/; Max-Age=3600`）
+  /// 2. **document.cookie 形式**（`a=1; b=2; c=3`，无属性）
+  ///
+  /// 使用 [set_cookie_parser.dart] 统一解析，保证 Max-Age 优先、
+  /// GMT 时区正确、异常不抛。
   ({List<Cookie> cookies, int? latestExpiryMs}) _parseCookieString(
       String raw, Uri uri) {
     final cookies = <Cookie>[];
-    int? maxAgeMs;
-    String? expiresStr;
+
+    // 判断是「Set-Cookie 单条」还是「document.cookie 多条」
+    final lowerRaw = raw.toLowerCase();
+    final hasAttr = RegExp(
+            r'(^|;)\s*(path|domain|expires|max-age|samesite|secure|httponly)\s*=?')
+        .hasMatch(lowerRaw);
+
+    if (hasAttr) {
+      // ── Set-Cookie 形式：交给统一解析器
+      final info = parseSetCookie(raw);
+      if (info != null && info.name.isNotEmpty) {
+        try {
+          cookies.add(Cookie(info.name, info.value)
+            ..domain = uri.host
+            ..path = '/');
+        } catch (_) {}
+        return (
+          cookies: cookies,
+          latestExpiryMs: info.expiresAt?.millisecondsSinceEpoch,
+        );
+      }
+      return (cookies: cookies, latestExpiryMs: null);
+    }
+
+    // ── document.cookie 形式：所有段都是 name=value
+    int? latestExpiryMs;
     for (final part in raw.split(';')) {
       final trimmed = part.trim();
       if (trimmed.isEmpty) continue;
@@ -183,71 +215,21 @@ class PluginCookieManager {
       if (eqIndex <= 0) continue;
       final name = trimmed.substring(0, eqIndex).trim();
       final value = trimmed.substring(eqIndex + 1).trim();
-      final lower = name.toLowerCase();
-      // 🆕 提取 cookie 元属性（用于真实过期判定）
-      if (lower == 'max-age') {
-        final secs = int.tryParse(value);
-        if (secs != null && secs > 0) {
-          maxAgeMs = DateTime.now()
-              .add(Duration(seconds: secs))
-              .millisecondsSinceEpoch;
-        }
-        continue;
-      }
-      if (lower == 'expires') {
-        expiresStr = value;
-        continue;
-      }
-      if (lower == 'path' ||
-          lower == 'domain' ||
-          lower == 'samesite' ||
-          lower == 'secure' ||
-          lower == 'httponly') {
-        continue;
-      }
+      if (name.isEmpty) continue;
+      // 借用解析器归一化单条 name=value（无属性 → 会话 Cookie）
+      final info = parseSetCookie(trimmed);
+      if (info == null) continue;
       try {
-        final cookie = Cookie(name, value)
+        cookies.add(Cookie(info.name, info.value)
           ..domain = uri.host
-          ..path = '/';
-        cookies.add(cookie);
+          ..path = '/');
       } catch (_) {}
-    }
-    // 优先用 max-age；否则解析 expires（RFC 1123 格式）
-    int? latestExpiryMs = maxAgeMs;
-    if (latestExpiryMs == null && expiresStr != null) {
-      final dt = _parseHttpDate(expiresStr);
-      latestExpiryMs = dt?.millisecondsSinceEpoch;
+      final exp = info.expiresAt?.millisecondsSinceEpoch;
+      if (exp != null && (latestExpiryMs == null || exp > latestExpiryMs)) {
+        latestExpiryMs = exp;
+      }
     }
     return (cookies: cookies, latestExpiryMs: latestExpiryMs);
-  }
-
-  /// 解析 HTTP 日期（如 Wed, 21 Oct 2026 07:28:00 GMT）
-  DateTime? _parseHttpDate(String s) {
-    const months = {
-      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-    };
-    // 去掉 "Wed, " 前缀，按空格拆
-    final cleaned = s.replaceAll(',', ' ').trim();
-    final parts = cleaned.split(RegExp(r'\s+'));
-    // 期望：[weekday] dd Mon yyyy HH:mm:ss GMT
-    for (var i = 0; i < parts.length - 4; i++) {
-      final day = int.tryParse(parts[i]);
-      final mon = months[parts[i + 1].toLowerCase()];
-      final year = int.tryParse(parts[i + 2]);
-      if (day != null && mon != null && year != null && parts[i + 3].contains(':')) {
-        final time = parts[i + 3].split(':');
-        final hh = int.tryParse(time[0]) ?? 0;
-        final mm = time.length > 1 ? int.tryParse(time[1]) ?? 0 : 0;
-        final ss = time.length > 2 ? int.tryParse(time[2]) ?? 0 : 0;
-        try {
-          return DateTime.utc(year, mon, day, hh, mm, ss);
-        } catch (_) {
-          return null;
-        }
-      }
-    }
-    return null;
   }
 
   /// 合并内存 + Hive（重启后从 Hive 恢复）；过期返回空列表
