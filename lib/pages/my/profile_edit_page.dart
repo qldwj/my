@@ -582,13 +582,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
     if (confirm != true) return;
     await GStorage.putSetting(SettingsKeys.bangumiAccessToken, '');
-    // 通知后端解除绑定（失败不影响本地清理）
-    try {
-      final token = AuthService.getLocalToken();
-      if (token != null) {
-        await AuthService.requestUnbindBangumi(token);
-      }
-    } catch (_) {}
+    // 同步关闭 Bangumi 数据同步开关
+    await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
     if (!mounted) return;
     setState(() {});
     KazumiDialog.showToast(message: 'Bangumi 已解绑');
