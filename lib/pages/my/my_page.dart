@@ -51,18 +51,11 @@ class MyPage extends StatefulWidget {
 class _MyPageState extends State<MyPage> {
   List<History> _recentHistories = [];
   bool _syncingCloud = false;
-  int weeklyGoal = 0;
-  int thisWeekEpisodes = 0;
   String _bangumiAvatarUrl = '';
   String _bangumiName = '';
   SocialProfile? _socialProfile;
   int _friendRequestCount = 0;
   int _chatUnreadCount = 0;
-  String _titleName = '';
-  String _titleIcon = '';
-  int _titleUnlocked = 0;
-  int _titleTotal = 0;
-  List<Map<String, dynamic>> _titleList = [];
 
   @override
   void initState() {
@@ -83,43 +76,11 @@ class _MyPageState extends State<MyPage> {
       if (mounted) _refreshAfterLogin();
     };
     _loadRecentHistories();
-    _loadGoal();
     _loadBangumiUser();
     _loadSocialProfile();
-    _loadTitle();
     // 首次进入检查是否已添加规则
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstTimeRule();
-    });
-  }
-
-  /// 🆕 加载当前称号（追番/打卡/积分/绑定维度，账号区展示）
-  /// 未登录也读 Hive 缓存（在线成功会写盘，失败/离线退回缓存），保证称号持久化
-  Future<void> _loadTitle() async {
-    // 1) 先读 Hive 缓存立即显示（称号持久化，避免每次进页面先 0 再等网络）
-    final cached = CheckinService.cachedAchievements();
-    if (cached != null) {
-      _applyAchievements(cached);
-    }
-    // 2) 后台异步刷新在线数据
-    int collectCount = 0;
-    try {
-      collectCount = GStorage.collectibles.length;
-    } catch (_) {}
-    final res = await CheckinService.achievements(collectCount: collectCount);
-    if (!mounted || res['error'] != null) return;
-    _applyAchievements(res);
-  }
-
-  void _applyAchievements(Map<String, dynamic> res) {
-    final title = res['title'];
-    final list = (res['achievements'] as List?)?.map((e) => Map<String, dynamic>.from(e)).toList() ?? [];
-    setState(() {
-      _titleName = title is Map ? (title['name']?.toString() ?? '') : '';
-      _titleIcon = title is Map ? (title['icon']?.toString() ?? '') : '';
-      _titleUnlocked = res['unlockedCount'] is int ? res['unlockedCount'] as int : 0;
-      _titleTotal = list.length;
-      _titleList = list;
     });
   }
 
@@ -191,7 +152,6 @@ class _MyPageState extends State<MyPage> {
   void _refreshAfterLogin() {
     if (!mounted) return;
     _loadSocialProfile();
-    _loadTitle();
     _loadBangumiUser();
   }
 
@@ -210,28 +170,6 @@ class _MyPageState extends State<MyPage> {
         });
       }
     } catch (_) {}
-  }
-
-  void _loadGoal() {
-    weeklyGoal = GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
-    thisWeekEpisodes = _countThisWeekEpisodes();
-  }
-
-  /// 统计本周（周一起）已看的集数
-  int _countThisWeekEpisodes() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final weekStart = today.subtract(Duration(days: now.weekday - 1));
-    var count = 0;
-    try {
-      for (final h in HistoryRepository().getAllHistories()) {
-        for (final p in h.progresses.values) {
-          final t = p.effectiveUpdatedAtMs(h.lastWatchTime);
-          if (t >= weekStart.millisecondsSinceEpoch) count++;
-        }
-      }
-    } catch (_) {}
-    return count;
   }
 
   void _loadRecentHistories() {
@@ -582,7 +520,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
       );
       // 下载后重新加载本地数据（历史、目标等）
       _loadRecentHistories();
-      _loadGoal();
       setState(() {});
     } finally {
       _syncingCloud = false;
@@ -838,17 +775,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
                     children: [
                       // ── 个人中心 + 头像/登录/好友 ──
                       _buildHeader(colorScheme, textTheme, bangumiLoggedIn),
-                      if (AuthService.isLoggedIn) ...[
-                        const SizedBox(height: 12),
-                        // 🆕 我的称号（已登录账号区内展示）
-                        _buildTitleCard(colorScheme, textTheme),
-                      ],
                       const SizedBox(height: 24),
                       _sectionHeader(l10n.setGSectionPrefs),
                       const SizedBox(height: 8),
-                      // ── 本周目标 ──
-                      _buildWeeklyGoal(colorScheme, textTheme),
-                      const SizedBox(height: 12),
                       // ── 规则设置（紧挨着偏好设置，无间距）──
                       _buildRulesTile(colorScheme, textTheme),
                       // ── 偏好设置（紧挨着规则，无间距）──
@@ -961,159 +890,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     KazumiDialog.showToast(message: l10n.setGProfileLinkCopied);
-  }
-
-  /// 🆕 我的称号卡片 + 成就列表
-  void _showTitleList(ColorScheme cs) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet<void>(
-      context: context,
-sheetAnimationStyle: kSheetAnimationStyle,
-      backgroundColor: cs.surface,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          builder: (ctx, scrollController) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                  child: Row(
-                    children: [
-                      Text(l10n.setGMyTitles,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
-                      const SizedBox(width: 8),
-                      Text(l10n.setGTitlesUnlocked(unlocked: _titleUnlocked, total: _titleTotal),
-                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: GridView.builder(
-                    controller: scrollController,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 0.95,
-                    ),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    itemCount: _titleList.length,
-                    itemBuilder: (_, i) {
-                      final a = _titleList[i];
-                      final unlocked = a['unlocked'] == true;
-                      final cur = a['current'] is int ? a['current'] as int : 0;
-                      final target = a['target'] is int ? a['target'] as int : 0;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: unlocked
-                              ? cs.primaryContainer.withOpacity(0.55)
-                              : cs.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                          border: unlocked ? Border.all(color: cs.primary, width: 1) : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Opacity(
-                              opacity: unlocked ? 1 : 0.35,
-                              child: Text(a['icon']?.toString() ?? '🏅',
-                                  style: const TextStyle(fontSize: 26)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(a['name']?.toString() ?? '',
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: unlocked ? cs.onSurface : cs.onSurfaceVariant,
-                                )),
-                            const SizedBox(height: 2),
-                            Text(unlocked ? l10n.setGUnlocked : '$cur/$target',
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: unlocked ? cs.primary : cs.outline,
-                                )),
-                            const SizedBox(height: 2),
-                            Text(a['desc']?.toString() ?? '',
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 9, color: cs.outline)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // 🆕 我的称号卡片：显示当前称号 + 已解锁数，点击展开成就列表
-  Widget _buildTitleCard(ColorScheme colorScheme, TextTheme textTheme) {
-    final l10n = AppLocalizations.of(context)!;
-    return InkWell(
-      onTap: () => _showTitleList(colorScheme),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              colorScheme.primaryContainer.withOpacity(0.6),
-              colorScheme.tertiaryContainer.withOpacity(0.5),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46, height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withOpacity(0.6),
-                shape: BoxShape.circle,
-              ),
-              child: Text(_titleIcon.isEmpty ? '🏅' : _titleIcon,
-                  style: const TextStyle(fontSize: 24)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_titleName.isEmpty ? l10n.setGNoTitle : _titleName,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                      )),
-                  const SizedBox(height: 2),
-                  Text(l10n.setGTitleProgress(unlocked: _titleUnlocked, total: _titleTotal),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant),
-          ],
-        ),
-      ),
-    );
   }
 
   // ── 个人中心头部（头像可点击管理）──
@@ -1396,94 +1172,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
           const SizedBox(height: 6),
           Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
         ],
-      ),
-    );
-  }
-
-  // ── 本周目标 ──
-  Widget _buildWeeklyGoal(ColorScheme colorScheme, TextTheme textTheme) {
-    final l10n = AppLocalizations.of(context)!;
-    return Material(
-      color: colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(28),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flag_rounded, size: 20, color: colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(l10n.setGWeeklyGoal, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (weeklyGoal <= 0)
-              Column(
-                children: [
-                  Text(l10n.setGNoWeeklyGoalBody(episodes: thisWeekEpisodes),
-                      style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 12),
-                  FilledButton.tonal(
-                    onPressed: () {
-                      setState(() => weeklyGoal = 5);
-                      GStorage.putSetting(SettingsKeys.weeklyWatchGoal, 5);
-                    },
-                    child: Text(l10n.setGSetGoal5PerWeek),
-                  ),
-                ],
-              )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(l10n.setGWeekProgress(watched: thisWeekEpisodes, goal: weeklyGoal),
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        onPressed: weeklyGoal > 1
-                            ? () {
-                                setState(() => weeklyGoal--);
-                                GStorage.putSetting(SettingsKeys.weeklyWatchGoal, weeklyGoal);
-                              }
-                            : null,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () {
-                          setState(() => weeklyGoal++);
-                          GStorage.putSetting(SettingsKeys.weeklyWatchGoal, weeklyGoal);
-                        },
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (thisWeekEpisodes / weeklyGoal).clamp(0.0, 1.0),
-                      minHeight: 8,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    thisWeekEpisodes >= weeklyGoal ? l10n.setGWeekGoalComplete : l10n.setGEpisodesToGo(remaining: weeklyGoal - thisWeekEpisodes),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: thisWeekEpisodes >= weeklyGoal ? Colors.green : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
       ),
     );
   }

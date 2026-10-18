@@ -360,7 +360,7 @@
   "setBSystemTitleBar": "使用系统标题栏",
   "setBRestartToApply": "重启应用生效",
   "setBRefreshRate": "屏幕帧率",
-  "setBFontChanged": "✅ 字体已更换",
+  "setBFontChanged": "🔄 将在下次重启应用后生效",
   "setAResetPlaybackTitle": "恢复默认播放设置",
   "setAResetPlaybackDesc": "播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。",
   "setAResetPlaybackAction": "恢复默认",

@@ -90,11 +90,7 @@ class KazumiSyncService {
       }
 
       // 3. 收集设置
-      final weeklyGoal =
-          GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
-      final settings = {
-        'weeklyWatchGoal': weeklyGoal,
-      };
+      final settings = <String, dynamic>{};
 
       // 4. 构造请求数据
       final data = {
@@ -281,11 +277,6 @@ class KazumiSyncService {
       });
 
       // 5. 应用设置
-      final weeklyGoal = settings['weeklyWatchGoal'];
-      if (weeklyGoal is int && weeklyGoal > 0) {
-        await GStorage.putSetting(SettingsKeys.weeklyWatchGoal, weeklyGoal);
-      }
-
       return [
         '✅ 下载完成：收藏 $collectCount 项，历史 $historyCount 项',
         '✅ 设置已应用'
@@ -565,33 +556,19 @@ class KazumiSyncService {
     }
     try {
       // 1. 上传本地设置
-      final weeklyGoal =
-          GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
       final upRes = await AuthService.syncData(
         {
-          'items': {
-            'weeklyWatchGoal': weeklyGoal,
-          }
+          'items': const <String, dynamic>{},
         },
         type: 'settings',
       );
       if (upRes['error'] != null) {
         return '❌ 上传设置失败: ${upRes['error']}';
       }
-      // 2. 拉取云端设置并应用（本地为 0 时用云端值）
+      // 2. 拉取云端设置并应用
       final remoteRes = await AuthService.getRemoteSync();
       if (remoteRes['error'] != null) {
         return '❌ 拉取云端失败: ${remoteRes['error']}';
-      }
-      final settings = remoteRes['settings'];
-      if (settings is Map) {
-        final remoteGoal = settings['weeklyWatchGoal'];
-        if (remoteGoal is int && remoteGoal > 0) {
-          if (GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal) <= 0) {
-            await GStorage.putSetting(
-                SettingsKeys.weeklyWatchGoal, remoteGoal);
-          }
-        }
       }
       return '✅ 设置同步完成';
     } catch (e, st) {
@@ -610,13 +587,6 @@ class KazumiSyncService {
       final remoteRes = await AuthService.getRemoteSync();
       if (remoteRes['error'] != null) {
         return '❌ 拉取云端失败: ${remoteRes['error']}';
-      }
-      final settings = remoteRes['settings'];
-      if (settings is Map) {
-        final remoteGoal = settings['weeklyWatchGoal'];
-        if (remoteGoal is int && remoteGoal > 0) {
-          await GStorage.putSetting(SettingsKeys.weeklyWatchGoal, remoteGoal);
-        }
       }
       return '✅ 设置下载完成';
     } catch (e, st) {

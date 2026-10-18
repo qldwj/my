@@ -360,7 +360,7 @@
   "setBSystemTitleBar": "Use system title bar",
   "setBRestartToApply": "Restart the app to apply",
   "setBRefreshRate": "Refresh rate",
-  "setBFontChanged": "✅ Font changed",
+  "setBFontChanged": "🔄 Will take effect after next restart",
   "setAResetPlaybackTitle": "Reset playback settings",
   "setAResetPlaybackDesc": "Playback, hardware decoder, video renderer and super-resolution settings will be restored to defaults.",
   "setAResetPlaybackAction": "Restore defaults",

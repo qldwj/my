@@ -277,13 +277,11 @@ class WebDav {
     return _runWebDavExclusive(() async {
       if (!initialized) await init();
       await _ensureLocalTempDirectory();
-      final weeklyGoal = GStorage.getSetting<int>(SettingsKeys.weeklyWatchGoal);
       final runDirectory =
           await webDavLocalTempDirectory.createTemp('settings-upload-');
       try {
         final localFile = File('${runDirectory.path}/settings.json');
-        await localFile.writeAsString(
-            jsonEncode({'weeklyWatchGoal': weeklyGoal}), flush: true);
+        await localFile.writeAsString(jsonEncode(<String, dynamic>{}), flush: true);
         await _publishRemoteFile(
           sourceFilePath: localFile.path,
           destinationPath: _settingsPath,
@@ -310,11 +308,7 @@ class WebDav {
       try {
         final file = File('${runDirectory.path}/settings.json');
         await client.read2File(_settingsPath, file.path);
-        final map = jsonDecode(await file.readAsString());
-        if (map is Map && map['weeklyWatchGoal'] is num) {
-          await GStorage.putSetting(SettingsKeys.weeklyWatchGoal,
-              (map['weeklyWatchGoal'] as num).toInt());
-        }
+        await file.readAsString();
       } finally {
         try {
           await runDirectory.delete(recursive: true);
