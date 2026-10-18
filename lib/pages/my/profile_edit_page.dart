@@ -558,7 +558,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final r = await Navigator.of(context)
         .push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
     if (r == true && mounted) {
-      setState(() {});
+      await AccountStatusCache.clear();   // ⭐ 绑定后强制刷新状态（清除 5 分钟缓存）
       _loadStatus();
     }
   }

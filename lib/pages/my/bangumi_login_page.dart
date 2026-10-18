@@ -48,8 +48,9 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
           if (mounted) {
             setState(() {});
             KazumiDialog.showToast(message: '登录成功 🎉');
-            // 返回上一页并刷新
-            Navigator.of(context).pop(true);
+            // ⭐ 等待绑定完成后再返回，确保后端 has_bangumi 已更新
+            await AuthService.bindBangumi(token);
+            if (mounted) Navigator.of(context).pop(true);
           }
         }
       }
