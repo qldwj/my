@@ -423,6 +423,8 @@ class AuthService {
 
   static void clearLocalToken() {
     GStorage.putSetting(SettingsKeys.kazumiToken, '');
+    // 🆕 同步清除 bangumi 本地兜底标志
+    GStorage.putSetting(SettingsKeys.bangumiBoundLocal, false);
   }
 
   // ==================== 🆕 换包名迁移（一次性迁移码） ====================

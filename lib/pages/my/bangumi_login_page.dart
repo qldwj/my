@@ -39,8 +39,9 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
         if (token != null && token.isNotEmpty) {
           GStorage.putSetting(SettingsKeys.bangumiAccessToken, token);
           GStorage.putSetting(SettingsKeys.bangumiSyncEnable, true);
-          // 🆕 通知后端：樱花账号绑定 Bangumi（这样 KazumiLoginPage 的 _loadStatus()
-          // 才能正确返回 has_bangumi=true，显示"已绑定"）
+          // 🆕 本地兜底：绑定成功后立即写标志（即使后端响应慢也能显示已绑定）
+          GStorage.putSetting(SettingsKeys.bangumiBoundLocal, true);
+          // 通知后端：樱花账号绑定 Bangumi
           final myToken = AuthService.getLocalToken();
           if (myToken != null) {
             await AuthService.bindBangumi(token);
@@ -48,9 +49,7 @@ class _BangumiLoginPageState extends State<BangumiLoginPage> {
           if (mounted) {
             setState(() {});
             KazumiDialog.showToast(message: '登录成功 🎉');
-            // ⭐ 等待绑定完成后再返回，确保后端 has_bangumi 已更新
-            await AuthService.bindBangumi(token);
-            if (mounted) Navigator.of(context).pop(true);
+            Navigator.of(context).pop(true);
           }
         }
       }

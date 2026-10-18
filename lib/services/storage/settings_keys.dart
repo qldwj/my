@@ -696,6 +696,12 @@ class SettingsKeys {
     '',
     group: SettingGroup.bangumi,
   );
+  // 🆕 本地兜底：bangumi 授权回调成功后写 true，解绑/退出时写 false
+  static const bangumiBoundLocal = SettingKey<bool>(
+    _SettingBoxKey.bangumiBoundLocal,
+    false,
+    group: SettingGroup.bangumi,
+  );
   static const bangumiSyncPriority = SettingKey<int>(
     _SettingBoxKey.bangumiSyncPriority,
     0,
@@ -1161,6 +1167,7 @@ class SettingsKeys {
     bangumiSyncEnable,
     kazumiAutoSync,
     bangumiAccessToken,
+    bangumiBoundLocal,
     bangumiSyncPriority,
     bangumiImmediateSyncToastEnable,
     brightnessVolumeGesture,
@@ -1285,6 +1292,7 @@ class _SettingBoxKey {
       bangumiSyncEnable = 'bangumiSyncEnable',
       kazumiAutoSync = 'kazumiAutoSync',
       bangumiAccessToken = 'bangumiAccessToken',
+      bangumiBoundLocal = 'bangumiBoundLocal',
       bangumiSyncPriority = 'bangumiSyncPriority',
       bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',
       brightnessVolumeGesture = 'brightnessVolumeGesture',

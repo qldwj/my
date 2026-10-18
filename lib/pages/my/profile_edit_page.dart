@@ -73,6 +73,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true && mounted) {
         final d = data['data'] as Map<String, dynamic>? ?? {};
+        // 🆕 本地兜底：如果后端没返回 has_bangumi，用本地 Hive 标志补全
+        d['has_bangumi'] = d['has_bangumi'] ?? GStorage.getSetting<bool>(SettingsKeys.bangumiBoundLocal);
         setState(() {
           _status = {
             'has_qq': d['has_qq'] ?? false,
@@ -584,6 +586,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     await GStorage.putSetting(SettingsKeys.bangumiAccessToken, '');
     // 同步关闭 Bangumi 数据同步开关
     await GStorage.putSetting(SettingsKeys.bangumiSyncEnable, false);
+    // 🆕 清除本地兜底标志
+    await GStorage.putSetting(SettingsKeys.bangumiBoundLocal, false);
     if (!mounted) return;
     setState(() {});
     KazumiDialog.showToast(message: 'Bangumi 已解绑');
