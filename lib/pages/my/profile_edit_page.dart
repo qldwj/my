@@ -589,6 +589,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     // 🆕 清除本地兜底标志
     await GStorage.putSetting(SettingsKeys.bangumiBoundLocal, false);
     if (!mounted) return;
+    await AccountStatusCache.clear();   // 🆕 缓存作废
+    _loadStatus();                       // 🆕 立即刷新状态
     setState(() {});
     KazumiDialog.showToast(message: 'Bangumi 已解绑');
   }

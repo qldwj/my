@@ -159,6 +159,8 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
       final data = jsonDecode(body) as Map<String, dynamic>;
       if (data['success'] == true && mounted) {
         final statusData = data['data'] as Map<String, dynamic>? ?? {};
+        // 🆕 本地兜底：如果后端没返回 has_bangumi，用本地 Hive 标志补全
+        statusData['has_bangumi'] = statusData['has_bangumi'] ?? GStorage.getSetting<bool>(SettingsKeys.bangumiBoundLocal);
         setState(() {
           _status = {
             'has_qq': statusData['has_qq'] ?? false,
