@@ -49,7 +49,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="yhdmgz" />
             </intent-filter>
-            <!-- ===== 结束 ===== -->
 
             <!-- ===== 支持 yhdm:// 自定义协议（第三方登录回调） ===== -->
             <intent-filter>
@@ -93,12 +92,15 @@
                 <data android:scheme="yhdm" android:host="dy-auth" />
             </intent-filter>
 
-            <!-- AppLinks 无弹窗唤起核心配置 -->
+            <!-- ===== AppLinks 无弹窗唤起核心配置（已优化） ===== -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="qlyyz.xyz"/>
+                <!-- 指定 https 协议、域名，并限制只有回调路径才会唤起 App -->
+                <data android:scheme="https" 
+                      android:host="qlyyz.xyz" 
+                      android:pathPrefix="/api/v1/oauth_callback" />
             </intent-filter>
 
         </activity>
@@ -147,6 +149,8 @@
             android:launchMode="singleTop"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
+    
+    <!-- 权限声明 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -157,11 +161,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility?hl=en and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
-
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    
     <queries>
         
     </queries>
