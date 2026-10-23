@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,9 +19,6 @@ import 'package:yhdm/pages/my/bangumi_login_page.dart';
 import 'package:yhdm/pages/my/checkin_page.dart';
 import 'package:yhdm/pages/my/kazumi_login_page.dart';
 import 'package:yhdm/pages/my/qrcode_login_page.dart';
-import 'package:yhdm/pages/my/friends_page.dart';
-import 'package:yhdm/pages/my/chat_list_page.dart';
-import 'package:yhdm/pages/my/privacy_settings_page.dart';
 import 'package:yhdm/pages/my/security_center_page.dart';
 import 'package:yhdm/services/checkin_service.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
@@ -54,8 +50,6 @@ class _MyPageState extends State<MyPage> {
   String _bangumiAvatarUrl = '';
   String _bangumiName = '';
   SocialProfile? _socialProfile;
-  int _friendRequestCount = 0;
-  int _chatUnreadCount = 0;
 
   @override
   void initState() {
@@ -136,15 +130,6 @@ class _MyPageState extends State<MyPage> {
     final status = await SocialService.deleteStatus();
     if (status?.pending == true) {
       await SocialService.cancelDelete();
-    }
-    // 🆕 红点：好友申请数 + 消息未读数
-    final requests = await SocialService.friendRequests();
-    final unread = await SocialService.totalUnread();
-    if (mounted) {
-      setState(() {
-        _friendRequestCount = requests.length;
-        _chatUnreadCount = unread;
-      });
     }
   }
 
@@ -701,24 +686,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
         actions: [
           if (AuthService.isLoggedIn)
             IconButton(
-              tooltip: l10n.setGShareAccount,
-              icon: const Icon(Icons.share_rounded, size: 22),
-              onPressed: _shareProfile,
-            ),
-          if (AuthService.isLoggedIn)
-            IconButton(
-              tooltip: l10n.setGPrivacySettings,
-              icon: const Icon(Icons.privacy_tip_outlined, size: 22),
-              onPressed: () {
-                final navContext = rootNavigatorKey.currentContext;
-                if (navContext == null || !navContext.mounted) return;
-                Navigator.of(navContext).push(
-                  MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
-                );
-              },
-            ),
-          if (AuthService.isLoggedIn)
-            IconButton(
               tooltip: l10n.setGScanLoginOtherDevice,
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 22),
               onPressed: () {
@@ -843,12 +810,12 @@ sheetAnimationStyle: kSheetAnimationStyle,
                         ],
                       ),
                       const SizedBox(height: 12),
-                      // ── 追番打卡 ──
-                      _buildToolTile(
-                        colorScheme, textTheme,
+                      // ── 追番打卡（压缩成一行）──
+                      _buildCompactTile(
+                        colorScheme,
+                        textTheme,
                         icon: Icons.local_fire_department_rounded,
                         title: l10n.setGCheckin,
-                        caption: l10n.setGCheckinCaption,
                         color: colorScheme.tertiaryContainer,
                         foreground: colorScheme.onTertiaryContainer,
                         onTap: () => context.pushNamed('/tab/my/checkin'),
@@ -876,20 +843,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
         ),
       ),
     );
-  }
-
-  /// 🆕 分享账号：复制公开主页链接
-  Future<void> _shareProfile() async {
-    final l10n = AppLocalizations.of(context)!;
-    final uid = _socialProfile?.uid ?? '';
-    if (uid.isEmpty) {
-      KazumiDialog.showToast(message: l10n.setGProfileNotReady);
-      return;
-    }
-    final link = 'https://qlyyz.xyz/api/u.php?uid=$uid&html=1';
-    await Clipboard.setData(ClipboardData(text: link));
-    if (!mounted) return;
-    KazumiDialog.showToast(message: l10n.setGProfileLinkCopied);
   }
 
   // ── 个人中心头部（头像可点击管理）──
@@ -972,25 +925,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
           ),
         ),
         const SizedBox(width: 12),
-        // 好友
-        _buildAccountAction(
-          colorScheme: colorScheme,
-          icon: Icons.people_rounded,
-          title: l10n.setGFriends,
-          color: colorScheme.tertiary,
-          badge: _friendRequestCount,
-          onTap: () {
-            if (!AuthService.isLoggedIn) {
-              KazumiDialog.showToast(message: l10n.setGPleaseLoginFirst);
-              return;
-            }
-            final navContext = rootNavigatorKey.currentContext;
-            if (navContext == null || !navContext.mounted) return;
-            Navigator.of(navContext).push(
-              MaterialPageRoute(builder: (_) => const FriendsPage()),
-            ).then((_) => _loadSocialProfile());
-          },
-        ),
         // 🆕 切换账号（多账号快速切换，账号列表持久保存，重开 App 不丢）
         _buildAccountAction(
           colorScheme: colorScheme,
@@ -1231,6 +1165,48 @@ sheetAnimationStyle: kSheetAnimationStyle,
                 child: Icon(Icons.arrow_forward_rounded, color: colorScheme.primary, size: 20),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 一行紧凑列表项（48dp）──
+  Widget _buildCompactTile(
+    ColorScheme colorScheme,
+    TextTheme textTheme, {
+    required IconData icon,
+    required String title,
+    required Color color,
+    required Color foreground,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: SizedBox(
+          height: 48,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: foreground),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600, color: foreground),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 20, color: foreground),
+              ],
+            ),
           ),
         ),
       ),

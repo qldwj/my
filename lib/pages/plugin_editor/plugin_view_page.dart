@@ -14,7 +14,6 @@ import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
-import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/storage/storage.dart';
@@ -1453,17 +1452,7 @@ class _PluginViewPageState extends State<PluginViewPage>
                         KazumiDialog.showToast(message: '已复制 yhdmgz 链接');
                       },
                     ),
-                    // 🆕 分享给好友（发 rule 消息到好友聊天）
-                    ListTile(
-                      leading: const Icon(Icons.person_add_alt_1_rounded),
-                      title: const Text('分享给好友'),
-                      subtitle: const Text('把这条规则发给你的好友'),
-                      onTap: () {
-                        KazumiDialog.dismiss();
-                        FriendPicker.shareRule(context,
-                            ruleName: plugin.name, content: httpLink);
-                      },
-                    ),
+                    // 🆕 分享已移除「分享给好友」（App 内好友功能已下线）
                   ],
                 ),
               );

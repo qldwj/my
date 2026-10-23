@@ -6,11 +6,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/modules/bangumi/episode_item.dart';
 import 'package:yhdm/navigation.dart';
-import 'package:yhdm/pages/my/chat_page.dart';
 import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
 import 'package:yhdm/services/logging/logger.dart';
-import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/services/storage/storage.dart';
 
 /// 追番更新提醒（新番推送通知）
@@ -343,32 +341,6 @@ class AnimeUpdateNotificationService {
           KazumiLogger().w(
               'Notification: failed to navigate to download page',
               error: e);
-        }
-      });
-      return;
-    }
-    // 🆕 好友聊天通知 → 打开与该好友的聊天
-    if (payload.startsWith('chat:')) {
-      final uid = payload.substring(5);
-      Future.delayed(const Duration(milliseconds: 300), () async {
-        try {
-          final convs = await SocialService.chatRecent();
-          final matches = convs.where((c) => c.uid == uid).toList();
-          if (matches.isEmpty) return;
-          final conv = matches.first;
-          final context = rootNavigatorKey.currentContext;
-          if (context == null || !context.mounted) return;
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => ChatPage(
-              friend: SocialProfile(
-                uid: conv.uid,
-                nickname: conv.nickname,
-                avatar: conv.avatar,
-              ),
-            ),
-          ));
-        } catch (e) {
-          KazumiLogger().w('Notification: failed to open chat', error: e);
         }
       });
       return;

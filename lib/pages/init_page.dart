@@ -23,9 +23,7 @@ import 'package:yhdm/services/deep_link_service.dart';
 import 'package:yhdm/services/player/playback_recovery_service.dart';
 import 'package:yhdm/services/font_service.dart';
 import 'package:yhdm/services/notification/anime_update_notification_service.dart';
-import 'package:yhdm/services/social/chat_banner_service.dart';
 import 'package:yhdm/services/shortcut_service.dart';
-import 'package:yhdm/services/social/chat_notification_poller.dart';
 import 'package:yhdm/services/sync/kazumi_sync_service.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
@@ -139,12 +137,6 @@ class _InitPageState extends State<InitPage> {
 
     // 🆕 初始化追番更新提醒（收藏番剧有新集时推送通知，开关默认关闭）
     unawaited(AnimeUpdateNotificationService.init());
-
-    // 🆕 启动全局好友消息横幅提醒（前台每 60 秒轮询，播放页不弹）
-    ChatBannerService.start();
-
-    // 🆕 好友聊天消息通知（前台每 30 秒轮询，登录时生效）
-    ChatNotificationPoller.start();
 
     // 🆕 播放崩溃恢复：上次异常退出时提示「继续观看」
     unawaited(_checkPlaybackRecovery());

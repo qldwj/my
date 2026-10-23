@@ -20,11 +20,13 @@ class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.controller,
-    this.inputTag = '',
+    this.initialQuery = '',
   });
 
   final SearchPageController controller;
-  final String inputTag;
+
+  /// 外部进入搜索页时携带的初始关键词（可带 tag: 过滤语法）
+  final String initialQuery;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -51,14 +53,9 @@ class _SearchPageState extends State<SearchPage> {
     scrollController.addListener(scrollListener);
     searchController.addListener(_syncFilterFromSearchText);
     searchPageController.loadSearchHistories();
-    if (widget.inputTag != '') {
+    if (widget.initialQuery.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        final tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
-        _applyFilterState(SearchParser(tagString).toFilterState(),
-            search: true);
+        if (mounted) _submitSearch(widget.initialQuery);
       });
     }
   }

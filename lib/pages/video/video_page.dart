@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +10,7 @@ import 'package:yhdm/pages/video/danmaku_send_sheet.dart';
 import 'package:yhdm/pages/video/video_system_bars.dart';
 import 'package:yhdm/pages/video/video_playback_args.dart';
 import 'package:yhdm/pages/playlist/play_queue_page.dart';
-import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/services/playlist/play_queue_service.dart';
-import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/pages/history/history_controller.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/pages/player/player_item.dart';
@@ -900,141 +896,6 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  /// 🆕 随机 Syncplay 用户名（6~10 位小写字母，满足 4~12 位英文校验）
-  String _genRandomName() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    final r = Random();
-    final len = 6 + r.nextInt(5); // 6~10
-    final buf = StringBuffer();
-    for (var i = 0; i < len; i++) {
-      buf.write(chars[r.nextInt(chars.length)]);
-    }
-    return buf.toString();
-  }
-
-  /// 🆕 随机房间号（6~10 位数字，满足 Syncplay 校验）
-  String _genRandomRoom() {
-    final r = Random();
-    final len = 6 + r.nextInt(5); // 6~10
-    final buf = StringBuffer('${1 + r.nextInt(9)}');
-    for (var i = 1; i < len; i++) {
-      buf.write(r.nextInt(10));
-    }
-    return buf.toString();
-  }
-
-  /// 🆕 邀请好友"一起看"：设置房间（随机/自定义）→ 创建房间 + 发邀请消息
-  Future<void> _inviteSyncPlay() async {
-    try {
-      // 1. 随机生成房间号 + 用户名，弹出设置框（可编辑 / 重新随机）
-      var room = _genRandomRoom();
-      var username = _genRandomName();
-      final setting = await _showSyncSettingDialog(room, username);
-      if (setting == null || !mounted) return; // 取消
-      room = setting.$1;
-      username = setting.$2;
-      if (room.isEmpty || username.isEmpty) {
-        KazumiDialog.showToast(message: '房间号/用户名不能为空');
-        return;
-      }
-      // 2. 发起方加入房间（Syncplay 服务器地址取设置）
-      await playerController.createSyncPlayRoom(room, username, changeEpisode);
-      // 3. 选好友
-      final friend = await FriendPicker.pick(context, title: '邀请一起看');
-      if (friend == null || !mounted) return;
-      // 4. 发邀请消息（携带番剧信息 + 房间号 + 服务器地址）
-      final endpoint = GStorage.getSetting(SettingsKeys.syncPlayEndPoint);
-      final item = videoPageController.bangumiItem;
-      final name = item.nameCn.isNotEmpty ? item.nameCn : item.name;
-      final content = json.encode({
-        'id': item.id,
-        'name': name,
-        'cover': item.images['large'] ?? '',
-        'episode': videoPageController.selectedEpisode.episode,
-        'room': room,
-        'endpoint': endpoint,
-      });
-      final error = await SocialService.sendMessage(
-        toUid: friend.uid,
-        type: 'sync',
-        content: content,
-      );
-      if (!mounted) return;
-      KazumiDialog.showToast(
-        message: error == null
-            ? '✅ 已邀请 ${friend.nickname} 一起看，房间号 $room'
-            : '❌ $error',
-      );
-    } catch (e) {
-      KazumiLogger().e('SyncInvite: invite failed', error: e);
-      KazumiDialog.showToast(message: '邀请失败：$e');
-    }
-  }
-
-  /// 🆕 同步设置弹窗：房间号 + 用户名（预填随机，可编辑 / 重新随机）
-  Future<(String, String)?> _showSyncSettingDialog(
-      String initRoom, String initName) async {
-    final roomCtrl = TextEditingController(text: initRoom);
-    final nameCtrl = TextEditingController(text: initName);
-    final result = await showDialog<(String, String)>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('设置同步房间'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: roomCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 10,
-                decoration: const InputDecoration(
-                  labelText: '房间号（6~10 位数字）',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: nameCtrl,
-                maxLength: 12,
-                decoration: const InputDecoration(
-                  labelText: '用户名（6~10 位英文）',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setDialogState(() {
-                      roomCtrl.text = _genRandomRoom();
-                      nameCtrl.text = _genRandomName();
-                    });
-                  },
-                  icon: const Icon(Icons.shuffle_rounded, size: 18),
-                  label: const Text('重新生成随机'),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('取消',
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.outline)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                  ctx, (roomCtrl.text.trim(), nameCtrl.text.trim())),
-              child: const Text('确定'),
-            ),
-          ],
-        ),
-      ),
-    );
-    return result;
-  }
 
   /// 最后一集播完：同步判断队列是否有下一项，有则异步接播（跨番剧连播）
   /// 返回 true 表示已接管播放（不再标记"看过"）
@@ -1217,7 +1078,6 @@ class _VideoPageState extends State<VideoPage>
                   onAddToPlayQueue: _addCurrentToPlayQueue,
                   onOpenPlayQueue: _openPlayQueuePage,
                   onPlayNextFromQueue: _tryPlayNextFromQueue,
-                  onInviteSyncPlay: _inviteSyncPlay,
                 ),
         ),
       ],

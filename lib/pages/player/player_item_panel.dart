@@ -23,7 +23,7 @@ import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:yhdm/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/services/storage/storage.dart';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:yhdm/pages/player/player_progress_bar.dart';
 import 'package:yhdm/services/player/timed_shutdown_service.dart';
 import 'package:yhdm/pages/download/download_controller.dart';
 import 'package:yhdm/utils/device.dart';
@@ -42,7 +42,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleScreenShot,
     required this.handlePreNextEpisode,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarSeek,
+    required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     required this.toggleMenu,
@@ -73,7 +73,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final void Function() handleScreenShot;
   final VoidCallback handleProgressBarDragStart;
-  final Future<void> Function(Duration duration) handleProgressBarSeek;
+  final void Function(bool cancelled) handleProgressBarDragEnd;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -114,6 +114,38 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final FocusNode textFieldFocus = FocusNode();
   PlayerPanelHold? _danmakuTextFieldHold;
 
+  /// 编辑弹幕时由本输入框持有的暂停（见 SettingsKeys.pauseOnDanmakuEdit）
+  int? _danmakuPauseTick;
+  bool _holdResumeForDanmakuSend = false;
+
+  /// 是否仍由本输入框持有暂停：定时关机真正触发时会 bump expiryTicks，
+  /// 从而在这里自动失效，避免组件重建后误恢复播放。
+  bool get _pausedByDanmakuEdit =>
+      _danmakuPauseTick == TimedShutdownService().expiryTicks.value;
+
+  /// 只在“暂停是我造成的、并且没有别的东西占用播放”时才恢复。
+  bool get _canResumeAfterDanmakuEdit =>
+      _pausedByDanmakuEdit &&
+      !_holdResumeForDanmakuSend &&
+      (WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed) ==
+          AppLifecycleState.resumed &&
+      (ModalRoute.of(context)?.isCurrent ?? false);
+
+  /// 一起看房间保持原样：本地暂停会被广播出去或被服务端状态覆盖。
+  void _onDanmakuEditFocusChanged() {
+    if (playerController.syncplay.syncplayController != null) return;
+    if (textFieldFocus.hasFocus) {
+      if (GStorage.getSetting<bool>(SettingsKeys.pauseOnDanmakuEdit) &&
+          playerController.playback.playing) {
+        _danmakuPauseTick = TimedShutdownService().expiryTicks.value;
+        unawaited(playerController.pause(enableSync: false));
+      }
+    } else if (_canResumeAfterDanmakuEdit) {
+      _danmakuPauseTick = null;
+      unawaited(playerController.play(enableSync: false));
+    }
+  }
+
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
   Widget? cachedDanmakuOffIcon;
@@ -138,6 +170,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_onDanmakuEditFocusChanged);
     _releaseDanmakuTextFieldPanel();
     textController.dispose();
     textFieldFocus.dispose();
@@ -157,13 +190,17 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   Future<void> _submitDanmakuText(String message) async {
+    // 弹幕发送面板弹出期间不要因为失焦而恢复播放
+    _holdResumeForDanmakuSend = true;
     textFieldFocus.unfocus();
     _releaseDanmakuTextFieldPanel();
 
     final sent = await widget.showDanmakuDestinationPickerAndSend(message);
+    _holdResumeForDanmakuSend = false;
     if (!mounted) {
       return;
     }
+    _onDanmakuEditFocusChanged();
     if (sent) {
       textController.clear();
     }
@@ -343,6 +380,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    textFieldFocus.addListener(_onDanmakuEditFocusChanged);
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),
@@ -758,29 +796,19 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     .withHue(
                         (HSVColor.fromColor(cs.primary).hue + 180) % 360)
                     .toColor();
-                final progressBar = ProgressBar(
-                  thumbRadius: 8,
-                  thumbGlowRadius: 18,
+                final progressBar = PlayerProgressBar(
+                  sideLabels: isTablet(),
                   baseBarColor: Colors.white24,
                   bufferedBarColor: bufferedColor,
                   progressBarColor: cs.primary,
-                  timeLabelLocation: isTablet()
-                      ? TimeLabelLocation.sides
-                      : TimeLabelLocation.none,
-                  timeLabelTextStyle: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.0,
-                    fontFeatures: [
-                      FontFeature.tabularFigures(),
-                    ],
-                  ),
                   progress: playerController.playback.currentPosition,
                   buffered: playerController.playback.buffer,
                   total: playerController.playback.duration,
-                  onSeek: widget.handleProgressBarSeek,
-                  onDragStart: (_) => widget.handleProgressBarDragStart(),
-                  onDragUpdate: (details) => playerController.seeking
-                      .updateInteractiveSeek(details.timeStamp),
+                  onDragStart: widget.handleProgressBarDragStart,
+                  onDragUpdate: (position) => playerController.seeking
+                      .updateInteractiveSeek(position),
+                  onDragEnd: widget.handleProgressBarDragEnd,
+                  onSeek: playerController.seek,
                 );
                 // 🆕 进度条上叠加 OP/ED 白点标记（拖动靠近时浮出 OP/ED 文字）
                 return _SkipMarkersOverlay(

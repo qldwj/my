@@ -23,6 +23,10 @@ class TimedShutdownService {
   /// Remaining time in seconds notifier
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
 
+  /// 每次真正到期时 +1，让已挂载的播放面板能据此放弃“恢复播放”的所有权，
+  /// 而不需要服务持有任何 Widget 引用。
+  final ValueNotifier<int> expiryTicks = ValueNotifier<int>(0);
+
   /// Currently set minutes notifier (for UI display)
   final ValueNotifier<int> setMinutesNotifier = ValueNotifier<int>(0);
 
@@ -93,6 +97,7 @@ class TimedShutdownService {
   void _onTimerExpired() {
     // Reset UI state so it doesn't show 00:00
     setMinutesNotifier.value = 0;
+    expiryTicks.value++;
 
     // Invoke the callback if set (e.g., pause video)
     try {

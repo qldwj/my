@@ -15,7 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/widget/collect_button.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
-import 'package:yhdm/pages/my/friend_picker.dart';
 import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/pages/info/info_controller.dart';
@@ -554,23 +553,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    // 按钮1：分享给好友（App内好友）
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(ctx);
-                          await FriendPicker.shareAnime(
-                            context,
-                            name: name,
-                            link: deepLink,
-                          );
-                        },
-                        icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                        label: const Text('分享给好友'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // 按钮2：系统分享（QQ/微信/跨平台）
+                    // 系统分享（QQ/微信/跨平台）
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () async {

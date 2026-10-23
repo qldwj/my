@@ -302,17 +302,14 @@ class _InfoTabViewState extends State<InfoTabView>
   /// 🆕 管理员长按评论：置顶/取消置顶自己的评论、修改自己头衔
   Future<void> _showCommentAdminMenu(
       BuildContext context, CommentItem item) async {
-    // 🆕 通用评论菜单：加好友（他人评论）+ 管理员操作（自己的评论）
+    // 🆕 通用评论菜单：管理员操作（自己的评论）
     final admin = await AdminService.me();
     final myUid = SocialService.restoreLocalProfile()?.uid ?? '';
-    final canAddFriend = item.source == 'server' &&
-        item.uid.isNotEmpty &&
-        item.uid != myUid;
     final canAdmin = admin != null &&
         admin.admin &&
         item.uid.isNotEmpty &&
         item.uid == myUid;
-    if (!canAddFriend && !canAdmin) {
+    if (!canAdmin) {
       KazumiDialog.showToast(message: '暂无可用操作');
       return;
     }
@@ -325,14 +322,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ➕ 加TA为好友（他人评论）
-            if (canAddFriend)
-              ListTile(
-                leading: const Icon(Icons.person_add_alt_1_rounded),
-                title: const Text('加TA为好友'),
-                subtitle: const Text('添加这条评论的作者为好友'),
-                onTap: () => Navigator.pop(ctx, 'add_friend'),
-              ),
             // 管理员操作（自己的评论）
             if (canAdmin) ...[
               ListTile(
@@ -364,14 +353,6 @@ sheetAnimationStyle: kSheetAnimationStyle,
     );
     if (action == null || !mounted) return;
 
-    if (action == 'add_friend') {
-      // ➕ 发送好友申请
-      final error = await SocialService.addFriend(item.uid);
-      if (!mounted) return;
-      KazumiDialog.showToast(
-          message: error == null ? '✅ 好友申请已发送' : '❌ $error');
-      return;
-    }
     if (action == 'pin') {
       final error =
           await AdminService.pinSelf(item.user.id.abs(), pinned: !item.pinned);

@@ -600,12 +600,8 @@ class _PlayerItemState extends State<PlayerItem>
     _progressBarDragHold = acquirePlayerPanelHold();
   }
 
-  Future<void> handleProgressBarSeek(Duration duration) async {
-    if (!playerController.seeking.updateInteractiveSeek(duration)) {
-      await playerController.seek(duration);
-      return;
-    }
-    await _commitInteractiveSeek();
+  void handleProgressBarDragEnd(bool cancelled) {
+    unawaited(_commitInteractiveSeek(cancelled: cancelled));
   }
 
   void _beginInteractiveSeek() {
@@ -615,10 +611,11 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.seeking.beginInteractiveSeek();
   }
 
-  Future<void> _commitInteractiveSeek() async {
+  Future<void> _commitInteractiveSeek({bool cancelled = false}) async {
     var completed = false;
     try {
-      completed = await playerController.seeking.commitInteractiveSeek();
+      completed = await playerController.seeking
+          .commitInteractiveSeek(cancelled: cancelled);
     } catch (e) {
       KazumiLogger().e('PlayerController: interactive seek failed', error: e);
     }
@@ -1051,10 +1048,7 @@ class _PlayerItemState extends State<PlayerItem>
               .applyExternalVolume(playerController.playback.playerVolume);
         }
       }
-      if (!Platform.isWindows &&
-          !Platform.isMacOS &&
-          !Platform.isLinux &&
-          !playerController.panel.brightnessSeeking) {
+      if (!isDesktop() && !playerController.panel.brightnessSeeking) {
         ScreenBrightnessPlatform.instance.application.then((value) {
           if (!mounted) return;
           playerController.panel.brightness = value;
@@ -1864,7 +1858,8 @@ void dispose() {
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarSeek: handleProgressBarSeek,
+                            handleProgressBarDragEnd:
+                                handleProgressBarDragEnd,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             handlePreNextEpisode: handlePreNextEpisode,
@@ -1900,7 +1895,8 @@ void dispose() {
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
-                            handleProgressBarSeek: handleProgressBarSeek,
+                            handleProgressBarDragEnd:
+                                handleProgressBarDragEnd,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
                             panelVisibilityController:

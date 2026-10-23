@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:yhdm/bbcode/bbcode_widget.dart';
 import 'package:yhdm/bean/widget/bangumi_avatar.dart';
 import 'package:yhdm/modules/comments/comment_item.dart';
-import 'package:yhdm/pages/my/profile_page.dart';
 import 'package:yhdm/utils/date_time.dart';
 
 class EpisodeCommentsCard extends StatelessWidget {
@@ -30,22 +29,9 @@ class EpisodeCommentsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ProfilePage(
-                          uid: commentItem.comment.user.id.toString(),
-                          nickname: commentItem.comment.user.nickname,
-                          avatar: commentItem.comment.user.avatar.large,
-                        ),
-                      ),
-                    );
-                  },
-                  child: BangumiAvatar(
-                    url: commentItem.comment.user.avatar.large,
-                    size: 40,
-                  ),
+                BangumiAvatar(
+                  url: commentItem.comment.user.avatar.large,
+                  size: 40,
                 ),
                 const SizedBox(width: 8),
                 Column(

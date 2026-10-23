@@ -16,7 +16,7 @@ import 'package:yhdm/services/player/remote.dart';
 import 'package:yhdm/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:yhdm/utils/constants.dart';
 import 'package:yhdm/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:yhdm/pages/player/player_progress_bar.dart';
 import 'package:yhdm/bean/widget/embedded_native_control_area.dart';
 import 'package:yhdm/services/player/timed_shutdown_service.dart';
 import 'package:yhdm/utils/device.dart';
@@ -32,7 +32,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.showDanmakuSwitch,
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
-    required this.handleProgressBarSeek,
+    required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
     required this.panelVisibilityController,
     required this.acquirePlayerPanelHold,
@@ -55,7 +55,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() skipOP;
   final void Function() handleFullscreen;
   final VoidCallback handleProgressBarDragStart;
-  final Future<void> Function(Duration duration) handleProgressBarSeek;
+  final void Function(bool cancelled) handleProgressBarDragEnd;
   final Future<void> Function(SuperResolutionMode mode)
       handleSuperResolutionChange;
   final AnimationController panelVisibilityController;
@@ -428,20 +428,19 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             final bufferedColor = HSVColor.fromColor(cs.primary)
                 .withHue((HSVColor.fromColor(cs.primary).hue + 180) % 360)
                 .toColor();
-            return ProgressBar(
-              thumbRadius: 8,
-              thumbGlowRadius: 18,
+            return PlayerProgressBar(
+              sideLabels: false,
               baseBarColor: Colors.white24,
               bufferedBarColor: bufferedColor,
               progressBarColor: cs.primary,
-              timeLabelLocation: TimeLabelLocation.none,
               progress: playerController.playback.currentPosition,
               buffered: playerController.playback.buffer,
               total: playerController.playback.duration,
-              onSeek: widget.handleProgressBarSeek,
-              onDragStart: (_) => widget.handleProgressBarDragStart(),
-              onDragUpdate: (details) => playerController.seeking
-                  .updateInteractiveSeek(details.timeStamp),
+              onDragStart: widget.handleProgressBarDragStart,
+              onDragUpdate: (position) => playerController.seeking
+                  .updateInteractiveSeek(position),
+              onDragEnd: widget.handleProgressBarDragEnd,
+              onSeek: playerController.seek,
             );
           }),
         ),

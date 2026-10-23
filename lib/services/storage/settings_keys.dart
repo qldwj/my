@@ -1,3 +1,5 @@
+import 'package:yhdm/utils/device.dart';
+
 enum SettingGroup {
   player,
   danmaku,
@@ -179,6 +181,13 @@ class SettingsKeys {
     _SettingBoxKey.danmakuEnhance,
     true,
     group: SettingGroup.danmaku,
+  );
+  /// 编辑弹幕时自动暂停播放：移动端默认开启，桌面端默认关闭（同 B 站）
+  static final pauseOnDanmakuEdit = SettingKey<bool>(
+    _SettingBoxKey.pauseOnDanmakuEdit,
+    true,
+    group: SettingGroup.danmaku,
+    defaultResolver: (_) => !isDesktop(),
   );
   static const danmakuBorder = SettingKey<bool>(
     _SettingBoxKey.danmakuBorder,
@@ -1001,18 +1010,6 @@ class SettingsKeys {
     group: SettingGroup.misc,
   );
 
-  // 🆕 全局好友消息横幅提醒（除播放页外，顶部弹出好友消息）
-  static const chatGlobalBanner = SettingKey<bool>(
-    _SettingBoxKey.chatGlobalBanner,
-    true,
-    group: SettingGroup.notice,
-  );
-  // 🆕 社交：聊天已读记录 JSON（{"好友uid": 最后已读消息id}）
-  static const chatLastRead = SettingKey<String>(
-    _SettingBoxKey.chatLastRead,
-    '{}',
-    group: SettingGroup.misc,
-  );
   // 🆕 GitHub 仓库同步
   static const githubCloudToken = SettingKey<String>(
     _SettingBoxKey.githubCloudToken,
@@ -1077,6 +1074,7 @@ class SettingsKeys {
     buttonSkipTime,
     arrowKeySkipTime,
     danmakuEnhance,
+    pauseOnDanmakuEdit,
     danmakuBorder,
     danmakuBorderSize,
     danmakuOpacity,
@@ -1212,6 +1210,7 @@ class _SettingBoxKey {
       buttonSkipTime = 'buttonSkipTime',
       arrowKeySkipTime = 'arrowKeySkipTime',
       danmakuEnhance = 'danmakuEnhance',
+      pauseOnDanmakuEdit = 'pauseOnDanmakuEdit',
       danmakuBorder = 'danmakuBorder',
       danmakuBorderSize = 'danmakuBorderSize',
       danmakuOpacity = 'danmakuOpacity',
@@ -1319,8 +1318,6 @@ class _SettingBoxKey {
       socialProfile = 'socialProfile',
       kazumiEmail = 'kazumiEmail',
       timeSavedSeconds = 'timeSavedSeconds',
-      chatLastRead = 'chatLastRead',
-      chatGlobalBanner = 'chatGlobalBanner',
       ruleSortDefault = 'ruleSortDefault',
       ruleSortQuality = 'ruleSortQuality',
       ruleSortEpisodes = 'ruleSortEpisodes',
