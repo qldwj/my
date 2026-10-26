@@ -124,7 +124,7 @@ class _CommunityPageState extends State<CommunityPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final summary = (_stats['summary'] as Map?) ?? {};
+    final summary = Map<String, dynamic>.from((_stats['summary'] as Map?) ?? {});
     final playingList = _playingAggregated();
     final isLoggedIn = AuthService.isLoggedIn;
 
@@ -303,7 +303,7 @@ class _CommunityPageState extends State<CommunityPage> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '$_online',
+                '${online}',
                 style: Theme.of(context)
                     .textTheme
                     .headlineMedium
