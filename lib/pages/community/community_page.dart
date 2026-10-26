@@ -7,6 +7,7 @@ import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/modules/bangumi/bangumi_item.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
+import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/services/presence_service.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 
@@ -125,12 +126,17 @@ class _CommunityPageState extends State<CommunityPage> {
     final l10n = AppLocalizations.of(context)!;
     final summary = (_stats['summary'] as Map?) ?? {};
     final playingList = _playingAggregated();
+    final isLoggedIn = AuthService.isLoggedIn;
 
     return Scaffold(
       appBar: SysAppBar(
         needTopOffset: false,
         title: const Text('社区'),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: _buildIdentityChip(isLoggedIn: isLoggedIn),
+          ),
           IconButton(
             tooltip: '刷新',
             icon: _loading
@@ -147,6 +153,7 @@ class _CommunityPageState extends State<CommunityPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (!isLoggedIn) _buildGuestBanner(),
           _buildHeader(summary, l10n),
           _buildSectionTitle('正在看', playingList.length),
           if (playingList.isEmpty)
@@ -185,6 +192,90 @@ class _CommunityPageState extends State<CommunityPage> {
               ),
             ),
           _buildFooter(_stats),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIdentityChip({required bool isLoggedIn}) {
+    final cs = Theme.of(context).colorScheme;
+    if (!isLoggedIn) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              '游客',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.person_rounded, size: 14, color: cs.primary),
+          const SizedBox(width: 4),
+          Text(
+            _currentDisplayName(),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: cs.onPrimaryContainer),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 从本地缓存取当前登录用户名；未登录返回 '游客'
+  String _currentDisplayName() {
+    if (!AuthService.isLoggedIn) return '游客';
+    final token = AuthService.getLocalToken() ?? '';
+    final accounts = AuthService.getSavedAccounts();
+    final current = accounts.where((a) => a.token == token).firstOrNull;
+    final nickname = current?.nickname.trim() ?? '';
+    if (nickname.isNotEmpty) return nickname;
+    final email = AuthService.currentUserEmail ?? '';
+    if (email.isNotEmpty && email.contains('@')) return email.split('@').first;
+    return '我';
+  }
+
+  Widget _buildGuestBanner() {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: cs.tertiaryContainer.withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 16, color: cs.onTertiaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '你正在以游客身份浏览社区，你的在线状态不会被上报',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: cs.onTertiaryContainer),
+            ),
+          ),
         ],
       ),
     );
