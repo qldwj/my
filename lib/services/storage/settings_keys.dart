@@ -1054,6 +1054,13 @@ class SettingsKeys {
     group: SettingGroup.sync,
   );
 
+  // 🆕 在线状态上报开关（默认 true）：关闭后不发送心跳与播放状态
+  static const presenceVisibilityEnabled = SettingKey<bool>(
+    'presenceVisibilityEnabled',
+    true,
+    group: SettingGroup.sync,
+  );
+
   static final List<SettingKey<Object?>> all = [
     hAenable,
     autoSwitchSource,

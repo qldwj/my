@@ -71,6 +71,8 @@ class AuthService {
   /// 检测到登录失效：清除本地 token + 通知 App 层
   static void handleAuthFailure() {
     clearLocalToken();
+    // 🆕 登出 / 失效 → 清空 presence 当前用户缓存
+    try { PresenceService.clearCurrentUser(); } catch (_) {}
     // 全局兜底提示（不依赖回调挂载；UI 刷新由 onAuthFailed 负责）
     try {
       KazumiDialog.showToast(

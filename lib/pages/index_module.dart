@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'package:yhdm/bean/widget/image_preview.dart';
 import 'package:yhdm/pages/collect/collect_module.dart';
+import 'package:yhdm/pages/community/community_module.dart';
 import 'package:yhdm/pages/index_page.dart';
 import 'package:yhdm/pages/info/info_module.dart';
 import 'package:yhdm/pages/init_page.dart';
@@ -62,6 +63,7 @@ final tabModule = createModule(
             )
             ..module(popularModule)
             ..module(timelineModule)
+            ..module(communityModule)
             ..module(collectModule)
             ..module(myModule);
         },

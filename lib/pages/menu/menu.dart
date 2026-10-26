@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter/services.dart';
@@ -23,10 +24,20 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
   final _outletKey = GlobalKey<RouterOutletState>();
   DateTime? _lastExitPromptAt;
   late int _selectedIndex = menu.indexForPath(widget.location);
+  StreamSubscription<void>? _liquidGlassSub;
 
   /// The shell sits at the bottom of the root stack and stays mounted while
   /// other pages cover it, so it publishes that state for its subtree.
   bool _isCovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 开关在设置页切换后，menu 本身不会重建，靠监听该 key 变化主动 setState
+    _liquidGlassSub = GStorage.watchSettings([SettingsKeys.liquidGlassNav]).listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void didUpdateWidget(covariant ScaffoldMenu oldWidget) {
@@ -47,6 +58,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
 
   @override
   void dispose() {
+    _liquidGlassSub?.cancel();
     rootRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -164,6 +176,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
           label: l10n.setGTabTimeline,
         ),
         NavigationDestination(
+          selectedIcon: const Icon(Icons.groups_rounded),
+          icon: const Icon(Icons.groups_outlined),
+          label: '社区',
+        ),
+        NavigationDestination(
           selectedIcon: Icon(Icons.favorite),
           icon: Icon(Icons.favorite_outlined),
           label: l10n.setGTabFollow,
@@ -237,6 +254,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
                   selectedIcon: Icon(Icons.timeline),
                   icon: Icon(Icons.timeline_outlined),
                   label: Text(l10n.setGTabTimeline),
+                ),
+                NavigationRailDestination(
+                  selectedIcon: const Icon(Icons.groups_rounded),
+                  icon: const Icon(Icons.groups_outlined),
+                  label: const Text('社区'),
                 ),
                 NavigationRailDestination(
                   selectedIcon: Icon(Icons.favorite),

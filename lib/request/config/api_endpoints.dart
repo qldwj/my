@@ -32,6 +32,8 @@ class ApiEndpoints {
 
   /// 🆕 追番打卡接口（v1/checkin.php）
   static const String checkinApi = 'https://qlyyz.xyz/api/v1/checkin.php';
+  /// 🆕 在线状态 / 心跳上报（v1/presence.php）
+  static const String presenceApi = 'https://qlyyz.xyz/api/v1/presence.php';
   /// 🆕 公开个人主页接口（api/u.php）
   static const String publicProfileApi = 'https://qlyyz.xyz/api/u.php';
 

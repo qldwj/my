@@ -43,6 +43,7 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:yhdm/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:yhdm/services/player/audio_controller.dart';
+import 'package:yhdm/services/presence_service.dart';
 import 'package:yhdm/utils/device.dart';
 import 'package:yhdm/services/platform/display_mode_service.dart';
 import 'package:yhdm/services/platform/player_menu_service.dart';
@@ -113,6 +114,8 @@ class _PlayerItemState extends State<PlayerItem>
   late bool webDavEnableHistory;
 
   final _danmuKey = GlobalKey();
+  Timer? _presenceTimer;
+  static const Duration _presenceInterval = Duration(seconds: 60);
 
   /// 🆕 倍速记忆：是否已应用本番记忆倍速（避免每 tick 重复设置）
   bool _appliedPlaybackSpeedMemory = false;
@@ -1598,6 +1601,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
+    _startPresenceHeartbeat();
   }
 
   @override
@@ -1623,7 +1627,33 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  void _startPresenceHeartbeat() {
+    _presenceTimer?.cancel();
+    _sendPresencePlaying();
+    _presenceTimer = Timer.periodic(_presenceInterval, (_) {
+      if (!mounted) return;
+      _sendPresencePlaying();
+    });
+  }
+
+  void _sendPresencePlaying() {
+    final item = videoPageController.bangumiItem;
+    if (item.id <= 0) return;
+    final now = playerController.playback.currentPosition.inSeconds;
+    final dur = playerController.playback.duration.inSeconds;
+    unawaited(PresenceService.beatPlaying(
+      subjectId: item.id,
+      episodeNo: videoPageController.selectedEpisode.episode,
+      progress: now,
+      duration: dur,
+    ));
+  }
+
 void dispose() {
+    // 🆕 退播放页 → 上报 status=online（从 playing 降回在线）
+    unawaited(PresenceService.reportStopped());
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
     // 🆕 正常退出播放页 → 清除崩溃恢复点（避免下次误提示恢复）
     PlaybackRecoveryService.clear();
     // Playback lifetime is owned by the route-scoped PlayerController.

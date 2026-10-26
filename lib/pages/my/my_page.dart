@@ -21,6 +21,7 @@ import 'package:yhdm/pages/my/kazumi_login_page.dart';
 import 'package:yhdm/pages/my/qrcode_login_page.dart';
 import 'package:yhdm/pages/my/security_center_page.dart';
 import 'package:yhdm/services/checkin_service.dart';
+import 'package:yhdm/services/presence_heartbeat.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/services/auth_service.dart';
@@ -684,6 +685,28 @@ sheetAnimationStyle: kSheetAnimationStyle,
         ),
         needTopOffset: false,
         actions: [
+          IconButton(
+            tooltip: '在线状态上报',
+            icon: Icon(
+              GStorage.getSetting(SettingsKeys.presenceVisibilityEnabled)
+                  ? Icons.visibility_rounded
+                  : Icons.visibility_off_rounded,
+              size: 22,
+              color: GStorage.getSetting(SettingsKeys.presenceVisibilityEnabled)
+                  ? colorScheme.onSurface
+                  : Colors.grey,
+            ),
+            onPressed: () {
+              final cur = GStorage.getSetting(SettingsKeys.presenceVisibilityEnabled);
+              GStorage.putSetting(SettingsKeys.presenceVisibilityEnabled, !cur);
+              // 重启/停止 App 级心跳
+              PresenceHeartbeat.instance.refresh();
+              if (mounted) setState(() {});
+              KazumiDialog.showToast(
+                message: cur ? '已关闭在线状态上报' : '已开启在线状态上报',
+              );
+            },
+          ),
           if (AuthService.isLoggedIn)
             IconButton(
               tooltip: l10n.setGScanLoginOtherDevice,
