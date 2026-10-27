@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 import 'package:yhdm/bean/settings/settings_detail_scaffold.dart';
 import 'package:yhdm/bean/widget/content_section.dart';
 import 'package:yhdm/pages/about/about_widgets.dart';
-import 'package:yhdm/pages/about/release_history_page.dart';
-import 'package:yhdm/pages/logs/logs_page.dart';
 import 'package:yhdm/request/config/api_endpoints.dart';
 
 class AboutPage extends StatelessWidget {
@@ -143,19 +142,13 @@ class _ProjectHeader extends StatelessWidget {
               TextButton(
                 style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
                 // 🆕 不再跳网页：进入内置的版本历史页（镜像 API 拉取）
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReleaseHistoryPage(),
-                  ),
-                ),
+                onPressed: () => context.pushNamed('/settings/about/releases'),
                 child: const Text('更新日志'),
               ),
               // 🆕 错误日志入口（原 about 页的 /logs 路由，新版布局补回）
               TextButton(
                 style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LogsPage()),
-                ),
+                onPressed: () => context.pushNamed('/settings/about/logs'),
                 child: const Text('错误日志'),
               ),
             ],
