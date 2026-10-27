@@ -22,6 +22,7 @@ import 'package:yhdm/pages/my/qrcode_login_page.dart';
 import 'package:yhdm/pages/my/security_center_page.dart';
 import 'package:yhdm/services/checkin_service.dart';
 import 'package:yhdm/services/presence_heartbeat.dart';
+import 'package:yhdm/services/presence_service.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/services/auth_service.dart';
