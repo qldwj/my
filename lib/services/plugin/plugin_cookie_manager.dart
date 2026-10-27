@@ -2,6 +2,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/utils/set_cookie_parser.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 /// 每条规则的 Cookie 管理器（Hive 持久化）
 ///
@@ -129,6 +130,8 @@ class PluginCookieManager {
     await GStorage.pluginCookies.delete(_keyPrefix + pluginName);
     // 🆕 一并清除 token（token 认证站点）
     await GStorage.pluginCookies.delete(_tokenKeyPrefix + pluginName);
+    // 🆕 一并清除内置 WebView 持久 Cookie（否则浏览器残留，重新保存又回来）
+    await CookieManager.instance.clearCookies();
   }
 
   /// 清除所有已保存的 Cookie（一键清理误判的登录态）
