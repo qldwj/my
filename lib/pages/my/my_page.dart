@@ -535,7 +535,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
               subtitle: Text(l10n.setGLoginRecordsDeviceMgmt),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.of(context).push(
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                Navigator.of(navContext).push(
                   MaterialPageRoute(builder: (_) => const SecurityCenterPage()),
                 );
               },
@@ -722,7 +724,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
               tooltip: l10n.setGScanLoginOtherDevice,
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 22),
               onPressed: () {
-                Navigator.of(context).push(
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                Navigator.of(navContext).push(
                   MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
                 );
               },
@@ -732,7 +736,9 @@ sheetAnimationStyle: kSheetAnimationStyle,
               tooltip: l10n.setGScanLogin,
               icon: const Icon(Icons.qr_code_2_rounded, size: 22),
               onPressed: () {
-                Navigator.of(context).push(
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                Navigator.of(navContext).push(
                   MaterialPageRoute(builder: (_) => const QrcodeLoginPage()),
                 );
               },

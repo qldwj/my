@@ -4,6 +4,7 @@ import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/pages/plugin_editor/market_page.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_catalog_view.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
+import 'package:yhdm/navigation.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({
@@ -35,11 +36,15 @@ class _PluginShopPageState extends State<PluginShopPage> {
         title: Text(l10n.setFRuleRepository),
         actions: [
           IconButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => MarketPage(controller: widget.controller),
-              ),
-            ),
+            onPressed: () {
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              Navigator.of(navContext).push(
+                MaterialPageRoute(
+                  builder: (_) => MarketPage(controller: widget.controller),
+                ),
+              );
+            },
             tooltip: l10n.setFRuleMarketUserUpload,
             icon: const Icon(Icons.storefront_outlined),
           ),

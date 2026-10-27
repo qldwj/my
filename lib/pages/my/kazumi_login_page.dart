@@ -7,6 +7,7 @@ import 'package:yhdm/services/account_status_cache.dart';
 import 'package:yhdm/services/auth_service.dart';
 import 'package:yhdm/services/social/social_service.dart';
 import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/navigation.dart';
 import 'package:yhdm/services/storage/settings_keys.dart';
 import 'package:yhdm/services/sync/kazumi_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -353,11 +354,19 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
         title: const Text('樱花动漫账号'),
         actions: [
           if (_loggedIn) IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileEditPage())),
+            onPressed: () {
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              Navigator.of(navContext).push(MaterialPageRoute(builder: (_) => const ProfileEditPage()));
+            },
             icon: const Icon(Icons.edit_rounded), tooltip: '编辑资料',
           ),
           if (_loggedIn) IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QrcodeLoginPage())),
+            onPressed: () {
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              Navigator.of(navContext).push(MaterialPageRoute(builder: (_) => const QrcodeLoginPage()));
+            },
             icon: const Icon(Icons.qr_code), tooltip: l10n.setHGenLoginQr,
           ),
         ],
@@ -420,24 +429,32 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _buildLoginButton('assets/images/icons/wechat.png', '微信', () async {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage()));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage()));
               _onAuthResult(r);
             })),
             const SizedBox(width: 12),
             Expanded(child: _buildLoginButton('assets/images/icons/qq.png', 'QQ', () async {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage()));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage()));
               _onAuthResult(r);
             })),
           ]),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _buildLoginButton('assets/images/icons/telegram.png', 'Telegram', () async {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage()));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage()));
               _onAuthResult(r);
             })),
             const SizedBox(width: 12),
             Expanded(child: _buildLoginButton('assets/images/icons/douyin.png', '抖音', () async {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage()));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage()));
               _onAuthResult(r);
             })),
           ]),
@@ -446,7 +463,9 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () async {
-                final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext == null || !navContext.mounted) return;
+                final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
                 _onAuthResult(r);
               },
               icon: Image.asset('assets/images/icons/bangumi.png', width: 20, height: 20),
@@ -474,7 +493,9 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             if (_status['has_wechat']!) {
               _showUnbindDialog('wechat', '微信');
             } else {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage(bindMode: true)));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const WechatLoginPage(bindMode: true)));
               _onAuthResult(r);
             }
           }),
@@ -482,7 +503,9 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             if (_status['has_qq']!) {
               _showUnbindDialog('qq', 'QQ');
             } else {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage(bindMode: true)));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const QQLoginPage(bindMode: true)));
               _onAuthResult(r);
             }
           }),
@@ -490,7 +513,9 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             if (_status['has_telegram']!) {
               _showUnbindDialog('telegram', 'Telegram');
             } else {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage(bindMode: true)));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const TelegramLoginPage(bindMode: true)));
               _onAuthResult(r);
             }
           }),
@@ -498,13 +523,17 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             if (_status['has_douyin'] ?? false) {
               _showUnbindDialog('douyin', '抖音');
             } else {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage(bindMode: true)));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const DouyinLoginPage(bindMode: true)));
               _onAuthResult(r);
             }
           }),
           _buildStatusTile('assets/images/icons/bangumi.png', 'Bangumi', _status['has_bangumi']!, () async {
             if (!_status['has_bangumi']!) {
-              final r = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              final r = await Navigator.of(navContext).push<bool>(MaterialPageRoute(builder: (_) => const BangumiLoginPage()));
               _onAuthResult(r);
             }
           }),
@@ -528,7 +557,11 @@ class _KazumiLoginPageState extends State<KazumiLoginPage> {
             leading: const Icon(Icons.devices_rounded),
             title: const Text('登录设备管理'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeviceSessionsPage())),
+            onTap: () {
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              Navigator.of(navContext).push(MaterialPageRoute(builder: (_) => const DeviceSessionsPage()));
+            },
           ),
           const SizedBox(height: 8),
           // 🆕 换包名迁移：给新 App 生成一次性迁移码

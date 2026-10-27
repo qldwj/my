@@ -18,6 +18,7 @@ import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/storage/storage.dart';
+import 'package:yhdm/navigation.dart';
 import 'package:yhdm/plugins/animeko_converter.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_update_actions.dart';
@@ -323,7 +324,9 @@ class _PluginViewPageState extends State<PluginViewPage>
               TextButton.icon(
                 onPressed: () {
                   KazumiDialog.dismiss();
-                  Navigator.of(context).push(
+                  final navContext = rootNavigatorKey.currentContext;
+                  if (navContext == null || !navContext.mounted) return;
+                  Navigator.of(navContext).push(
                     MaterialPageRoute(
                       builder: (_) => PluginLoginPage(plugin: plugin),
                     ),
@@ -363,7 +366,9 @@ class _PluginViewPageState extends State<PluginViewPage>
                 title: Text(AppLocalizations.of(context)!.setEInstallCollectionFromRepo),
                 onTap: () {
                   KazumiDialog.dismiss();
-                  Navigator.of(context).push(
+                  final navContext = rootNavigatorKey.currentContext;
+                  if (navContext == null || !navContext.mounted) return;
+                  Navigator.of(navContext).push(
                     MaterialPageRoute(
                       builder: (_) => CollectionBrowserPage(
                         controller: pluginsController,
@@ -1087,7 +1092,9 @@ class _PluginViewPageState extends State<PluginViewPage>
                       showMcpServerDialog(context);
                       break;
                     case 'settings':
-                      Navigator.of(context).push(
+                      final navContext = rootNavigatorKey.currentContext;
+                      if (navContext == null || !navContext.mounted) break;
+                      Navigator.of(navContext).push(
                         MaterialPageRoute(
                             builder: (_) => const RuleSettingsPage()),
                       );
@@ -1329,7 +1336,9 @@ class _PluginViewPageState extends State<PluginViewPage>
             if (isMultiSelectMode) {
               _toggleSelect(plugin);
             } else {
-              Navigator.of(context).push(
+              final navContext = rootNavigatorKey.currentContext;
+              if (navContext == null || !navContext.mounted) return;
+              Navigator.of(navContext).push(
                 MaterialPageRoute(
                   builder: (_) => CollectionDetailPage(plugin: plugin),
                 ),
