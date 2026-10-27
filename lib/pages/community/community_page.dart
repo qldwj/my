@@ -173,7 +173,7 @@ class _CommunityPageState extends State<CommunityPage> {
               child: LayoutBuilder(
                 builder: (context, boxConstraints) {
                   final isWide = boxConstraints.maxWidth >= 600;
-                  final cols = isWide ? (boxConstraints.maxWidth ~/ 180).clamp(2, 6) : 2;
+                  final cols = isWide ? (boxConstraints.maxWidth ~/ 180).clamp(2, 6) : 3;
                   return GridView.builder(
                     padding: const EdgeInsets.all(12),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -414,7 +414,7 @@ class _CommunityPageState extends State<CommunityPage> {
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      textShadow: [TextShadow(color: Colors.black54, blurRadius: 4)],
+                      shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -422,12 +422,12 @@ class _CommunityPageState extends State<CommunityPage> {
                     children: [
                       const Icon(Icons.people, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      Text('$viewers 人在看', style: Theme.of(context).textContent.bodySmall?.copyWith(color: Colors.white70)),
+                      Text('$viewers 人在看', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
                       const Spacer(),
                       if (item != null && item.ratingScore > 0)
                         Text(
                           item.ratingScore.toStringAsFixed(1),
-                          style: Theme.of(context).textContent.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                     ],
                   ),
