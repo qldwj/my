@@ -265,20 +265,22 @@ class _PluginViewPageState extends State<PluginViewPage>
             ],
           ),
           const SizedBox(height: 4),
-          // 🆕 剩余天数徽章（token 规则）+ 过期时间
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (isToken && remainingText.isNotEmpty) ...[
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: remainingColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+          // 🆕 token 信息：已保存 / 过期时间 / 剩余，各占一行（避免过期时间被截断）
+          if (isToken)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Token：${count > 0 ? '已保存' : '无'}',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+                if (expiresAt != null)
+                  Text(
+                    '过期 ${fmt(expiresAt)}',
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                if (remainingText.isNotEmpty)
+                  Row(
                     children: [
                       Icon(
                         remainingText == '已过期'
@@ -288,28 +290,28 @@ class _PluginViewPageState extends State<PluginViewPage>
                         color: remainingColor,
                       ),
                       const SizedBox(width: 3),
-                      Text(remainingText,
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: remainingColor,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        remainingText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: remainingColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
               ],
-              Text(
-                isToken
-                    ? 'Token：${count > 0 ? '已保存' : '无'}'
-                        '${expiresAt != null ? ' · 过期 ${fmt(expiresAt)}' : ''}'
-                    : 'Cookie：${count} 条 · 保存于 ${fmt(savedAt)}',
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-              ),
-            ],
-          ),
+            )
+          else
+            Text(
+              'Cookie：${count} 条 · 保存于 ${fmt(savedAt)}',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
           Text(
             isToken
-                ? '登录态由接口校验（check），非 Cookie 有效期'
+                ? (plugin.checkConfig?.isLocal == true
+                    ? '登录态由本地过期时间判定'
+                    : '登录态由接口校验（check），非 Cookie 有效期')
                 : isSession
                     ? '真实过期：该站未下发 expires（会话级）'
                     : '真实过期：${fmt(expiresAt)}',
