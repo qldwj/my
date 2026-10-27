@@ -557,6 +557,48 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 ],
                 onChanged: (value) => setState(() => captchaType = value),
               ),
+            EditorAnimatedSection(
+              activeKey: captchaType,
+              child: Column(
+                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (captchaType == CaptchaType.imageCaptcha) ...[
+                    EditorTextField(
+                      controller: captchaImageController,
+                      label: _RuleEditorText.captchaImage,
+                      hint: _RuleEditorText.captchaImageHint,
+                      helper: _RuleEditorText.captchaImageHelper,
+                    ),
+                    EditorTextField(
+                      controller: captchaInputController,
+                      label: _RuleEditorText.captchaInput,
+                      hint: _RuleEditorText.captchaInputHint,
+                      helper: _RuleEditorText.captchaInputHelper,
+                    ),
+                  ],
+                  if (captchaType != CaptchaType.customJavaScript)
+                    EditorTextField(
+                      controller: captchaButtonController,
+                      label: captchaType == CaptchaType.imageCaptcha
+                          ? _RuleEditorText.captchaSubmitButton
+                          : _RuleEditorText.verifyButton,
+                      hint: _RuleEditorText.captchaButtonHint,
+                      helper: captchaType == CaptchaType.imageCaptcha
+                          ? _RuleEditorText.captchaSubmitButtonHelper
+                          : _RuleEditorText.verifyButtonHelper,
+                    ),
+                  if (captchaType == CaptchaType.customJavaScript)
+                    EditorTextField(
+                      controller: captchaScriptController,
+                      label: _RuleEditorText.captchaScript,
+                      hint: _RuleEditorText.captchaScriptHint,
+                      helper: _RuleEditorText.captchaScriptHelper,
+                      maxLines: 8,
+                    ),
+                ],
+              ),
+            ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('该网站需要登录'),
