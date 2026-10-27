@@ -57,19 +57,27 @@ class PresenceHeartbeat {
   }
 
   Future<void> _tick() async {
-    if (!_active) return;
-    if (AuthService.getLocalToken() == null) {
+    if (!_active) {
+      KazumiLogger().w('Presence tick: skipped, _active=false', forceLog: true);
+      return;
+    }
+    final token = AuthService.getLocalToken();
+    if (token == null) {
+      KazumiLogger().w('Presence tick: skipped, token=null', forceLog: true);
       stop();
       return;
     }
     if (!PresenceService.enabled) {
+      KazumiLogger().w('Presence tick: skipped, enabled=false', forceLog: true);
       stop();
       return;
     }
     try {
-      await PresenceService.beatOnline();
+      KazumiLogger().w('Presence tick: sending beatOnline, token=${token.substring(0, min(8, token.length))}...', forceLog: true);
+      final result = await PresenceService.beatOnline();
+      KazumiLogger().w('Presence tick: beatOnline result=$result', forceLog: true);
     } catch (e) {
-      KazumiLogger().w('Presence heartbeat tick failed', forceLog: true);
+      KazumiLogger().w('Presence heartbeat tick failed: $e', forceLog: true);
     } finally {
       _scheduleNext(_interval);
     }
