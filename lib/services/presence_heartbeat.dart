@@ -73,7 +73,8 @@ class PresenceHeartbeat {
       return;
     }
     try {
-      KazumiLogger().w('Presence tick: sending beatOnline, token=${token.substring(0, min(8, token.length))}...', forceLog: true);
+      final tokenPreview = token.length >= 8 ? '${token.substring(0, 8)}...' : token;
+      KazumiLogger().w('Presence tick: sending beatOnline, token=$tokenPreview', forceLog: true);
       final result = await PresenceService.beatOnline();
       KazumiLogger().w('Presence tick: beatOnline result=$result', forceLog: true);
     } catch (e) {
