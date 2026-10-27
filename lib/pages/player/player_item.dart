@@ -1646,6 +1646,9 @@ class _PlayerItemState extends State<PlayerItem>
       episodeNo: videoPageController.selectedEpisode.episode,
       progress: now,
       duration: dur,
+      subjectName: item.nameCn.isNotEmpty ? item.nameCn : item.name,
+      subjectImage: item.images['large'] ?? item.images['common'] ?? '',
+      subjectSummary: item.summary,
     ));
   }
 
