@@ -35,10 +35,11 @@ class LoginCheckResult {
 /// 根据响应判定登录态是否有效。
 ///
 /// - 无 `check` 配置：回退到 Cookie 有效期判断（[PluginCookieManager.hasSaved]）。
-/// - 有 `check` 配置：读取 token，替换 `@token` 占位符，发起请求；
+/// - 有 `check` 且 mode=api（默认）：读取 token，替换 `@token` 占位符，发起请求；
 ///   HTTP 状态码与响应体 `code` 均符合预期视为有效。
 ///   - HTTP 401/403 → 明确过期。
 ///   - 网络异常 → 保守视为有效（避免误判清除登录态）。
+/// - 有 `check` 且 mode=local：不调接口，直接用保存的 expiresAt 本地判断过期。
 class PluginLoginCheckService {
   PluginLoginCheckService._();
   static final PluginLoginCheckService instance = PluginLoginCheckService._();
@@ -48,6 +49,27 @@ class PluginLoginCheckService {
     if (!plugin.usesApiCheck) {
       final valid = PluginCookieManager.instance.hasSaved(plugin.name);
       return LoginCheckResult(valid: valid, hasToken: valid);
+    }
+
+    // 本地计算模式：不调接口，直接用保存的 expiresAt 判断是否过期。
+    if (plugin.checkConfig?.isLocal == true) {
+      final localToken = PluginCookieManager.instance.tokenFor(plugin.name);
+      if (localToken == null || localToken.isEmpty) {
+        return const LoginCheckResult(
+          valid: false,
+          hasToken: false,
+          message: '未保存 token',
+        );
+      }
+      final expiresAt =
+          PluginCookieManager.instance.tokenExpiresAt(plugin.name);
+      // 无 expiresAt（会话级）保守视为有效；有则按本地时间判断。
+      final valid = expiresAt == null || DateTime.now().isBefore(expiresAt);
+      return LoginCheckResult(
+        valid: valid,
+        hasToken: true,
+        message: valid ? '本地有效' : '本地已过期',
+      );
     }
 
     final token = PluginCookieManager.instance.tokenFor(plugin.name);

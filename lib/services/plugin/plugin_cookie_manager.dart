@@ -284,8 +284,7 @@ class PluginCookieManager {
   // ────────────────────── token 认证（API check）存储 ──────────────────────
 
   /// 🆕 保存某规则的 token（token 认证站点，如次元城）。
-  /// [expiresAt] 为服务端返回的过期时间（可选，仅供展示，
-  /// 实际过期判定由 check 接口负责）。
+  /// [expiresAt] 为服务端返回的过期时间（可选，本地计算模式用于判定过期）。
   Future<void> saveToken(
     String pluginName,
     String token, {

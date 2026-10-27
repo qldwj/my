@@ -261,11 +261,18 @@ class PluginCheckConfig {
   /// token 占位符，会在请求 URL/Header/Body 中被替换为已保存的 token。
   String tokenPlaceholder;
 
+  /// 检测模式：'api' 调接口（默认）；'local' 用本地 expiresAt 计算过期，不调接口。
+  String mode;
+
+  /// 是否为本地计算模式（不调接口，直接用保存的 expiresAt 判断过期）。
+  bool get isLocal => mode == 'local';
+
   PluginCheckConfig({
     ApiRequestConfig? request,
     this.successStatus = 200,
     this.successCode = 0,
     this.tokenPlaceholder = '@token',
+    this.mode = 'api',
   }) : request = request ?? ApiRequestConfig();
 
   factory PluginCheckConfig.fromJson(Map<String, dynamic> json) {
@@ -281,6 +288,7 @@ class PluginCheckConfig {
           ? (json['successCode'] as int)
           : null,
       tokenPlaceholder: (json['tokenPlaceholder'] as String?) ?? '@token',
+      mode: (json['mode'] as String?) ?? 'api',
     );
   }
 
@@ -289,6 +297,7 @@ class PluginCheckConfig {
         'successStatus': successStatus,
         if (successCode != null) 'successCode': successCode,
         if (tokenPlaceholder != '@token') 'tokenPlaceholder': tokenPlaceholder,
+        if (mode != 'api') 'mode': mode,
       };
 }
 

@@ -81,7 +81,8 @@
       }
     },
     "successStatus": 200,
-    "successCode": 0
+    "successCode": 0,
+    "mode": "local"
   },
   "icon": "https://www.cycani.org/favicon.ico"
 }
