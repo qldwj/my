@@ -1637,19 +1637,24 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _sendPresencePlaying() {
-    final item = videoPageController.bangumiItem;
-    if (item.id <= 0) return;
-    final now = playerController.playback.currentPosition.inSeconds;
-    final dur = playerController.playback.duration.inSeconds;
-    unawaited(PresenceService.beatPlaying(
-      subjectId: item.id,
-      episodeNo: videoPageController.selectedEpisode.episode,
-      progress: now,
-      duration: dur,
-      subjectName: item.nameCn.isNotEmpty ? item.nameCn : item.name,
-      subjectImage: item.images['large'] ?? item.images['common'] ?? '',
-      subjectSummary: item.summary,
-    ));
+    try {
+      final item = videoPageController.bangumiItem;
+      if (item.id <= 0) return;
+      final now = playerController.playback.currentPosition.inSeconds;
+      final dur = playerController.playback.duration.inSeconds;
+      unawaited(PresenceService.beatPlaying(
+        subjectId: item.id,
+        episodeNo: videoPageController.selectedEpisode.episode,
+        progress: now,
+        duration: dur,
+        subjectName: item.nameCn.isNotEmpty ? item.nameCn : item.name,
+        subjectImage: item.images['large'] ?? item.images['common'] ?? '',
+        subjectSummary: item.summary,
+      ));
+    } catch (e) {
+      // 异常不能冒泡到 Timer.periodic，否则 Timer 会被自动取消
+      KazumiLogger().e('Presence beatPlaying failed', error: e);
+    }
   }
 
 void dispose() {
