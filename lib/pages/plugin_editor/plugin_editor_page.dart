@@ -239,6 +239,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool antiCrawlerEnabled = false;
   int captchaType = CaptchaType.imageCaptcha;
   int captchaDetectType = CaptchaDetectType.xpath;
+  bool needLogin = false;
+  final TextEditingController loginUrlController = TextEditingController();
 
   static const List<ButtonSegment<String>> _ruleModeSegments = [
     ButtonSegment(
@@ -344,6 +346,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     useLegacyParser = plugin.useLegacyParser;
     adBlocker = plugin.adBlocker;
     antiCrawlerEnabled = plugin.antiCrawlerConfig.enabled;
+    needLogin = plugin.needLogin;
+    loginUrlController.text = plugin.loginUrl;
     captchaType = plugin.antiCrawlerConfig.captchaType;
     captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
     captchaInputController.text = plugin.antiCrawlerConfig.captchaInput;
@@ -399,6 +403,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     captchaButtonController.dispose();
     captchaDetectValueController.dispose();
     captchaScriptController.dispose();
+    loginUrlController.dispose();
     super.dispose();
   }
 
@@ -520,6 +525,53 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               controller: iconController,
               label: '图标 URL（动漫头像，可留空用默认）',
             ),
+            const EditorSubheader(label: '认证选项'),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('该网站需要验证'),
+              subtitle: const Text('检索失败时显示验证码验证按钮而非重试'),
+              value: antiCrawlerEnabled,
+              activeColor: Colors.blue,
+              secondary: const Icon(Icons.verified_user_outlined,
+                  color: Colors.blue),
+              onChanged: (value) =>
+                  setState(() => antiCrawlerEnabled = value ?? false),
+            ),
+            if (antiCrawlerEnabled)
+              EditorSegmentedField<int>(
+                label: _RuleEditorText.captchaTypeLabel,
+                value: captchaType,
+                segments: const [
+                  ButtonSegment(
+                    value: CaptchaType.imageCaptcha,
+                    label: Text(_RuleEditorText.captchaTypeImage),
+                  ),
+                  ButtonSegment(
+                    value: CaptchaType.autoClickButton,
+                    label: Text(_RuleEditorText.captchaTypeAutoClick),
+                  ),
+                  ButtonSegment(
+                    value: CaptchaType.customJavaScript,
+                    label: Text(_RuleEditorText.captchaTypeScript),
+                  ),
+                ],
+                onChanged: (value) => setState(() => captchaType = value),
+              ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('该网站需要登录'),
+              subtitle: const Text('观看前需登录验证，用内置 WebView 登录'),
+              value: needLogin,
+              activeColor: Colors.purple,
+              secondary: const Icon(Icons.lock_outline, color: Colors.purple),
+              onChanged: (value) => setState(() => needLogin = value ?? false),
+            ),
+            if (needLogin)
+              EditorTextField(
+                controller: loginUrlController,
+                label: '登录 URL',
+                helper: '填写登录页地址，观看前用内置 WebView 打开登录',
+              ),
           ],
         );
       case 1:
@@ -1099,6 +1151,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       usePost: usePost,
       useLegacyParser: useLegacyParser,
       adBlocker: adBlocker,
+      needLogin: needLogin,
+      loginUrl: loginUrlController.text.trim(),
       userAgent: userAgentController.text,
       baseUrl: baseURLController.text,
       icon: iconController.text.trim(),
