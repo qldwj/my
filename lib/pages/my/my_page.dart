@@ -697,10 +697,10 @@ sheetAnimationStyle: kSheetAnimationStyle,
                     ? colorScheme.onSurface
                     : Colors.grey,
               ),
-              onPressed: () {
+              onPressed: () async {
                 final cur = GStorage.getSetting(SettingsKeys.presenceVisibilityEnabled);
-                GStorage.putSetting(SettingsKeys.presenceVisibilityEnabled, !cur);
-                // 重启/停止 App 级心跳
+                await GStorage.putSetting(SettingsKeys.presenceVisibilityEnabled, !cur);
+                // 重启/停止 App 级心跳（必须在 putSetting 之后，否则 refresh() 读到旧值）
                 PresenceHeartbeat.instance.refresh();
                 if (mounted) setState(() {});
                 KazumiDialog.showToast(
