@@ -5,7 +5,7 @@ class ApiEndpoints {
   static const String version = '2.4.1';   // ⚠️ 必须与 pubspec.yaml 一致（更新检查以它为准）
 
   /// 规则API级别
-  static const int apiLevel = 9;
+  static const int apiLevel = 10;
 
   /// 项目主页
   static const String projectUrl = "https://qlyyz.xyz/";

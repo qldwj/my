@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart' show KazumiDialog;
@@ -35,6 +36,30 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
+      // 🆕 监听登录 token 出现：SPA 登录后 URL 不变，onPageStarted 不会触发，
+      // 改用 JS 轮询 localStorage，检测到有效 token 自动保存（无需手动点「完成」）。
+      ..addJavaScriptChannel('LoginChannel',
+          onMessageReceived: (msg) async {
+            if (_saving || !mounted) return;
+            final data = msg.message;
+            // 校验 token 非空
+            try {
+              final decoded = jsonDecode(data);
+              if (decoded is Map) {
+                final t = decoded['token'];
+                if (t is! String || t.trim().isEmpty) return;
+              } else {
+                return;
+              }
+            } catch (_) {
+              return;
+            }
+            final url = await _webViewController.currentUrl();
+            if (url == null) return;
+            _statusText = '检测到登录信息，正在保存…';
+            if (mounted) setState(() {});
+            _finishAndSave(url);
+          })
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (url) {
           // 排除初始 loginUrl：如次元城 loginUrl 是首页（不含 'login'），
@@ -48,6 +73,10 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
             _finishAndSave(url);
           }
         },
+        // 🆕 每次页面加载完成后注入 token 轮询脚本
+        onPageFinished: (url) {
+          _injectTokenPoller();
+        },
       ))
       ..loadRequest(Uri.parse(widget.plugin.loginUrl));
     // 加载已保存的账号密码
@@ -56,6 +85,49 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       _usernameCtrl.text = cred.$1;
       _passwordCtrl.text = cred.$2;
       _rememberPassword = true;
+    }
+  }
+
+  /// 🆕 注入 token 轮询脚本：检测 localStorage 中出现非空 token 时
+  /// 通过 LoginChannel 通知 Dart 自动保存。SPA 登录后 URL 不变，
+  /// onPageStarted 无法感知登录成功，需靠此轮询。
+  Future<void> _injectTokenPoller() async {
+    try {
+      const script = r'''
+        (() => {
+          if (window.__cycLoginPollerActive) return;
+          window.__cycLoginPollerActive = true;
+          const poll = () => {
+            try {
+              for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                const v = localStorage.getItem(k);
+                if (!v) continue;
+                try {
+                  const obj = JSON.parse(v);
+                  if (obj && typeof obj === 'object' &&
+                      typeof obj.token === 'string' && obj.token.trim() !== '') {
+                    window.LoginChannel.postMessage(JSON.stringify({ token: obj.token, expiresAt: obj.expiresAt || '' }));
+                    clearInterval(window.__cycLoginPollTimer);
+                    window.__cycLoginPollerActive = false;
+                    return;
+                  }
+                } catch (_) {}
+                if (k.toLowerCase().includes('token') && typeof v === 'string' && v.trim() !== '') {
+                  window.LoginChannel.postMessage(JSON.stringify({ token: v, expiresAt: '' }));
+                  clearInterval(window.__cycLoginPollTimer);
+                  window.__cycLoginPollerActive = false;
+                  return;
+                }
+              }
+            } catch (_) {}
+          };
+          window.__cycLoginPollTimer = setInterval(poll, 500);
+        })();
+      ''';
+      await _webViewController.runJavaScript(script);
+    } catch (e) {
+      KazumiLogger().w('[PluginLoginPage] 注入 token 轮询失败: $e');
     }
   }
 
@@ -135,29 +207,65 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       // SPA 站通常将 auth token 存在 localStorage 而非 cookie
       // 同时获取 localStorage 中的 token 信息，组装成 cookie 格式
       String cookieStr = '';
+      String? authToken;
+      DateTime? tokenExpiresAt;
       try {
         // 先尝试 document.cookie
         final raw = await _webViewController.runJavaScriptReturningResult('document.cookie');
         cookieStr = raw.toString().replaceAll('"', '').trim();
-        // 再从 localStorage 找 token（SPA 常见 key）
+        // 从 localStorage 找 token（SPA 常见 key）。
+        // 可能是 JSON（如次元城 cycweb:auth:v2 = {token, expiresAt, ...}），
+        // 也可能是 key/value 直接含 token。
         final lsRaw = await _webViewController.runJavaScriptReturningResult(
             "(() => {"
-            "  const entries = [];"
+            "  const result = { token: '', expiresAt: '' };"
             "  for(let i=0;i<localStorage.length;i++){"
             "    const k = localStorage.key(i);"
             "    const v = localStorage.getItem(k);"
-            "    if(v && k.toLowerCase().includes('token')) entries.push(k+'='+v);"
+            "    if(!v) continue;"
+            "    try {"
+            "      const obj = JSON.parse(v);"
+            "      if(obj && typeof obj === 'object' && obj.token) {"
+            "        if(!result.token) result.token = obj.token;"
+            "        if(!result.expiresAt && obj.expiresAt) result.expiresAt = obj.expiresAt;"
+            "        continue;"
+            "      }"
+            "    } catch(_) {}"
+            "    if(k.toLowerCase().includes('token')) {"
+            "      if(!result.token) result.token = v;"
+            "    }"
             "  }"
-            "  return entries.join('; ');"
+            "  return JSON.stringify(result);"
             "})()");
-        final lsToken = lsRaw.toString().replaceAll('"', '').trim();
-        if (lsToken.isNotEmpty) {
-          cookieStr = cookieStr.isNotEmpty ? '$cookieStr; $lsToken' : lsToken;
+        final lsStr = lsRaw.toString().trim();
+        if (lsStr.isNotEmpty) {
+          // runJavaScriptReturningResult 对字符串返回值做了 JSON 包装，
+          // 需先解出内层字符串再解析。
+          String? lsPayload;
+          try {
+            final first = jsonDecode(lsStr);
+            lsPayload = first is String ? first : jsonEncode(first);
+          } catch (_) {
+            lsPayload = lsStr.replaceAll('"', '');
+          }
+          if (lsPayload != null && lsPayload.isNotEmpty) {
+            try {
+              final lsObj = jsonDecode(lsPayload);
+              if (lsObj is Map) {
+                final t = lsObj['token'];
+                if (t is String && t.isNotEmpty) authToken = t;
+                final e = lsObj['expiresAt'];
+                if (e is String && e.isNotEmpty) {
+                  tokenExpiresAt = DateTime.tryParse(e);
+                }
+              }
+            } catch (_) {}
+          }
         }
       } catch (e) {
         KazumiLogger().w('[PluginLoginPage] Cookie 获取异常: $e');
       }
-      if (cookieStr.trim().isEmpty) {
+      if (cookieStr.trim().isEmpty && (authToken == null || authToken!.isEmpty)) {
         // 调试：显示所有 localStorage key，帮用户定位 token 存在哪
         try {
           final allKeys = await _webViewController.runJavaScriptReturningResult(
@@ -172,16 +280,33 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
         return;
       }
       await PluginCookieManager.instance.saveFromWebView(widget.plugin.name, currentUrl, cookieStr);
+      // 🆕 token 认证站点：单独保存 token（供 check 接口校验登录态）
+      final savedToken = authToken ?? PluginCookieManager.instance.tokenFor(widget.plugin.name);
+      if (savedToken != null && savedToken.isNotEmpty) {
+        await PluginCookieManager.instance.saveToken(
+          widget.plugin.name,
+          savedToken,
+          expiresAt: tokenExpiresAt,
+        );
+      }
       // 注入 Authorization header 到规则（SPA API 需要 Bearer token）
-      try {
-        final tokenPair = cookieStr.split('; ').firstWhere(
-          (s) => s.toLowerCase().contains('token'), orElse: () => '');
-        if (tokenPair.isNotEmpty) {
-          final tokenValue = tokenPair.split('=').skip(1).join('=');
-          widget.plugin.searchApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
-          widget.plugin.chapterApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
-        }
-      } catch (_) {}
+      if (savedToken != null && savedToken.isNotEmpty) {
+        try {
+          widget.plugin.searchApiConfig.request.headers['Authorization'] = 'Bearer $savedToken';
+          widget.plugin.chapterApiConfig.request.headers['Authorization'] = 'Bearer $savedToken';
+        } catch (_) {}
+      } else {
+        // 无 token 时回退到从 cookie 里找（老逻辑）
+        try {
+          final tokenPair = cookieStr.split('; ').firstWhere(
+            (s) => s.toLowerCase().contains('token'), orElse: () => '');
+          if (tokenPair.isNotEmpty) {
+            final tokenValue = tokenPair.split('=').skip(1).join('=');
+            widget.plugin.searchApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
+            widget.plugin.chapterApiConfig.request.headers['Authorization'] = 'Bearer $tokenValue';
+          }
+        } catch (_) {}
+      }
       if (_rememberPassword && _usernameCtrl.text.isNotEmpty && _passwordCtrl.text.isNotEmpty) {
         await PluginCredentialStore.instance.save(widget.plugin.name, _usernameCtrl.text, _passwordCtrl.text);
       }

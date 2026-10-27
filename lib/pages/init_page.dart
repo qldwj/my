@@ -26,6 +26,7 @@ import 'package:yhdm/services/notification/anime_update_notification_service.dar
 import 'package:yhdm/services/shortcut_service.dart';
 import 'package:yhdm/services/sync/kazumi_sync_service.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/plugin/plugin_login_check_service.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/navigation.dart';
 import 'package:yhdm/pages/info/info_page.dart';
@@ -438,23 +439,36 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  /// 🆕 启动时检查 needLogin 规则的登录 Cookie 是否已过期，
+  /// 🆕 启动时检查 needLogin 规则的登录态是否已过期，
   /// 过期或缺失时统一提示（避免用户进播放页才静默失败）。
+  /// token 认证站点（有 check 配置）主动调用校验接口检测；
+  /// 其余规则按 Cookie 有效期判断。
   Future<void> _checkLoginCookiesOnStartup() async {
     try {
-      final cookies = PluginCookieManager.instance;
       final needLogin =
           pluginsController.pluginList.where((p) => p.needLogin).toList();
       final expired = <String>[];
       for (final p in needLogin) {
-        final st = cookies.cookieStatus(p.name);
-        if (st['hasCookie'] != true || st['valid'] != true) {
-          expired.add(p.name);
+        if (p.usesApiCheck) {
+          // 🆕 token 认证站点：主动调用 check 接口校验登录态
+          final check = await PluginLoginCheckService.instance.check(p);
+          if (!check.valid) {
+            // 明确过期 → 清除登录态（避免残留）
+            if (check.hasToken) {
+              await PluginCookieManager.instance.clear(p.name);
+            }
+            expired.add(p.name);
+          }
+        } else {
+          final st = PluginCookieManager.instance.cookieStatus(p.name);
+          if (st['hasCookie'] != true || st['valid'] != true) {
+            expired.add(p.name);
+          }
         }
       }
       if (expired.isEmpty) return;
       KazumiDialog.showToast(
-        message: '${expired.join('、')} 的登录已过期，请重新登录',
+        message: '${expired.join('、')} 登录失效，请重新登录',
         showActionButton: true,
         actionLabel: '去登录',
         onActionPressed: () {

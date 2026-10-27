@@ -427,11 +427,15 @@ class _SourceSheetState extends State<SourceSheet>
 
       if (!mounted) return;
 
-      // 🆕 解析失败时诊断登录状态：需登录但 Cookie 已过期 → 提示去重新登录
+      // 🆕 解析失败时诊断登录状态：需登录但登录态已失效 → 提示去重新登录
       final needsLogin = plugin.needLogin;
-      final cookieValid = PluginCookieManager.instance.hasSaved(plugin.name);
-      if (needsLogin && !cookieValid) {
-        final savedAt = PluginCookieManager.instance.savedAtMs(plugin.name);
+      final hasLogin = plugin.usesApiCheck
+          ? PluginCookieManager.instance.hasToken(plugin.name)
+          : PluginCookieManager.instance.hasSaved(plugin.name);
+      if (needsLogin && !hasLogin) {
+        final savedAt = plugin.usesApiCheck
+            ? null
+            : PluginCookieManager.instance.savedAtMs(plugin.name);
         KazumiDialog.show(
           builder: (ctx) => AlertDialog(
             title: const Text('需要登录'),
@@ -440,7 +444,7 @@ class _SourceSheetState extends State<SourceSheet>
                   ? '「${plugin.name}」的登录已过期，请重新登录后再试。\n\n'
                       '（站点需要登录才能解析播放地址）'
                   : '「${plugin.name}」需要登录后才能观看。\n\n'
-                      '请使用内置浏览器登录并保存 Cookie。',
+                      '请使用内置浏览器登录并保存登录信息。',
             ),
             actions: [
               TextButton(
@@ -462,7 +466,7 @@ class _SourceSheetState extends State<SourceSheet>
 
       KazumiDialog.showToast(
         message: needsLogin
-            ? '「${plugin.name}」解析失败，若已登录请检查 Cookie 是否过期'
+            ? '「${plugin.name}」解析失败，若已登录请检查登录态是否过期'
             : '「${plugin.name}」解析失败，请换个源试试',
       );
     }

@@ -1,4 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:yhdm/bean/dialog/dialog_helper.dart' show KazumiDialog;
+import 'package:yhdm/navigation.dart';
+import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/plugin/plugin_login_check_service.dart';
 import 'package:yhdm/modules/search/plugin_search_module.dart';
 import 'package:yhdm/pages/info/info_controller.dart';
 import 'package:yhdm/plugins/plugins.dart';
@@ -114,17 +119,48 @@ class PluginSearchService {
       );
       if (_isCancelled || session.isStale) return;
       // 🆕 需登录的规则（如次元城）：搜索本身不需要登录，但观看需要。
-      // 未登录/已过期时状态标为「需要登录」（紫色），而不是 success（绿色），
-      // 否则用户以为可用，点播放却失败。已登录则正常 success。
-      final needsLogin = plugin.needLogin &&
-          !PluginCookieManager.instance.hasSaved(plugin.name);
-      if (needsLogin) {
-        infoController.pluginSearchStatus[plugin.name] =
-            PluginSearchStatus.login;
+      // 有 check 配置（token 认证）→ 先主动调用校验接口确认登录态，
+      // 通过才标为 success（绿色）；未登录/已过期标为 login（紫色），
+      // 否则用户以为可用，点播放却失败。
+      // 无 check 配置 → 走 Cookie 有效期判断（原逻辑）。
+      PluginSearchStatus status;
+      if (plugin.needLogin) {
+        if (plugin.usesApiCheck) {
+          final check = await PluginLoginCheckService.instance.check(plugin);
+          if (!check.valid && check.hasToken) {
+            // 明确过期：清除登录态，提示用户重新登录
+            await PluginCookieManager.instance.clear(plugin.name);
+            KazumiLogger().w(
+                '[PluginSearchService] ${plugin.name} 登录已过期（check 检测），已清除登录态');
+            KazumiDialog.showToast(
+              message: '${plugin.name} 登录失效，请重新登录',
+              showActionButton: true,
+              actionLabel: '去登录',
+              onActionPressed: () {
+                final navContext = rootNavigatorKey.currentContext;
+                if (navContext != null) {
+                  Navigator.of(navContext).push(
+                    MaterialPageRoute(
+                      builder: (_) => PluginLoginPage(plugin: plugin),
+                    ),
+                  );
+                }
+              },
+              duration: const Duration(seconds: 6),
+            );
+          }
+          status = check.valid
+              ? PluginSearchStatus.success
+              : PluginSearchStatus.login;
+        } else {
+          status = PluginCookieManager.instance.hasSaved(plugin.name)
+              ? PluginSearchStatus.success
+              : PluginSearchStatus.login;
+        }
       } else {
-        infoController.pluginSearchStatus[plugin.name] =
-            PluginSearchStatus.success;
+        status = PluginSearchStatus.success;
       }
+      infoController.pluginSearchStatus[plugin.name] = status;
       if (result.data.isNotEmpty) {
         pluginsController.validityTracker.markSearchValid(plugin.name);
       }

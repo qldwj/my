@@ -1,8 +1,8 @@
 {
-  "api": "8",
+  "api": "10",
   "type": "anime",
   "name": "ciyuancheng",
-  "version": "3.0",
+  "version": "3.1",
   "muliSources": false,
   "useWebview": true,
   "useNativePlayer": true,
@@ -68,5 +68,20 @@
   },
   "needLogin": true,
   "loginURL": "https://www.cycani.org/login",
+  "check": {
+    "request": {
+      "method": "GET",
+      "url": "https://www.cycani.org/api/user/me",
+      "headers": {
+        "Accept": "application/json",
+        "X-App-Name": "cyc_web",
+        "X-App-Version": "cycweb",
+        "X-Time-Zone": "Asia/Shanghai",
+        "Authorization": "Bearer @token"
+      }
+    },
+    "successStatus": 200,
+    "successCode": 0
+  },
   "icon": "https://www.cycani.org/favicon.ico"
 }

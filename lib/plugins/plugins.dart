@@ -55,6 +55,10 @@ class Plugin {
   ApiChapterConfig chapterApiConfig;
   AntiCrawlerConfig antiCrawlerConfig;
 
+  /// 🆕 登录检测配置（token 认证站点用）。非空时 App 通过此接口
+  /// 主动校验登录态，而不是依赖 Cookie 的 expires 判断过期。
+  PluginCheckConfig? checkConfig;
+
   /// Optional animeko web-selector rule config. When non-null and
   /// [searchMode]/[chapterMode] is `RuleMode.css`, the rule engine uses
   /// [CssRuleStrategy] with this config instead of XPath/API strategies.
@@ -104,6 +108,7 @@ class Plugin {
     ApiChapterConfig? chapterApiConfig,
     AntiCrawlerConfig? antiCrawlerConfig,
     this.animekoConfig,
+    this.checkConfig,
     this.enabled = true,
     this.needLogin = false,
     this.isCollection = false,
@@ -151,6 +156,11 @@ class Plugin {
               Map<String, dynamic>.from(json['chapterApiConfig']),
             )
           : ApiChapterConfig(),
+      checkConfig: json['check'] is Map
+          ? PluginCheckConfig.fromJson(
+              Map<String, dynamic>.from(json['check']),
+            )
+          : null,
       antiCrawlerConfig: json['antiCrawlerConfig'] != null
           ? AntiCrawlerConfig.fromJson(
               Map<String, dynamic>.from(json['antiCrawlerConfig']),
@@ -247,6 +257,7 @@ class Plugin {
       if (chapterMode == RuleMode.api ||
           chapterApiConfig.request.url.isNotEmpty)
         'chapterApiConfig': chapterApiConfig.toJson(),
+      if (checkConfig != null) 'check': checkConfig!.toJson(),
       'antiCrawlerConfig': antiCrawlerConfig.toJson(),
       if (animekoConfig != null)
         animekoConfigKey: animekoConfig!.toJson(),
@@ -264,6 +275,9 @@ class Plugin {
   }
 
   bool get usesApiSearch => searchMode == RuleMode.api;
+
+  /// 🆕 是否配置了基于 API 的登录检测（token 认证站点）。
+  bool get usesApiCheck => checkConfig != null && checkConfig!.request.url.isNotEmpty;
 
   bool get usesCssSearch => searchMode == RuleMode.css;
 

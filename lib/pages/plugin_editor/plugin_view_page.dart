@@ -13,6 +13,7 @@ import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/bean/widget/kazumi_menu.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
+import 'package:yhdm/services/plugin/plugin_login_check_service.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
@@ -126,12 +127,20 @@ class _PluginViewPageState extends State<PluginViewPage>
     if (mounted) setState(() {});
   }
 
-  /// 🆕 检查登录 Cookie 状态：展示每条 needLogin 规则的真实过期时间与缓存情况，
+  /// 🆕 检查登录状态：展示每条 needLogin 规则的真实过期时间与缓存情况，
   /// 并提供「重新登录 / 清除」操作。
-  void _showCookieStatusSheet(BuildContext context) {
+  /// token 认证站点（有 check 配置）主动调用校验接口判断有效。
+  Future<void> _showCookieStatusSheet(BuildContext context) async {
     final needLogin = pluginsController.pluginList
         .where((p) => p.needLogin)
         .toList();
+    // 对有 check 配置的规则异步执行登录校验
+    final checkResults = <String, bool>{};
+    for (final p in needLogin.where((p) => p.usesApiCheck)) {
+      final r = await PluginLoginCheckService.instance.check(p);
+      checkResults[p.name] = r.valid;
+    }
+    if (!context.mounted) return;
     KazumiDialog.show(builder: (ctx) {
       final cs = Theme.of(ctx).colorScheme;
       return AlertDialog(
@@ -145,7 +154,7 @@ class _PluginViewPageState extends State<PluginViewPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final p in needLogin) ...[
-                      _cookieStatusTile(ctx, p),
+                      _cookieStatusTile(ctx, p, checkResults),
                       if (p != needLogin.last)
                         Divider(color: cs.outlineVariant.withOpacity(0.4)),
                     ],
@@ -162,9 +171,24 @@ class _PluginViewPageState extends State<PluginViewPage>
     });
   }
 
-  Widget _cookieStatusTile(BuildContext context, Plugin plugin) {
+  Widget _cookieStatusTile(
+    BuildContext context,
+    Plugin plugin,
+    Map<String, bool> checkResults,
+  ) {
     final cs = Theme.of(context).colorScheme;
-    final status = PluginCookieManager.instance.cookieStatus(plugin.name);
+    // token 认证站点（有 check 配置）：用 token 状态 + check 结果判断
+    final isToken = plugin.usesApiCheck;
+    final status = isToken
+        ? {
+            'hasCookie': PluginCookieManager.instance.hasToken(plugin.name),
+            'valid': checkResults[plugin.name] == true,
+            'expiresAt': PluginCookieManager.instance.tokenExpiresAt(plugin.name),
+            'savedAt': null,
+            'isSession': false,
+            'cookieCount': PluginCookieManager.instance.hasToken(plugin.name) ? 1 : 0,
+          }
+        : PluginCookieManager.instance.cookieStatus(plugin.name);
     final hasCookie = status['hasCookie'] == true;
     final valid = status['valid'] == true;
     final expiresAt = status['expiresAt'] as DateTime?;
@@ -190,6 +214,28 @@ class _PluginViewPageState extends State<PluginViewPage>
         : valid
             ? '有效'
             : '已过期';
+
+    // 🆕 剩余有效期（token 规则）：显示「剩余 X 天/小时」徽章
+    final remaining = expiresAt != null
+        ? expiresAt.difference(DateTime.now())
+        : null;
+    String remainingText = '';
+    Color remainingColor = cs.outline;
+    if (isToken && expiresAt != null && remaining != null) {
+      if (remaining.isNegative) {
+        remainingText = '已过期';
+        remainingColor = cs.error;
+      } else if (remaining.inDays >= 1) {
+        remainingText = '剩余 ${remaining.inDays} 天';
+        remainingColor = Colors.green;
+      } else if (remaining.inHours >= 1) {
+        remainingText = '剩余 ${remaining.inHours} 小时';
+        remainingColor = Colors.green;
+      } else {
+        remainingText = '剩余 ${remaining.inMinutes} 分钟';
+        remainingColor = Colors.orange;
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -219,12 +265,54 @@ class _PluginViewPageState extends State<PluginViewPage>
             ],
           ),
           const SizedBox(height: 4),
-          Text('Cookie：${count} 条 · 保存于 ${fmt(savedAt)}',
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          // 🆕 剩余天数徽章（token 规则）+ 过期时间
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (isToken && remainingText.isNotEmpty) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: remainingColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        remainingText == '已过期'
+                            ? Icons.timer_off_outlined
+                            : Icons.timer_outlined,
+                        size: 12,
+                        color: remainingColor,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(remainingText,
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: remainingColor,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                isToken
+                    ? 'Token：${count > 0 ? '已保存' : '无'}'
+                        '${expiresAt != null ? ' · 过期 ${fmt(expiresAt)}' : ''}'
+                    : 'Cookie：${count} 条 · 保存于 ${fmt(savedAt)}',
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              ),
+            ],
+          ),
           Text(
-            isSession
-                ? '真实过期：该站未下发 expires（会话级）'
-                : '真实过期：${fmt(expiresAt)}',
+            isToken
+                ? '登录态由接口校验（check），非 Cookie 有效期'
+                : isSession
+                    ? '真实过期：该站未下发 expires（会话级）'
+                    : '真实过期：${fmt(expiresAt)}',
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 6),

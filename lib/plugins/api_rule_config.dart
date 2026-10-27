@@ -243,6 +243,55 @@ class ApiChapterConfig {
       };
 }
 
+/// 登录检测（check）配置
+///
+/// 当规则使用 token 认证（而非 Cookie）时，App 无法从 Cookie 的 expires
+/// 判断登录是否过期。此配置让 App 主动调用一个校验接口，携带保存的 token
+/// （`@token` 占位符会被替换），根据响应判定登录态是否有效。
+class PluginCheckConfig {
+  ApiRequestConfig request;
+
+  /// 预期 HTTP 状态码（默认 200，视为有效）。
+  int successStatus;
+
+  /// 预期响应体 `code` 字段值（默认 0，视为有效）。
+  /// 为 null 时忽略响应体，仅看 HTTP 状态码。
+  int? successCode;
+
+  /// token 占位符，会在请求 URL/Header/Body 中被替换为已保存的 token。
+  String tokenPlaceholder;
+
+  PluginCheckConfig({
+    ApiRequestConfig? request,
+    this.successStatus = 200,
+    this.successCode = 0,
+    this.tokenPlaceholder = '@token',
+  }) : request = request ?? ApiRequestConfig();
+
+  factory PluginCheckConfig.fromJson(Map<String, dynamic> json) {
+    final rawRequest = json['request'];
+    return PluginCheckConfig(
+      request: rawRequest is Map
+          ? ApiRequestConfig.fromJson(
+              Map<String, dynamic>.from(rawRequest),
+            )
+          : ApiRequestConfig(),
+      successStatus: (json['successStatus'] as int?) ?? 200,
+      successCode: json['successCode'] is int
+          ? (json['successCode'] as int)
+          : null,
+      tokenPlaceholder: (json['tokenPlaceholder'] as String?) ?? '@token',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'request': request.toJson(),
+        'successStatus': successStatus,
+        if (successCode != null) 'successCode': successCode,
+        if (tokenPlaceholder != '@token') 'tokenPlaceholder': tokenPlaceholder,
+      };
+}
+
 Map<String, dynamic> _asStringMap(Object? value) {
   if (value is! Map) return <String, dynamic>{};
   return value.map((key, value) => MapEntry(key.toString(), value));

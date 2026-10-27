@@ -38,6 +38,9 @@ class PluginCookieManager {
 
   static const String _keyPrefix = 'plugin_cookie_';
 
+  /// 🆕 token 认证站点的 token 存储前缀（如次元城用 Authorization: Bearer）。
+  static const String _tokenKeyPrefix = 'plugin_token_';
+
   final Map<String, CookieJar> _jars = {};
   final Map<String, String> _userAgents = {};
 
@@ -124,13 +127,16 @@ class PluginCookieManager {
     _jars.remove(pluginName);
     _userAgents.remove(pluginName);
     await GStorage.pluginCookies.delete(_keyPrefix + pluginName);
+    // 🆕 一并清除 token（token 认证站点）
+    await GStorage.pluginCookies.delete(_tokenKeyPrefix + pluginName);
   }
 
   /// 清除所有已保存的 Cookie（一键清理误判的登录态）
   Future<void> clearAll() async {
     final keys = GStorage.pluginCookies.keys.toList();
     for (final key in keys) {
-      if (key is String && key.startsWith(_keyPrefix)) {
+      if (key is String &&
+          (key.startsWith(_keyPrefix) || key.startsWith(_tokenKeyPrefix))) {
         await GStorage.pluginCookies.delete(key);
       }
     }
@@ -273,5 +279,45 @@ class PluginCookieManager {
     if (data is! Map) return null;
     final ua = data['userAgent'];
     return ua is String ? ua : null;
+  }
+
+  // ────────────────────── token 认证（API check）存储 ──────────────────────
+
+  /// 🆕 保存某规则的 token（token 认证站点，如次元城）。
+  /// [expiresAt] 为服务端返回的过期时间（可选，仅供展示，
+  /// 实际过期判定由 check 接口负责）。
+  Future<void> saveToken(
+    String pluginName,
+    String token, {
+    DateTime? expiresAt,
+  }) async {
+    if (token.trim().isEmpty) return;
+    await GStorage.pluginCookies.put(_tokenKeyPrefix + pluginName, {
+      'token': token.trim(),
+      'savedAt': DateTime.now().millisecondsSinceEpoch,
+      if (expiresAt != null) 'expiresAt': expiresAt.millisecondsSinceEpoch,
+    });
+    KazumiLogger().i(
+        '[PluginCookieManager] Saved token for $pluginName '
+        '(expiresAt=${expiresAt == null ? '未知' : expiresAt.toLocal()})');
+  }
+
+  /// 🆕 读取某规则的 token；未保存返回 null。
+  String? tokenFor(String pluginName) {
+    final data = GStorage.pluginCookies.get(_tokenKeyPrefix + pluginName);
+    if (data is! Map) return null;
+    final token = data['token'];
+    return token is String && token.trim().isNotEmpty ? token.trim() : null;
+  }
+
+  /// 🆕 是否保存过 token（不判断过期，过期由 check 接口判定）。
+  bool hasToken(String pluginName) => tokenFor(pluginName) != null;
+
+  /// 🆕 token 的过期时间（可选，仅供展示）。
+  DateTime? tokenExpiresAt(String pluginName) {
+    final data = GStorage.pluginCookies.get(_tokenKeyPrefix + pluginName);
+    if (data is! Map) return null;
+    final exp = data['expiresAt'];
+    return exp is int ? DateTime.fromMillisecondsSinceEpoch(exp) : null;
   }
 }
