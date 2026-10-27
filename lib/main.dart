@@ -127,8 +127,9 @@ void main() async {
   // 🆕 启动上报统计（异步，失败静默）：设备码 + 手机型号 + IP
   unawaited(StatsReportService.reportStartup());
 
-  // 🆕 登录态刷新：登出/换号时重启心跳
+  // 🆕 登录态刷新：登出/换号时统一清 presence 缓存 + 重启心跳
   AuthService.onLoginChanged = () {
+    PresenceService.clearCurrentUser();
     PresenceHeartbeat.instance.refresh();
   };
   // 🆕 启动时查询当前登录态：已登录 → 拉账号信息 + 开始 60s 心跳

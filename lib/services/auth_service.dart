@@ -71,8 +71,6 @@ class AuthService {
   /// 检测到登录失效：清除本地 token + 通知 App 层
   static void handleAuthFailure() {
     clearLocalToken();
-    // 🆕 登出 / 失效 → 清空 presence 当前用户缓存
-    try { PresenceService.clearCurrentUser(); } catch (_) {}
     // 全局兜底提示（不依赖回调挂载；UI 刷新由 onAuthFailed 负责）
     try {
       KazumiDialog.showToast(
@@ -427,6 +425,8 @@ class AuthService {
     GStorage.putSetting(SettingsKeys.kazumiToken, '');
     // 🆕 同步清除 bangumi 本地兜底标志
     GStorage.putSetting(SettingsKeys.bangumiBoundLocal, false);
+    // 🆕 登出也是登录态变化，触发 onLoginChanged（App 层统一清 presence 缓存）
+    notifyLoginChanged();
   }
 
   // ==================== 🆕 换包名迁移（一次性迁移码） ====================
