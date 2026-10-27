@@ -128,10 +128,10 @@ void main() async {
   unawaited(StatsReportService.reportStartup());
 
   // 🆕 登录态刷新：登出/换号时统一清 presence 缓存 + 重启心跳
-  AuthService.onLoginChanged = () {
+  AuthService.addLoginChangedListener(() {
     PresenceService.clearCurrentUser();
     PresenceHeartbeat.instance.refresh();
-  };
+  });
   // 🆕 启动时查询当前登录态：已登录 → 拉账号信息 + 开始 60s 心跳
   if (AuthService.isLoggedIn) {
     unawaited(PresenceService.whoAmI());
