@@ -703,9 +703,17 @@ sheetAnimationStyle: kSheetAnimationStyle,
                 // 重启/停止 App 级心跳（必须在 putSetting 之后，否则 refresh() 读到旧值）
                 PresenceHeartbeat.instance.refresh();
                 if (mounted) setState(() {});
-                KazumiDialog.showToast(
-                  message: cur ? '已关闭在线状态上报' : '已开启在线状态上报',
-                );
+                // 🆕 手动触发一次心跳测试
+                final token = AuthService.getLocalToken();
+                if (token != null && PresenceService.enabled) {
+                  final result = await PresenceService.beatOnline();
+                  KazumiLogger().w('Manual beat test: $result', forceLog: true);
+                  KazumiDialog.showToast(
+                    message: result.containsKey('error') ? '心跳失败: ${result['error']}' : '心跳成功 ✅',
+                  );
+                } else {
+                  KazumiDialog.showToast(message: '未登录或开关已关闭');
+                }
               },
             ),
           if (AuthService.isLoggedIn)
