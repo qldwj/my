@@ -62,10 +62,22 @@ class AuthService {
 
   /// ⭐ 全局登录/绑定状态变化通知（登录、绑定、换号后刷新「我的」页）
   static void Function()? onLoginChanged;
+  static final List<void Function()> _loginChangedListeners = [];
+  static void addLoginChangedListener(void Function() listener) {
+    if (!_loginChangedListeners.contains(listener)) _loginChangedListeners.add(listener);
+  }
+  static void removeLoginChangedListener(void Function() listener) {
+    _loginChangedListeners.remove(listener);
+  }
   static void notifyLoginChanged() {
     try {
       onLoginChanged?.call();
     } catch (_) {}
+    for (final listener in [..._loginChangedListeners]) {
+      try {
+        listener();
+      } catch (_) {}
+    }
   }
 
   /// 检测到登录失效：清除本地 token + 通知 App 层
