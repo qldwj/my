@@ -118,6 +118,9 @@ class PresenceService {
     int episodeNo = 0,
     int progress = 0,
     int duration = 0,
+    String subjectName = '',
+    String subjectImage = '',
+    String subjectSummary = '',
   }) {
     if (!enabled) return Future.value({});
     return _post('beat', {
@@ -127,6 +130,9 @@ class PresenceService {
       'episode_no': episodeNo,
       'progress': progress,
       'duration': duration,
+      'subject_name': subjectName,
+      'subject_image': subjectImage,
+      'subject_summary': subjectSummary,
       ..._deviceInfo(),
     });
   }
