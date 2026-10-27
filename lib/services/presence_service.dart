@@ -46,8 +46,8 @@ class PresenceService {
     }
   }
 
-  /// 当前 App 版本（读 pubspec 里那份）
-  static const String _appVersion = '2.4.3';
+  /// 当前 App 版本（从 ApiEndpoints 读取）
+  static String get _appVersion => ApiEndpoints.version;
 
   /// 用户是否允许上报在线状态（「我的」页右上角眼睛按钮控制）
   static bool get enabled =>
@@ -55,9 +55,6 @@ class PresenceService {
 
   static Map<String, dynamic> _deviceInfo() {
     return {
-      'device_name': AuthService.currentDeviceName(),
-      'os': Platform.operatingSystem,
-      'os_version': Platform.operatingSystemVersion,
       'app_version': _appVersion,
     };
   }
