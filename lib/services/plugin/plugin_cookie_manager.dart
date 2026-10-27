@@ -131,7 +131,7 @@ class PluginCookieManager {
     // 🆕 一并清除 token（token 认证站点）
     await GStorage.pluginCookies.delete(_tokenKeyPrefix + pluginName);
     // 🆕 一并清除内置 WebView 持久 Cookie（否则浏览器残留，重新保存又回来）
-    await CookieManager.instance.clearCookies();
+    await WebViewCookieManager().clearCookies();
   }
 
   /// 清除所有已保存的 Cookie（一键清理误判的登录态）
