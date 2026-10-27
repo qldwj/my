@@ -370,48 +370,64 @@ class _CommunityPageState extends State<CommunityPage> {
         : (item?.name ?? '番剧 #$subjectId');
     final coverUrl = item?.images['large'] ?? item?.images['small'] ?? '';
 
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: item == null ? null : () => context.pushNamed('/info/', arguments: item),
-        child: Column(
+    return GestureDetector(
+      onTap: item == null ? null : () => context.pushNamed('/info/', arguments: item),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
           children: [
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  return NetworkImgLayer(
-                    src: coverUrl,
-                    width: boxConstraints.maxWidth,
-                    height: boxConstraints.maxHeight,
-                  );
-                }),
+            // 背景图片
+            Positioned.fill(
+              child: coverUrl.isNotEmpty
+                  ? Image.network(coverUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade800))
+                  : Container(color: Colors.grey.shade800),
+            ),
+            // 液态玻璃层（半透明 + 模糊）
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                ),
               ),
             ),
+            // 高光边框
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+                ),
+              ),
+            ),
+            // 内容层
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      textShadow: [TextShadow(color: Colors.black54, blurRadius: 4)],
+                    ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.people, size: 14),
+                      const Icon(Icons.people, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      Text('$viewers 人在看', style: Theme.of(context).textTheme.bodySmall),
+                      Text('$viewers 人在看', style: Theme.of(context).textContent.bodySmall?.copyWith(color: Colors.white70)),
                       const Spacer(),
                       if (item != null && item.ratingScore > 0)
                         Text(
                           item.ratingScore.toStringAsFixed(1),
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textContent.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                     ],
                   ),
@@ -423,7 +439,6 @@ class _CommunityPageState extends State<CommunityPage> {
       ),
     );
   }
-
   Widget _buildFooter(Map<String, dynamic> stats) {
     final after = stats['offline_after_seconds'];
     final afterSec = after is int ? after : 180;
