@@ -773,7 +773,7 @@ class SettingsKeys {
   );
   static const updateChannel = SettingKey<String>(
     'updateChannel',
-    'beta',
+    'stable',
     group: SettingGroup.update,
   );
 
