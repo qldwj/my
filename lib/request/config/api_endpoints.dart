@@ -43,8 +43,6 @@ class ApiEndpoints {
   /// 所有版本列表（含测试版）
   static const String allAppReleases =
       'https://api.github.com/repos/qldwj/Kazumikfc/releases?per_page=10';
-/// 所有版本列表镜像（含测试版）
-  static const String allAppReleasesMirror = 'https://qlyyz.xyz/api/releases/index'; 
   /// Bangumi 镜像测试后端（动态读取用户设置）
   static String get bangumiMirrorDomain =>
       GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
