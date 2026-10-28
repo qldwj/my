@@ -176,27 +176,11 @@ class AutoUpdater {
   }
 
   /// 检查是否有新版本可用
-  /// [channel] 更新通道：'stable' 仅正式版；'beta'/'preview'/'both'/默认 → 全部版本（正式版+预览版）里挑最新
-  Future<UpdateInfo?> checkForUpdates({String? channel}) async {
+  /// 统一走最新正式版（latest.php，仅正式版）。测试版检测（releases/index）
+  /// 已从检测版本中移除，仅保留在发布历史页使用。
+  Future<UpdateInfo?> checkForUpdates() async {
     try {
-      // 渠道归一化：
-      //   - 只有显式 'stable' 才走「仅正式版」（/releases/latest）
-      //   - 'beta' 以及历史遗留值 'preview'、'both'、空值 一律走「全部版本挑最新」
-      //     （'preview' 是更早版本的前端值；'both' 的旧分支「先查正式版、失败才查预览版」
-      //       有个 bug：只要存在正式版就永远看不到更新的预览版，这里统一修正为 _latestBetaRelease）
-      final String updateChannel =
-          (channel ?? GStorage.getSetting(SettingsKeys.updateChannel) ?? 'beta')
-              .toString();
-
-      Map<String, dynamic> data;
-
-      if (updateChannel == 'stable') {
-        // 仅正式版
-        data = await _latestRelease();
-      } else {
-        // 预览版/默认/兼容历史值：从全部版本（正式版 + 预览版）里挑版本号最高的
-        data = await _latestBetaRelease();
-      }
+      final Map<String, dynamic> data = await _latestRelease();
 
       if (!data.containsKey('tag_name')) {
         throw Exception('无效的响应数据');
@@ -239,21 +223,13 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// 🆕 releases/index 已废弃，beta 渠道也走 latest.php（仅正式版）。
-  Future<Map<String, dynamic>> _latestBetaRelease() async {
-    return _latestRelease();
-  }
-
   /// 自动检查更新（只在启用自动更新时）
   ///
   /// 行为：**每次启动都打 GitHub**（不做时间节流），保证你升级到新版
   /// 后第一次启动一定能看到下一个版本提示。手点「设置→关于→检查更新」
   /// 走 [manualCheckForUpdates]，与这里并行。
   ///
-  /// 通道（[SettingsKeys.updateChannel]）：
-  ///  - 'stable' → 仅看正式版
-  ///  - 其他/默认 → 正式版 + 测试版一起挑版本号最高的（[checkForUpdates]
-  ///    内部 [_latestBetaRelease] 拉的是 GitHub 全部 release，**两种都包含**）
+  /// 检查通道：统一走最新正式版（latest.php，仅正式版），不检测测试版。
   ///
   /// 保留的保护：
   ///  - 同版本静默下载连续失败 ≥3 次 → 本日不再无脑重试（避免坏包死循环）
