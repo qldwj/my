@@ -239,73 +239,9 @@ class AutoUpdater {
     return Map<String, dynamic>.from(data);
   }
 
-  /// 获取最新预览版（所有版本都有：正式版 + 测试版）
-  /// 同时请求镜像与 GitHub，合并去重后挑选**版本号最高**的发布（不再只信镜像第一个，
-  /// 避免镜像缓存滞后导致刚发布的测试版检测不到）。
-  ///
-  /// ⭐ 优化：镜像命中候选时**不再 await GitHub 直链**（国内 GitHub 5-10 秒，
-  ///   之前每次都白等）。仅当镜像没拿到任何候选时才回落到 GitHub。
+  /// 🆕 releases/index 已废弃，beta 渠道也走 latest.php（仅正式版）。
   Future<Map<String, dynamic>> _latestBetaRelease() async {
-    final List<Map<String, dynamic>> candidates = [];
-    // 按 tag 去重：镜像与 GitHub 是同一份数据源时只保留一份，避免重复项干扰排序
-    final Set<String> seenTags = {};
-
-    void addCandidate(dynamic item) {
-      if (item is! Map) return;
-      // 跳过草稿（未正式发布的 release）
-      if (item['draft'] == true) return;
-      if (item['assets'] is! List || (item['assets'] as List).isEmpty) return;
-      final tag = item['tag_name'] as String?;
-      if (tag == null || tag.isEmpty) return;
-      if (!seenTags.add(tag)) return;
-      candidates.add(Map<String, dynamic>.from(item));
-    }
-
-    // 1) 镜像（已替换 browser_download_url 为 gitcode 直链，国内快）
-    try {
-      final raw = await _downloadClient
-          .getPlain(ApiEndpoints.allAppReleasesMirror,
-              headers: _mirrorBrowserHeaders);
-      final list = json.decode(raw);
-      if (list is List) {
-        for (final item in list) {
-          addCandidate(item);
-        }
-      }
-    } catch (e) {
-      KazumiLogger().w('Update: mirror for beta releases failed, fallback to GitHub', error: e);
-    }
-
-    // ⭐ 2) GitHub 兜底：仅在镜像没拿到任何候选时才打（之前是无脑 await 拖慢
-    //   启动检查 5-10 秒）。镜像正常工作时直接走候选挑选，跳过 GitHub。
-    if (candidates.isEmpty) {
-      try {
-        final raw = await _downloadClient.getPlain(ApiEndpoints.allAppReleases);
-        final list = json.decode(raw);
-        if (list is List) {
-          for (final item in list) {
-            addCandidate(item);
-          }
-        }
-      } catch (e) {
-        KazumiLogger().w('Update: github releases for beta failed', error: e);
-      }
-    }
-
-    if (candidates.isEmpty) {
-      // 全部失败 → 回退到正式版
-      return _latestRelease();
-    }
-
-    // 3) 挑出版本号最高的（needUpdate：b 比 a 新 → b 排前面）
-    candidates.sort((a, b) {
-      final ta = (a['tag_name'] as String?) ?? '';
-      final tb = (b['tag_name'] as String?) ?? '';
-      if (needUpdate(ta, tb)) return 1; // tb 比 ta 新 → b 在前
-      if (needUpdate(tb, ta)) return -1; // ta 比 tb 新 → a 在前
-      return 0;
-    });
-    return candidates.first;
+    return _latestRelease();
   }
 
   /// 自动检查更新（只在启用自动更新时）
