@@ -72,14 +72,6 @@ class Plugin {
   /// 后续观看自动携带）。规则 JSON 可通过 `needLogin: true` 标记。
   bool needLogin;
 
-  /// 合集相关 —— 当此插件是 Animeko 合集时使用
-  /// 合集 = 一个仓库文件包含多个动漫来源
-  bool isCollection;
-  String collectionUrl;
-  String collectionLastUpdate;
-  String collectionNextUpdate;
-  List<Plugin> childPlugins;
-
   Plugin({
     required this.api,
     required this.type,
@@ -111,15 +103,9 @@ class Plugin {
     this.checkConfig,
     this.enabled = true,
     this.needLogin = false,
-    this.isCollection = false,
-    this.collectionUrl = '',
-    this.collectionLastUpdate = '',
-    this.collectionNextUpdate = '',
-    List<Plugin>? childPlugins,
   })  : searchApiConfig = searchApiConfig ?? ApiSearchConfig(),
         chapterApiConfig = chapterApiConfig ?? ApiChapterConfig(),
-        antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty(),
-        childPlugins = childPlugins ?? [];
+        antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty();
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
     return Plugin(
@@ -173,16 +159,6 @@ class Plugin {
           : null,
       enabled: json['enabled'] as bool? ?? true,
       needLogin: json['needLogin'] as bool? ?? false,
-      isCollection: json['isCollection'] as bool? ?? false,
-      collectionUrl: json['collectionUrl'] as String? ?? '',
-      collectionLastUpdate: json['collectionLastUpdate'] as String? ?? '',
-      collectionNextUpdate: json['collectionNextUpdate'] as String? ?? '',
-      childPlugins: json['childPlugins'] is List
-          ? (json['childPlugins'] as List)
-              .map((e) =>
-                  Plugin.fromJson(Map<String, dynamic>.from(e as Map)))
-              .toList()
-          : [],
     );
   }
 
@@ -217,11 +193,6 @@ class Plugin {
       animekoConfig: null,
       enabled: true,
       needLogin: false,
-      isCollection: false,
-      collectionUrl: '',
-      collectionLastUpdate: '',
-      collectionNextUpdate: '',
-      childPlugins: [],
     );
   }
 
@@ -263,14 +234,6 @@ class Plugin {
         animekoConfigKey: animekoConfig!.toJson(),
       'enabled': enabled,
       'needLogin': needLogin,
-      if (isCollection) ...{
-        'isCollection': true,
-        'collectionUrl': collectionUrl,
-        'collectionLastUpdate': collectionLastUpdate,
-        'collectionNextUpdate': collectionNextUpdate,
-        if (childPlugins.isNotEmpty)
-          'childPlugins': childPlugins.map((p) => p.toJson()).toList(),
-      },
     };
   }
 

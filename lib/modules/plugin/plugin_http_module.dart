@@ -8,6 +8,9 @@ class PluginHTTPItem {
   bool needLogin;
   String icon;
 
+  /// 规则模式标识：xpath / api / css / rss（index.json 条目里用 `ruleMode` 标注）。
+  String ruleMode;
+
   PluginHTTPItem({
     required this.name,
     required this.version,
@@ -17,6 +20,7 @@ class PluginHTTPItem {
     this.antiCrawlerEnabled = false,
     this.needLogin = false,
     this.icon = '',
+    this.ruleMode = 'xpath',
   });
 
   factory PluginHTTPItem.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,7 @@ class PluginHTTPItem {
       antiCrawlerEnabled: antiCrawlerEnabled,
       needLogin: json['needLogin'] as bool? ?? false,
       icon: json['icon'] as String? ?? '',
+      ruleMode: json['ruleMode'] as String? ?? 'xpath',
     );
   }
 }

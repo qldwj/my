@@ -803,16 +803,6 @@ class SettingsKeys {
     group: SettingGroup.update,
   );
 
-  static const animekoRuleLastCheck = SettingKey<int>(
-    'animekoRuleLastCheck',
-    0,
-    group: SettingGroup.update,
-  );
-  static const animekoUpdateInterval = SettingKey<int>(
-    'animekoUpdateInterval',
-    30,
-    group: SettingGroup.update,
-  );
   static const kazumiToken = SettingKey<String>(
     'kazumiToken',
     '',

@@ -220,6 +220,18 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
                 background: colorScheme.secondaryContainer,
                 foreground: colorScheme.onSecondaryContainer,
               ),
+              if (item.ruleMode == 'css')
+                RuleTag(
+                  label: 'CSS',
+                  background: colorScheme.tertiaryContainer,
+                  foreground: colorScheme.onTertiaryContainer,
+                ),
+              if (item.ruleMode == 'rss')
+                RuleTag(
+                  label: 'RSS',
+                  background: colorScheme.primaryContainer,
+                  foreground: colorScheme.onPrimaryContainer,
+                ),
               if (item.needLogin)
                 RuleTag(
                   label: l10n.setFNeedLogin,

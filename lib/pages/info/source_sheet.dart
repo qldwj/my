@@ -66,15 +66,7 @@ class _SourceSheetState extends State<SourceSheet>
     final expanded = <Plugin>[];
     for (final p in pluginsController.pluginList) {
       if (!p.enabled) continue;
-      if (p.isCollection && p.childPlugins.isNotEmpty) {
-        for (final child in p.childPlugins) {
-          if (child.enabled && child.searchURL.isNotEmpty) {
-            expanded.add(child);
-          }
-        }
-      } else if (!p.isCollection) {
-        expanded.add(p);
-      }
+      expanded.add(p);
     }
     final sorted = List<Plugin>.from(expanded)
       ..sort((a, b) {

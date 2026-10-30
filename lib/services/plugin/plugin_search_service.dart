@@ -40,39 +40,14 @@ class PluginSearchService {
         return;
       }
     }
-    // 再在合集的子规则中查找
-    for (final p in pluginsController.pluginList) {
-      if (p.isCollection) {
-        for (final child in p.childPlugins) {
-          if (child.name == pluginName && child.enabled) {
-            infoController.pluginSearchResponseList.removeWhere(
-              (response) => response.pluginName == pluginName,
-            );
-            infoController.pluginSearchStatus[pluginName] =
-                PluginSearchStatus.pending;
-            await _queryPlugin(child, keyword);
-            return;
-          }
-        }
-      }
-    }
   }
 
-  /// 获取所有需要搜索的插件（合集展开为子规则）
+  /// 获取所有需要搜索的插件
   List<Plugin> _getSearchablePlugins() {
     final result = <Plugin>[];
     for (final p in pluginsController.pluginList) {
       if (!p.enabled) continue;
-      if (p.isCollection) {
-        // 合集展开为子规则进行搜索
-        for (final child in p.childPlugins) {
-          if (child.enabled && child.searchURL.isNotEmpty) {
-            result.add(child);
-          }
-        }
-      } else {
-        result.add(p);
-      }
+      result.add(p);
     }
     return result;
   }

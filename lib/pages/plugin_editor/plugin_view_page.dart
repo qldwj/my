@@ -19,11 +19,8 @@ import 'package:yhdm/pages/plugin_editor/rule_settings_page.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/navigation.dart';
-import 'package:yhdm/plugins/animeko_converter.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_update_actions.dart';
-import 'package:yhdm/pages/plugin_editor/collection_browser_page.dart';
-import 'package:yhdm/pages/plugin_editor/collection_detail_page.dart';
 import 'package:yhdm/request/core/dio_factory.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/settings_keys.dart';
@@ -35,10 +32,6 @@ import 'package:yhdm/request/apis/plugin_market_api.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:yhdm/services/plugin/plugin_import_parser.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
-
-/// 默认 Animeko 规则仓库地址
-const String kAnimekoRepoBase = 'https://raw.githubusercontent.com/yhdmgf/anisubs/main/';
-const String kAnimekoRepoIndex = kAnimekoRepoBase + 'main.json';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({
@@ -113,8 +106,6 @@ class _PluginViewPageState extends State<PluginViewPage>
     switch (_currentTab) {
       case 1: // XPath
         return all.where((p) => p.searchMode == 'xpath' || p.searchMode == 'api').toList();
-      case 2: // Animeko — 只显示合集
-        return all.where((p) => p.isCollection).toList();
       default: // 全部
         return List.from(all);
     }
@@ -362,25 +353,6 @@ class _PluginViewPageState extends State<PluginViewPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.cloud_download),
-                title: Text(AppLocalizations.of(context)!.setEInstallCollectionFromRepo),
-                onTap: () {
-                  KazumiDialog.dismiss();
-                  final navContext = rootNavigatorKey.currentContext;
-                  if (navContext == null || !navContext.mounted) return;
-                  Navigator.of(navContext).push(
-                    MaterialPageRoute(
-                      builder: (_) => CollectionBrowserPage(
-                        controller: pluginsController,
-                      ),
-                    ),
-                  ).then((changed) {
-                    if (changed == true && mounted) setState(() {});
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-              ListTile(
                 leading: const Icon(Icons.add_box),
                 title: Text(AppLocalizations.of(context)!.setENewXPathRule),
                 onTap: () {
@@ -422,342 +394,6 @@ class _PluginViewPageState extends State<PluginViewPage>
         ),
       );
     });
-  }
-
-  /// 从默认 Animeko 仓库导入/更新所有规则
-  Future<int> _importFromAnimekoRepo() async {
-    KazumiDialog.showLoading(msg: '正在从仓库获取规则...');
-    String? errorDetail;
-    try {
-      // 1. 获取 main.json 索引
-      String indexJson;
-      try {
-        indexJson = await PluginSiteClient.instance.requestText(
-          kAnimekoRepoIndex,
-          method: 'GET',
-        );
-      } catch (e) {
-        errorDetail = '无法访问仓库: $e';
-        KazumiLogger().e('AnimekoRepo: 获取索引失败', error: e);
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: errorDetail!);
-        return -1;
-      }
-
-      if (indexJson.trim().isEmpty) {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '仓库返回空内容');
-        return -1;
-      }
-
-      late final dynamic indexData;
-      try {
-        indexData = jsonDecode(indexJson);
-      } catch (e) {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '仓库索引格式错误: $e');
-        return -1;
-      }
-      
-      // 解析索引文件（支持两种格式：数组 或 { "rules": [...] }）
-      List<dynamic> ruleEntries;
-      if (indexData is List) {
-        ruleEntries = indexData;
-      } else if (indexData is Map && indexData['rules'] is List) {
-        ruleEntries = indexData['rules'] as List<dynamic>;
-      } else {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '仓库索引格式无法识别，请检查 main.json 格式');
-        return -1;
-      }
-
-      if (ruleEntries.isEmpty) {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '仓库中没有规则');
-        return 0;
-      }
-
-      // 2. 逐个下载规则
-      int successCount = 0;
-      int failCount = 0;
-      String lastError = '';
-
-      // 更新加载提示
-      KazumiDialog.showLoading(msg: '找到 ${ruleEntries.length} 个规则，正在下载...');
-
-      for (final entry in ruleEntries) {
-        String ruleUrl;
-        String ruleName;
-
-        if (entry is String) {
-          ruleUrl = entry;
-          ruleName = entry.replaceAll('.json', '').replaceAll(RegExp(r'^[\/]+'), '');
-        } else if (entry is Map) {
-          ruleUrl = (entry['file'] ?? entry['url'] ?? '').toString();
-          ruleName = (entry['name'] ?? ruleUrl.replaceAll('.json', '')).toString();
-        } else {
-          continue;
-        }
-
-        if (ruleUrl.isEmpty) continue;
-
-        // 构建完整 URL
-        final fullUrl = ruleUrl.startsWith('http') ? ruleUrl : kAnimekoRepoBase + ruleUrl;
-        
-        try {
-          final ruleJson = await PluginSiteClient.instance.requestText(
-            fullUrl,
-            method: 'GET',
-          );
-          
-          if (ruleJson.trim().isEmpty) {
-            lastError = '$ruleName 返回空';
-            failCount++;
-            continue;
-          }
-
-          final plugins = AnimekoRuleConverter.convertFromJson(ruleJson);
-          
-          if (plugins.isEmpty) {
-            lastError = '$ruleName 未解析到规则';
-            failCount++;
-            continue;
-          }
-
-          for (final plugin in plugins) {
-            // 检查是否已存在同名规则 → 替换
-            bool replaced = false;
-            for (int i = 0; i < pluginsController.pluginList.length; i++) {
-              if (pluginsController.pluginList[i].name == plugin.name) {
-                pluginsController.pluginList[i] = plugin;
-                replaced = true;
-                break;
-              }
-            }
-            if (!replaced) {
-              pluginsController.pluginList.add(plugin);
-            }
-          }
-          successCount += plugins.length;
-        } catch (e) {
-          lastError = '$ruleName: $e';
-          KazumiLogger().w('AnimekoRepo: 下载规则 $ruleName 失败: $e');
-          failCount++;
-        }
-      }
-
-      await pluginsController.savePlugins();
-      KazumiDialog.dismiss();
-
-      // 显示详细结果
-      final msg = failCount > 0
-          ? '成功导入 $successCount 条，失败 $failCount 条'
-          : '成功导入 $successCount 条规则';
-      KazumiDialog.showToast(message: msg);
-      if (failCount > 0) {
-        KazumiLogger().w('AnimekoRepo: $failCount 个规则下载失败。最后错误: $lastError');
-      }
-      return successCount;
-    } catch (e, st) {
-      KazumiLogger().e('AnimekoRepo: 导入失败', error: e, stackTrace: st);
-      KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '导入失败: ${e.toString()}');
-      return -1;
-    }
-  }
-
-  /// 从 JSON 内容或链接创建合集
-  Future<void> _createCollectionFromJson(String jsonStr, String name) async {
-    final plugins = AnimekoRuleConverter.convertFromJson(jsonStr);
-    if (plugins.isEmpty) return;
-
-    final now = _formatTime(DateTime.now());
-    final next = _formatTime(DateTime.now().add(_getUpdateInterval()));
-
-    // 去重：如果已存在的合集或规则中有同名的子规则，跳过
-    final existingNames = <String>{};
-    for (final existing in pluginsController.pluginList) {
-      if (existing.isCollection) {
-        for (final child in existing.childPlugins) {
-          existingNames.add(child.name);
-        }
-      } else {
-        existingNames.add(existing.name);
-      }
-    }
-    final uniquePlugins = <Plugin>[];
-    for (final p in plugins) {
-      if (!existingNames.contains(p.name)) {
-        uniquePlugins.add(p);
-        existingNames.add(p.name);
-      }
-    }
-
-    if (uniquePlugins.isEmpty) {
-      KazumiDialog.showToast(message: '所有规则已存在，无需重复添加');
-      return;
-    }
-
-    final collection = Plugin(
-      api: '5',
-      type: 'anime',
-      name: name,
-      version: '1.0',
-      muliSources: true,
-      useWebview: true,
-      useNativePlayer: true,
-      usePost: false,
-      useLegacyParser: false,
-      adBlocker: true,
-      userAgent: '',
-      baseUrl: '',
-      searchURL: '',
-      searchList: '',
-      searchName: '',
-      searchResult: '',
-      chapterRoads: '',
-      chapterResult: '',
-      referer: '',
-      searchMode: 'css',
-      chapterMode: 'css',
-      enabled: true,
-      isCollection: true,
-      collectionUrl: '',
-      collectionLastUpdate: now,
-      collectionNextUpdate: next,
-      childPlugins: uniquePlugins,
-    );
-
-    bool replaced = false;
-    for (int i = 0; i < pluginsController.pluginList.length; i++) {
-      if (pluginsController.pluginList[i].name == collection.name) {
-        pluginsController.pluginList[i] = collection;
-        replaced = true;
-        break;
-      }
-    }
-    if (!replaced) {
-      pluginsController.pluginList.add(collection);
-    }
-    await pluginsController.savePlugins();
-    KazumiDialog.showToast(
-      message: '合集已添加 (${uniquePlugins.length} 条规则)',
-    );
-  }
-
-  void _showAnimekoImportDialog() {
-    String inputText = '';
-    String nameText = '';
-    final isUrl = ValueNotifier<bool>(false);
-
-    KazumiDialog.show(
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('导入 Animeko 合集'),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    '输入 JSON 链接 或 粘贴 JSON 内容，将创建为一个合集',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: '合集名称',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onChanged: (v) => nameText = v,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'https://example.com/rules.json\n'
-                          '或直接粘贴规则 JSON',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onChanged: (value) {
-                      inputText = value;
-                      isUrl.value = value.trim().startsWith('http');
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: isUrl,
-                    builder: (context, urlMode, _) {
-                      return Row(
-                        children: [
-                          Icon(
-                            urlMode ? Icons.link : Icons.data_object,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            urlMode ? '将作为链接获取' : '将作为 JSON 解析',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => KazumiDialog.dismiss(),
-              child: Text('取消',
-                  style: TextStyle(color: Theme.of(context).colorScheme.outline)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final text = inputText.trim();
-                if (text.isEmpty) return;
-                final collName = nameText.trim().isEmpty ? '导入合集' : nameText.trim();
-                KazumiDialog.showLoading(msg: '处理中...');
-                try {
-                  String jsonStr;
-                  if (text.startsWith('http')) {
-                    jsonStr = await PluginSiteClient.instance.requestText(
-                      text,
-                      method: 'GET',
-                    );
-                  } else {
-                    jsonStr = text;
-                  }
-                  await _createCollectionFromJson(jsonStr, collName);
-                  KazumiDialog.dismiss();
-                  if (mounted) setState(() {});
-                  KazumiDialog.showToast(message: '合集 "$collName" 导入成功');
-                } catch (e, st) {
-                  KazumiLogger().e('导入合集失败', error: e, stackTrace: st);
-                  KazumiDialog.dismiss();
-                  KazumiDialog.showToast(message: '导入失败: ${e.toString()}');
-                }
-              },
-              child: const Text('导入'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _formatTime(DateTime dt) {
-    return '${dt.year}-${_pad(dt.month)}-${_pad(dt.day)} ${_pad(dt.hour)}:${_pad(dt.minute)}';
-  }
-  String _pad(int n) => n.toString().padLeft(2, '0');
-
-  Duration _getUpdateInterval() {
-    final minutes = GStorage.getSetting(SettingsKeys.animekoUpdateInterval);
-    return Duration(minutes: minutes > 0 ? minutes : 30);
   }
 
   void _showInputDialog() {
@@ -1143,7 +779,6 @@ class _PluginViewPageState extends State<PluginViewPage>
                   tabs: [
                     Tab(text: AppLocalizations.of(context)!.setETabAll),
                     Tab(text: 'XPath'),
-                    Tab(text: 'Animeko'),
                   ],
                 ),
         ),
@@ -1182,7 +817,6 @@ class _PluginViewPageState extends State<PluginViewPage>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildRuleList(_filteredPlugins, colorScheme),
                         _buildRuleList(_filteredPlugins, colorScheme),
                         _buildRuleList(_filteredPlugins, colorScheme),
                       ],
@@ -1249,26 +883,9 @@ class _PluginViewPageState extends State<PluginViewPage>
             Text(
               _currentTab == 1
                   ? '没有 XPath 规则'
-                  : _currentTab == 2
-                      ? '没有 Animeko 规则'
-                      : '啊咧（⊙.⊙） 没有可用规则的说',
+                  : '啊咧（⊙.⊙） 没有可用规则的说',
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
-            if (_currentTab == 2) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_circle_outline,
-                      size: 16, color: colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    '点击右上角 ＋ → 从仓库安装合集',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       );
@@ -1289,13 +906,7 @@ class _PluginViewPageState extends State<PluginViewPage>
             background: colorScheme.secondaryContainer,
             foreground: colorScheme.onSecondaryContainer,
           ),
-          if (plugin.isCollection)
-            RuleTag(
-              label: '合集',
-              background: colorScheme.primaryContainer,
-              foreground: colorScheme.onPrimaryContainer,
-            ),
-          if (!plugin.isCollection && plugin.searchMode == 'css')
+          if (plugin.searchMode == 'css')
             RuleTag(
               label: 'CSS',
               background: colorScheme.tertiaryContainer,
@@ -1329,56 +940,26 @@ class _PluginViewPageState extends State<PluginViewPage>
             ),
         ];
 
-        // 合集卡片点击 → 打开合集详情
         final VoidCallback? onTap;
-        if (plugin.isCollection) {
-          onTap = () {
-            if (isMultiSelectMode) {
-              _toggleSelect(plugin);
-            } else {
-              final navContext = rootNavigatorKey.currentContext;
-              if (navContext == null || !navContext.mounted) return;
-              Navigator.of(navContext).push(
-                MaterialPageRoute(
-                  builder: (_) => CollectionDetailPage(plugin: plugin),
-                ),
-              );
-            }
-          };
-        } else {
-          onTap = () {
-            if (isMultiSelectMode) {
-              _toggleSelect(plugin);
-            }
-          };
-        }
+        onTap = () {
+          if (isMultiSelectMode) {
+            _toggleSelect(plugin);
+          }
+        };
 
-        // 合集显示更新信息
-        final String? caption;
-        if (plugin.isCollection && plugin.collectionLastUpdate.isNotEmpty) {
-          caption =
-              '上次: ${plugin.collectionLastUpdate}  下次: ${plugin.collectionNextUpdate}';
-        } else {
-          caption = null;
-        }
+        final String? caption = null;
 
         return Dismissible(
           key: ObjectKey(plugin),
           direction: DismissDirection.endToStart,
           confirmDismiss: (direction) async {
             if (!context.mounted) return false;
-            if (plugin.isCollection) {
-              // 合集不能编辑
-              return false;
-            }
             await context.pushNamed('/settings/plugin/editor',
                 arguments: plugin);
             if (context.mounted) setState(() {});
             return false;
           },
-          background: plugin.isCollection
-              ? Container()
-              : Container(
+          background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 24),
                   margin: const EdgeInsets.only(bottom: 8),
@@ -1508,8 +1089,7 @@ class _PluginViewPageState extends State<PluginViewPage>
           label: '测试',
           leadingIcon: Icon(Icons.bug_report_outlined),
         ),
-        if (!plugin.isCollection &&
-            PluginCookieManager.instance.hasSaved(plugin.name))
+        if (PluginCookieManager.instance.hasSaved(plugin.name))
           KazumiMenuItem(
             onPressed: () async {
               await PluginCookieManager.instance.clear(plugin.name);

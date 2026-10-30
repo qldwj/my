@@ -6,7 +6,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/navigation.dart';
 import 'package:yhdm/pages/webauth/webauth_page.dart';
-import 'package:yhdm/plugins/animeko_converter.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/request/apis/bangumi_api.dart';
@@ -303,27 +302,13 @@ class DeepLinkService {
 
       int count = 0;
 
-      // 判断格式：单个 Plugin JSON 还是 Animeko 批量格式
+      // 判断格式：单个 Plugin JSON
       if (data is Map && data.containsKey('name') && data.containsKey('searchURL')) {
         // 单个 Kazumi Plugin 格式
         final plugin = Plugin.fromJson(Map<String, dynamic>.from(data));
         await pluginsController.updatePlugin(plugin);
         count = 1;
         KazumiLogger().i('DeepLink: 已导入规则: ${plugin.name}');
-      } else if (data is Map || data is List) {
-        // Animeko 批量格式
-        final jsonStr2 = jsonEncode(data);
-        final plugins = AnimekoRuleConverter.convertFromJson(jsonStr2);
-        if (plugins.isEmpty) {
-          KazumiLogger().w('DeepLink: 未找到可转换的规则');
-          _showToast('未找到可转换的规则');
-          return;
-        }
-        for (final plugin in plugins) {
-          await pluginsController.updatePlugin(plugin);
-          count++;
-          KazumiLogger().i('DeepLink: 已导入规则: ${plugin.name}');
-        }
       } else {
         KazumiLogger().w('DeepLink: 无法识别的规则格式');
         _showToast('无法识别的规则格式');

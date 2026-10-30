@@ -18,7 +18,6 @@ import 'package:yhdm/services/download/background_download_service.dart';
 import 'package:yhdm/services/platform/windows_shortcut.dart';
 import 'package:yhdm/services/platform/platform_environment_service.dart';
 import 'package:yhdm/services/update/startup_update_check.dart';
-import 'package:yhdm/services/update/animeko_rule_updater.dart';
 import 'package:yhdm/services/deep_link_service.dart';
 import 'package:yhdm/services/player/playback_recovery_service.dart';
 import 'package:yhdm/services/font_service.dart';
@@ -122,9 +121,6 @@ class _InitPageState extends State<InitPage> {
     await _pluginInit();
     // ⭐ 加载自定义字体（如果之前选过字体文件）
     await FontService.loadIfNeeded();
-    // 启动 Animeko 规则自动更新（后台静默检查，默认 60 分钟一次）
-    final animekoUpdater = AnimekoRuleUpdater(pluginsController: pluginsController);
-    unawaited(animekoUpdater.init());
 
     // 初始化深度链接服务（处理 yhdmgz:// 协议）
     final deepLinkService = DeepLinkService(pluginsController: pluginsController);
@@ -150,7 +146,6 @@ class _InitPageState extends State<InitPage> {
     // First launch: no installed rules yet, hand over to the onboarding flow.
     // 但如果用户曾经有过规则（有历史记录），直接进主页面
     if (pluginsController.pluginList.isEmpty &&
-        GStorage.getSetting(SettingsKeys.animekoRuleLastCheck) <= 0 &&
         GStorage.getSetting(SettingsKeys.defaultStartupPage) == '/tab/popular/') {
       context.navigate('/onboarding');
       return;
