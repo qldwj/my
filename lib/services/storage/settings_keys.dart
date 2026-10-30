@@ -371,6 +371,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.proxy,
   );
+  /// 规则仓库加速模式：''（回退开关）/ 'atomgit' / 'ghProxy' / 'ghfast' / 'direct'。
+  static const rulesMirror = SettingKey<String>(
+    'rulesMirror',
+    '',
+    group: SettingGroup.proxy,
+  );
   static const enableBangumiProxy = SettingKey<bool>(
     _SettingBoxKey.enableBangumiProxy,
     true,
@@ -1105,6 +1111,7 @@ class SettingsKeys {
     oledEnhance,
     displayMode,
     enableGitProxy,
+    rulesMirror,
     enableBangumiProxy,
     imageAcceleration,
     enableSystemProxy,

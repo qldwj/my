@@ -5,6 +5,7 @@ import 'package:yhdm/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/services/network/bangumi_acceleration.dart';
 import 'package:yhdm/services/network/image_acceleration.dart';
+import 'package:yhdm/services/network/rules_mirror.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/services/network/proxy_manager.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
@@ -255,6 +256,38 @@ class _ApiProxyPageState extends State<ApiProxyPage> {
     }
   }
 
+  /// 🆕 规则仓库加速模式选择（直连 / AtomGit / gh-proxy / ghfast）
+  Future<void> _selectRuleRepoMirror() async {
+    final current = RulesMirror.current;
+    final selected = await KazumiDialog.show<RulesMirror>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(AppLocalizations.of(context)!.setCRuleRepoMirror),
+        children: [
+          RadioGroup<RulesMirror>(
+            groupValue: current,
+            onChanged: (value) => Navigator.of(ctx).pop(value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final mode in RulesMirror.values)
+                  RadioListTile<RulesMirror>(
+                    value: mode,
+                    title: Text(mode.label()),
+                    subtitle: Text(mode.description()),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (mounted && selected != null && selected != current) {
+      await GStorage.putSetting(SettingsKeys.rulesMirror, selected.name);
+      setState(() {});
+    }
+  }
+
   /// 🆕 图片加速模式选择（直连 / ECH / 镜像）
   Future<void> _selectImageAcceleration() async {
     final l10n = AppLocalizations.of(context)!;
@@ -368,15 +401,22 @@ sheetAnimationStyle: kSheetAnimationStyle,
                     },
                     contentPadding: EdgeInsets.zero,
                   ),
-                  SwitchListTile(
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.extension_rounded),
                     title: Text(l10n.setCRuleRepoMirror),
                     subtitle: Text(l10n.setCRuleRepoMirrorDesc),
-                    value: GStorage.getSetting(SettingsKeys.enableGitProxy),
-                    onChanged: (v) {
-                      GStorage.putSetting(SettingsKeys.enableGitProxy, v);
-                      setState(() {});
-                    },
-                    contentPadding: EdgeInsets.zero,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          RulesMirror.current.label(),
+                          style: TextStyle(color: cs.primary),
+                        ),
+                        const Icon(Icons.chevron_right_rounded),
+                      ],
+                    ),
+                    onTap: () => _selectRuleRepoMirror(),
                   ),
                   const Divider(),
                   // 🆕 番剧条目加速（直连 / ECH / 镜像 三选一）

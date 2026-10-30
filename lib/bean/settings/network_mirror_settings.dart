@@ -4,6 +4,7 @@ import 'package:yhdm/bean/settings/settings_list.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/services/network/bangumi_acceleration.dart';
 import 'package:yhdm/services/network/image_acceleration.dart';
+import 'package:yhdm/services/network/rules_mirror.dart';
 import 'package:yhdm/services/storage/storage.dart';
 
 class NetworkMirrorSettings extends StatefulWidget {
@@ -25,7 +26,6 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bangumiAcceleration = BangumiAcceleration.current;
-    final gitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     final imageAcceleration = ImageAcceleration.fromSetting(
       GStorage.getSetting(SettingsKeys.imageAcceleration),
     );
@@ -54,13 +54,26 @@ class _NetworkMirrorSettingsState extends State<NetworkMirrorSettings> {
             setting: SettingsKeys.bangumiAcceleration,
           ),
         ),
-        SettingsTile.switchTile(
+        SettingsTile(
           leading: Icons.extension_rounded,
           title: Text(l10n.setDRuleRepoMirror),
           description: Text(l10n.setDRuleRepoMirrorDesc),
-          initialValue: gitProxy,
-          onToggle: (value) =>
-              _save(SettingsKeys.enableGitProxy, value ?? !gitProxy),
+          value: SizedBox(
+            width: 60,
+            child: Text(
+              RulesMirror.current.label(),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          onPressed: (context) => _selectAcceleration(
+            context,
+            title: l10n.setDRuleRepoMirror,
+            current: RulesMirror.current,
+            modes: RulesMirror.values,
+            label: (mode) => mode.label(),
+            description: (mode) => mode.description(),
+            setting: SettingsKeys.rulesMirror,
+          ),
         ),
         SettingsTile(
           leading: Icons.image_rounded,

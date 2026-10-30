@@ -24,6 +24,13 @@ class ApiEndpoints {
   static const String pluginShopMirror =
       'https://api.atomgit.com/api/v5/repos/qldwi/yhdmgz/raw/';
 
+  /// 规则仓库镜像 2：GitHub raw 代理（gh-proxy.org）
+  static const String ghProxyHost = 'gh-proxy.org';
+  static const String ghProxyMirror = 'https://$ghProxyHost/';
+
+  /// 规则仓库镜像 3：GitHub raw 代理（ghfast.top）
+  static const String ghfastMirror = 'https://ghfast.top/';
+
   /// 规则市场后端（json 文件仓库）
   static const String pluginMarketApi = 'https://qlyyz.xyz/json/api.php';
 

@@ -5,6 +5,7 @@ import 'package:yhdm/request/config/api_endpoints.dart';
 import 'package:yhdm/request/core/dio_logger_interceptor.dart';
 import 'package:yhdm/request/core/network_config.dart';
 import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/network/rules_mirror.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/utils/http_headers.dart';
 
@@ -123,22 +124,24 @@ class _BangumiMirrorInterceptor extends Interceptor {
 class _RulesMirrorInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    if (!enableGitProxy) {
-      handler.next(options);
-      return;
-    }
-
     final url = options.uri.toString();
     if (!url.startsWith(ApiEndpoints.pluginShop)) {
       handler.next(options);
       return;
     }
 
-    final mirrored = ApiEndpoints.pluginShopMirror +
-        url.substring(ApiEndpoints.pluginShop.length);
-    KazumiLogger().d('Rules mirror: $mirrored');
-    options.path = mirrored;
+    switch (RulesMirror.current) {
+      case RulesMirror.direct:
+        break;
+      case RulesMirror.atomgit:
+        options.path = ApiEndpoints.pluginShopMirror +
+            url.substring(ApiEndpoints.pluginShop.length);
+      case RulesMirror.ghProxy:
+        options.path = ApiEndpoints.ghProxyMirror + url;
+      case RulesMirror.ghfast:
+        options.path = ApiEndpoints.ghfastMirror + url;
+    }
+    KazumiLogger().d('Rules mirror: ${options.path}');
     handler.next(options);
   }
 
