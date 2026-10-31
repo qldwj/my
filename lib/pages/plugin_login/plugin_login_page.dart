@@ -6,6 +6,7 @@ import 'package:yhdm/bean/dialog/dialog_helper.dart' show KazumiDialog;
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
 import 'package:yhdm/services/plugin/plugin_credential_store.dart';
+import 'package:yhdm/services/plugin/plugin_login_check_service.dart';
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -43,11 +44,13 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
             if (_saving || !mounted) return;
             final data = msg.message;
             // 校验 token 非空
+            String? detectedToken;
             try {
               final decoded = jsonDecode(data);
               if (decoded is Map) {
                 final t = decoded['token'];
                 if (t is! String || t.trim().isEmpty) return;
+                detectedToken = t;
               } else {
                 return;
               }
@@ -56,15 +59,32 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
             }
             final url = await _webViewController.currentUrl();
             if (url == null) return;
+            // 🆕 检测到 token 后先过规则 check 校验再保存，防止把站点预置的
+            // 干扰 token（游客态/设备 token）误当成登录态保存，导致未登录就标记
+            // 成功、后续 check 401 反复弹登录（死循环）。校验通过才保存。
+            if (widget.plugin.usesApiCheck) {
+              final check = await PluginLoginCheckService.instance
+                  .checkToken(widget.plugin, detectedToken!);
+              if (!check.valid) {
+                _statusText = '检测到 token 但校验未通过（${check.message ?? '无效'}），请确认已登录后点「完成」';
+                if (mounted) setState(() {});
+                return;
+              }
+            }
             _statusText = '检测到登录信息，正在保存…';
             if (mounted) setState(() {});
             _finishAndSave(url);
           })
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (url) {
-          // 排除初始 loginUrl：如次元城 loginUrl 是首页（不含 'login'），
-          // 旧逻辑一打开就误判"登录成功"自动保存，而用户还没登录，之后只得手动点保存。
-          if (url != widget.plugin.loginUrl &&
+          // 仅独立登录页（loginURL 含 'login'，如次元城 /login）才启用「跳转即登录成功」
+          // 自动保存。SPA 弹窗登录站（loginURL 为首页、不含 'login'，如 sorani）不适用
+          // 此假设——打开页面或任意 URL 波动都会被误判为登录成功，导致未登录就保存
+          // 无效 token（随后 check 401 反复弹登录，形成死循环）。这类站点改由
+          // token 轮询（先过 check 校验）+ 用户点「完成」触发保存。
+          final hasDedicatedLoginPage = widget.plugin.loginUrl.contains('login');
+          if (hasDedicatedLoginPage &&
+              url != widget.plugin.loginUrl &&
               !url.contains('login') &&
               url.contains('http') &&
               !_saving) {
