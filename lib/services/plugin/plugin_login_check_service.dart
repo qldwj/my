@@ -112,6 +112,12 @@ class PluginLoginCheckService {
       final statusOk = response.statusCode == cfg.successStatus;
       final codeOk = _checkCode(response.data, cfg.successCode, cfg.successCodePath);
       final valid = statusOk && codeOk;
+      // 诊断：打印 check 实际返回，便于定位「已过期」问题。
+      KazumiLogger().w(
+        '[LoginCheck] ${plugin.name} $url -> HTTP ${response.statusCode} '
+        'body=${response.data?.toString().length > 300 ? response.data!.toString().substring(0, 300) : response.data} '
+        'valid=$valid',
+      );
       return LoginCheckResult(
         valid: valid,
         hasToken: true,
@@ -120,6 +126,12 @@ class PluginLoginCheckService {
       );
     } on DioException catch (e) {
       final status = e.response?.statusCode;
+      // 诊断：打印异常响应。
+      final errBody = e.response?.data?.toString();
+      KazumiLogger().w(
+        '[LoginCheck] ${plugin.name} $url 异常 HTTP $status '
+        'body=${errBody != null && errBody.length > 300 ? errBody.substring(0, 300) : errBody}',
+      );
       if (status == 401 || status == 403) {
         return LoginCheckResult(
           valid: false,
