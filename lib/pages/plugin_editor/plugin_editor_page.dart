@@ -685,7 +685,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               onChanged: (value) =>
                   setState(() => antiCrawlerEnabled = value ?? false),
             ),
-            if (antiCrawlerEnabled)
+            if (antiCrawlerEnabled) ...[
               EditorSegmentedField<int>(
                 label: _RuleEditorText.captchaTypeLabel,
                 value: captchaType,
@@ -746,7 +746,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                     ),
                 ],
               ),
-            ),
+            ],
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('该网站需要登录'),
