@@ -251,7 +251,7 @@ class PluginLoginCheckService {
           responseType: ResponseType.plain,
           headers: {
             'Cookie': cookieHeader,
-            if (ua.isNotEmpty) 'User-Agent': ua,
+            if (ua != null && ua.isNotEmpty) 'User-Agent': ua,
           },
         ),
       );
@@ -332,9 +332,15 @@ class PluginLoginCheckService {
     var s = xpath.trim();
     if (s.isEmpty) return '';
     s = s.replaceFirst(RegExp(r'^//'), '');
+    // @attr='v' → [attr="v"]（单引号）
     s = s.replaceAllMapped(
-      RegExp(r"@([\w-]+)\s*=\s*(['\"])(.*?)\2"),
-      (m) => '[${m[1]}="${m[3]}"]',
+      RegExp(r"@([\w-]+)\s*=\s*'([^']*)'"),
+      (m) => '[${m[1]}="${m[2]}"]',
+    );
+    // @attr="v" → [attr="v"]（双引号）
+    s = s.replaceAllMapped(
+      RegExp(r'@([\w-]+)\s*=\s*"([^"]*)"'),
+      (m) => '[${m[1]}="${m[2]}"]',
     );
     s = s.replaceAllMapped(RegExp(r'@([\w-]+)'), (m) => '[${m[1]}]');
     s = s.replaceAll('//', ' ').replaceAll('/', ' > ');
