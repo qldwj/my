@@ -338,16 +338,6 @@ class PluginCookieManager {
     return parts.join('; ');
   }
 
-  /// 🆕 保存 WebView 时的 User-Agent（XPath 检测抓页面复用，保证站点 UA 校验通过）。
-  String userAgentFor(String pluginName) {
-    final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
-    if (data is Map) {
-      final ua = data['userAgent'];
-      if (ua is String && ua.isNotEmpty) return ua;
-    }
-    return _userAgents[pluginName] ?? '';
-  }
-
   /// 🆕 是否保存过 token（不判断过期，过期由 check 接口判定）。
   bool hasToken(String pluginName) => tokenFor(pluginName) != null;
 
@@ -367,5 +357,4 @@ String _stripBearerPrefix(String token) {
   final t = token.trim();
   if (t.toLowerCase().startsWith('bearer ')) return t.substring(7).trim();
   return t;
-}
 }
