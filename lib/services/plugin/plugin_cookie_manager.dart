@@ -319,6 +319,35 @@ class PluginCookieManager {
     return token is String && token.trim().isNotEmpty ? token.trim() : null;
   }
 
+  /// 🆕 组装 Cookie 请求头（`name=value; ...`），供 XPath 检测抓取页面携带。
+  String cookieHeader(String pluginName) {
+    final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
+    if (data is! Map) return '';
+    final raw = data['cookies'];
+    if (raw is! List) return '';
+    final parts = <String>[];
+    for (final c in raw) {
+      if (c is Map) {
+        final name = c['name'];
+        final value = c['value'];
+        if (name is String && name.isNotEmpty && value != null) {
+          parts.add('$name=$value');
+        }
+      }
+    }
+    return parts.join('; ');
+  }
+
+  /// 🆕 保存 WebView 时的 User-Agent（XPath 检测抓页面复用，保证站点 UA 校验通过）。
+  String userAgentFor(String pluginName) {
+    final data = GStorage.pluginCookies.get(_keyPrefix + pluginName);
+    if (data is Map) {
+      final ua = data['userAgent'];
+      if (ua is String && ua.isNotEmpty) return ua;
+    }
+    return _userAgents[pluginName] ?? '';
+  }
+
   /// 🆕 是否保存过 token（不判断过期，过期由 check 接口判定）。
   bool hasToken(String pluginName) => tokenFor(pluginName) != null;
 
