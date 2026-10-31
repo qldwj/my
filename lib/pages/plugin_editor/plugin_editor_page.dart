@@ -48,6 +48,41 @@ abstract final class _RuleEditorText {
   static const captchaDetectValueHintText = '身份验证';
   static const captchaDetectValueHintRegex = '身份验证|smart_verify';
   static const captchaDetectValueHintXPath = '//button[@id="verify"]';
+
+  // 登录配置（needLogin）
+  static const loginModeLabel = '登录方式';
+  static const loginModeWebview = '内置浏览器';
+  static const loginModeXpath = '弹窗表单';
+  static const loginModeApi = 'API 登录';
+  static const loginAccountXpath = '账号 XPath';
+  static const loginPasswordXpath = '密码 XPath';
+  static const loginSubmitXpath = '提交按钮 XPath';
+  static const loginSuccessXpath = '登录成功特征 XPath';
+  static const loginApiMethod = '登录请求方法';
+  static const loginApiUrl = '登录接口 URL';
+  static const loginApiHeaders = '登录请求头';
+  static const loginApiHeadersHelper = '如 {"Content-Type":"application/json"}';
+  static const loginApiBody = '登录请求体';
+  static const loginApiBodyHelper = 'JSON 字符串，@account/@password 会被替换';
+  static const loginApiAccountField = '账号字段名';
+  static const loginApiPasswordField = '密码字段名';
+  static const loginApiTokenPath = 'token 提取路径';
+  static const loginApiTokenPathHelper = '如 $.data.token';
+  static const loginApiCookiePath = 'cookie 提取路径';
+  static const checkModeLabel = '登录检查方式';
+  static const checkModeApi = 'API 校验';
+  static const checkModeXpath = '特征 XPath';
+  static const checkModeLocal = '本地有效期';
+  static const checkMethod = '检查请求方法';
+  static const checkUrl = '检查接口 URL';
+  static const checkUrlHelper = '如 /api/user/me，@token 会被替换';
+  static const checkHeaders = '检查请求头';
+  static const checkHeadersHelper = '如 {"Authorization":"Bearer @token"}';
+  static const checkSuccessStatus = '成功状态码';
+  static const checkSuccessCode = '成功业务码';
+  static const checkTokenPlaceholder = 'token 占位符';
+  static const checkXpath = '已登录特征 XPath';
+  static const checkXpathHelper = '未登录页面不存在的节点';
   static const captchaImageHint = '//img[@class="captcha"]';
   static const captchaInputHint = '//input[@name="captcha"]';
   static const captchaButtonHint = '//button[@type="submit"]';
@@ -241,6 +276,34 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   int captchaDetectType = CaptchaDetectType.xpath;
   bool needLogin = false;
   final TextEditingController loginUrlController = TextEditingController();
+  // 登录配置（login.*）
+  String loginMode = 'webview';
+  final TextEditingController loginAccountXpathCtrl = TextEditingController();
+  final TextEditingController loginPasswordXpathCtrl = TextEditingController();
+  final TextEditingController loginSubmitXpathCtrl = TextEditingController();
+  final TextEditingController loginSuccessXpathCtrl = TextEditingController();
+  final TextEditingController loginApiMethodCtrl =
+      TextEditingController(text: 'POST');
+  final TextEditingController loginApiUrlCtrl = TextEditingController();
+  final TextEditingController loginApiHeadersCtrl = TextEditingController();
+  final TextEditingController loginApiBodyCtrl = TextEditingController();
+  final TextEditingController loginApiAccountFieldCtrl = TextEditingController();
+  final TextEditingController loginApiPasswordFieldCtrl = TextEditingController();
+  final TextEditingController loginApiTokenPathCtrl = TextEditingController();
+  final TextEditingController loginApiCookiePathCtrl = TextEditingController();
+  // 登录检查（check.*）
+  String checkMode = 'api';
+  final TextEditingController checkMethodCtrl =
+      TextEditingController(text: 'GET');
+  final TextEditingController checkUrlCtrl = TextEditingController();
+  final TextEditingController checkHeadersCtrl = TextEditingController();
+  final TextEditingController checkSuccessStatusCtrl =
+      TextEditingController(text: '200');
+  final TextEditingController checkSuccessCodeCtrl =
+      TextEditingController(text: '0');
+  final TextEditingController checkTokenPlaceholderCtrl =
+      TextEditingController(text: '@token');
+  final TextEditingController checkXpathCtrl = TextEditingController();
 
   static const List<ButtonSegment<String>> _ruleModeSegments = [
     ButtonSegment(
@@ -253,6 +316,24 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   static const List<ButtonSegment<String>> _methodSegments = [
     ButtonSegment(value: 'GET', label: Text(_RuleEditorText.methodGet)),
     ButtonSegment(value: 'POST', label: Text(_RuleEditorText.methodPost)),
+  ];
+
+  static const List<ButtonSegment<String>> _loginModeSegments = [
+    ButtonSegment(
+      value: 'webview',
+      label: Text(_RuleEditorText.loginModeWebview),
+    ),
+    ButtonSegment(
+      value: 'xpath',
+      label: Text(_RuleEditorText.loginModeXpath),
+    ),
+    ButtonSegment(value: 'api', label: Text(_RuleEditorText.loginModeApi)),
+  ];
+
+  static const List<ButtonSegment<String>> _checkModeSegments = [
+    ButtonSegment(value: 'api', label: Text(_RuleEditorText.checkModeApi)),
+    ButtonSegment(value: 'xpath', label: Text(_RuleEditorText.checkModeXpath)),
+    ButtonSegment(value: 'local', label: Text(_RuleEditorText.checkModeLocal)),
   ];
 
   static const List<ButtonSegment<String>> _bodyTypeSegments = [
@@ -348,6 +429,39 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     antiCrawlerEnabled = plugin.antiCrawlerConfig.enabled;
     needLogin = plugin.needLogin;
     loginUrlController.text = plugin.loginUrl;
+    // 回填登录配置（login.*）
+    final lc = plugin.loginConfig;
+    if (lc != null) {
+      loginMode = lc.mode;
+      loginAccountXpathCtrl.text = lc.accountXpath;
+      loginPasswordXpathCtrl.text = lc.passwordXpath;
+      loginSubmitXpathCtrl.text = lc.submitXpath;
+      loginSuccessXpathCtrl.text = lc.successXpath;
+      final lapi = lc.api;
+      if (lapi != null) {
+        loginApiMethodCtrl.text = lapi.request.method;
+        loginApiUrlCtrl.text = lapi.request.url;
+        loginApiHeadersCtrl.text = _headersToText(lapi.request.headers);
+        loginApiBodyCtrl.text =
+            lapi.request.body is String ? lapi.request.body as String : '';
+        loginApiAccountFieldCtrl.text = lapi.accountField;
+        loginApiPasswordFieldCtrl.text = lapi.passwordField;
+        loginApiTokenPathCtrl.text = lapi.tokenPath;
+        loginApiCookiePathCtrl.text = lapi.cookiePath;
+      }
+    }
+    // 回填登录检查（check.*）
+    final cc = plugin.checkConfig;
+    if (cc != null) {
+      checkMode = cc.mode;
+      checkMethodCtrl.text = cc.request.method;
+      checkUrlCtrl.text = cc.request.url;
+      checkHeadersCtrl.text = _headersToText(cc.request.headers);
+      checkSuccessStatusCtrl.text = cc.successStatus.toString();
+      checkSuccessCodeCtrl.text = (cc.successCode ?? 0).toString();
+      checkTokenPlaceholderCtrl.text = cc.tokenPlaceholder;
+      checkXpathCtrl.text = cc.xpath;
+    }
     captchaType = plugin.antiCrawlerConfig.captchaType;
     captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
     captchaInputController.text = plugin.antiCrawlerConfig.captchaInput;
@@ -404,6 +518,25 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     captchaDetectValueController.dispose();
     captchaScriptController.dispose();
     loginUrlController.dispose();
+    loginAccountXpathCtrl.dispose();
+    loginPasswordXpathCtrl.dispose();
+    loginSubmitXpathCtrl.dispose();
+    loginSuccessXpathCtrl.dispose();
+    loginApiMethodCtrl.dispose();
+    loginApiUrlCtrl.dispose();
+    loginApiHeadersCtrl.dispose();
+    loginApiBodyCtrl.dispose();
+    loginApiAccountFieldCtrl.dispose();
+    loginApiPasswordFieldCtrl.dispose();
+    loginApiTokenPathCtrl.dispose();
+    loginApiCookiePathCtrl.dispose();
+    checkMethodCtrl.dispose();
+    checkUrlCtrl.dispose();
+    checkHeadersCtrl.dispose();
+    checkSuccessStatusCtrl.dispose();
+    checkSuccessCodeCtrl.dispose();
+    checkTokenPlaceholderCtrl.dispose();
+    checkXpathCtrl.dispose();
     super.dispose();
   }
 
@@ -608,12 +741,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               secondary: const Icon(Icons.lock_outline, color: Colors.purple),
               onChanged: (value) => setState(() => needLogin = value ?? false),
             ),
-            if (needLogin)
-              EditorTextField(
-                controller: loginUrlController,
-                label: '登录 URL',
-                helper: '填写登录页地址，观看前用内置 WebView 打开登录',
-              ),
+            if (needLogin) ..._buildLoginConfigFields(),
           ],
         );
       case 1:
@@ -959,6 +1087,156 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         ),
       ];
 
+  /// 🆕 登录配置表单（needLogin 开启时）：登录方式 + 各模式字段 + 登录检查。
+  List<Widget> _buildLoginConfigFields() => [
+        EditorTextField(
+          controller: loginUrlController,
+          label: '登录 URL',
+          helper: '填写登录页地址，观看前用内置 WebView 打开登录',
+        ),
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.loginModeLabel,
+          value: loginMode,
+          segments: _loginModeSegments,
+          onChanged: (value) => setState(() => loginMode = value),
+        ),
+        EditorAnimatedSection(
+          activeKey: loginMode,
+          child: Column(
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _buildLoginModeFields(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.checkModeLabel,
+          value: checkMode,
+          segments: _checkModeSegments,
+          onChanged: (value) => setState(() => checkMode = value),
+        ),
+        EditorAnimatedSection(
+          activeKey: checkMode,
+          child: Column(
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _buildCheckModeFields(),
+          ),
+        ),
+      ];
+
+  List<Widget> _buildLoginModeFields() {
+    if (loginMode == 'xpath') {
+      return [
+        EditorTextField(
+          controller: loginAccountXpathCtrl,
+          label: _RuleEditorText.loginAccountXpath,
+        ),
+        EditorTextField(
+          controller: loginPasswordXpathCtrl,
+          label: _RuleEditorText.loginPasswordXpath,
+        ),
+        EditorTextField(
+          controller: loginSubmitXpathCtrl,
+          label: _RuleEditorText.loginSubmitXpath,
+        ),
+        EditorTextField(
+          controller: loginSuccessXpathCtrl,
+          label: _RuleEditorText.loginSuccessXpath,
+        ),
+      ];
+    }
+    if (loginMode == 'api') {
+      return [
+        EditorSegmentedField<String>(
+          label: _RuleEditorText.loginApiMethod,
+          value: loginApiMethodCtrl.text.isEmpty
+              ? 'POST'
+              : loginApiMethodCtrl.text,
+          segments: _methodSegments,
+          onChanged: (value) =>
+              setState(() => loginApiMethodCtrl.text = value),
+        ),
+        EditorTextField(
+          controller: loginApiUrlCtrl,
+          label: _RuleEditorText.loginApiUrl,
+        ),
+        EditorTextField(
+          controller: loginApiHeadersCtrl,
+          label: _RuleEditorText.loginApiHeaders,
+          helper: _RuleEditorText.loginApiHeadersHelper,
+        ),
+        EditorTextField(
+          controller: loginApiBodyCtrl,
+          label: _RuleEditorText.loginApiBody,
+          helper: _RuleEditorText.loginApiBodyHelper,
+          maxLines: 4,
+        ),
+        EditorTextField(
+          controller: loginApiAccountFieldCtrl,
+          label: _RuleEditorText.loginApiAccountField,
+        ),
+        EditorTextField(
+          controller: loginApiPasswordFieldCtrl,
+          label: _RuleEditorText.loginApiPasswordField,
+        ),
+        EditorTextField(
+          controller: loginApiTokenPathCtrl,
+          label: _RuleEditorText.loginApiTokenPath,
+          helper: _RuleEditorText.loginApiTokenPathHelper,
+        ),
+        EditorTextField(
+          controller: loginApiCookiePathCtrl,
+          label: _RuleEditorText.loginApiCookiePath,
+        ),
+      ];
+    }
+    return const [];
+  }
+
+  List<Widget> _buildCheckModeFields() {
+    if (checkMode == 'xpath') {
+      return [
+        EditorTextField(
+          controller: checkXpathCtrl,
+          label: _RuleEditorText.checkXpath,
+          helper: _RuleEditorText.checkXpathHelper,
+        ),
+      ];
+    }
+    if (checkMode == 'local') return const [];
+    return [
+      EditorSegmentedField<String>(
+        label: _RuleEditorText.checkMethod,
+        value: checkMethodCtrl.text.isEmpty ? 'GET' : checkMethodCtrl.text,
+        segments: _methodSegments,
+        onChanged: (value) => setState(() => checkMethodCtrl.text = value),
+      ),
+      EditorTextField(
+        controller: checkUrlCtrl,
+        label: _RuleEditorText.checkUrl,
+        helper: _RuleEditorText.checkUrlHelper,
+      ),
+      EditorTextField(
+        controller: checkHeadersCtrl,
+        label: _RuleEditorText.checkHeaders,
+        helper: _RuleEditorText.checkHeadersHelper,
+      ),
+      EditorTextField(
+        controller: checkSuccessStatusCtrl,
+        label: _RuleEditorText.checkSuccessStatus,
+      ),
+      EditorTextField(
+        controller: checkSuccessCodeCtrl,
+        label: _RuleEditorText.checkSuccessCode,
+      ),
+      EditorTextField(
+        controller: checkTokenPlaceholderCtrl,
+        label: _RuleEditorText.checkTokenPlaceholder,
+      ),
+    ];
+  }
+
   List<Widget> _buildXPathSearchFields() => [
         EditorSegmentedField<String>(
           label: _RuleEditorText.searchMethod,
@@ -1195,6 +1473,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       adBlocker: adBlocker,
       needLogin: needLogin,
       loginUrl: loginUrlController.text.trim(),
+      loginConfig: _buildLoginConfig(),
+      checkConfig: _buildCheckConfig(),
       userAgent: userAgentController.text,
       baseUrl: baseURLController.text,
       icon: iconController.text.trim(),
@@ -1316,6 +1596,88 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     final value = jsonDecode(text);
     if (value is! Map) throw FormatException('$label 必须是 JSON 对象');
     return value.map((key, value) => MapEntry(key.toString(), value));
+  }
+
+  String _headersToText(Map<String, dynamic> headers) {
+    if (headers.isEmpty) return '';
+    return jsonEncode(headers);
+  }
+
+  /// 🆕 构建登录配置（login.*）；needLogin 关闭或 API 未填 URL 时返回 null。
+  PluginLoginConfig? _buildLoginConfig() {
+    if (!needLogin) return null;
+    final mode = loginMode;
+    if (mode == 'xpath') {
+      return PluginLoginConfig(
+        mode: mode,
+        accountXpath: loginAccountXpathCtrl.text.trim(),
+        passwordXpath: loginPasswordXpathCtrl.text.trim(),
+        submitXpath: loginSubmitXpathCtrl.text.trim(),
+        successXpath: loginSuccessXpathCtrl.text.trim(),
+      );
+    }
+    if (mode == 'api') {
+      final url = loginApiUrlCtrl.text.trim();
+      if (url.isEmpty) return null;
+      Map<String, dynamic> headers;
+      try {
+        headers = _parseJsonMap(loginApiHeadersCtrl, '登录请求头');
+      } catch (_) {
+        headers = <String, dynamic>{};
+      }
+      final bodyText = loginApiBodyCtrl.text.trim();
+      return PluginLoginConfig(
+        mode: mode,
+        api: ApiLoginConfig(
+          request: ApiRequestConfig(
+            method: loginApiMethodCtrl.text.trim().isEmpty
+                ? 'POST'
+                : loginApiMethodCtrl.text.trim(),
+            url: url,
+            headers: headers,
+            bodyType: bodyText.isEmpty ? ApiBodyType.none : ApiBodyType.json,
+            body: bodyText.isEmpty ? null : bodyText,
+          ),
+          accountField: loginApiAccountFieldCtrl.text.trim(),
+          passwordField: loginApiPasswordFieldCtrl.text.trim(),
+          tokenPath: loginApiTokenPathCtrl.text.trim(),
+          cookiePath: loginApiCookiePathCtrl.text.trim(),
+        ),
+      );
+    }
+    return PluginLoginConfig(mode: mode);
+  }
+
+  /// 🆕 构建登录检查（check.*）；needLogin 关闭或 API 未填 URL 时返回 null。
+  PluginCheckConfig? _buildCheckConfig() {
+    if (!needLogin) return null;
+    final cc = PluginCheckConfig(
+      mode: checkMode,
+      successStatus: int.tryParse(checkSuccessStatusCtrl.text.trim()) ?? 200,
+      successCode: int.tryParse(checkSuccessCodeCtrl.text.trim()),
+      tokenPlaceholder: checkTokenPlaceholderCtrl.text.trim().isEmpty
+          ? '@token'
+          : checkTokenPlaceholderCtrl.text.trim(),
+      xpath: checkXpathCtrl.text.trim(),
+    );
+    if (checkMode == 'api') {
+      final url = checkUrlCtrl.text.trim();
+      if (url.isEmpty) return null;
+      Map<String, dynamic> headers;
+      try {
+        headers = _parseJsonMap(checkHeadersCtrl, '检查请求头');
+      } catch (_) {
+        headers = <String, dynamic>{};
+      }
+      cc.request = ApiRequestConfig(
+        method: checkMethodCtrl.text.trim().isEmpty
+            ? 'GET'
+            : checkMethodCtrl.text.trim(),
+        url: url,
+        headers: headers,
+      );
+    }
+    return cc;
   }
 
   dynamic _parseBody(
