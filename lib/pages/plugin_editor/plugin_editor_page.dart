@@ -746,6 +746,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                     ),
                 ],
               ),
+            ),
             ],
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
