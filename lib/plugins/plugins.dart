@@ -59,6 +59,10 @@ class Plugin {
   /// 主动校验登录态，而不是依赖 Cookie 的 expires 判断过期。
   PluginCheckConfig? checkConfig;
 
+  /// 🆕 登录方式配置（规则键 `login`）。非空时决定登录模式
+  /// （webview/xpath/api）；空则回退为仅用 [loginUrl] 的 webview 登录。
+  PluginLoginConfig? loginConfig;
+
   /// Optional animeko web-selector rule config. When non-null and
   /// [searchMode]/[chapterMode] is `RuleMode.css`, the rule engine uses
   /// [CssRuleStrategy] with this config instead of XPath/API strategies.
@@ -101,6 +105,7 @@ class Plugin {
     AntiCrawlerConfig? antiCrawlerConfig,
     this.animekoConfig,
     this.checkConfig,
+    this.loginConfig,
     this.enabled = true,
     this.needLogin = false,
   })  : searchApiConfig = searchApiConfig ?? ApiSearchConfig(),
@@ -145,6 +150,11 @@ class Plugin {
       checkConfig: json['check'] is Map
           ? PluginCheckConfig.fromJson(
               Map<String, dynamic>.from(json['check']),
+            )
+          : null,
+      loginConfig: json['login'] is Map
+          ? PluginLoginConfig.fromJson(
+              Map<String, dynamic>.from(json['login']),
             )
           : null,
       antiCrawlerConfig: json['antiCrawlerConfig'] != null
@@ -229,6 +239,7 @@ class Plugin {
           chapterApiConfig.request.url.isNotEmpty)
         'chapterApiConfig': chapterApiConfig.toJson(),
       if (checkConfig != null) 'check': checkConfig!.toJson(),
+      if (loginConfig != null) 'login': loginConfig!.toJson(),
       'antiCrawlerConfig': antiCrawlerConfig.toJson(),
       if (animekoConfig != null)
         animekoConfigKey: animekoConfig!.toJson(),
