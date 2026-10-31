@@ -258,21 +258,33 @@ class PluginCheckConfig {
   /// 为 null 时忽略响应体，仅看 HTTP 状态码。
   int? successCode;
 
+  /// 业务码所在 JSONPath，缺省 `$.code`。用于从响应体提取 `code` 字段。
+  String successCodePath;
+
   /// token 占位符，会在请求 URL/Header/Body 中被替换为已保存的 token。
   String tokenPlaceholder;
 
-  /// 检测模式：'api' 调接口（默认）；'local' 用本地 expiresAt 计算过期，不调接口。
+  /// 检测模式：'api' 调接口（默认）；'local' 用本地 expiresAt 计算过期，不调接口；
+  /// 'xpath' 打开 [Plugin.loginUrl] 检查页面是否出现 [xpath] 特征节点（已登录特征）。
   String mode;
+
+  /// mode == 'xpath' 时的已登录特征 XPath：页面上出现该节点即判定已登录。
+  String xpath;
 
   /// 是否为本地计算模式（不调接口，直接用保存的 expiresAt 判断过期）。
   bool get isLocal => mode == 'local';
+
+  /// 是否为 XPath 特征检测模式。
+  bool get isXpath => mode == 'xpath';
 
   PluginCheckConfig({
     ApiRequestConfig? request,
     this.successStatus = 200,
     this.successCode = 0,
+    this.successCodePath = r'$.code',
     this.tokenPlaceholder = '@token',
     this.mode = 'api',
+    this.xpath = '',
   }) : request = request ?? ApiRequestConfig();
 
   factory PluginCheckConfig.fromJson(Map<String, dynamic> json) {
@@ -287,8 +299,10 @@ class PluginCheckConfig {
       successCode: json['successCode'] is int
           ? (json['successCode'] as int)
           : null,
+      successCodePath: (json['successCodePath'] as String?) ?? r'$.code',
       tokenPlaceholder: (json['tokenPlaceholder'] as String?) ?? '@token',
       mode: (json['mode'] as String?) ?? 'api',
+      xpath: (json['xpath'] as String?) ?? '',
     );
   }
 
@@ -296,9 +310,147 @@ class PluginCheckConfig {
         'request': request.toJson(),
         'successStatus': successStatus,
         if (successCode != null) 'successCode': successCode,
+        if (successCodePath != r'$.code') 'successCodePath': successCodePath,
         if (tokenPlaceholder != '@token') 'tokenPlaceholder': tokenPlaceholder,
         if (mode != 'api') 'mode': mode,
+        if (xpath.isNotEmpty) 'xpath': xpath,
       };
+}
+
+/// API 登录配置（`login.mode == 'api'`）
+///
+/// App 直接请求登录接口，从响应提取 token/cookie 保存。
+class ApiLoginConfig {
+  ApiRequestConfig request;
+
+  /// body/query 中账号字段名（值占位 `@account` 会被替换为输入的账号）。
+  String accountField;
+
+  /// body/query 中密码字段名（值占位 `@password` 会被替换为输入的密码）。
+  String passwordField;
+
+  /// 从响应提取 token 的 JSONPath（如 `$.data.token`）。
+  String tokenPath;
+
+  /// 从响应提取 cookie 的 JSONPath（cookie 认证站用，可空）。
+  String cookiePath;
+
+  /// 预期 HTTP 状态码（默认 200，视为成功）。
+  int successStatus;
+
+  /// 预期业务码（可选；与响应 `successCodePath` 处值匹配即成功）。
+  int? successCode;
+
+  /// 业务码所在 JSONPath，缺省 `$.code`。
+  String successCodePath;
+
+  ApiLoginConfig({
+    ApiRequestConfig? request,
+    this.accountField = '',
+    this.passwordField = '',
+    this.tokenPath = '',
+    this.cookiePath = '',
+    this.successStatus = 200,
+    this.successCode,
+    this.successCodePath = r'$.code',
+  }) : request = request ?? ApiRequestConfig();
+
+  factory ApiLoginConfig.fromJson(Map<String, dynamic> json) {
+    final rawRequest = json['request'];
+    return ApiLoginConfig(
+      request: rawRequest is Map
+          ? ApiRequestConfig.fromJson(
+              Map<String, dynamic>.from(rawRequest),
+            )
+          : ApiRequestConfig(),
+      accountField: (json['accountField'] as String?) ?? '',
+      passwordField: (json['passwordField'] as String?) ?? '',
+      tokenPath: (json['tokenPath'] as String?) ?? '',
+      cookiePath: (json['cookiePath'] as String?) ?? '',
+      successStatus: (json['successStatus'] as int?) ?? 200,
+      successCode: json['successCode'] is int
+          ? (json['successCode'] as int)
+          : null,
+      successCodePath: (json['successCodePath'] as String?) ?? r'$.code',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'request': request.toJson(),
+        if (accountField.isNotEmpty) 'accountField': accountField,
+        if (passwordField.isNotEmpty) 'passwordField': passwordField,
+        if (tokenPath.isNotEmpty) 'tokenPath': tokenPath,
+        if (cookiePath.isNotEmpty) 'cookiePath': cookiePath,
+        'successStatus': successStatus,
+        if (successCode != null) 'successCode': successCode,
+        if (successCodePath != r'$.code') 'successCodePath': successCodePath,
+      };
+}
+
+/// 登录配置（规则键 `login`）
+///
+/// 决定登录方式：`webview`（内置浏览器登录页）/ `xpath`（登录弹窗表单自动填入）/ `api`（API 登录）。
+class PluginLoginConfig {
+  /// 'webview' | 'xpath' | 'api'。缺省 'webview'（仅用 [Plugin.loginUrl]）。
+  String mode;
+
+  /// mode == 'xpath' 时的登录弹窗字段。
+  String accountXpath;
+  String passwordXpath;
+  String submitXpath;
+  String successXpath;
+
+  /// mode == 'api' 时的 API 登录配置。
+  ApiLoginConfig? api;
+
+  bool get isWebview => mode == 'webview';
+  bool get isXpath => mode == 'xpath';
+  bool get isApi => mode == 'api';
+
+  PluginLoginConfig({
+    this.mode = 'webview',
+    this.accountXpath = '',
+    this.passwordXpath = '',
+    this.submitXpath = '',
+    this.successXpath = '',
+    this.api,
+  });
+
+  factory PluginLoginConfig.fromJson(Map<String, dynamic> json) {
+    final rawApi = json['api'];
+    return PluginLoginConfig(
+      mode: (json['mode'] as String?) ?? 'webview',
+      accountXpath: (json['xpath'] is Map)
+          ? (json['xpath']['account'] as String? ?? '')
+          : '',
+      passwordXpath: (json['xpath'] is Map)
+          ? (json['xpath']['password'] as String? ?? '')
+          : '',
+      submitXpath: (json['xpath'] is Map)
+          ? (json['xpath']['submit'] as String? ?? '')
+          : '',
+      successXpath: (json['xpath'] is Map)
+          ? (json['xpath']['success'] as String? ?? '')
+          : '',
+      api: rawApi is Map
+          ? ApiLoginConfig.fromJson(Map<String, dynamic>.from(rawApi))
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final xpath = <String, dynamic>{
+      if (accountXpath.isNotEmpty) 'account': accountXpath,
+      if (passwordXpath.isNotEmpty) 'password': passwordXpath,
+      if (submitXpath.isNotEmpty) 'submit': submitXpath,
+      if (successXpath.isNotEmpty) 'success': successXpath,
+    };
+    return {
+      'mode': mode,
+      if (xpath.isNotEmpty) 'xpath': xpath,
+      if (api != null) 'api': api!.toJson(),
+    };
+  }
 }
 
 Map<String, dynamic> _asStringMap(Object? value) {
