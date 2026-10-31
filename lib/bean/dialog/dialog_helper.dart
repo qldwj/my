@@ -3,45 +3,90 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:yhdm/navigation.dart';
 import 'package:yhdm/utils/constants.dart';
+import 'package:flutter/scheduler.dart';
 
 // A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
 // flutter_smart_dialog use overlays and self-managed route stack to show dialogs.
 // It's powerful but can't behave like the default showDialog, e.g. the lack of mask animation. the lack of snackbar.
 // Use the implementation should be careful, because shared route stack with the whole app, it may cause some unexpected behaviors.
 // Don't use it in double PopScope widget.
+/// Single-use ownership of a route, including before its first frame.
+class KazumiDialogHandle<T> {
+  Route<T>? _route;
+  bool _used = false;
+  bool _dismissed = false;
+
+  bool get isActive => !_dismissed && (_route?.isActive ?? false);
+
+  void dismiss({T? popWith}) {
+    if (_dismissed) return;
+    _dismissed = true;
+    final route = _route;
+    if (route != null) KazumiDialog._dismissRoute(route, popWith);
+  }
+
+  void _attach(Route<T> route) {
+    _used = true;
+    _route = route;
+  }
+
+  void _finish() {
+    _dismissed = true;
+    _route = null;
+  }
+}
+
 class KazumiDialog {
   /// The global observer that tracks contexts across the application
   static final KazumiDialogObserver observer = KazumiDialogObserver();
+
+  // Allows modal sheets to use the same dismissal and route tracking.
+  static const routeSettings = RouteSettings(name: 'KazumiDialog');
 
   KazumiDialog._internal();
 
   static Future<T?> show<T>({
     BuildContext? context,
-    bool? clickMaskDismiss,
-    VoidCallback? onDismiss,
+    KazumiDialogHandle<T>? handle,
+    bool clickMaskDismiss = true,
+    FutureOr<void> Function()? onDismiss,
+    Duration? transitionDuration,
+    RouteTransitionsBuilder? transitionBuilder,
     required WidgetBuilder builder,
   }) async {
-    final ctx =
-        context ?? rootNavigatorKey.currentContext ?? observer.currentContext;
-    if (ctx != null && ctx.mounted) {
-      try {
-        final result = await showDialog<T>(
-          context: ctx,
-          useRootNavigator: true,
-          barrierDismissible: clickMaskDismiss ?? true,
-          builder: builder,
-          routeSettings: const RouteSettings(name: 'KazumiDialog'),
-        );
-        onDismiss?.call();
-        return result;
-      } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to show dialog: $e');
-        return null;
-      }
-    } else {
-      debugPrint(
-          'Kazumi Dialog Error: No context available to show the dialog');
+    final dialog = handle ?? KazumiDialogHandle<T>();
+    if (dialog._used) {
+      throw StateError('A dialog handle can only be used once.');
+    }
+    try {
+      final ctx = context ??
+          rootNavigatorKey.currentContext ??
+          observer.navigator?.context;
+      if (ctx == null || !ctx.mounted || dialog._dismissed) return null;
+      final navigator = Navigator.of(ctx, rootNavigator: true);
+      final route = _KazumiDialogRoute<T>(
+        context: ctx,
+        builder: builder,
+        themes: InheritedTheme.capture(from: ctx, to: navigator.context),
+        barrierColor: DialogTheme.of(ctx).barrierColor ??
+            Theme.of(ctx).dialogTheme.barrierColor ??
+            Colors.black54,
+        barrierDismissible: clickMaskDismiss,
+        traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+        settings: routeSettings,
+        animationStyle: transitionDuration == null
+            ? null
+            : AnimationStyle(duration: transitionDuration),
+        transitionBuilder: transitionBuilder,
+      );
+      dialog._attach(route);
+      return await navigator.push<T>(route);
+    } catch (e) {
+      debugPrint('Kazumi Dialog Error: Failed to show dialog: $e');
       return null;
+    } finally {
+      dialog._finish();
+      await onDismiss?.call();
     }
   }
 
@@ -195,15 +240,31 @@ class KazumiDialog {
   }
 
   // 在存在返回值时弹出并附带返回值
-  static void dismiss<T>({T? popWith}) {
-    if (observer.hasKazumiDialog && observer.kazumiDialogContext != null) {
-      try {
-        Navigator.of(observer.kazumiDialogContext!).pop(popWith);
-      } catch (e) {
-        debugPrint('Kazumi Dialog Error: Failed to dismiss dialog: $e');
-      }
+  static void dismiss<T>({BuildContext? context, T? popWith}) {
+    if (context != null && !context.mounted) return;
+    final route =
+        context == null ? observer._lastDialogRoute : ModalRoute.of(context);
+    if (route != null && observer._isKazumiDialogRoute(route)) {
+      _dismissRoute(route, popWith);
+    }
+  }
+
+  static void _dismissRoute<T>(Route<T> route, T? result) {
+    if (!route.isActive) return;
+    // Owners may be disposed while Navigator is reconciling its routes.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _dismissRoute(route, result);
+      });
+      return;
+    }
+    final navigator = route.navigator;
+    if (navigator == null || !navigator.mounted) return;
+    if (route.isCurrent) {
+      navigator.pop<T>(result);
     } else {
-      debugPrint('Kazumi Dialog Debug: No active KazumiDialog to dismiss');
+      navigator.removeRoute<T>(route, result);
     }
   }
 
@@ -340,6 +401,32 @@ class _TimedSuccessDialogState extends State<_TimedSuccessDialog> {
 }
 
 /// Navigator observer to track contexts and dialog routes
+class _KazumiDialogRoute<T> extends DialogRoute<T> {
+  _KazumiDialogRoute({
+    required super.context,
+    required super.builder,
+    super.themes,
+    super.barrierColor,
+    super.barrierDismissible,
+    super.traversalEdgeBehavior,
+    super.settings,
+    super.animationStyle,
+    this.transitionBuilder,
+  });
+
+  final RouteTransitionsBuilder? transitionBuilder;
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      transitionBuilder?.call(context, animation, secondaryAnimation, child) ??
+      super.buildTransitions(context, animation, secondaryAnimation, child);
+}
+
 class KazumiDialogObserver extends NavigatorObserver {
   /// List of active dialog routes
   final List<Route<dynamic>> _kazumiDialogRoutes = [];
@@ -363,6 +450,9 @@ class KazumiDialogObserver extends NavigatorObserver {
       _rootContext ?? _scaffoldContext ?? _currentContext;
 
   bool get hasKazumiDialog => _kazumiDialogRoutes.isNotEmpty;
+
+  Route<dynamic>? get _lastDialogRoute =>
+      _kazumiDialogRoutes.isEmpty ? null : _kazumiDialogRoutes.last;
 
   BuildContext? get kazumiDialogContext => _kazumiDialogRoutes.isNotEmpty
       ? _kazumiDialogRoutes.last.navigator?.context
