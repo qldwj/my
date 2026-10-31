@@ -444,7 +444,7 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
   /// 🆕 按 JSONPath（如 `$.data.token`）读取值；空路径回退顶层。
   dynamic _readJsonPath(dynamic root, String path) {
     if (path.isEmpty) return root;
-    final normalized = path.startsWith('$') ? path.substring(1) : path;
+    final normalized = path.startsWith(r'$') ? path.substring(1) : path;
     dynamic current = root;
     for (final part in normalized.split('.')) {
       final key = part.trim();
