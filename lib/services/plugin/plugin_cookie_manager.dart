@@ -299,8 +299,10 @@ class PluginCookieManager {
     DateTime? expiresAt,
   }) async {
     if (token.trim().isEmpty) return;
+    final normalized = _stripBearerPrefix(token);
+    if (normalized.isEmpty) return;
     await GStorage.pluginCookies.put(_tokenKeyPrefix + pluginName, {
-      'token': token.trim(),
+      'token': normalized,
       'savedAt': DateTime.now().millisecondsSinceEpoch,
       if (expiresAt != null) 'expiresAt': expiresAt.millisecondsSinceEpoch,
     });
@@ -327,4 +329,14 @@ class PluginCookieManager {
     final exp = data['expiresAt'];
     return exp is int ? DateTime.fromMillisecondsSinceEpoch(exp) : null;
   }
+}
+
+/// 🆕 剥离 token 的 `Bearer ` 前缀。部分站点登录响应直接返回带前缀的
+/// token（如次元城 `Bearer eyJ...`），统一剥离后存纯 JWT，保证规则用
+/// `Bearer @token` 拼接正确；纯 JWT 不带前缀时原样返回，无副作用。
+String _stripBearerPrefix(String token) {
+  final t = token.trim();
+  if (t.toLowerCase().startsWith('bearer ')) return t.substring(7).trim();
+  return t;
+}
 }
