@@ -46,11 +46,6 @@ class PluginLoginCheckService {
 
   /// 检查插件登录态。
   Future<LoginCheckResult> check(Plugin plugin) async {
-    if (!plugin.usesApiCheck) {
-      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
-      return LoginCheckResult(valid: valid, hasToken: valid);
-    }
-
     // 本地计算模式：不调接口，直接用保存的 expiresAt 判断是否过期。
     if (plugin.checkConfig?.isLocal == true) {
       final localToken = PluginCookieManager.instance.tokenFor(plugin.name);
@@ -70,6 +65,22 @@ class PluginLoginCheckService {
         hasToken: true,
         message: valid ? '本地有效' : '本地已过期',
       );
+    }
+
+    // XPath 特征模式：服务层无法加载 WebView 检测页面特征，降级为
+    // 「已保存登录态」判断（真检测在登录页 success 特征轮询）。
+    if (plugin.checkConfig?.isXpath == true) {
+      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
+      return LoginCheckResult(
+        valid: valid,
+        hasToken: valid,
+        message: valid ? '已保存登录态' : '未保存登录态',
+      );
+    }
+
+    if (!plugin.usesApiCheck) {
+      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
+      return LoginCheckResult(valid: valid, hasToken: valid);
     }
 
     final token = PluginCookieManager.instance.tokenFor(plugin.name);
