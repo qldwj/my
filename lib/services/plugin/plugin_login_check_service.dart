@@ -99,7 +99,7 @@ class PluginLoginCheckService {
         ),
       );
       final statusOk = response.statusCode == cfg.successStatus;
-      final codeOk = _checkCode(response.data, cfg.successCode);
+      final codeOk = _checkCode(response.data, cfg.successCode, cfg.successCodePath);
       final valid = statusOk && codeOk;
       return LoginCheckResult(
         valid: valid,
@@ -167,7 +167,7 @@ class PluginLoginCheckService {
         ),
       );
       final valid = response.statusCode == cfg.successStatus &&
-          _checkCode(response.data, cfg.successCode);
+          _checkCode(response.data, cfg.successCode, cfg.successCodePath);
       return LoginCheckResult(
         valid: valid,
         hasToken: true,
@@ -225,18 +225,33 @@ class PluginLoginCheckService {
     });
   }
 
-  /// 校验响应体 `code` 字段是否符合预期。null 表示忽略响应体。
-  bool _checkCode(String? body, int? expectCode) {
+  /// 校验响应体 `successCodePath` 处字段是否符合预期。null 表示忽略响应体。
+  bool _checkCode(String? body, int? expectCode, String path) {
     if (expectCode == null) return true;
     if (body == null || body.isEmpty) return false;
     try {
       final decoded = jsonDecode(body);
-      if (decoded is Map && decoded['code'] is int) {
-        return decoded['code'] == expectCode;
-      }
-      return false;
+      final value = _readJsonPath(decoded, path);
+      return value is int && value == expectCode;
     } catch (_) {
       return false;
     }
+  }
+
+  /// 按 JSONPath（如 `$.code`、`$.data.code`）读取值；空路径回退顶层。
+  dynamic _readJsonPath(dynamic root, String path) {
+    if (path.isEmpty) return root;
+    final normalized = path.startsWith('$') ? path.substring(1) : path;
+    dynamic current = root;
+    for (final part in normalized.split('.')) {
+      final key = part.trim();
+      if (key.isEmpty) continue;
+      if (current is Map && current.containsKey(key)) {
+        current = current[key];
+      } else {
+        return null;
+      }
+    }
+    return current;
   }
 }
