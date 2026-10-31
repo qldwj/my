@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:html/dom.dart' as html_dom;
+import 'package:html/parser.dart' as html_parser;
 import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/request/core/dio_factory.dart';
 import 'package:yhdm/services/logging/logger.dart';
@@ -67,15 +69,10 @@ class PluginLoginCheckService {
       );
     }
 
-    // XPath 特征模式：服务层无法加载 WebView 检测页面特征，降级为
-    // 「已保存登录态」判断（真检测在登录页 success 特征轮询）。
+    // XPath 特征模式：Dio 抓取检测页面（携带保存的 cookie），用未登录/已登录
+    // 特征 XPath 判定登录态（登录后昵称等动态特征无法固定时，可用未登录特征反向判定）。
     if (plugin.checkConfig?.isXpath == true) {
-      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
-      return LoginCheckResult(
-        valid: valid,
-        hasToken: valid,
-        message: valid ? '已保存登录态' : '未保存登录态',
-      );
+      return _checkXpath(plugin);
     }
 
     if (!plugin.usesApiCheck) {
@@ -216,6 +213,132 @@ class PluginLoginCheckService {
         message: '检测异常，保留登录态',
       );
     }
+  }
+
+  /// XPath 特征检测：Dio 抓取 [PluginCheckConfig.url]（回退 [Plugin.loginUrl]）
+  /// 页面（携带保存的 cookie），解析后按特征判定登录态。
+  ///
+  /// - 未登录特征 [xpathUnlogin] 非空且页面出现该节点 → 无效；
+  /// - 已登录特征 [xpath] 非空且页面出现该节点 → 有效；
+  /// - 仅配 [xpathUnlogin]（未登录特征）且其**不出现** → 有效。
+  Future<LoginCheckResult> _checkXpath(Plugin plugin) async {
+    final cfg = plugin.checkConfig!;
+    if (!cfg.hasXpathFeature) {
+      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
+      return LoginCheckResult(
+        valid: valid,
+        hasToken: valid,
+        message: valid ? '已保存登录态' : '未保存登录态',
+      );
+    }
+    final url = cfg.url.isNotEmpty ? cfg.url : plugin.loginUrl;
+    if (url.isEmpty) {
+      final valid = PluginCookieManager.instance.hasSaved(plugin.name);
+      return LoginCheckResult(
+        valid: valid,
+        hasToken: valid,
+        message: valid ? '已保存登录态' : '未保存登录态',
+      );
+    }
+    final cookieHeader =
+        PluginCookieManager.instance.cookieHeader(plugin.name);
+    final ua = PluginCookieManager.instance.userAgentFor(plugin.name);
+    try {
+      final response = await DioFactory.pluginDio.request<String>(
+        url,
+        options: Options(
+          method: 'GET',
+          responseType: ResponseType.plain,
+          headers: {
+            'Cookie': cookieHeader,
+            if (ua.isNotEmpty) 'User-Agent': ua,
+          },
+        ),
+      );
+      final doc = html_parser.parse(response.data ?? '');
+      // 未登录特征存在 → 无效
+      if (cfg.xpathUnlogin.isNotEmpty && _xpathExists(doc, cfg.xpathUnlogin)) {
+        return LoginCheckResult(
+          valid: false,
+          hasToken: true,
+          message: '检测到未登录特征',
+        );
+      }
+      // 已登录特征存在 → 有效
+      if (cfg.xpath.isNotEmpty && _xpathExists(doc, cfg.xpath)) {
+        return LoginCheckResult(
+          valid: true,
+          hasToken: true,
+          message: 'XPath 特征有效',
+        );
+      }
+      // 仅配未登录特征且其未出现 → 判定已登录
+      if (cfg.xpath.isEmpty && cfg.xpathUnlogin.isNotEmpty) {
+        return LoginCheckResult(
+          valid: true,
+          hasToken: true,
+          message: '未出现未登录特征',
+        );
+      }
+      return LoginCheckResult(
+        valid: false,
+        hasToken: true,
+        message: 'XPath 特征未匹配',
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
+        return LoginCheckResult(
+          valid: false,
+          hasToken: true,
+          statusCode: status,
+          message: '未登录（HTTP $status）',
+        );
+      }
+      // 网络异常：保守视为有效
+      KazumiLogger().w(
+        '[LoginCheckService] ${plugin.name} XPath 检测网络异常，保留登录态: ${e.message}',
+      );
+      return LoginCheckResult(
+        valid: true,
+        hasToken: true,
+        statusCode: status,
+        message: '网络异常，保留登录态',
+      );
+    } catch (e) {
+      KazumiLogger().w('[LoginCheckService] ${plugin.name} XPath 检测异常: $e');
+      return LoginCheckResult(
+        valid: true,
+        hasToken: true,
+        message: '检测异常，保留登录态',
+      );
+    }
+  }
+
+  /// XPath 特征是否存在于文档（XPath → CSS 选择器，html 包 querySelector）。
+  bool _xpathExists(html_dom.Document doc, String xpath) {
+    final css = _xpathToCss(xpath);
+    if (css.isEmpty) return false;
+    try {
+      return doc.querySelector(css) != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 把常用 XPath（`//tag[@attr='v']`、`//tag[@attr]`、后代 `//a//b`、`//a/b`）
+  /// 转换为 CSS 选择器；无法转换时返回空串（视为未匹配）。
+  String _xpathToCss(String xpath) {
+    var s = xpath.trim();
+    if (s.isEmpty) return '';
+    s = s.replaceFirst(RegExp(r'^//'), '');
+    s = s.replaceAllMapped(
+      RegExp(r"@([\w-]+)\s*=\s*(['\"])(.*?)\2"),
+      (m) => '[${m[1]}="${m[3]}"]',
+    );
+    s = s.replaceAllMapped(RegExp(r'@([\w-]+)'), (m) => '[${m[1]}]');
+    s = s.replaceAll('//', ' ').replaceAll('/', ' > ');
+    return s.trim();
   }
 
   /// 替换字符串中的 token 占位符。
