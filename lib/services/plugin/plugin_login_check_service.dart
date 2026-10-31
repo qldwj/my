@@ -113,9 +113,10 @@ class PluginLoginCheckService {
       final codeOk = _checkCode(response.data, cfg.successCode, cfg.successCodePath);
       final valid = statusOk && codeOk;
       // 诊断：打印 check 实际返回，便于定位「已过期」问题。
+      final respBody = response.data?.toString();
       KazumiLogger().w(
         '[LoginCheck] ${plugin.name} $url -> HTTP ${response.statusCode} '
-        'body=${response.data?.toString().length > 300 ? response.data!.toString().substring(0, 300) : response.data} '
+        'body=${respBody != null && respBody.length > 300 ? respBody.substring(0, 300) : respBody} '
         'valid=$valid',
       );
       return LoginCheckResult(
