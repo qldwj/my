@@ -168,6 +168,9 @@ class PluginLoginCheckService {
   /// 站点预置的干扰 token（如游客态、设备 token）会被此校验拦截，
   /// 避免「未登录就保存无效 token」导致的误判与登录死循环。
   Future<LoginCheckResult> checkToken(Plugin plugin, String token) async {
+    // 统一剥离 `Bearer ` 前缀（部分站点 token 自带前缀，如次元城），
+    // 保证规则 `Bearer @token` 拼接正确。
+    token = _stripBearerPrefix(token);
     if (!plugin.usesApiCheck) {
       return LoginCheckResult(valid: token.isNotEmpty, hasToken: token.isNotEmpty);
     }
@@ -278,4 +281,12 @@ class PluginLoginCheckService {
     }
     return current;
   }
+}
+
+/// 🆕 剥离 token 的 `Bearer ` 前缀（部分站点 token 自带前缀，如次元城），
+/// 保证规则 `Bearer @token` 拼接正确；纯 JWT 原样返回。
+String _stripBearerPrefix(String token) {
+  final t = token.trim();
+  if (t.toLowerCase().startsWith('bearer ')) return t.substring(7).trim();
+  return t;
 }
