@@ -126,9 +126,10 @@ class _PluginViewPageState extends State<PluginViewPage>
     final needLogin = pluginsController.pluginList
         .where((p) => p.needLogin)
         .toList();
-    // 对有 check 配置的规则异步执行登录校验
+    // 对有 check 配置（api 或 xpath 特征）的规则异步执行登录校验
     final checkResults = <String, bool>{};
-    for (final p in needLogin.where((p) => p.usesApiCheck)) {
+    for (final p in needLogin
+        .where((p) => p.usesApiCheck || p.checkConfig?.isXpath == true)) {
       final r = await PluginLoginCheckService.instance.check(p);
       checkResults[p.name] = r.valid;
     }
@@ -171,6 +172,8 @@ class _PluginViewPageState extends State<PluginViewPage>
     final cs = Theme.of(context).colorScheme;
     // token 认证站点（有 check 配置）：用 token 状态 + check 结果判断
     final isToken = plugin.usesApiCheck;
+    // XPath 特征检测站点：本地用 cookie 状态展示，valid 用 check 结果（真检测）
+    final isXpath = plugin.checkConfig?.isXpath == true;
     final status = isToken
         ? {
             'hasCookie': PluginCookieManager.instance.hasToken(plugin.name),
@@ -182,7 +185,9 @@ class _PluginViewPageState extends State<PluginViewPage>
           }
         : PluginCookieManager.instance.cookieStatus(plugin.name);
     final hasCookie = status['hasCookie'] == true;
-    final valid = status['valid'] == true;
+    final valid = (isToken || isXpath)
+        ? checkResults[plugin.name] == true
+        : status['valid'] == true;
     final expiresAt = status['expiresAt'] as DateTime?;
     final savedAt = status['savedAt'] as DateTime?;
     final isSession = status['isSession'] == true;
