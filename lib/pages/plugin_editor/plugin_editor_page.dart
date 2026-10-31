@@ -67,7 +67,7 @@ abstract final class _RuleEditorText {
   static const loginApiAccountField = '账号字段名';
   static const loginApiPasswordField = '密码字段名';
   static const loginApiTokenPath = 'token 提取路径';
-  static const loginApiTokenPathHelper = '如 $.data.token';
+  static const loginApiTokenPathHelper = r'如 $.data.token';
   static const loginApiCookiePath = 'cookie 提取路径';
   static const checkModeLabel = '登录检查方式';
   static const checkModeApi = 'API 校验';
