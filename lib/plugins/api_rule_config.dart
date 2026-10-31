@@ -271,11 +271,26 @@ class PluginCheckConfig {
   /// mode == 'xpath' 时的已登录特征 XPath：页面上出现该节点即判定已登录。
   String xpath;
 
+  /// mode == 'xpath' 时的**未登录**特征 XPath：页面上出现该节点即判定未登录（无效）。
+  ///
+  /// 与 [xpath] 可同时配置（动态用户名无法固定已登录特征时，用未登录特征反向判定）：
+  /// - [xpathUnlogin] 非空且页面上出现该节点 → 未登录（无效）；
+  /// - 否则 [xpath] 非空且页面上出现该节点 → 已登录（有效）；
+  /// - 仅配 [xpathUnlogin]：其**不出现**即判定已登录（有效）。
+  String xpathUnlogin;
+
+  /// mode == 'xpath' 时检测特征所在的页面 URL（登录后页面）。
+  /// 为空时回退到 [Plugin.loginUrl]。
+  String url;
+
   /// 是否为本地计算模式（不调接口，直接用保存的 expiresAt 判断过期）。
   bool get isLocal => mode == 'local';
 
   /// 是否为 XPath 特征检测模式。
   bool get isXpath => mode == 'xpath';
+
+  /// 是否配置了任意 XPath 特征（已登录或未登录）。
+  bool get hasXpathFeature => xpath.isNotEmpty || xpathUnlogin.isNotEmpty;
 
   PluginCheckConfig({
     ApiRequestConfig? request,
@@ -285,6 +300,8 @@ class PluginCheckConfig {
     this.tokenPlaceholder = '@token',
     this.mode = 'api',
     this.xpath = '',
+    this.xpathUnlogin = '',
+    this.url = '',
   }) : request = request ?? ApiRequestConfig();
 
   factory PluginCheckConfig.fromJson(Map<String, dynamic> json) {
@@ -303,6 +320,8 @@ class PluginCheckConfig {
       tokenPlaceholder: (json['tokenPlaceholder'] as String?) ?? '@token',
       mode: (json['mode'] as String?) ?? 'api',
       xpath: (json['xpath'] as String?) ?? '',
+      xpathUnlogin: (json['xpathUnlogin'] as String?) ?? '',
+      url: (json['url'] as String?) ?? '',
     );
   }
 
@@ -314,6 +333,8 @@ class PluginCheckConfig {
         if (tokenPlaceholder != '@token') 'tokenPlaceholder': tokenPlaceholder,
         if (mode != 'api') 'mode': mode,
         if (xpath.isNotEmpty) 'xpath': xpath,
+        if (xpathUnlogin.isNotEmpty) 'xpathUnlogin': xpathUnlogin,
+        if (url.isNotEmpty) 'url': url,
       };
 }
 
