@@ -125,6 +125,34 @@ class RuleEngine {
     }
   }
 
+  /// 尝试直接解析验证后收割的页面 HTML 为搜索结果（用于验证码通过后）。
+  /// 返回 null 表示不适用（API/POST 规则）或页面不可解析（仍是验证页/空结果），
+  /// 由调用方回落到重新检索。
+  PluginSearchResponse? tryParseHarvestedSearch(
+    RuleExecutionConfig config,
+    String raw,
+  ) {
+    if (raw.trim().isEmpty) return null;
+    if (config.searchMode == RuleMode.api || config.usePost) return null;
+    try {
+      final parsed = _xpathStrategy.parseSearch(raw, config);
+      if (parsed.items.isEmpty) return null;
+      _logDiagnostics(config, 'harvested search', parsed.diagnostics);
+      return PluginSearchResponse(
+        pluginName: config.pluginName,
+        data: parsed.items,
+      );
+    } catch (error) {
+      if (_logFailures) {
+        KazumiLogger().i(
+          'Plugin: ${config.pluginName} harvested page not parseable, '
+          'falling back to re-search ($error)',
+        );
+      }
+      return null;
+    }
+  }
+
   Future<RuleChapterTrace> queryChapters(
     RuleExecutionConfig config,
     String source, {

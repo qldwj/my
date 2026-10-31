@@ -42,6 +42,25 @@ class PluginSearchService {
     }
   }
 
+  /// 验证通过后直接使用收割到的页面 HTML 解析搜索结果。
+  /// 成功写入搜索结果返回 true；无法解析返回 false，由调用方回落到重新检索。
+  bool applyHarvestedSearchResult(String pluginName, String html) {
+    if (_isCancelled) return false;
+    for (final plugin in pluginsController.pluginList) {
+      if (plugin.name != pluginName) continue;
+      final result = plugin.parseHarvestedSearch(html);
+      if (result == null) return false;
+      infoController.pluginSearchResponseList.removeWhere(
+        (response) => response.pluginName == pluginName,
+      );
+      infoController.pluginSearchStatus[pluginName] =
+          PluginSearchStatus.success;
+      infoController.pluginSearchResponseList.add(result);
+      return true;
+    }
+    return false;
+  }
+
   /// 获取所有需要搜索的插件
   List<Plugin> _getSearchablePlugins() {
     final result = <Plugin>[];

@@ -277,6 +277,12 @@ class Plugin {
     );
   }
 
+  /// 尝试直接解析验证后收割的页面 HTML 为搜索结果（用于验证码通过后）。
+  /// 无法解析时返回 null，由调用方回落到重新检索。
+  PluginSearchResponse? parseHarvestedSearch(String html) {
+    return _ruleEngine.tryParseHarvestedSearch(_executionConfig, html);
+  }
+
   Future<RuleChapterTrace> traceChapters(
     String source, {
     RuleCancelToken? cancelToken,
