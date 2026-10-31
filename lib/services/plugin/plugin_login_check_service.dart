@@ -137,6 +137,73 @@ class PluginLoginCheckService {
     }
   }
 
+  /// 用【指定 token】（而非已保存的）校验登录态。
+  ///
+  /// 供登录页在保存 token 前调用：检测到 localStorage 中出现 token 时，
+  /// 先调用规则 `check` 接口验证它是否为有效登录 token。
+  /// 站点预置的干扰 token（如游客态、设备 token）会被此校验拦截，
+  /// 避免「未登录就保存无效 token」导致的误判与登录死循环。
+  Future<LoginCheckResult> checkToken(Plugin plugin, String token) async {
+    if (!plugin.usesApiCheck) {
+      return LoginCheckResult(valid: token.isNotEmpty, hasToken: token.isNotEmpty);
+    }
+    if (token.isEmpty) {
+      return const LoginCheckResult(valid: false, hasToken: false, message: 'token 为空');
+    }
+    final cfg = plugin.checkConfig!;
+    final req = cfg.request;
+    final ph = cfg.tokenPlaceholder;
+    final url = _renderTemplate(req.url, token, ph);
+    final headers = _renderMap(req.headers, token, ph);
+    final query = _renderMap(req.query, token, ph);
+    try {
+      final response = await DioFactory.pluginDio.request<String>(
+        url,
+        queryParameters: query.isEmpty ? null : query,
+        options: Options(
+          method: req.method.toUpperCase(),
+          responseType: ResponseType.plain,
+          headers: headers,
+        ),
+      );
+      final valid = response.statusCode == cfg.successStatus &&
+          _checkCode(response.data, cfg.successCode);
+      return LoginCheckResult(
+        valid: valid,
+        hasToken: true,
+        statusCode: response.statusCode,
+        message: valid ? '有效' : 'token 校验未通过（HTTP ${response.statusCode}）',
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
+        return LoginCheckResult(
+          valid: false,
+          hasToken: true,
+          statusCode: status,
+          message: 'token 失效（HTTP $status）',
+        );
+      }
+      // 网络异常：保守视为有效，避免误判导致清除登录态
+      KazumiLogger().w(
+        '[LoginCheckService] ${plugin.name} checkToken 网络异常，保留登录态: ${e.message}',
+      );
+      return LoginCheckResult(
+        valid: true,
+        hasToken: true,
+        statusCode: status,
+        message: '网络异常，保留登录态',
+      );
+    } catch (e) {
+      KazumiLogger().w('[LoginCheckService] ${plugin.name} checkToken 异常: $e');
+      return LoginCheckResult(
+        valid: true,
+        hasToken: true,
+        message: '检测异常，保留登录态',
+      );
+    }
+  }
+
   /// 替换字符串中的 token 占位符。
   String _renderTemplate(String template, String token, String placeholder) {
     if (template.isEmpty) return template;
