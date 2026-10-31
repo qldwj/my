@@ -384,10 +384,11 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
           ? token
           : PluginCookieManager.instance.tokenFor(widget.plugin.name);
       if (savedToken != null && savedToken.isNotEmpty) {
+        final cleanToken = _stripBearerToken(savedToken);
         widget.plugin.searchApiConfig.request.headers['Authorization'] =
-            'Bearer $savedToken';
+            'Bearer $cleanToken';
         widget.plugin.chapterApiConfig.request.headers['Authorization'] =
-            'Bearer $savedToken';
+            'Bearer $cleanToken';
       }
       if (_rememberPassword && account.isNotEmpty && password.isNotEmpty) {
         await PluginCredentialStore.instance
@@ -562,8 +563,11 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       // 注入 Authorization header 到规则（SPA API 需要 Bearer token）
       if (savedToken != null && savedToken.isNotEmpty) {
         try {
-          widget.plugin.searchApiConfig.request.headers['Authorization'] = 'Bearer $savedToken';
-          widget.plugin.chapterApiConfig.request.headers['Authorization'] = 'Bearer $savedToken';
+          final cleanToken = _stripBearerToken(savedToken);
+          widget.plugin.searchApiConfig.request.headers['Authorization'] =
+              'Bearer $cleanToken';
+          widget.plugin.chapterApiConfig.request.headers['Authorization'] =
+              'Bearer $cleanToken';
         } catch (_) {}
       } else {
         // 无 token 时回退到从 cookie 里找（老逻辑）
@@ -690,4 +694,12 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
       ]),
     ));
   }
+}
+
+/// 🆕 剥离 token 的 `Bearer ` 前缀（部分站点 token 自带前缀，如次元城），
+/// 保证注入 `Bearer <token>` 正确；纯 JWT 原样返回。
+String _stripBearerToken(String token) {
+  final t = token.trim();
+  if (t.toLowerCase().startsWith('bearer ')) return t.substring(7).trim();
+  return t;
 }
