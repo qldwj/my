@@ -28,6 +28,8 @@ import 'package:yhdm/repositories/history_repository.dart';
 import 'package:yhdm/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:yhdm/services/plugin/captcha_verification_service.dart';
 import 'package:yhdm/pages/plugin_login/plugin_login_page.dart';
 import 'package:yhdm/services/plugin/plugin_cookie_manager.dart';
