@@ -58,6 +58,9 @@ abstract final class _RuleEditorText {
   static const loginPasswordXpath = '密码 XPath';
   static const loginSubmitXpath = '提交按钮 XPath';
   static const loginSuccessXpath = '登录成功特征 XPath';
+  static const loginXpathExtraName = '名字';
+  static const loginXpathExtraValue = 'XPath 值';
+  static const loginXpathExtraAdd = '增加字段';
   static const loginApiMethod = '登录请求方法';
   static const loginApiUrl = '登录接口 URL';
   static const loginApiHeaders = '登录请求头';
@@ -291,6 +294,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController loginApiPasswordFieldCtrl = TextEditingController();
   final TextEditingController loginApiTokenPathCtrl = TextEditingController();
   final TextEditingController loginApiCookiePathCtrl = TextEditingController();
+  // 自定义 XPath 键值（xpath 表格可增删）
+  final List<_LoginXpathEntry> loginExtraXpath = [];
   // 登录检查（check.*）
   String checkMode = 'api';
   final TextEditingController checkMethodCtrl =
@@ -437,6 +442,12 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       loginPasswordXpathCtrl.text = lc.passwordXpath;
       loginSubmitXpathCtrl.text = lc.submitXpath;
       loginSuccessXpathCtrl.text = lc.successXpath;
+      for (final e in lc.extraXpath.entries) {
+        loginExtraXpath.add(_LoginXpathEntry(
+          TextEditingController(text: e.key),
+          TextEditingController(text: e.value),
+        ));
+      }
       final lapi = lc.api;
       if (lapi != null) {
         loginApiMethodCtrl.text = lapi.request.method;
@@ -530,6 +541,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     loginApiPasswordFieldCtrl.dispose();
     loginApiTokenPathCtrl.dispose();
     loginApiCookiePathCtrl.dispose();
+    for (final e in loginExtraXpath) {
+      e.nameCtrl.dispose();
+      e.xpathCtrl.dispose();
+    }
     checkMethodCtrl.dispose();
     checkUrlCtrl.dispose();
     checkHeadersCtrl.dispose();
@@ -1144,6 +1159,47 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           controller: loginSuccessXpathCtrl,
           label: _RuleEditorText.loginSuccessXpath,
         ),
+        // 🆕 自定义 XPath 键值（可增删）：名字 + XPath 值
+        for (var i = 0; i < loginExtraXpath.length; i++)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 2,
+                child: EditorTextField(
+                  controller: loginExtraXpath[i].nameCtrl,
+                  label: _RuleEditorText.loginXpathExtraName,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: EditorTextField(
+                  controller: loginExtraXpath[i].xpathCtrl,
+                  label: _RuleEditorText.loginXpathExtraValue,
+                ),
+              ),
+              IconButton(
+                tooltip: '删除',
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () => setState(() {
+                  final removed = loginExtraXpath.removeAt(i);
+                  removed.nameCtrl.dispose();
+                  removed.xpathCtrl.dispose();
+                }),
+              ),
+            ],
+          ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => setState(() => loginExtraXpath.add(
+                _LoginXpathEntry(
+                    TextEditingController(), TextEditingController()))),
+            icon: const Icon(Icons.add),
+            label: const Text(_RuleEditorText.loginXpathExtraAdd),
+          ),
+        ),
       ];
     }
     if (loginMode == 'api') {
@@ -1608,12 +1664,19 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     if (!needLogin) return null;
     final mode = loginMode;
     if (mode == 'xpath') {
+      final extra = <String, String>{};
+      for (final e in loginExtraXpath) {
+        final name = e.nameCtrl.text.trim();
+        final xpath = e.xpathCtrl.text.trim();
+        if (name.isNotEmpty && xpath.isNotEmpty) extra[name] = xpath;
+      }
       return PluginLoginConfig(
         mode: mode,
         accountXpath: loginAccountXpathCtrl.text.trim(),
         passwordXpath: loginPasswordXpathCtrl.text.trim(),
         submitXpath: loginSubmitXpathCtrl.text.trim(),
         successXpath: loginSuccessXpathCtrl.text.trim(),
+        extraXpath: extra,
       );
     }
     if (mode == 'api') {
@@ -1706,4 +1769,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       SnackBar(content: Text(error.toString())),
     );
   }
+}
+
+/// 编辑器里登录 xpath 自定义键值的一行（名字 + XPath 值）。
+class _LoginXpathEntry {
+  final TextEditingController nameCtrl;
+  final TextEditingController xpathCtrl;
+  _LoginXpathEntry(this.nameCtrl, this.xpathCtrl);
 }
