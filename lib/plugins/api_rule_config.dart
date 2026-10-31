@@ -400,6 +400,10 @@ class PluginLoginConfig {
   String submitXpath;
   String successXpath;
 
+  /// 自定义 XPath 键值（除 account/password/submit/success 外的扩展字段，
+  /// 如验证码输入框、用户名显示等，可编辑）。
+  final Map<String, String> extraXpath;
+
   /// mode == 'api' 时的 API 登录配置。
   ApiLoginConfig? api;
 
@@ -413,6 +417,7 @@ class PluginLoginConfig {
     this.passwordXpath = '',
     this.submitXpath = '',
     this.successXpath = '',
+    this.extraXpath = const {},
     this.api,
   });
 
@@ -432,10 +437,23 @@ class PluginLoginConfig {
       successXpath: (json['xpath'] is Map)
           ? (json['xpath']['success'] as String? ?? '')
           : '',
+      extraXpath: _extractExtraXpath(json['xpath']),
       api: rawApi is Map
           ? ApiLoginConfig.fromJson(Map<String, dynamic>.from(rawApi))
           : null,
     );
+  }
+
+  static Map<String, String> _extractExtraXpath(dynamic xpath) {
+    if (xpath is! Map) return const {};
+    const fixed = {'account', 'password', 'submit', 'success'};
+    final map = <String, String>{};
+    xpath.forEach((key, value) {
+      if (key is String && !fixed.contains(key) && value is String && value.isNotEmpty) {
+        map[key] = value;
+      }
+    });
+    return map;
   }
 
   Map<String, dynamic> toJson() {
@@ -445,6 +463,7 @@ class PluginLoginConfig {
       if (submitXpath.isNotEmpty) 'submit': submitXpath,
       if (successXpath.isNotEmpty) 'success': successXpath,
     };
+    xpath.addAll(extraXpath);
     return {
       'mode': mode,
       if (xpath.isNotEmpty) 'xpath': xpath,
