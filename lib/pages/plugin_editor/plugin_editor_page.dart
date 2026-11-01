@@ -86,6 +86,10 @@ abstract final class _RuleEditorText {
   static const checkTokenPlaceholder = 'token 占位符';
   static const checkXpath = '已登录特征 XPath';
   static const checkXpathHelper = '未登录页面不存在的节点';
+  static const checkXpathUnlogin = '未登录特征 XPath';
+  static const checkXpathUnloginHelper = '未登录页面存在的节点（出现即判定未登录）';
+  static const checkPageUrl = '检测页面 URL';
+  static const checkPageUrlHelper = '登录后页面地址（检测特征用，留空用登录 URL）';
   static const captchaImageHint = '//img[@class="captcha"]';
   static const captchaInputHint = '//input[@name="captcha"]';
   static const captchaButtonHint = '//button[@type="submit"]';
@@ -309,6 +313,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController checkTokenPlaceholderCtrl =
       TextEditingController(text: '@token');
   final TextEditingController checkXpathCtrl = TextEditingController();
+  final TextEditingController checkXpathUnloginCtrl = TextEditingController();
 
   static const List<ButtonSegment<String>> _ruleModeSegments = [
     ButtonSegment(
@@ -466,12 +471,13 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     if (cc != null) {
       checkMode = cc.mode;
       checkMethodCtrl.text = cc.request.method;
-      checkUrlCtrl.text = cc.request.url;
+      checkUrlCtrl.text = cc.mode == 'xpath' ? cc.url : cc.request.url;
       checkHeadersCtrl.text = _headersToText(cc.request.headers);
       checkSuccessStatusCtrl.text = cc.successStatus.toString();
       checkSuccessCodeCtrl.text = (cc.successCode ?? 0).toString();
       checkTokenPlaceholderCtrl.text = cc.tokenPlaceholder;
       checkXpathCtrl.text = cc.xpath;
+      checkXpathUnloginCtrl.text = cc.xpathUnlogin;
     }
     captchaType = plugin.antiCrawlerConfig.captchaType;
     captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
@@ -552,6 +558,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     checkSuccessCodeCtrl.dispose();
     checkTokenPlaceholderCtrl.dispose();
     checkXpathCtrl.dispose();
+    checkXpathUnloginCtrl.dispose();
     super.dispose();
   }
 
@@ -1259,6 +1266,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           label: _RuleEditorText.checkXpath,
           helper: _RuleEditorText.checkXpathHelper,
         ),
+        EditorTextField(
+          controller: checkXpathUnloginCtrl,
+          label: _RuleEditorText.checkXpathUnlogin,
+          helper: _RuleEditorText.checkXpathUnloginHelper,
+        ),
+        EditorTextField(
+          controller: checkUrlCtrl,
+          label: _RuleEditorText.checkPageUrl,
+          helper: _RuleEditorText.checkPageUrlHelper,
+        ),
       ];
     }
     if (checkMode == 'local') return const [];
@@ -1723,6 +1740,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           ? '@token'
           : checkTokenPlaceholderCtrl.text.trim(),
       xpath: checkXpathCtrl.text.trim(),
+      xpathUnlogin: checkXpathUnloginCtrl.text.trim(),
+      url: checkMode == 'xpath' ? checkUrlCtrl.text.trim() : '',
     );
     if (checkMode == 'api') {
       final url = checkUrlCtrl.text.trim();
