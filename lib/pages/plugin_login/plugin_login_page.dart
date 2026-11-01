@@ -107,9 +107,15 @@ class _PluginLoginPageState extends State<PluginLoginPage> {
             _finishAndSave(url);
           }
         },
-        // 🆕 每次页面加载完成后注入 token 轮询脚本
+        // 🆕 每次页面加载完成后注入 token 轮询脚本。
+        // 仅 token 认证站（check.mode=api，usesApiCheck）需要：SPA 登录后 token 存
+        // localStorage，轮询检测到即保存。cookie 认证站（check.mode=xpath/local，如
+        // sorani）无 localStorage 登录 token，注入只会把站点预置的游客 token 误判为
+        // 登录态强制保存（用户还没登录就被保存），故跳过，改由用户点「完成」保存。
         onPageFinished: (url) {
-          _injectTokenPoller();
+          if (widget.plugin.usesApiCheck) {
+            _injectTokenPoller();
+          }
         },
       ))
       ..loadRequest(Uri.parse(widget.plugin.loginUrl));
