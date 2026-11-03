@@ -319,9 +319,15 @@ class BangumiApi {
             ? [">0", "<=99999"]
             : [">=0", "<=99999"];
 
+    // 官方 API 要求 keyword 非空，否则会忽略 tag 过滤返回默认热门结果；
+    // 纯 tag 搜索时用 tag 名作 keyword，使过滤生效。
+    final effectiveKeyword = keyword.trim().isEmpty && tags.isNotEmpty
+        ? tags.first.trim()
+        : keyword;
+
     final filter = <String, dynamic>{
       "type": [2],
-      "tags": tags,
+      "tag": tags,
       "rank": rankFilter,
       "nsfw": false
     };
@@ -338,7 +344,7 @@ class BangumiApi {
     }
 
     return <String, dynamic>{
-      'keyword': keyword,
+      'keyword': effectiveKeyword,
       'sort': sort,
       "filter": filter,
     };
