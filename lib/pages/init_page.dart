@@ -277,15 +277,20 @@ class _InitPageState extends State<InitPage> {
     // 镜像域名旧默认值迁移：旧默认 api.qlyyz.top → 统一为 api.kazumi.fyi。
     // 用宽松比较（忽略协议、尾斜杠、大小写），避免历史存值带 `/` 或少了 https://
     // 导致迁移漏掉，界面上一直显示旧的 top 域名。
-    const newDefault = 'https://api.kazumi.fyi';
-    final proxyDomain = GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
-    final normalized = proxyDomain
-        .trim()
-        .replaceFirst(RegExp(r'^https?://', caseSensitive: false), '')
-        .replaceAll(RegExp(r'/+$'), '')
-        .toLowerCase();
-    if (normalized == 'api.qlyyz.top') {
-      await GStorage.putSetting(SettingsKeys.bangumiProxyDomain, newDefault);
+    // 仅首次执行；已迁移后不再改动，避免覆盖用户主动设置的自定义域名。
+    if (!GStorage.getSetting(SettingsKeys.bangumiMirrorDomainMigrated)) {
+      const newDefault = 'https://api.kazumi.fyi';
+      final proxyDomain = GStorage.getSetting(SettingsKeys.bangumiProxyDomain);
+      final normalized = proxyDomain
+          .trim()
+          .replaceFirst(RegExp(r'^https?://', caseSensitive: false), '')
+          .replaceAll(RegExp(r'/+$'), '')
+          .toLowerCase();
+      if (normalized == 'api.qlyyz.top') {
+        await GStorage.putSetting(SettingsKeys.bangumiProxyDomain, newDefault);
+      }
+      await GStorage.putSetting(
+          SettingsKeys.bangumiMirrorDomainMigrated, true);
     }
   }
 

@@ -393,6 +393,12 @@ class SettingsKeys {
     'https://api.kazumi.fyi',
     group: SettingGroup.proxy,
   );
+  // 镜像域名旧默认迁移是否已执行过（防止每次启动覆盖用户自定义域名）。
+  static const bangumiMirrorDomainMigrated = SettingKey<bool>(
+    'bangumiMirrorDomainMigrated',
+    false,
+    group: SettingGroup.proxy,
+  );
   // 🆕 搜索凭据（api.kazumi.fyi 签名用，从服务器下发接口获取，存 Hive，不硬编码）
   static const bangumiSearchCredentialId = SettingKey<String>(
     'bangumiSearchCredentialId',
