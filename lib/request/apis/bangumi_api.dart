@@ -319,12 +319,6 @@ class BangumiApi {
             ? [">0", "<=99999"]
             : [">=0", "<=99999"];
 
-    // 官方 API 要求 keyword 非空，否则会忽略 tag 过滤返回默认热门结果；
-    // 纯 tag 搜索时用 tag 名作 keyword，使过滤生效。
-    final effectiveKeyword = keyword.trim().isEmpty && tags.isNotEmpty
-        ? tags.first.trim()
-        : keyword;
-
     final filter = <String, dynamic>{
       "type": [2],
       "tag": tags,
@@ -344,7 +338,7 @@ class BangumiApi {
     }
 
     return <String, dynamic>{
-      'keyword': effectiveKeyword,
+      'keyword': keyword,
       'sort': sort,
       "filter": filter,
     };
@@ -359,8 +353,6 @@ class BangumiApi {
       SearchIntRange? rankRange,
       SearchDoubleRange? scoreRange,
       List<int> weekdays = const []}) async {
-    List<BangumiItem> bangumiList = [];
-
     final params = buildBangumiSearchParams(
       keyword,
       tags: tags,
@@ -373,41 +365,54 @@ class BangumiApi {
 
     // 1) 镜像优先：qlyyz.xyz/api/v0/search.php（带签名，后端 30 分钟 SQLite 缓存，
     //    快且稳，不再直连 api.bgm.tv（国内经常超时 60 秒导致搜索卡死/搜不到））
+    BangumiSearchPage? page;
     if (_proxyEnabled) {
-      final mirrorPage = await _mirrorSearchPage(params, limit, offset);
-      if (mirrorPage != null) return mirrorPage;
+      page = await _mirrorSearchPage(params, limit, offset);
     }
 
-    // 2) 直连官方 api.bgm.tv（加 8s 超时，避免长时间卡住）
-    try {
-      final jsonData = await _client.post(
-        ApiEndpoints.formatUrl(
-            ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
-            [limit, offset]),
-        data: params,
-      ).timeout(const Duration(seconds: 8));
-      final jsonList = jsonData['data'];
-      for (dynamic jsonItem in jsonList) {
-        if (jsonItem is Map<String, dynamic>) {
-          try {
-            BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem);
-            if (bangumiItem.nameCn != '') {
-              bangumiList.add(bangumiItem);
+    // 2) 镜像未命中时直连官方 api.bgm.tv（加 8s 超时，避免长时间卡住）
+    if (page == null) {
+      try {
+        final jsonData = await _client.post(
+          ApiEndpoints.formatUrl(
+              ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiRankSearch,
+              [limit, offset]),
+          data: params,
+        ).timeout(const Duration(seconds: 8));
+        final jsonList = jsonData['data'];
+        final items = <BangumiItem>[];
+        for (dynamic jsonItem in jsonList) {
+          if (jsonItem is Map<String, dynamic>) {
+            try {
+              final bangumiItem = BangumiItem.fromJson(jsonItem);
+              if (bangumiItem.nameCn != '') {
+                items.add(bangumiItem);
+              }
+            } catch (e) {
+              KazumiLogger()
+                  .e('Network: resolve search results failed', error: e);
             }
-          } catch (e) {
-            KazumiLogger()
-                .e('Network: resolve search results failed', error: e);
           }
         }
+        page = BangumiSearchPage(items: items, rawCount: jsonList.length);
+      } catch (e) {
+        KazumiLogger().e('Network: unknown search problem', error: e);
+        return null;
       }
-      return BangumiSearchPage(
-        items: bangumiList,
-        rawCount: jsonList.length,
-      );
-    } catch (e) {
-      KazumiLogger().e('Network: unknown search problem', error: e);
-      return null;
     }
+
+    // 3) 纯 tag 搜索（无 keyword）时官方会忽略 filter.tag 返回热门结果，
+    //    需按条目 tags 二次过滤，避免返回名称匹配而非标签匹配的条目。
+    //    rawCount 保留官方原始条数，使调用方能继续翻页。
+    if (keyword.trim().isEmpty && tags.isNotEmpty) {
+      final p = page!;
+      final filtered = p.items
+          .where((item) =>
+              tags.every((tag) => item.tags.any((t) => t.name == tag)))
+          .toList();
+      return BangumiSearchPage(items: filtered, rawCount: p.rawCount);
+    }
+    return page;
   }
 
   /// 番剧搜索：走 qlyyz.xyz 中转（签名 POST /api/v0/search.php）。
