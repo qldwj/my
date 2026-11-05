@@ -45,6 +45,26 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
         ..cacheJumpIndexOffset = false;
   late int _visibleRoad = widget.selectedRoad;
 
+  static const int _episodesPerGroup = 50;
+
+  late int _visibleGroup = 0;
+
+  int get _totalCount {
+    final road = _visibleRoad >= 0 && _visibleRoad < widget.roads.length
+        ? widget.roads[_visibleRoad]
+        : null;
+    return road?.data.length ?? 0;
+  }
+
+  int get _groupCount =>
+      (_totalCount + _episodesPerGroup - 1) ~/ _episodesPerGroup;
+
+  int get _groupStart => _visibleGroup * _episodesPerGroup;
+
+  int get _groupEnd => math.min(_totalCount, _groupStart + _episodesPerGroup);
+
+  int get _groupItemCount => _groupEnd - _groupStart;
+
   bool get _canLocate =>
       widget.selectedRoad >= 0 &&
       widget.selectedRoad < widget.roads.length &&
@@ -56,13 +76,26 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
 
   void _selectRoad(int road) {
     if (_visibleRoad == road) return;
-    setState(() => _visibleRoad = road);
+    setState(() {
+      _visibleRoad = road;
+      _visibleGroup = 0;
+    });
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  void _selectGroup(int group) {
+    if (_visibleGroup == group) return;
+    setState(() => _visibleGroup = group);
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
   }
 
   Future<void> revealCurrentEpisode() async {
     if (!_canLocate) return;
-    setState(() => _visibleRoad = widget.selectedRoad);
+    final targetGroup = (widget.selectedEpisode - 1) ~/ _episodesPerGroup;
+    setState(() {
+      _visibleRoad = widget.selectedRoad;
+      _visibleGroup = targetGroup;
+    });
     // Wait for the observer to bind the new road's sliver after layout.
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted ||
@@ -72,7 +105,7 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
       return;
     }
 
-    final index = widget.selectedEpisode - 1;
+    final index = (widget.selectedEpisode - 1) - _groupStart;
     final toolbarHeight = _toolbarHeight;
     final item = _observerController.observeItem(index: index);
     if (item != null) {
@@ -186,6 +219,18 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
                   ),
                 ),
               ),
+              if (_groupCount > 1)
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _GroupSelectorHeader(
+                    height: 44,
+                    color: colors.surface,
+                    groupCount: _groupCount,
+                    visibleGroup: _visibleGroup,
+                    episodesPerGroup: _episodesPerGroup,
+                    onChanged: _selectGroup,
+                  ),
+                ),
               if (count == 0)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -203,8 +248,9 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
                     16 + MediaQuery.paddingOf(context).bottom,
                   ),
                   sliver: SliverList.builder(
-                    itemCount: count,
-                    itemBuilder: (context, index) {
+                    itemCount: _groupItemCount,
+                    itemBuilder: (context, i) {
+                      final index = _groupStart + i;
                       final episode = index + 1;
                       final name = index < road!.identifier.length &&
                               road.identifier[index].trim().isNotEmpty
@@ -213,8 +259,8 @@ class EpisodeSelectionPanelState extends State<EpisodeSelectionPanel> {
                       return _EpisodeRow(
                         key: ValueKey('$_visibleRoad:$episode'),
                         name: name,
-                        first: index == 0,
-                        last: index == count - 1,
+                        first: index == _groupStart,
+                        last: index == _groupEnd - 1,
                         selected: _visibleRoad == widget.selectedRoad &&
                             episode == widget.selectedEpisode,
                         isPlaying: widget.isPlaying,
@@ -263,6 +309,65 @@ class _EpisodeToolbar extends SliverPersistentHeaderDelegate {
       height != oldDelegate.height ||
       color != oldDelegate.color ||
       child != oldDelegate.child;
+}
+
+class _GroupSelectorHeader extends SliverPersistentHeaderDelegate {
+  const _GroupSelectorHeader({
+    required this.height,
+    required this.color,
+    required this.groupCount,
+    required this.visibleGroup,
+    required this.episodesPerGroup,
+    required this.onChanged,
+  });
+
+  final double height;
+  final Color color;
+  final int groupCount;
+  final int visibleGroup;
+  final int episodesPerGroup;
+  final ValueChanged<int> onChanged;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => minExtent;
+
+  @override
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(
+      child: ColoredBox(
+        color: color,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          itemCount: groupCount,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final start = i * episodesPerGroup + 1;
+            final end = (i + 1) * episodesPerGroup;
+            final selected = i == visibleGroup;
+            return ChoiceChip(
+              label: Text('$start~$end'),
+              selected: selected,
+              showCheckmark: false,
+              onSelected: (_) => onChanged(i),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _GroupSelectorHeader oldDelegate) =>
+      height != oldDelegate.height ||
+      color != oldDelegate.color ||
+      groupCount != oldDelegate.groupCount ||
+      visibleGroup != oldDelegate.visibleGroup ||
+      episodesPerGroup != oldDelegate.episodesPerGroup;
 }
 
 class _RoadSelector extends StatefulWidget {

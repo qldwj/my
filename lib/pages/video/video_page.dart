@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
@@ -84,6 +85,10 @@ class _VideoPageState extends State<VideoPage>
   late TabController tabController;
 
   int visibleRoad = 0;
+
+  static const int _episodesPerGroup = 50;
+
+  int _visibleGroup = 0;
   /// 🔧 源失败计数（三级自救：重试→换线→清缓存）
   int _sourceFailCount = 0;
   bool _tabBodyTargetVisible = true;
@@ -456,10 +461,18 @@ class _VideoPageState extends State<VideoPage>
       if (!mounted) {
         return;
       }
-      await observerController.jumpTo(
-          index: videoPageController.selectedEpisode.episode > 1
-              ? videoPageController.selectedEpisode.episode - 1
-              : videoPageController.selectedEpisode.episode);
+      final episode = videoPageController.selectedEpisode.episode;
+      final group = (episode - 1) ~/ _episodesPerGroup;
+      if (group != _visibleGroup) {
+        setState(() => _visibleGroup = group);
+      }
+      // 等待分组重建后按组内偏移定位
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) {
+        return;
+      }
+      final index = episode - 1 - _visibleGroup * _episodesPerGroup;
+      await observerController.jumpTo(index: index < 0 ? 0 : index);
     });
   }
 
@@ -1171,6 +1184,7 @@ class _VideoPageState extends State<VideoPage>
                       onPressed: () {
                         setState(() {
                           visibleRoad = i;
+                          _visibleGroup = 0;
                         });
                       },
                       child: Container(
@@ -1329,20 +1343,57 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
+  Widget _buildEpisodeGroupSelector(int totalCount) {
+    final groupCount =
+        (totalCount + _episodesPerGroup - 1) ~/ _episodesPerGroup;
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surface,
+      child: SizedBox(
+        height: 46,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          itemCount: groupCount,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final start = i * _episodesPerGroup + 1;
+            final end = (i + 1) * _episodesPerGroup;
+            final selected = i == _visibleGroup;
+            return ChoiceChip(
+              label: Text('$start~$end'),
+              selected: selected,
+              showCheckmark: false,
+              onSelected: (_) {
+                setState(() => _visibleGroup = i);
+                if (scrollController.hasClients) scrollController.jumpTo(0);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget get menuBody {
     return Observer(
       builder: (context) {
         var cardList = <Widget>[];
+        var totalCount = 0;
         if (visibleRoad >= 0 &&
             visibleRoad < videoPageController.roadList.length) {
           final road = videoPageController.roadList[visibleRoad];
+          totalCount = road.data.length;
+          final groupStart = _visibleGroup * _episodesPerGroup;
+          final groupEnd = math.min(totalCount, groupStart + _episodesPerGroup);
           int count = 1;
           for (var urlItem in road.data) {
             int count0 = count;
             final episodeName = count0 - 1 < road.identifier.length
                 ? road.identifier[count0 - 1]
                 : '第$count0集';
-            cardList.add(Container(
+            if (count > groupStart && count <= groupEnd) {
+              cardList.add(Container(
               margin: const EdgeInsets.only(bottom: 4),
               child: Material(
                 color: Theme.of(context).colorScheme.onInverseSurface,
@@ -1420,27 +1471,34 @@ class _VideoPageState extends State<VideoPage>
                 ),
               ),
             ));
+            }
             count++;
           }
         }
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 0, right: 8, left: 8),
-            child: GridView.builder(
-              scrollDirection: Axis.vertical,
-              controller: scrollController,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 5,
-                mainAxisExtent: 70,
+        return Column(
+          children: [
+            if (totalCount > _episodesPerGroup)
+              _buildEpisodeGroupSelector(totalCount),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 0, right: 8, left: 8),
+                child: GridView.builder(
+                  scrollDirection: Axis.vertical,
+                  controller: scrollController,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 5,
+                    mainAxisExtent: 70,
+                  ),
+                  itemCount: cardList.length,
+                  itemBuilder: (context, index) {
+                    return cardList[index];
+                  },
+                ),
               ),
-              itemCount: cardList.length,
-              itemBuilder: (context, index) {
-                return cardList[index];
-              },
             ),
-          ),
+          ],
         );
       },
     );
