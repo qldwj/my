@@ -771,7 +771,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   playerController.pause();
                   RemotePlay()
                       .castVideo(playerController.videoUrl,
-                          videoPageController.currentPlugin.referer)
+                          title: playerController.mediaTitle)
                       .whenComplete(() {
                     if (mounted && needRestart) {
                       playerController.play();
