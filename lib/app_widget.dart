@@ -11,6 +11,8 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/network/metered_network_service.dart';
 import 'package:yhdm/services/platform/window_state_service.dart';
+import 'package:yhdm/services/platform/app_exit.dart';
+import 'package:yhdm/services/platform/tray_service.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
@@ -47,7 +49,7 @@ class _AppWidgetState extends State<AppWidget>
   Future<void> _initializePlatformIntegrations() async {
     if (isDesktop()) {
       await windowManager.setPreventClose(true);
-      await _handleTray();
+      await TrayService.initialize();
     }
     await _configurePreferredDisplayMode();
     // 初始化深度链接 (yhdm://)
@@ -274,7 +276,7 @@ class _AppWidgetState extends State<AppWidget>
         });
         break;
       case 'exit':
-        exit(0);
+        AppExit.quit();
         break;
     }
   }
@@ -309,7 +311,7 @@ class _AppWidgetState extends State<AppWidget>
 
     switch (exitBehavior) {
       case 0:
-        exit(0);
+        AppExit.quit();
       case 1:
         KazumiDialog.dismiss();
         windowManager.hide();
@@ -353,7 +355,7 @@ class _AppWidgetState extends State<AppWidget>
                     if (saveExitBehavior) {
                       await GStorage.putSetting(SettingsKeys.exitBehavior, 0);
                     }
-                    exit(0);
+                    AppExit.quit();
                   },
                   child: const Text('退出 Kazumi')),
               TextButton(
@@ -400,35 +402,6 @@ class _AppWidgetState extends State<AppWidget>
         "Platform brightness changed, themeMode: ${themeProvider.themeMode}");
 
     _syncWindowsTitleBarBrightness(themeProvider);
-  }
-
-  Future<void> _handleTray() async {
-    // 🆕 尊重托盘开关（默认开启）
-    if (!GStorage.getSetting(SettingsKeys.desktopTrayEnabled)) {
-      return;
-    }
-    if (Platform.isWindows) {
-      await trayManager.setIcon('assets/images/logo/logo_android.png');
-    } else if (Platform.environment.containsKey('FLATPAK_ID') ||
-        Platform.environment.containsKey('SNAP')) {
-      await trayManager.setIcon('io.github.Predidit.Kazumi');
-    } else {
-      await trayManager.setIcon('assets/images/logo/logo_android.png');
-    }
-
-    if (!Platform.isLinux) {
-      await trayManager.setToolTip('YHDM');
-    }
-
-    Menu trayMenu = Menu(items: [
-      MenuItem(key: 'show_window', label: '显示窗口'),
-      MenuItem.separator(),
-      MenuItem(key: 'download', label: '打开下载页'),
-      MenuItem(key: 'settings', label: '打开设置'),
-      MenuItem.separator(),
-      MenuItem(key: 'exit', label: '退出 YHDM')
-    ]);
-    await trayManager.setContextMenu(trayMenu);
   }
 
   @override

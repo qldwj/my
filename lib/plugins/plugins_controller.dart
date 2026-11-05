@@ -7,8 +7,10 @@ import 'package:yhdm/plugins/plugins.dart';
 import 'package:yhdm/services/plugin/plugin_validity_tracker.dart';
 import 'package:yhdm/services/plugin/plugin_install_time_tracker.dart';
 import 'package:yhdm/request/apis/plugin_catalog_api.dart';
+import 'package:yhdm/request/config/rules_repository_config.dart';
 import 'package:yhdm/modules/plugin/plugin_http_module.dart';
 import 'package:yhdm/services/logging/logger.dart';
+import 'package:yhdm/services/storage/storage.dart';
 import 'package:yhdm/utils/async_serial_queue.dart';
 import 'package:yhdm/utils/async_single_flight.dart';
 import 'package:yhdm/utils/version.dart';
@@ -44,8 +46,10 @@ class PluginBatchUpdateResult {
   bool get hasNoCandidates => candidates == 0;
 }
 
-typedef PluginCatalogLoader = Future<List<PluginHTTPItem>> Function();
-typedef PluginLoader = Future<Plugin> Function(String name);
+typedef PluginCatalogLoader = Future<List<PluginHTTPItem>> Function(
+  String repository,
+);
+typedef PluginLoader = Future<Plugin> Function(String repository, String name);
 typedef PluginJsonWriter = Future<void> Function(String jsonData);
 typedef PluginErrorReporter = void Function(
   String message,
@@ -77,7 +81,7 @@ abstract class _PluginsController with Store {
   final PluginLoader _pluginLoader;
   final PluginJsonWriter? _pluginJsonWriter;
   final PluginErrorReporter _errorReporter;
-  final AsyncSingleFlight<List<PluginHTTPItem>> _catalogRefreshSingleFlight =
+  AsyncSingleFlight<List<PluginHTTPItem>> _catalogRefreshSingleFlight =
       AsyncSingleFlight<List<PluginHTTPItem>>();
   final AsyncSerialQueue _mutations = AsyncSerialQueue();
   Map<String, PluginHTTPItem> _pluginCatalogByName = const {};
@@ -213,6 +217,25 @@ abstract class _PluginsController with Store {
         DateTime.now().difference(refreshedAt) < _pluginCatalogMaxAge;
   }
 
+  /// Empty means the official repository.
+  String get ruleRepository =>
+      GStorage.getSetting(SettingsKeys.ruleRepositoryUrl);
+
+  /// Returns whether the repository changed. Throws [FormatException].
+  Future<bool> setRuleRepository(String input) async {
+    final repository = RulesRepositoryConfig.normalizeForStorage(input);
+    if (repository == ruleRepository) {
+      return false;
+    }
+    await GStorage.putSetting(SettingsKeys.ruleRepositoryUrl, repository);
+    // Later refreshes must not join a request for the previous repository.
+    _catalogRefreshSingleFlight = AsyncSingleFlight();
+    _pluginCatalogByName = const {};
+    _pluginCatalogRefreshedAt = null;
+    pluginHTTPList.clear();
+    return true;
+  }
+
   void _replacePlugin(Plugin plugin) {
     bool flag = false;
     for (int i = 0; i < pluginList.length; ++i) {
@@ -321,15 +344,19 @@ abstract class _PluginsController with Store {
 
   Future<List<PluginHTTPItem>> refreshPluginCatalog() {
     return _catalogRefreshSingleFlight.run(() async {
+      final repository = ruleRepository;
       try {
-        final catalog = await _catalogLoader();
-        _pluginCatalogByName = {
-          for (final item in catalog) _catalogKey(item.name): item,
-        };
-        pluginHTTPList
-          ..clear()
-          ..addAll(catalog);
-        _pluginCatalogRefreshedAt = DateTime.now();
+        final catalog = await _catalogLoader(repository);
+        // The repository may have been switched while loading.
+        if (repository == ruleRepository) {
+          _pluginCatalogByName = {
+            for (final item in catalog) _catalogKey(item.name): item,
+          };
+          pluginHTTPList
+            ..clear()
+            ..addAll(catalog);
+          _pluginCatalogRefreshedAt = DateTime.now();
+        }
         return List<PluginHTTPItem>.unmodifiable(catalog);
       } catch (error, stackTrace) {
         _errorReporter(
@@ -406,9 +433,11 @@ abstract class _PluginsController with Store {
   }
 
   Future<PluginUpdateResult> tryUpdatePluginByName(String name) {
+    // Captured before queueing so a later switch can't redirect this request.
+    final repository = ruleRepository;
+    final catalogName = _pluginCatalogByName[_catalogKey(name)]?.name ?? name;
     return _mutations.run(() async {
-      final catalogName = _pluginCatalogByName[_catalogKey(name)]?.name ?? name;
-      final attempt = await _preparePluginUpdate(catalogName);
+      final attempt = await _preparePluginUpdate(repository, catalogName);
       if (attempt.result == PluginUpdateResult.updated) {
         await _mutateAndPersistNow(
           () => _replacePlugin(attempt.plugin!),
@@ -420,10 +449,13 @@ abstract class _PluginsController with Store {
     });
   }
 
-  Future<_PluginUpdateAttempt> _preparePluginUpdate(String name) async {
+  Future<_PluginUpdateAttempt> _preparePluginUpdate(
+    String repository,
+    String name,
+  ) async {
     late final Plugin remotePlugin;
     try {
-      remotePlugin = await _pluginLoader(name);
+      remotePlugin = await _pluginLoader(repository, name);
     } catch (error, stackTrace) {
       _errorReporter(
         'Plugin: failed to download rule $name',
@@ -499,8 +531,9 @@ abstract class _PluginsController with Store {
       throw StateError('Plugin catalog has not been loaded');
     }
 
+    final repository = ruleRepository;
     final candidates = _updatablePluginNames();
-    final attempts = await _preparePluginUpdates(candidates);
+    final attempts = await _preparePluginUpdates(repository, candidates);
     var updated = 0;
     var requiresNewerClient = 0;
     var failed = 0;
@@ -541,6 +574,7 @@ abstract class _PluginsController with Store {
   }
 
   Future<List<_PluginUpdateAttempt>> _preparePluginUpdates(
+    String repository,
     List<String> names,
   ) async {
     if (names.isEmpty) {
@@ -552,7 +586,7 @@ abstract class _PluginsController with Store {
     Future<void> worker() async {
       while (nextIndex < names.length) {
         final index = nextIndex++;
-        results[index] = await _preparePluginUpdate(names[index]);
+        results[index] = await _preparePluginUpdate(repository, names[index]);
       }
     }
 

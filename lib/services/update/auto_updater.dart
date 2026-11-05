@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/request/clients/download_http_client.dart';
 import 'package:yhdm/request/config/api_endpoints.dart';
+import 'package:yhdm/services/platform/app_exit.dart';
 import 'package:yhdm/services/logging/logger.dart';
 import 'package:yhdm/services/storage/storage.dart';
 import 'package:open_filex/open_filex.dart';
@@ -1205,11 +1206,11 @@ class AutoUpdater {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
         await Future.delayed(const Duration(seconds: 1));
-        exit(0);
+        await AppExit.quit();
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
-          exit(0);
+          await AppExit.quit();
         }
       } else if (Platform.isAndroid) {
         // ⭐ 安装前最后一道校验：存在 + 可读 + >1MB，避免系统包安装器

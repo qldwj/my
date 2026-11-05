@@ -371,6 +371,12 @@ class SettingsKeys {
     true,
     group: SettingGroup.proxy,
   );
+  /// 空字符串表示官方规则仓库。
+  static const ruleRepositoryUrl = SettingKey<String>(
+    'ruleRepositoryUrl',
+    '',
+    group: SettingGroup.proxy,
+  );
   /// 规则仓库加速模式：''（回退开关）/ 'atomgit' / 'ghProxy' / 'ghfast' / 'direct'。
   static const rulesMirror = SettingKey<String>(
     'rulesMirror',
@@ -1117,6 +1123,7 @@ class SettingsKeys {
     oledEnhance,
     displayMode,
     enableGitProxy,
+    ruleRepositoryUrl,
     rulesMirror,
     enableBangumiProxy,
     imageAcceleration,

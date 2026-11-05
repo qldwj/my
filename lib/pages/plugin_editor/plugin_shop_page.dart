@@ -3,6 +3,7 @@ import 'package:yhdm/bean/appbar/sys_app_bar.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/pages/plugin_editor/market_page.dart';
 import 'package:yhdm/pages/plugin_editor/plugin_catalog_view.dart';
+import 'package:yhdm/pages/plugin_editor/rule_dialogs.dart';
 import 'package:yhdm/plugins/plugins_controller.dart';
 import 'package:yhdm/navigation.dart';
 
@@ -28,6 +29,15 @@ class _PluginShopPageState extends State<PluginShopPage> {
     });
   }
 
+  Future<void> _editRepository() async {
+    await showRuleRepositoryDialog(context, widget.controller);
+    // A changed repository reloads the catalog with the new repository.
+    if (mounted) {
+      setState(() {});
+      catalogKey.currentState?.refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -35,6 +45,11 @@ class _PluginShopPageState extends State<PluginShopPage> {
       appBar: SysAppBar(
         title: Text(l10n.setFRuleRepository),
         actions: [
+          IconButton(
+            onPressed: _editRepository,
+            tooltip: '规则仓库地址',
+            icon: const Icon(Icons.link_rounded),
+          ),
           IconButton(
             onPressed: () {
               final navContext = rootNavigatorKey.currentContext;

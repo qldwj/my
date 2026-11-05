@@ -301,16 +301,27 @@ class PluginCatalogViewState extends State<PluginCatalogView> {
   Widget _buildLoadError() {
     final l10n = AppLocalizations.of(context)!;
     final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
-    final repoMsg = widget.errorMessage ?? l10n.setFRepoUnreachable;
+    // 镜像只适用于官方仓库。
+    final customRepository = _controller.ruleRepository.isNotEmpty;
+    final repoMsg = customRepository
+        ? '请检查自定义仓库地址和网络连接后重试。'
+        : (widget.errorMessage ?? l10n.setFRepoUnreachable);
+    final mirrorMsg = customRepository
+        ? ''
+        : (enableGitProxy
+            ? l10n.setFRepoMirrorEnabled
+            : l10n.setFRepoMirrorDisabled);
     return Center(
       child: GeneralErrorWidget(
-        errMsg:
-            '${repoMsg}\n${enableGitProxy ? l10n.setFRepoMirrorEnabled : l10n.setFRepoMirrorDisabled}',
+        errMsg: '$repoMsg\n$mirrorMsg',
         actions: [
-          GeneralErrorButton(
-            onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
-            text: enableGitProxy ? l10n.setFDisableRepoMirror : l10n.setFEnableRepoMirror,
-          ),
+          if (!customRepository)
+            GeneralErrorButton(
+              onPressed: () => unawaited(_toggleGitProxyAndRefresh()),
+              text: enableGitProxy
+                  ? l10n.setFDisableRepoMirror
+                  : l10n.setFEnableRepoMirror,
+            ),
           GeneralErrorButton(onPressed: refresh, text: l10n.setCRefresh),
         ],
       ),

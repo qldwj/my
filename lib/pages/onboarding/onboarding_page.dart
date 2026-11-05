@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:yhdm/bean/appbar/sys_app_bar.dart';
+import 'package:yhdm/services/platform/app_exit.dart';
 import 'package:yhdm/bean/dialog/dialog_helper.dart';
 import 'package:yhdm/l10n/app_localizations.dart';
 import 'package:yhdm/bean/settings/theme_provider.dart';
@@ -238,7 +239,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           children: [
             if (currentIndex == 0)
               TextButton(
-                onPressed: () => exit(0),
+                onPressed: AppExit.quit,
                 child: Text(
                   l10n.exit,
                   style: TextStyle(color: colorScheme.outline),
